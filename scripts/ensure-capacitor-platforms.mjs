@@ -30,7 +30,7 @@ if (!existsSync("android")) {
 
 // Keep Xcode/SPM from holding on to package products that were removed from
 // package.json and Package.swift. Without this, Xcode can keep reporting stale
-// products like `CapgoCapacitorNativeBiometric` even after the dependency is gone.
+// products even after the dependency is gone.
 if (existsSync("ios")) {
   removeIfExists("ios/App/CapApp-SPM/.build");
   removeIfExists("ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm");
