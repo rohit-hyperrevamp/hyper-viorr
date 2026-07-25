@@ -68,7 +68,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/lib/use-theme";
 import { toast } from "sonner";
-import { AppleNativeSetupCard } from "@/components/AppleNativeSetupCard";
+
 
 
 export const Route = createFileRoute("/admin")({
@@ -736,9 +736,6 @@ function AdminLayout() {
           </div>
           <NotificationBell />
         </div>
-        {isReady && user && !permsLoading && (
-          <AppleNativeSetupCard compact autoStart nativeOnly className="mb-4" />
-        )}
         <div className="mx-auto max-w-[1500px]">
           <div key={pathname} className="page-enter">
             {isReady && user && !permsLoading ? (
