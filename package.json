@@ -12,8 +12,8 @@
     "format": "prettier --write .",
     "mobile:sync": "node scripts/ensure-capacitor-platforms.mjs",
     "mobile:assets": "capacitor-assets generate --iconBackgroundColor #ffffff --iconBackgroundColorDark #ffffff --splashBackgroundColor #ffffff --splashBackgroundColorDark #ffffff",
-    "mobile:ios": "npm run mobile:sync && npx cap open ios",
-    "mobile:android": "npm run mobile:sync && npx cap open android"
+    "mobile:ios": "npm run mobile:sync && npx --yes --package @capacitor/cli -- cap open ios",
+    "mobile:android": "npm run mobile:sync && npx --yes --package @capacitor/cli -- cap open android"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.50",
