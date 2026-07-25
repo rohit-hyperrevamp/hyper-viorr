@@ -1091,6 +1091,40 @@ img, video { max-width: 100%; height: auto; }
   }
 }
 
+/* Mobile: keep popovers, dropdowns, and select menus inside the viewport
+   so nothing overflows off-screen or clips content. */
+@media (max-width: 767px) {
+  [data-radix-popper-content-wrapper] {
+    max-width: calc(100vw - 16px) !important;
+  }
+  [data-radix-select-content],
+  [data-radix-dropdown-menu-content],
+  [data-radix-popover-content],
+  [data-radix-menu-content] {
+    max-width: calc(100vw - 16px) !important;
+    max-height: min(70dvh, 24rem) !important;
+    overflow-y: auto;
+  }
+}
+
+/* Global button hygiene — prevents label overflow / clipped CTAs on mobile.
+   Buttons and links inside CTAs never wrap awkwardly; they truncate cleanly. */
+button, [role="button"], a.btn, .btn {
+  min-width: 0;
+}
+button > span:not(.sr-only),
+[role="button"] > span:not(.sr-only) {
+  min-width: 0;
+}
+
+/* On phones, CTAs get sane min tap height and consistent horizontal padding. */
+@media (max-width: 767px) {
+  button:not([data-bottom-nav] *):not([data-slot="icon"]),
+  [role="button"]:not([data-bottom-nav] *) {
+    min-height: 40px;
+  }
+}
+
 /* Prevent selection/callout on non-text UI chrome */
 
 button, [role="button"], nav, header, aside {
