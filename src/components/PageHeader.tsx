@@ -54,12 +54,12 @@ export function PageHeader({
       </nav>
 
       <div className="relative overflow-hidden rounded-2xl sm:rounded-[22px] border border-border/60 bg-card p-4 sm:p-6">
-        <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
-          <div className="flex min-w-0 items-start gap-3.5">
+        <div className="relative flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
+          <div className="flex min-w-0 items-start gap-3">
             {Icon && (
-              <div className="mt-0.5 hidden shrink-0 sm:block">
-                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20">
-                  <Icon className="h-[18px] w-[18px]" />
+              <div className="mt-0.5 shrink-0">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20 sm:h-11 sm:w-11">
+                  <Icon className="h-[17px] w-[17px] sm:h-[18px] sm:w-[18px]" />
                 </div>
               </div>
             )}
@@ -69,20 +69,21 @@ export function PageHeader({
                   {eyebrow}
                 </div>
               )}
-              <h1 className="truncate font-display text-[22px] font-semibold leading-[1.15] tracking-tight text-foreground sm:text-[24px]">
+              <h1 className="font-display text-[20px] font-semibold leading-[1.2] tracking-tight text-foreground sm:truncate sm:text-[24px]">
                 {title}
               </h1>
               {description && (
-                <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
+                <p className="mt-1.5 max-w-2xl text-[12.5px] leading-relaxed text-muted-foreground sm:text-[13px]">
                   {description}
                 </p>
               )}
             </div>
           </div>
           {actions && (
-            <div className="flex shrink-0 flex-wrap items-center gap-2 self-start">{actions}</div>
+            <div className="-mx-1 flex flex-wrap items-center gap-2 self-start overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:shrink-0 sm:overflow-visible sm:px-0 sm:pb-0">{actions}</div>
           )}
         </div>
+
 
         {kpis && (
           <div className="relative mt-5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">{kpis}</div>

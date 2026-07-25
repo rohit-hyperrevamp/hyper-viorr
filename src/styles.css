@@ -1077,7 +1077,22 @@ img, video { max-width: 100%; height: auto; }
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
+/* Mobile: any wide table inside a card should scroll horizontally
+   instead of clipping or forcing the page to expand. */
+@media (max-width: 767px) {
+  .rounded-2xl > table,
+  [class*="rounded-"] > .overflow-hidden > table,
+  .card table,
+  main table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* Prevent selection/callout on non-text UI chrome */
+
 button, [role="button"], nav, header, aside {
   -webkit-user-select: none;
   user-select: none;
