@@ -41,8 +41,8 @@ if (existsSync("ios")) {
   removeIfExists("ios/DerivedData");
 
   // Xcode stores resolved Swift package products outside the repo too. If an
-  // old checkout opened the Capgo biometric package once, Xcode can keep trying
-  // to link `CapgoCapacitorNativeBiometric` even after Capacitor removed it.
+  // old checkout opened a removed biometric package once, Xcode can keep trying
+  // to link that stale product even after Capacitor removed it.
   const xcodeDerivedData = `${homedir()}/Library/Developer/Xcode/DerivedData`;
   if (existsSync(xcodeDerivedData)) {
     removeIfExists(xcodeDerivedData);
