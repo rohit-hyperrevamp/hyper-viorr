@@ -1,4 +1,4 @@
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { homedir } from "node:os";
 
@@ -22,30 +22,33 @@ const removeIfExists = (path) => {
 };
 
 if (!existsSync("ios")) {
-  run("npx", [...CLI, "add", "ios"]);
+  run("npx", [...CLI, "add", "ios", "--packagemanager", "CocoaPods"]);
 }
 
 if (!existsSync("android")) {
   run("npx", [...CLI, "add", "android"]);
 }
 
-// Keep Xcode/SPM from holding on to package products that were removed from
-// package.json and Package.swift. Without this, Xcode can keep reporting stale
-// products even after the dependency is gone.
+// Keep Xcode from holding on to removed Swift Package state. This app uses
+// CocoaPods for iOS because the current SPM artifact path has been unstable on
+// local Xcode builds.
 if (existsSync("ios")) {
-  removeIfExists("ios/App/CapApp-SPM/.build");
+  removeIfExists("ios/App/CapApp-SPM");
   removeIfExists("ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm");
   removeIfExists("ios/App/App.xcodeproj/project.xcworkspace/xcuserdata");
   removeIfExists("ios/App/App.xcodeproj/xcuserdata");
   removeIfExists("ios/App/App.xcworkspace/xcuserdata");
   removeIfExists("ios/DerivedData");
 
-  // Xcode stores resolved Swift package products outside the repo too. If an
-  // old checkout opened a removed biometric package once, Xcode can keep trying
-  // to link that stale product even after Capacitor removed it.
+  // Xcode stores resolved package state outside the repo too. Remove only this
+  // app's derived-data folders so an old SPM resolution cannot keep breaking it.
   const xcodeDerivedData = `${homedir()}/Library/Developer/Xcode/DerivedData`;
   if (existsSync(xcodeDerivedData)) {
-    removeIfExists(xcodeDerivedData);
+    for (const entry of readdirSync(xcodeDerivedData)) {
+      if (entry.startsWith("App-")) {
+        removeIfExists(`${xcodeDerivedData}/${entry}`);
+      }
+    }
   }
 }
 
