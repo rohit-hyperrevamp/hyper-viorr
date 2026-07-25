@@ -9,6 +9,7 @@ import { isNativePlatform, logNativeEvent } from "@/lib/native";
 import {
   beginNativeAppUnlockPrompt,
   endNativeAppUnlockPrompt,
+  getLastNativeAppPromptAt,
   getLastNativeAppUnlockAt,
   isNativeAppSessionUnlocked,
   isNativeAppUnlockPromptInFlight,
@@ -152,6 +153,9 @@ export function NativeAppLock() {
     // Threshold long enough to cover the native Face ID sheet (which itself
     // backgrounds the app). Only truly leaving the app for this long re-locks.
     const RESUME_LOCK_THRESHOLD_MS = 60_000;
+    // iOS reports Face ID / native sheets as app inactive/active. Suppress all
+    // resume locks close to a biometric prompt to prevent a second prompt loop.
+    const POST_PROMPT_GRACE_MS = 90_000;
     // Grace period after a successful unlock to ignore spurious resume events.
     const POST_UNLOCK_GRACE_MS = 5_000;
 
@@ -167,6 +171,10 @@ export function NativeAppLock() {
           return;
         }
         if (isNativeAppUnlockPromptInFlight()) {
+          inactiveAt = 0;
+          return;
+        }
+        if (Date.now() - getLastNativeAppPromptAt() < POST_PROMPT_GRACE_MS) {
           inactiveAt = 0;
           return;
         }

@@ -1,91 +1,73 @@
-const SESSION_KEY = "radiant.native.app-lock.session.v1";
-const DEFAULT_UNLOCK_TTL_MS = 12 * 60 * 60 * 1000;
+const RUNTIME_KEY = "__radiantNativeAppLockRuntime";
 
-type UnlockSession = {
-  unlockedAt: number;
-  expiresAt: number;
+type NativeAppLockRuntime = {
+  unlocked: boolean;
+  promptInFlight: boolean;
+  lastUnlockAt: number;
+  lastPromptAt: number;
 };
 
-let nativeAppSessionUnlocked = false;
-let nativeAppUnlockPromptInFlight = false;
-let lastNativeAppUnlockAt = 0;
+const fallbackRuntime: NativeAppLockRuntime = {
+  unlocked: false,
+  promptInFlight: false,
+  lastUnlockAt: 0,
+  lastPromptAt: 0,
+};
 
-function readUnlockSession(): UnlockSession | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.sessionStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<UnlockSession>;
-    if (
-      typeof parsed.unlockedAt !== "number" ||
-      typeof parsed.expiresAt !== "number" ||
-      parsed.expiresAt <= Date.now()
-    ) {
-      window.sessionStorage.removeItem(SESSION_KEY);
-      return null;
-    }
-    return { unlockedAt: parsed.unlockedAt, expiresAt: parsed.expiresAt };
-  } catch {
-    return null;
+function runtime() {
+  if (typeof window === "undefined") return fallbackRuntime;
+  const holder = window as unknown as Record<string, NativeAppLockRuntime | undefined>;
+  if (!holder[RUNTIME_KEY]) {
+    holder[RUNTIME_KEY] = {
+      unlocked: false,
+      promptInFlight: false,
+      lastUnlockAt: 0,
+      lastPromptAt: 0,
+    };
   }
-}
-
-function writeUnlockSession(session: UnlockSession) {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  } catch {
-    /* noop */
-  }
-}
-
-function clearUnlockSession() {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.removeItem(SESSION_KEY);
-  } catch {
-    /* noop */
-  }
+  return holder[RUNTIME_KEY];
 }
 
 export function isNativeAppSessionUnlocked() {
-  if (nativeAppSessionUnlocked) return true;
-  const session = readUnlockSession();
-  if (!session) return false;
-  nativeAppSessionUnlocked = true;
-  lastNativeAppUnlockAt = session.unlockedAt;
-  return nativeAppSessionUnlocked;
+  return runtime().unlocked;
 }
 
-export function markNativeAppSessionUnlocked(ttlMs = DEFAULT_UNLOCK_TTL_MS) {
+export function markNativeAppSessionUnlocked() {
   const now = Date.now();
-  nativeAppSessionUnlocked = true;
-  lastNativeAppUnlockAt = now;
-  writeUnlockSession({ unlockedAt: now, expiresAt: now + ttlMs });
+  const state = runtime();
+  state.unlocked = true;
+  state.lastUnlockAt = now;
+  state.lastPromptAt = now;
 }
 
 export function resetNativeAppSessionUnlock() {
-  nativeAppSessionUnlocked = false;
-  lastNativeAppUnlockAt = 0;
-  clearUnlockSession();
+  const state = runtime();
+  state.unlocked = false;
+  state.lastUnlockAt = 0;
 }
 
 export function beginNativeAppUnlockPrompt() {
-  if (nativeAppUnlockPromptInFlight) return false;
-  nativeAppUnlockPromptInFlight = true;
+  const state = runtime();
+  if (state.promptInFlight) return false;
+  state.promptInFlight = true;
+  state.lastPromptAt = Date.now();
   return true;
 }
 
 export function endNativeAppUnlockPrompt() {
-  nativeAppUnlockPromptInFlight = false;
+  const state = runtime();
+  state.promptInFlight = false;
+  state.lastPromptAt = Date.now();
 }
 
 export function isNativeAppUnlockPromptInFlight() {
-  return nativeAppUnlockPromptInFlight;
+  return runtime().promptInFlight;
 }
 
 export function getLastNativeAppUnlockAt() {
-  if (lastNativeAppUnlockAt > 0) return lastNativeAppUnlockAt;
-  const session = readUnlockSession();
-  return session?.unlockedAt ?? 0;
+  return runtime().lastUnlockAt;
+}
+
+export function getLastNativeAppPromptAt() {
+  return runtime().lastPromptAt;
 }
