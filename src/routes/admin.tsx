@@ -650,20 +650,12 @@ function AdminLayout() {
         </div>
       </aside>
 
-      {/* Mobile top bar */}
-      <header data-app-header className="sticky top-0 z-20 flex min-h-14 items-center gap-2 border-b border-border/40 bg-card/60 px-4 backdrop-blur-2xl backdrop-saturate-150 lg:hidden animate-slide-in-top safe-top safe-x">
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          className="grid h-9 w-9 place-items-center rounded-xl border border-border/50 bg-card/70 text-foreground"
-          aria-label="Open menu"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-        <Link to={dashboardHref} className="ml-1 flex min-w-0 items-center gap-2">
+      {/* Mobile top bar — native-app style, no hamburger (bottom nav has More) */}
+      <header data-app-header className="sticky top-0 z-20 flex min-h-12 items-center justify-between gap-3 border-b border-border/30 bg-card/70 px-4 backdrop-blur-2xl backdrop-saturate-150 lg:hidden animate-slide-in-top safe-top safe-x">
+        <Link to={dashboardHref} className="flex min-w-0 items-center gap-2">
           <BrandMark />
         </Link>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <NotificationBell />
         </div>
       </header>
