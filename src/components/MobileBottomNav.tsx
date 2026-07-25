@@ -1,0 +1,118 @@
+import { Link } from "@tanstack/react-router";
+import { MoreHorizontal } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export type BottomNavItem = {
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  to?: string;
+  onClick?: () => void;
+  active?: boolean;
+};
+
+/**
+ * Fixed bottom tab bar for mobile / native shells.
+ * Shows up to 4 primary destinations + a "More" tab that opens
+ * the full navigation drawer. Respects iOS safe-area inset.
+ */
+export function MobileBottomNav({
+  items,
+  onMore,
+  moreActive,
+}: {
+  items: BottomNavItem[];
+  onMore: () => void;
+  moreActive?: boolean;
+}) {
+  const primary = items.slice(0, 4);
+  const showMore = items.length > 4 || items.length === 0 || true; // always show More for full menu access
+
+  return (
+    <nav
+      aria-label="Primary"
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-30 lg:hidden safe-bottom",
+        "border-t border-border/50 bg-card/85 backdrop-blur-2xl backdrop-saturate-150",
+        "shadow-[0_-8px_24px_-16px_rgba(15,23,42,0.25)]",
+      )}
+    >
+      <ul className="mx-auto flex max-w-lg items-stretch justify-around px-1 pt-1.5 pb-1">
+        {primary.map((it) => {
+          const Icon = it.icon;
+          const inner = (
+            <div
+              className={cn(
+                "flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1.5 transition-colors",
+                it.active
+                  ? "text-accent"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <span
+                className={cn(
+                  "grid h-8 w-8 place-items-center rounded-xl transition-colors",
+                  it.active && "bg-accent/12",
+                )}
+              >
+                <Icon className="h-[18px] w-[18px]" />
+              </span>
+              <span
+                className={cn(
+                  "max-w-full truncate text-[10.5px] font-semibold leading-none tracking-tight",
+                  it.active ? "text-accent" : "text-foreground/70",
+                )}
+              >
+                {it.label}
+              </span>
+            </div>
+          );
+          return (
+            <li key={it.key} className="flex-1">
+              {it.to ? (
+                <Link to={it.to} className="block">
+                  {inner}
+                </Link>
+              ) : (
+                <button type="button" onClick={it.onClick} className="block w-full">
+                  {inner}
+                </button>
+              )}
+            </li>
+          );
+        })}
+        {showMore && (
+          <li className="flex-1">
+            <button
+              type="button"
+              onClick={onMore}
+              className="block w-full"
+              aria-label="More"
+            >
+              <div
+                className={cn(
+                  "flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1.5 transition-colors",
+                  moreActive
+                    ? "text-accent"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span
+                  className={cn(
+                    "grid h-8 w-8 place-items-center rounded-xl transition-colors",
+                    moreActive && "bg-accent/12",
+                  )}
+                >
+                  <MoreHorizontal className="h-[18px] w-[18px]" />
+                </span>
+                <span className="text-[10.5px] font-semibold leading-none tracking-tight text-foreground/70">
+                  More
+                </span>
+              </div>
+            </button>
+          </li>
+        )}
+      </ul>
+    </nav>
+  );
+}
