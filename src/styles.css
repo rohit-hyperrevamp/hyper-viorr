@@ -1117,10 +1117,11 @@ button > span:not(.sr-only),
   min-width: 0;
 }
 
-/* On phones, CTAs get sane min tap height and consistent horizontal padding. */
+/* On phones, only shadcn Button variants get the CTA tap-height bump.
+   Radix primitives (Switch, Checkbox, small icon triggers) keep their own sizing. */
 @media (max-width: 767px) {
-  button:not([data-bottom-nav] *):not([data-slot="icon"]),
-  [role="button"]:not([data-bottom-nav] *) {
+  .btn-cta,
+  button[data-slot="button"]:not([data-bottom-nav] *):not([data-size="icon"]):not([data-size="sm"]) {
     min-height: 40px;
   }
 }
