@@ -736,9 +736,6 @@ function AdminLayout() {
           </div>
           <NotificationBell />
         </div>
-        {isReady && user && !permsLoading && (
-          <AppleNativeSetupCard compact autoStart nativeOnly className="mb-4" />
-        )}
         <div className="mx-auto max-w-[1500px]">
           <div key={pathname} className="page-enter">
             {isReady && user && !permsLoading ? (
