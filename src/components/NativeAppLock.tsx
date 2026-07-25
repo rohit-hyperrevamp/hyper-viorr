@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Fingerprint, Loader2, LogOut } from "lucide-react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -7,7 +7,11 @@ import { getBiometricStatus, signInWithBiometric } from "@/lib/biometric";
 import { useAuth } from "@/lib/auth";
 import { isNativePlatform, logNativeEvent } from "@/lib/native";
 import {
+  beginNativeAppUnlockPrompt,
+  endNativeAppUnlockPrompt,
+  getLastNativeAppUnlockAt,
   isNativeAppSessionUnlocked,
+  isNativeAppUnlockPromptInFlight,
   markNativeAppSessionUnlocked,
   resetNativeAppSessionUnlock,
 } from "@/lib/native-app-lock";
@@ -25,8 +29,6 @@ export function NativeAppLock() {
   const [mode, setMode] = useState<LockMode>("checking");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("Checking device security…");
-  const promptInFlightRef = useRef(false);
-  const lastUnlockAtRef = useRef(0);
 
   const userDigits = user?.phone.replace(/\D/g, "").slice(-10) ?? "";
 
@@ -66,8 +68,7 @@ export function NativeAppLock() {
 
   const unlock = useCallback(
     async (reason: "launch" | "resume" | "manual") => {
-      if (promptInFlightRef.current) return;
-      promptInFlightRef.current = true;
+      if (!beginNativeAppUnlockPrompt()) return;
       setBusy(true);
       setMessage("Waiting for Face ID…");
 
@@ -94,7 +95,6 @@ export function NativeAppLock() {
         }
 
         markNativeAppSessionUnlocked();
-        lastUnlockAtRef.current = Date.now();
         logNativeEvent("biometric", "app unlock success", { reason });
         setMode("unlocked");
         setMessage("Unlocked");
@@ -108,7 +108,7 @@ export function NativeAppLock() {
         setMode("locked");
       } finally {
         setBusy(false);
-        promptInFlightRef.current = false;
+        endNativeAppUnlockPrompt();
       }
     },
     [logout, navigate, userDigits],
@@ -152,12 +152,22 @@ export function NativeAppLock() {
       if (cancelled) return;
       void App.addListener("appStateChange", ({ isActive }) => {
         if (!isActive) {
+          if (isNativeAppUnlockPromptInFlight()) {
+            inactiveAt = 0;
+            return;
+          }
           inactiveAt = Date.now();
           return;
         }
-        if (promptInFlightRef.current) return;
+        if (isNativeAppUnlockPromptInFlight()) {
+          inactiveAt = 0;
+          return;
+        }
         // Ignore resumes triggered by the Face ID sheet itself.
-        if (Date.now() - lastUnlockAtRef.current < POST_UNLOCK_GRACE_MS) return;
+        if (Date.now() - getLastNativeAppUnlockAt() < POST_UNLOCK_GRACE_MS) {
+          inactiveAt = 0;
+          return;
+        }
         if (inactiveAt === 0) return;
         if (Date.now() - inactiveAt < RESUME_LOCK_THRESHOLD_MS) return;
 
