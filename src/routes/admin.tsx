@@ -47,6 +47,7 @@ import {
   Sun,
 } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
+import { MobileBottomNav, type BottomNavItem } from "@/components/MobileBottomNav";
 import { useT } from "@/lib/i18n";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
