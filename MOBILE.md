@@ -8,12 +8,12 @@ runs as a hybrid app: the native shell loads the published Lovable web app
 
 Requirements:
 
-- Node 20+, Bun, Xcode 26+ (iOS), Android Studio (Android)
-- CocoaPods (`sudo gem install cocoapods`)
+- Node 20+, Xcode (iOS), Android Studio (Android)
+- CocoaPods for iOS (`sudo gem install cocoapods`)
 
 ```bash
 # From project root, after cloning:
-bun install
+npm install
 
 # Create missing native projects if needed and copy the web config:
 npm run mobile:sync
@@ -21,12 +21,14 @@ npm run mobile:sync
 
 The repository now includes the `ios/` and `android/` platform folders. If one
 is missing after a fresh clone, `npm run mobile:sync` recreates the missing
-platform and then runs `npx cap sync`.
+platform and then runs Capacitor sync. iOS is intentionally configured with
+CocoaPods, not Swift Package Manager, to avoid local Xcode package-artifact
+resolution failures.
 
 ## Point the app at your production URL
 
 Open `capacitor.config.ts` and update `server.url` to the URL you want the
-mobile app to load. Defaults to `https://radiant-guard-services.lovable.app`.
+mobile app to load. The current production URL is `https://radiant.hyperrevamp.com`.
 
 For a custom domain, change it and re-run `npx cap sync`.
 
