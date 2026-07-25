@@ -26,8 +26,10 @@ export function NativeAppLock() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("Checking device security…");
   const promptInFlightRef = useRef(false);
+  const lastUnlockAtRef = useRef(0);
 
   const userDigits = user?.phone.replace(/\D/g, "").slice(-10) ?? "";
+
 
   const requireLock = useCallback(
     async (reason: "launch" | "resume") => {
@@ -92,9 +94,11 @@ export function NativeAppLock() {
         }
 
         markNativeAppSessionUnlocked();
+        lastUnlockAtRef.current = Date.now();
         logNativeEvent("biometric", "app unlock success", { reason });
         setMode("unlocked");
         setMessage("Unlocked");
+
       } catch (err) {
         logNativeEvent("biometric", "app unlock failed", {
           reason,
@@ -138,6 +142,12 @@ export function NativeAppLock() {
     let cancelled = false;
     let cleanup: (() => void) | undefined;
 
+    // Threshold long enough to cover the native Face ID sheet (which itself
+    // backgrounds the app). Only truly leaving the app for this long re-locks.
+    const RESUME_LOCK_THRESHOLD_MS = 60_000;
+    // Grace period after a successful unlock to ignore spurious resume events.
+    const POST_UNLOCK_GRACE_MS = 5_000;
+
     void import("@capacitor/app").then(({ App }) => {
       if (cancelled) return;
       void App.addListener("appStateChange", ({ isActive }) => {
@@ -146,8 +156,12 @@ export function NativeAppLock() {
           return;
         }
         if (promptInFlightRef.current) return;
-        if (inactiveAt > 0 && Date.now() - inactiveAt < 1_500) return;
+        // Ignore resumes triggered by the Face ID sheet itself.
+        if (Date.now() - lastUnlockAtRef.current < POST_UNLOCK_GRACE_MS) return;
+        if (inactiveAt === 0) return;
+        if (Date.now() - inactiveAt < RESUME_LOCK_THRESHOLD_MS) return;
 
+        inactiveAt = 0;
         resetNativeAppSessionUnlock();
         void requireLock("resume").then((required) => {
           if (required) void unlock("resume");
@@ -164,6 +178,7 @@ export function NativeAppLock() {
       cleanup?.();
     };
   }, [requireLock, unlock]);
+
 
   const visible =
     isNativePlatform() &&
