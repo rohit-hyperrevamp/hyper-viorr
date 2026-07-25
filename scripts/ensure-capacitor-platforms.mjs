@@ -8,12 +8,18 @@ const run = (command, args) => {
   }
 };
 
+// Use `@capacitor/cli` explicitly. Plain `npx cap` resolves to an
+// unrelated npm package called `cap` when the local bin isn't present
+// (e.g. fresh clone before `npm install`), and fails with
+// "could not determine executable to run".
+const CLI = ["--yes", "--package", "@capacitor/cli", "--", "cap"];
+
 if (!existsSync("ios")) {
-  run("npx", ["cap", "add", "ios"]);
+  run("npx", [...CLI, "add", "ios"]);
 }
 
 if (!existsSync("android")) {
-  run("npx", ["cap", "add", "android"]);
+  run("npx", [...CLI, "add", "android"]);
 }
 
-run("npx", ["cap", "sync"]);
+run("npx", [...CLI, "sync"]);
