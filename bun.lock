@@ -13,7 +13,6 @@
         "@capacitor/push-notifications": "^8.1.2",
         "@capacitor/splash-screen": "^8.0.2",
         "@capacitor/status-bar": "^8.0.3",
-        "@capgo/capacitor-native-biometric": "^8.6.2",
         "@hookform/resolvers": "^5.2.2",
         "@radix-ui/react-accordion": "^1.2.12",
         "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -104,6 +103,9 @@
       },
     },
   },
+  "overrides": {
+    "valibot": "^1.0.0",
+  },
   "packages": {
     "@ai-sdk/gateway": ["@ai-sdk/gateway@3.0.131", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@ai-sdk/gateway/-/gateway-3.0.131.tgz", { "dependencies": { "@ai-sdk/provider": "3.0.10", "@ai-sdk/provider-utils": "4.0.29", "@vercel/oidc": "3.2.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-CnjOZdywQaUnCyZ0N5wVNm7Sm63+NeHDVZQJKFX2IDq+t03SLwiiuoi3ILTLPlM+YSOhkQ/pvIDoR4qa98Zp5A=="],
 
@@ -178,8 +180,6 @@
     "@capacitor/splash-screen": ["@capacitor/splash-screen@8.0.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@capacitor/splash-screen/-/splash-screen-8.0.2.tgz", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-0C6rYScr13WfAE9nPl4ScOQynmjFv9NT3Th+RZkD4ezYHmER6mcl1/lDYsv7jg3Rj3FOvLrlTlmNkUrr83kZzQ=="],
 
     "@capacitor/status-bar": ["@capacitor/status-bar@8.0.3", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@capacitor/status-bar/-/status-bar-8.0.3.tgz", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-csSpfNeN49Hx9JaQBSJEIiEbOLtXg3kcc2IpScq2fu5L520h3AWEvsxoH8Srk1jxfRKepaJ4S4sqSC3foI4AgA=="],
-
-    "@capgo/capacitor-native-biometric": ["@capgo/capacitor-native-biometric@8.6.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@capgo/capacitor-native-biometric/-/capacitor-native-biometric-8.6.2.tgz", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-nLdiPRRs8vRLRgYgB1rZYYU5GPfGx+OoVsAicw+t1kVn0jaSluvWii+VMJFd33vPFK5qkhLqRsUGe4b0H7tndA=="],
 
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@cspotcode/source-map-support/-/source-map-support-0.8.1.tgz", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
