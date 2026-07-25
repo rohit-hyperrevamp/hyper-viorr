@@ -47,6 +47,9 @@ export function NativeAppLock() {
         setMode("unlocked");
         return false;
       }
+      if (isNativeAppUnlockPromptInFlight()) {
+        return false;
+      }
       if (isNativeAppSessionUnlocked()) {
         setMode("unlocked");
         return false;
@@ -121,18 +124,22 @@ export function NativeAppLock() {
     }
 
     let cancelled = false;
+    let timer: number | undefined;
     setMode("checking");
     setMessage("Checking device security…");
 
     void requireLock("launch").then((required) => {
       if (cancelled || !required) return;
-      window.setTimeout(() => {
-        if (!cancelled) void unlock("launch");
+      timer = window.setTimeout(() => {
+        if (cancelled) return;
+        if (isNativeAppSessionUnlocked() || isNativeAppUnlockPromptInFlight()) return;
+        void unlock("launch");
       }, 250);
     });
 
     return () => {
       cancelled = true;
+      if (timer) window.clearTimeout(timer);
     };
   }, [requireLock, unlock]);
 
