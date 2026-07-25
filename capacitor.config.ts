@@ -19,8 +19,8 @@ const config: CapacitorConfig = {
   // placeholder shell. The real app loads from `server.url` below.
   webDir: "capacitor-web",
   server: {
-    // Change to your custom domain in production.
-    url: "https://radiant-guard-services.lovable.app",
+    // Custom production domain (Vercel deployment connected via Git).
+    url: "https://radiant.hyperrevamp.com",
     cleartext: false,
     androidScheme: "https",
     iosScheme: "https",
