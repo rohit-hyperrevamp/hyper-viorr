@@ -660,54 +660,67 @@ function AdminLayout() {
         </div>
       </header>
 
-      {/* Mobile drawer */}
+      {/* Mobile bottom-sheet drawer (slide-up) */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute inset-y-2 left-2 w-[86%] max-w-sm overflow-y-auto overscroll-contain rounded-3xl border border-border/40 bg-card/80 p-4 shadow-2xl backdrop-blur-2xl safe-top safe-bottom">
-            <div className="mb-4 flex items-center justify-between">
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in-0 duration-200"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside
+            className={cn(
+              "absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col",
+              "rounded-t-3xl border-t border-border/50 bg-card shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.35)]",
+              "animate-in slide-in-from-bottom duration-300 ease-out",
+              "safe-bottom",
+            )}
+          >
+            {/* Grabber */}
+            <div className="flex justify-center pt-2.5 pb-1">
+              <div className="h-1.5 w-10 rounded-full bg-muted-foreground/30" />
+            </div>
+            <div className="flex items-center justify-between px-4 pb-2">
               <BrandMark />
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="grid h-9 w-9 place-items-center rounded-xl bg-card/70 text-foreground"
+                className="grid h-9 w-9 place-items-center rounded-xl bg-muted/60 text-foreground"
                 aria-label="Close menu"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="space-y-1">
+            <nav className="flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-3">
               {visibleGroups.map((g) => (
                 <MobileGroup key={g.key} group={g} isActive={isActive} isGroupActive={isGroupActive(g)} />
               ))}
               <div className="my-2 border-t border-border/40" />
               <Link
                 to="/admin/profile"
-                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-card/70"
+                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
               >
-                <Users className="h-4 w-4" /> My Profile
+                <Users className="h-4 w-4 shrink-0" /> My Profile
               </Link>
               <Link
                 to="/admin/notifications"
-                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-card/70"
+                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
               >
-                <Bell className="h-4 w-4" /> Notifications
+                <Bell className="h-4 w-4 shrink-0" /> Notifications
               </Link>
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-foreground hover:bg-card/70"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-foreground hover:bg-muted/60"
               >
-                {themeMounted && theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {themeMounted && theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
                 {themeMounted && theme === "dark" ? "Light mode" : "Dark mode"}
               </button>
-
               <button
                 type="button"
                 onClick={handleLogout}
                 className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-destructive hover:bg-destructive/10"
               >
-                <LogOut className="h-4 w-4" /> Sign out
+                <LogOut className="h-4 w-4 shrink-0" /> Sign out
               </button>
             </nav>
           </aside>
