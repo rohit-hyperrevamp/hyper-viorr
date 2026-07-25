@@ -945,7 +945,7 @@ function MobileGroup({
   isActive: (p: string) => boolean;
   isGroupActive: boolean;
 }) {
-  const [open, setOpen] = useState(isGroupActive);
+  const [open, setOpen] = useState(false);
   const Icon = group.icon;
   const t = useT();
   if (!group.children || group.children.length === 0) {
