@@ -82,7 +82,7 @@ export function MobileBottomNav({
             </li>
           );
         })}
-        {showMore && (
+        {(
           <li className="flex-1">
             <button
               type="button"
