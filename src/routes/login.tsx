@@ -14,6 +14,7 @@ import {
   getBiometricStatus,
   signInWithBiometric,
 } from "@/lib/biometric";
+import { markNativeAppSessionUnlocked } from "@/lib/native-app-lock";
 import logo from "@/assets/radiant-logo-v2.png";
 import loginBg from "@/assets/login-bg.jpg.asset.json";
 
@@ -110,6 +111,7 @@ function LoginPage() {
     }
     try {
       await login(`+91${phone}`);
+      markNativeAppSessionUnlocked();
       toast.success("Signed in");
       // Offer to enable Face ID on first successful sign-in on a device.
       const biometricStatus = await getBiometricStatus();
@@ -151,6 +153,7 @@ function LoginPage() {
         setBioBusy(false);
         return;
       }
+      markNativeAppSessionUnlocked();
       await login(savedPhone);
       toast.success("Signed in with Face ID");
       setRevealing(true);
