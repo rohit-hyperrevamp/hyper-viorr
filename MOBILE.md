@@ -10,6 +10,12 @@ Requirements:
 
 - Node 20+, Xcode (iOS), Android Studio (Android)
 - CocoaPods for iOS (`sudo gem install cocoapods`)
+- Full Xcode must be selected, not only Command Line Tools:
+  ```bash
+  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+  sudo xcodebuild -license accept
+  sudo xcodebuild -runFirstLaunch
+  ```
 
 ```bash
 # From project root, after cloning:
