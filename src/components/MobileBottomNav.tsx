@@ -26,18 +26,19 @@ export function MobileBottomNav({
   moreActive?: boolean;
 }) {
   const primary = items.slice(0, 4);
-  const showMore = items.length > 4 || items.length === 0 || true; // always show More for full menu access
 
   return (
     <nav
+      data-bottom-nav
       aria-label="Primary"
       className={cn(
         "fixed inset-x-0 bottom-0 z-30 lg:hidden safe-bottom",
-        "border-t border-border/50 bg-card/85 backdrop-blur-2xl backdrop-saturate-150",
+        "border-t border-border/50 bg-card/90 backdrop-blur-2xl backdrop-saturate-150",
         "shadow-[0_-8px_24px_-16px_rgba(15,23,42,0.25)]",
       )}
     >
-      <ul className="mx-auto flex max-w-lg items-stretch justify-around px-1 pt-1.5 pb-1">
+      <ul className="mx-auto flex max-w-lg items-stretch justify-around gap-0.5 px-2 pt-1.5 pb-1">
+
         {primary.map((it) => {
           const Icon = it.icon;
           const inner = (
