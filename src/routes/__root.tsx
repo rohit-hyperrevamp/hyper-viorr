@@ -16,6 +16,7 @@ import { ConfirmProvider } from "@/components/ConfirmProvider";
 import { ExportChooser } from "@/components/ExportChooser";
 import { LanguageProvider } from "@/lib/i18n";
 import { initNative } from "@/lib/native";
+import { NativeAppLock } from "@/components/NativeAppLock";
 
 
 function NotFoundComponent() {
@@ -362,6 +363,7 @@ function RootComponent() {
       <LanguageProvider>
         <ConfirmProvider>
           <Outlet />
+          <NativeAppLock />
           <Toaster />
           <ExportChooser />
         </ConfirmProvider>
