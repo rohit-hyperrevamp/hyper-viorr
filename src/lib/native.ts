@@ -99,9 +99,7 @@ export function getNativeRuntimeSnapshot() {
   try {
     platform = Capacitor.getPlatform();
     pushPluginAvailable = Capacitor.isPluginAvailable("PushNotifications");
-    biometricPluginAvailable =
-      Capacitor.isPluginAvailable("RadiantBiometrics") ||
-      Capacitor.isPluginAvailable("NativeBiometric");
+    biometricPluginAvailable = Capacitor.isPluginAvailable("RadiantBiometrics");
   } catch {
     /* fallback fields below still help diagnostics */
   }
