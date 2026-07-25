@@ -21,6 +21,30 @@ const removeIfExists = (path) => {
   }
 };
 
+const ensureFullXcodeSelected = () => {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  const result = spawnSync("xcode-select", ["-p"], {
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  });
+
+  const selectedDeveloperDir = result.stdout.trim();
+  if (result.status !== 0 || selectedDeveloperDir.includes("/Library/Developer/CommandLineTools")) {
+    console.error("\n❌ iOS sync needs full Xcode selected, but macOS is using Command Line Tools.");
+    console.error("Run this once on your Mac, then run npm run mobile:sync again:\n");
+    console.error("  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer");
+    console.error("  sudo xcodebuild -license accept");
+    console.error("  sudo xcodebuild -runFirstLaunch\n");
+    console.error("If your Xcode app has a different name, replace /Applications/Xcode.app with that app path.");
+    process.exit(1);
+  }
+};
+
+ensureFullXcodeSelected();
+
 if (!existsSync("ios")) {
   run("npx", [...CLI, "add", "ios", "--packagemanager", "CocoaPods"]);
 }
