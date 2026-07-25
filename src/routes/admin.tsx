@@ -68,7 +68,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/lib/use-theme";
 import { toast } from "sonner";
-import { AppleNativeSetupCard } from "@/components/AppleNativeSetupCard";
+
 
 
 export const Route = createFileRoute("/admin")({
