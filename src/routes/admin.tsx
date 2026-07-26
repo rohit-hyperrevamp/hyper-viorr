@@ -697,42 +697,49 @@ function AdminLayout() {
         </div>
       </aside>
 
-      {/* Mobile top bar — modern minimal, circular actions */}
+      {/* Mobile top bar — modern, minimal, high-contrast */}
       <header data-app-header className={cn(
-        "sticky top-0 z-20 flex min-h-14 items-center justify-between gap-3 px-4 py-2 animate-slide-in-top safe-top safe-x",
-        isFieldOfficer
-          ? "bg-white/95 dark:bg-neutral-950/95 border-b border-border/30 backdrop-blur-xl"
-          : "border-b border-border/30 bg-card/70 backdrop-blur-2xl backdrop-saturate-150",
+        "sticky top-0 z-20 flex min-h-[56px] items-center justify-between gap-2 px-3.5 py-2 animate-slide-in-top safe-top safe-x",
+        "border-b border-border/40 bg-background/85 backdrop-blur-2xl backdrop-saturate-150",
         !nativeShell && "lg:hidden",
       )}>
-        <Link to={dashboardHref} className="flex min-w-0 items-center gap-2.5">
-          <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 shadow-sm ring-1 ring-black/5 dark:from-slate-100 dark:to-slate-300">
-            <BrandMark compact />
+        <Link to={dashboardHref} className="flex min-w-0 flex-1 items-center gap-2.5">
+          <div className="relative shrink-0">
+            <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.4)] ring-1 ring-white/10 dark:from-white dark:via-slate-100 dark:to-slate-300">
+              <BrandMark compact />
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-background" />
           </div>
           <div className="min-w-0 leading-tight">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Welcome</div>
-            <div className="truncate text-sm font-bold text-foreground">
-              {me.fullName ? me.fullName.split(/\s+/)[0] : "Radiant"}
+            <div className="truncate text-[15px] font-bold tracking-tight text-foreground">
+              Hi, {me.fullName ? me.fullName.split(/\s+/)[0] : "there"}
+            </div>
+            <div className="truncate text-[11px] font-medium text-muted-foreground">
+              {(() => {
+                const h = new Date().getHours();
+                return h < 12 ? "Good morning ☀️" : h < 17 ? "Good afternoon 👋" : "Good evening 🌙";
+              })()}
             </div>
           </div>
         </Link>
-        <div className="flex items-center gap-1.5">
-          <div className="grid h-10 w-10 place-items-center rounded-full border border-border/60 bg-card shadow-sm">
+        <div className="flex shrink-0 items-center gap-1.5">
+          <div className="grid h-10 w-10 place-items-center rounded-full bg-muted/60 text-foreground transition-colors hover:bg-muted">
             <NotificationBell />
           </div>
           <Link
             to="/admin/profile"
             aria-label="Profile"
-            className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border border-border/60 bg-card text-foreground shadow-sm transition-colors hover:border-accent hover:text-accent"
+            className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-accent/20 to-primary/20 text-foreground ring-1 ring-border/60 transition hover:ring-accent"
           >
             {me.photoUrl ? (
               <img src={me.photoUrl} alt={me.fullName || "Profile"} className="h-full w-full object-cover" />
             ) : (
-              <span className="text-[11px] font-bold">{me.initials || "U"}</span>
+              <span className="text-[12px] font-bold">{me.initials || "U"}</span>
             )}
           </Link>
         </div>
       </header>
+
 
 
 
