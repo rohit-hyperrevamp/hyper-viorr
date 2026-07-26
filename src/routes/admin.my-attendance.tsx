@@ -1,9 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Search } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Search, ExternalLink, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchMonthPunches, type SelfPunch } from "@/lib/self-attendance";
+import {
+  fetchMonthPunches,
+  distanceMeters,
+  formatDistance,
+  mapsUrl,
+  DEVIATION_THRESHOLD_M,
+  type SelfPunch,
+} from "@/lib/self-attendance";
+
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
@@ -228,6 +236,14 @@ function MyAttendancePage() {
                 : { label: "Absent", tone: "rose" };
 
 
+              const inUrl = mapsUrl(p?.check_in_lat, p?.check_in_lng);
+              const outUrl = mapsUrl(p?.check_out_lat, p?.check_out_lng);
+              const dist = distanceMeters(
+                p?.check_in_lat != null && p?.check_in_lng != null ? { lat: p.check_in_lat, lng: p.check_in_lng } : null,
+                p?.check_out_lat != null && p?.check_out_lng != null ? { lat: p.check_out_lat, lng: p.check_out_lng } : null,
+              );
+              const deviated = dist != null && dist > DEVIATION_THRESHOLD_M;
+
               return (
                 <li
                   key={d.date}
@@ -241,20 +257,58 @@ function MyAttendancePage() {
                     <div className="hidden text-xs text-muted-foreground md:block">{d.weekday}</div>
                     <div className="hidden tabular-nums text-foreground md:block">{fmtHM(p?.check_in_at ?? null)}</div>
                     <div className="hidden tabular-nums text-foreground md:block">{fmtHM(p?.check_out_at ?? null)}</div>
-                    <div className="hidden truncate text-xs text-muted-foreground md:flex md:items-center md:gap-1">
-                      {p?.check_in_lat != null ? (
-                        <>
-                          <MapPin className="h-3 w-3" />
-                          {p.check_in_lat.toFixed(4)}, {p.check_in_lng?.toFixed(4)}
-                        </>
+                    <div className="hidden min-w-0 flex-col gap-0.5 text-xs md:flex">
+                      {inUrl ? (
+                        <a href={inUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 truncate font-semibold text-primary hover:underline">
+                          <MapPin className="h-3 w-3 shrink-0" /> In · {p!.check_in_lat!.toFixed(4)}, {p!.check_in_lng!.toFixed(4)}
+                          <ExternalLink className="h-2.5 w-2.5 opacity-70" />
+                        </a>
                       ) : (
-                        "—"
+                        <span className="text-muted-foreground">In · —</span>
+                      )}
+                      {outUrl ? (
+                        <a href={outUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 truncate font-semibold text-primary hover:underline">
+                          <MapPin className="h-3 w-3 shrink-0" /> Out · {p!.check_out_lat!.toFixed(4)}, {p!.check_out_lng!.toFixed(4)}
+                          <ExternalLink className="h-2.5 w-2.5 opacity-70" />
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">Out · —</span>
+                      )}
+                      {dist != null && (
+                        <span
+                          className={cn(
+                            "mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider",
+                            deviated ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400",
+                          )}
+                        >
+                          {deviated && <AlertTriangle className="h-3 w-3" />}
+                          {deviated ? "Deviation" : "Same spot"} · {formatDistance(dist)}
+                        </span>
                       )}
                     </div>
                   </div>
                   <div className="md:hidden text-xs text-muted-foreground">
                     <Clock className="mr-1 inline h-3 w-3" />
                     {fmtHM(p?.check_in_at ?? null)} → {fmtHM(p?.check_out_at ?? null)}
+                    {(inUrl || outUrl) && (
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        {inUrl && (
+                          <a href={inUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-primary">
+                            <MapPin className="h-3 w-3" /> In
+                          </a>
+                        )}
+                        {outUrl && (
+                          <a href={outUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-primary">
+                            <MapPin className="h-3 w-3" /> Out
+                          </a>
+                        )}
+                        {dist != null && (
+                          <span className={cn("font-semibold", deviated ? "text-amber-600" : "text-emerald-600")}>
+                            {deviated ? "⚠ " : ""}{formatDistance(dist)}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="justify-self-end md:justify-self-start">
                     <StatusBadge label={badge.label} tone={badge.tone} />
@@ -262,6 +316,7 @@ function MyAttendancePage() {
                 </li>
               );
             })}
+
             {filteredDays.length === 0 && (
               <li className="px-3 py-6 text-center text-sm text-muted-foreground">No days match your search.</li>
             )}
