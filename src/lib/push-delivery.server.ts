@@ -117,6 +117,25 @@ export async function sendNativePushToCurrentUserServer(
   return sendNativePushToTokenRows(supabase, (data as TokenRow[] | null) ?? [], payload);
 }
 
+export async function sendNativePushToUsersServer(
+  userIds: string[],
+  payload: ApnsPayload,
+): Promise<NativePushDeliveryResult> {
+  const recipients = uniqueUserIds(userIds);
+  if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("device_push_tokens")
+    .select("user_id,token,platform,last_seen_at")
+    .in("user_id", recipients)
+    .eq("platform", "ios")
+    .order("last_seen_at", { ascending: false });
+  if (error) throw error;
+
+  return sendNativePushToTokenRows(supabaseAdmin, (data as TokenRow[] | null) ?? [], payload);
+}
+
 export async function sendNativePushForRecentNotifications(
   supabase: AppSupabaseClient,
   userIds: string[],
