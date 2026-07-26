@@ -780,7 +780,7 @@ function AdminLayout() {
                 ];
                 return (
                   <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
-                    <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-3">
+                    <div data-app-drawer-grid className="grid grid-cols-3 gap-2.5 sm:grid-cols-3">
                       {foTiles.map((t) => {
                         const Icon = t.icon;
                         const active = isActive(t.to);
@@ -858,7 +858,7 @@ function AdminLayout() {
                 tiles.push({ to: "/admin/notifications", label: "Notifications", icon: Bell, active: isActive("/admin/notifications") });
                 return (
                   <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                    <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-3">
+                    <div data-app-drawer-grid className="grid grid-cols-3 gap-2.5 sm:grid-cols-3">
                       {tiles.map((t) => {
                         const Icon = t.icon;
                         return (
