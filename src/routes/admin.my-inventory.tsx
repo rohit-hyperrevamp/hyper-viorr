@@ -65,15 +65,17 @@ function MyInventoryPage() {
   });
 
   const itemIds = useMemo(() => Array.from(new Set(lines.map((l) => l.item_id))), [lines]);
+  const allItemIds = useMemo(() => Array.from(new Set([...itemIds, ...holdings.map((h) => h.item_id)])), [itemIds, holdings]);
   const { data: items = [] } = useQuery({
-    queryKey: ["items-by-id", itemIds.join(",")],
-    enabled: itemIds.length > 0,
+    queryKey: ["items-by-id", allItemIds.join(",")],
+    enabled: allItemIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase.from("inv_items" as never).select("id,name,item_code").in("id", itemIds);
+      const { data, error } = await supabase.from("inv_items" as never).select("id,name,item_code").in("id", allItemIds);
       if (error) throw error;
       return (data as unknown as Item[]) ?? [];
     },
   });
+
   const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const linesByIss = useMemo(() => {
     const m = new Map<string, Line[]>();
