@@ -162,6 +162,11 @@ export const Route = createFileRoute("/api/public/hooks/daily-people-pings")({
           const fresh = rowsToInsert.filter((r) => !already.has(r.user_id));
           if (!fresh.length) return 0;
           await supabaseAdmin.from("notifications").insert(fresh as never);
+          const { sendNativePushToUsersServer } = await import("@/lib/push-delivery.server");
+          await sendNativePushToUsersServer(
+            fresh.map((notification) => notification.user_id),
+            { title, body: message, link },
+          ).catch((error) => console.warn("daily people native push failed", error));
           return fresh.length;
         }
 
