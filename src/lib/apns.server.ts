@@ -22,7 +22,11 @@ function getApnsConfig(): ApnsConfig {
   const keyId = process.env.APNS_KEY_ID || "";
   const teamId = process.env.APNS_TEAM_ID || "";
   const bundleId = process.env.APNS_BUNDLE_ID || "";
-  const useSandbox = process.env.APNS_USE_SANDBOX === "true";
+  // Default to the sandbox (development) APNs host. Debug and TestFlight
+  // builds mint development tokens that only the sandbox accepts; App Store
+  // builds mint production tokens. The retry logic below flips hosts on
+  // BadDeviceToken so both build types work regardless of this default.
+  const useSandbox = process.env.APNS_USE_SANDBOX !== "false";
 
   if (!keyP8 || !keyId || !teamId || !bundleId) {
     throw new Error(
