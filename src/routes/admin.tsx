@@ -833,9 +833,11 @@ function AdminLayout() {
                   if (!to) continue;
                   tiles.push({ to, label: g.label, icon: g.icon, active: isGroupActive(g) });
                 }
-                tiles.push({ to: "/admin/profile", label: "My Profile", icon: Users, active: isActive("/admin/profile") });
-                tiles.push({ to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") });
-                tiles.push({ to: "/admin/notifications", label: "Notifications", icon: Bell, active: isActive("/admin/notifications") });
+                const has = (to: string) => tiles.some((t) => t.to === to);
+                if (!has("/admin/profile")) tiles.push({ to: "/admin/profile", label: "My Profile", icon: Users, active: isActive("/admin/profile") });
+                if (!has("/admin/my-attendance") && !has("/admin/attendance")) tiles.push({ to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") });
+                if (!has("/admin/notifications")) tiles.push({ to: "/admin/notifications", label: "Notifications", icon: Bell, active: isActive("/admin/notifications") });
+
                 return (
                   <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                     <div data-app-drawer-grid className="grid grid-cols-3 gap-2.5 sm:grid-cols-3">
