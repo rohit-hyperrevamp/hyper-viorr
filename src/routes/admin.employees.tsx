@@ -1877,7 +1877,8 @@ function EmployeesPage() {
             <td className="hidden px-2.5 py-2.5 text-sm whitespace-nowrap text-muted-foreground 2xl:table-cell">{fmtDate(c.approved_at ?? c.preferred_joining_date)}</td>
           )}
           {mode === "employee" && columnsVisible.role && (
-            <td className="hidden px-2.5 py-2.5 2xl:table-cell">
+            <td className="hidden px-2.5 py-2.5 md:table-cell">
+
               {c.role_key ? (
                 <Select
                   value={c.role_key}
