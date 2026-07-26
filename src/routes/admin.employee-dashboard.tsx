@@ -22,8 +22,8 @@ import {
 import { cn } from "@/lib/utils";
 
 
-import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
+
 import { useAuth } from "@/lib/auth";
 import { useCountUp } from "@/hooks/useCountUp";
 import { nextOccurrence, ageFrom, yearsBetween } from "@/lib/people-insights";
