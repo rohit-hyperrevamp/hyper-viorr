@@ -400,7 +400,7 @@ function AdminLayout() {
       { key: "payroll", label: "Payroll", module: "payroll", icon: Wallet, children: payrollChildren, activePrefixes: ["/admin/payroll", "/admin/additions", "/admin/deductions"] },
       { key: "invoice", label: "Invoice", module: "invoice", icon: CreditCard, to: "/admin/invoice", activePrefixes: ["/admin/invoice"] },
       { key: "inventory", label: "Uniform Manager", module: "inventory", icon: Boxes, children: inventoryChildren, activePrefixes: ["/admin/inventory"] },
-      { key: "field-sense", label: "Field Sense", icon: Radio, to: "/admin/field-sense", activePrefixes: ["/admin/field-sense"] },
+      { key: "field-sense", label: "Field Sense", icon: Radio, to: "/admin/field-sense", activePrefixes: ["/admin/field-sense"], module: "__field_sense__" },
       { key: "vehicles", label: "Vehicles", module: "vehicles", icon: Car, to: "/admin/vehicles", children: vehiclesChildren, activePrefixes: ["/admin/vehicles"] },
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       { key: "office-assets", label: "Office Assets", module: "office_assets", icon: Briefcase, to: "/admin/office-assets", children: officeAssetsChildren, activePrefixes: ["/admin/office-assets"] },
