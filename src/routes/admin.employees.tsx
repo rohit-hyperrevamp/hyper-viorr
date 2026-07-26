@@ -4035,7 +4035,7 @@ function CandidateWizard({
                     <Input value={form.birthplace} onChange={(e) => set("birthplace", e.target.value)} />
                   </Field>
                   <Field label="Aadhaar Number">
-                    <Input value={form.aadhaar_number} disabled className="font-mono" />
+                    <Input format="aadhaar" value={form.aadhaar_number} onChange={(e) => set("aadhaar_number", e.target.value.replace(/\D/g, "").slice(0, 12))} />
                   </Field>
                   <Field label="Employee Code">
                     <Input
