@@ -21,6 +21,7 @@ import {
 
 
 import { DashboardShell } from "@/components/LiveFeed";
+import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
