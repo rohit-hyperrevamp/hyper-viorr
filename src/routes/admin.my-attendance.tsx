@@ -170,7 +170,7 @@ function MyAttendancePage() {
   const monthLabel = monthDate.toLocaleDateString([], { month: "long", year: "numeric" });
 
   return (
-    <div className="page-shell space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="My Attendance"
         description={me.name ? `${me.name}${me.code ? ` · ${me.code}` : ""}` : "Track your own check-in / check-out"}
