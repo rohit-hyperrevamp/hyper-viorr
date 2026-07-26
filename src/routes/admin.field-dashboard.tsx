@@ -288,70 +288,64 @@ function FieldOfficerDashboard() {
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />}>
       {/* Profile hero card — avatar + identity + 3 stat bars */}
-      <section className="rounded-2xl border border-border/60 bg-card/90 p-3.5 shadow-sm backdrop-blur-xl sm:rounded-3xl sm:p-6">
-        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:gap-6">
+      <section className="rounded-2xl border border-border/60 bg-card/95 p-4 shadow-sm sm:rounded-3xl sm:p-6">
+        <div className="flex items-start gap-3 sm:gap-5">
           <div className="relative shrink-0">
             {data?.mePhoto ? (
               <img
                 src={data.mePhoto}
                 alt={data?.meName || "Profile"}
-                className="h-16 w-16 rounded-2xl object-cover shadow-sm sm:h-28 sm:w-28 sm:rounded-[26px]"
+                className="h-16 w-16 rounded-full object-cover shadow-sm ring-2 ring-border/60 sm:h-24 sm:w-24"
               />
             ) : (
-              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-accent font-display text-lg font-bold text-accent-foreground shadow-sm sm:h-28 sm:w-28 sm:rounded-[26px] sm:text-2xl">
+              <div className="grid h-16 w-16 place-items-center rounded-full bg-accent font-display text-base font-bold text-accent-foreground shadow-sm ring-2 ring-border/60 sm:h-24 sm:w-24 sm:text-2xl">
                 {initials(data?.meName || "FO")}
               </div>
             )}
-            <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-card text-emerald-500 shadow ring-1 ring-emerald-500/30 sm:h-8 sm:w-8">
-              <ShieldCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-card text-emerald-500 shadow ring-1 ring-emerald-500/30 sm:h-7 sm:w-7">
+              <ShieldCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             </span>
           </div>
 
-
-          <div className="min-w-0 space-y-2 sm:space-y-3">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <div className="truncate font-display text-lg font-bold leading-tight tracking-tight text-foreground sm:text-[26px]">
+                <div className="break-words font-display text-base font-bold leading-tight tracking-tight text-foreground sm:text-2xl">
                   {data?.meName || (isLoading ? "…" : "Welcome")}
                 </div>
-                <div className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
+                <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground sm:text-sm">
                   <span className="font-semibold text-foreground/80">Field Officer</span>
                   {data?.meCode ? <span className="opacity-70"> · {data.meCode}</span> : null}
-                  <span className="opacity-70"> · {units.length} unit{units.length === 1 ? "" : "s"}</span>
                 </div>
               </div>
               <Link
                 to="/admin/profile"
-                className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border/70 bg-card px-2.5 text-[11px] font-semibold text-foreground/80 shadow-sm transition hover:border-accent/40 hover:text-accent sm:h-9 sm:gap-1.5 sm:px-3 sm:text-xs"
+                className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full border border-border/70 bg-card px-2 text-[10px] font-semibold text-foreground/80 shadow-sm hover:border-accent/40 hover:text-accent sm:h-9 sm:px-3 sm:text-xs"
               >
-                Edit profile <ArrowUpRight className="h-3.5 w-3.5" />
+                Edit <ArrowUpRight className="h-3 w-3" />
               </Link>
             </div>
 
-            <div className="grid gap-x-4 gap-y-1 text-xs text-foreground/80 sm:grid-cols-2 sm:text-sm">
+            <div className="space-y-1 text-[11px] leading-snug text-foreground/80 sm:text-sm">
               {phone && (
-                <div className="flex min-w-0 items-center gap-2"><Phone className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate tabular-nums">+91 {phone}</span></div>
+                <div className="flex items-start gap-2"><Phone className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" /><span className="break-all tabular-nums">+91 {phone}</span></div>
               )}
               {email && (
-                <div className="flex min-w-0 items-center gap-2"><Mail className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{email}</span></div>
+                <div className="flex items-start gap-2"><Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" /><span className="break-all">{email}</span></div>
               )}
               {primaryUnit && (
-                <div className="flex min-w-0 items-center gap-2"><MapPin className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{primaryUnit.name}</span></div>
-              )}
-              {primaryUnit && (
-                <div className="flex min-w-0 items-center gap-2"><Building2 className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{primaryUnit.customer_name}</span></div>
+                <div className="flex items-start gap-2"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" /><span className="break-words">{primaryUnit.name} · {primaryUnit.customer_name}</span></div>
               )}
             </div>
-
-
           </div>
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-5 sm:gap-3">
-          <StatBar label="Team size" value={totalListings} />
-          <StatBar label="Present today" value={attnPresent} />
-          <StatBar label="Items on team" value={totalItems} />
+        <div className="mt-3 grid grid-cols-3 gap-1.5 sm:mt-4 sm:gap-3">
+          <StatBar label="Team" value={totalListings} />
+          <StatBar label="Present" value={attnPresent} />
+          <StatBar label="Items" value={totalItems} />
         </div>
       </section>
+
 
       <MarkAttendanceCard candidateId={data?.meId ?? null} />
 
@@ -448,9 +442,9 @@ function FoPeopleInsights() {
 
 function StatBar({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="min-w-0 rounded-lg border border-border/60 bg-background/70 px-2 py-2.5 text-center sm:rounded-xl sm:px-3 sm:py-3">
-      <div className="truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:text-[10px]">{label}</div>
-      <div className="mt-1 font-display text-lg font-bold tabular-nums tracking-tight text-foreground sm:text-2xl">{value}</div>
+    <div className="min-w-0 rounded-lg bg-secondary/60 px-2 py-2 text-center sm:rounded-xl sm:px-3 sm:py-3">
+      <div className="truncate text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:text-[10px]">{label}</div>
+      <div className="mt-0.5 font-display text-base font-bold tabular-nums leading-tight tracking-tight text-foreground sm:text-2xl">{value}</div>
     </div>
   );
 }

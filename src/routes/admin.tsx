@@ -705,11 +705,22 @@ function AdminLayout() {
           : "border-b border-border/30 bg-card/70 backdrop-blur-2xl backdrop-saturate-150",
         !nativeShell && "lg:hidden",
       )}>
-        <Link to={dashboardHref} className="flex min-w-0 items-center gap-2">
-          <BrandMark />
+        <Link to={dashboardHref} className="flex min-w-0 items-center">
+          <BrandMark compact />
         </Link>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <NotificationBell />
+          <Link
+            to="/admin/profile"
+            aria-label="Profile"
+            className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-card text-foreground transition-colors hover:border-accent hover:text-accent"
+          >
+            {me.photoUrl ? (
+              <img src={me.photoUrl} alt={me.fullName || "Profile"} className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-[11px] font-bold">{me.initials || "U"}</span>
+            )}
+          </Link>
         </div>
       </header>
 
@@ -732,16 +743,6 @@ function AdminLayout() {
             {/* Grabber */}
             <div className="flex justify-center pt-2.5 pb-1">
               <div className="h-1.5 w-10 rounded-full bg-muted-foreground/30" />
-            </div>
-            <div className="flex items-center justify-end px-4 pb-2">
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                className="grid h-9 w-9 place-items-center rounded-xl bg-muted/60 text-foreground"
-                aria-label="Close menu"
-              >
-                <X className="h-5 w-5" />
-              </button>
             </div>
             {isFieldOfficer ? (
               (() => {
@@ -834,7 +835,7 @@ function AdminLayout() {
 
 
       {/* Main */}
-      <main className={cn("relative z-10 min-h-[calc(100dvh-3.5rem)] overflow-x-clip safe-x py-3 !pb-[calc(88px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
+      <main className={cn("relative z-10 min-h-[calc(100dvh-3.5rem)] overflow-x-clip safe-x py-3 !pb-[calc(72px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
         {/* Desktop top utility bar — global search + notifications */}
         {!isFieldOfficer && !nativeShell && (
           <div className="mb-4 hidden items-center gap-3 lg:flex animate-slide-in-top">
