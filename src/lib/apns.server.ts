@@ -5,7 +5,6 @@
  * in public.device_push_tokens. Designed for the Cloudflare Worker runtime.
  */
 import { SignJWT, importPKCS8 } from "jose";
-import { createPrivateKey } from "node:crypto";
 
 const APNS_HOST_PROD = "https://api.push.apple.com";
 const APNS_HOST_DEV = "https://api.development.push.apple.com";
