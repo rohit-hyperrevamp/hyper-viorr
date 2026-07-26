@@ -47,6 +47,50 @@ function MapLink({
     </a>
   );
 }
+function LiveTelemetryStrip({ punch }: { punch: SelfPunch }) {
+  const url = mapsUrl(punch.last_lat ?? punch.check_in_lat, punch.last_lng ?? punch.check_in_lng);
+  const seen = punch.last_seen_at ? new Date(punch.last_seen_at) : null;
+  const secs = seen ? Math.max(0, Math.round((Date.now() - seen.getTime()) / 1000)) : null;
+  const seenLabel = secs == null ? "waiting…" : secs < 60 ? `${secs}s ago` : `${Math.round(secs / 60)}m ago`;
+  const bat = punch.battery_pct;
+  const batTone = bat == null ? "text-muted-foreground" : bat <= 20 ? "text-rose-600 dark:text-rose-400" : bat <= 40 ? "text-amber-600 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400";
+  const net = punch.network_type;
+  const NetIcon = net === "WiFi" ? Wifi : net === "5G" || net === "4G" ? Signal : Radio;
+  return (
+    <div className="mt-3 flex flex-col gap-2 rounded-xl border border-primary/20 bg-primary/5 p-2.5 text-[11px] sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-semibold">
+        <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+          </span>
+          LIVE · {seenLabel}
+        </span>
+        <span className={cn("inline-flex items-center gap-1", batTone)}>
+          {punch.battery_charging ? <BatteryCharging className="h-3.5 w-3.5" /> : <Battery className="h-3.5 w-3.5" />}
+          {bat == null ? "Battery n/a" : `${bat}%${punch.battery_charging ? " ⚡" : ""}`}
+        </span>
+        <span className="inline-flex items-center gap-1 text-foreground">
+          <NetIcon className="h-3.5 w-3.5" />
+          {net ?? "Network n/a"}
+        </span>
+      </div>
+      {url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 font-bold text-primary-foreground shadow-sm hover:bg-primary/90"
+        >
+          <MapPin className="h-3.5 w-3.5" />
+          View live location
+          <ExternalLink className="h-3 w-3 opacity-80" />
+        </a>
+      )}
+    </div>
+  );
+}
+
 
 
 function timeStr(iso: string | null) {
