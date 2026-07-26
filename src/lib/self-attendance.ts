@@ -196,3 +196,64 @@ export function mapsUrl(lat: number | null | undefined, lng: number | null | und
 /** Deviation threshold in metres — anything above this is flagged. */
 export const DEVIATION_THRESHOLD_M = 150;
 
+/** Battery info from the browser (may be unavailable, e.g. iOS Safari). */
+export type BatteryInfo = { level: number | null; charging: boolean | null };
+export async function readBattery(): Promise<BatteryInfo> {
+  try {
+    const nav = navigator as unknown as { getBattery?: () => Promise<{ level: number; charging: boolean }> };
+    if (typeof nav.getBattery !== "function") return { level: null, charging: null };
+    const b = await nav.getBattery();
+    return { level: Math.round(b.level * 100), charging: !!b.charging };
+  } catch {
+    return { level: null, charging: null };
+  }
+}
+
+/** Network label like "5G", "4G", "wifi", "3G". Best-effort — the NetworkInformation API is not universal. */
+export function readNetworkType(): string | null {
+  try {
+    const conn = (navigator as unknown as { connection?: { effectiveType?: string; type?: string } }).connection;
+    if (!conn) return null;
+    const kind = (conn.type ?? "").toLowerCase();
+    if (kind === "wifi") return "WiFi";
+    if (kind === "ethernet") return "Ethernet";
+    const eff = (conn.effectiveType ?? "").toLowerCase();
+    if (eff === "4g") return "4G";
+    if (eff === "3g") return "3G";
+    if (eff === "2g") return "2G";
+    if (eff === "slow-2g") return "2G";
+    if (eff) return eff.toUpperCase();
+    return kind ? kind.toUpperCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Push live telemetry for an on-duty punch. All fields optional; nulls are ignored. */
+export async function pushTelemetry(
+  id: string,
+  telemetry: {
+    geo?: Geo | null;
+    battery?: BatteryInfo | null;
+    network?: string | null;
+  },
+): Promise<void> {
+  const patch: Record<string, unknown> = { last_seen_at: new Date().toISOString() };
+  if (telemetry.geo) {
+    patch.last_lat = telemetry.geo.lat;
+    patch.last_lng = telemetry.geo.lng;
+    patch.last_accuracy = telemetry.geo.accuracy;
+  }
+  if (telemetry.battery) {
+    if (telemetry.battery.level != null) patch.battery_pct = telemetry.battery.level;
+    if (telemetry.battery.charging != null) patch.battery_charging = telemetry.battery.charging;
+  }
+  if (telemetry.network !== undefined) patch.network_type = telemetry.network;
+  const { error } = await supabase
+    .from("self_attendance_punches" as never)
+    .update(patch as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+
