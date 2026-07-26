@@ -37,7 +37,7 @@ function nativePushApiUrl() {
   return `${LOVABLE_NATIVE_API_ORIGIN}${NATIVE_PUSH_API_PATH}`;
 }
 
-async function authHeader() {
+async function accessToken() {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -46,17 +46,19 @@ async function authHeader() {
     throw new Error("Sign in first, then try Apple push again.");
   }
 
-  return `Bearer ${session.access_token}`;
+  return session.access_token;
 }
 
 async function callNativePushApi<T>(payload: Record<string, unknown>): Promise<T> {
   const response = await fetch(nativePushApiUrl(), {
     method: "POST",
     headers: {
-      authorization: await authHeader(),
-      "content-type": "application/json",
+      // Keep this a simple cross-origin request from the Vercel iOS shell to
+      // the Lovable-hosted API; some WebViews/proxies are brittle around
+      // Authorization preflights.
+      "content-type": "text/plain;charset=UTF-8",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, accessToken: await accessToken() }),
   });
 
   const text = await response.text();

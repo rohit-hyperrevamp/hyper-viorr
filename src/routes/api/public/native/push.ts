@@ -13,19 +13,24 @@ import {
 const VITE_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const VITE_SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
 
+const AccessTokenSchema = z.object({ accessToken: z.string().min(20) });
+
 const PushRequestSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("status") }),
+  AccessTokenSchema.extend({ action: z.literal("status") }),
   z.object({
     action: z.literal("register"),
+    accessToken: z.string().min(20),
     token: z.string().min(32).max(512),
     platform: z.enum(["ios", "android", "web"]).default("ios"),
   }),
   z.object({
     action: z.literal("test"),
+    accessToken: z.string().min(20),
     message: z.string().max(300).optional(),
   }),
   z.object({
     action: z.literal("sendRecent"),
+    accessToken: z.string().min(20),
     userIds: z.array(z.string().uuid()).min(1).max(100),
     title: z.string().min(1).max(180),
     message: z.string().min(1).max(3000),
@@ -81,13 +86,7 @@ function getBackendConfig() {
   return { url, publishableKey };
 }
 
-async function authenticate(request: Request) {
-  const authHeader = request.headers.get("authorization") ?? "";
-  if (!authHeader.startsWith("Bearer ")) {
-    throw new Response("Unauthorized", { status: 401 });
-  }
-
-  const token = authHeader.slice("Bearer ".length).trim();
+async function authenticate(token: string) {
   if (!token) throw new Response("Unauthorized", { status: 401 });
 
   const { url, publishableKey } = getBackendConfig();
@@ -125,8 +124,9 @@ export const Route = createFileRoute("/api/public/native/push")({
       OPTIONS: async ({ request }) => new Response(null, { status: 204, headers: corsHeaders(request) }),
       POST: async ({ request }) => {
         try {
-          const input = PushRequestSchema.parse(await request.json());
-          const { supabase, userId } = await authenticate(request);
+          const rawBody = await request.text();
+          const input = PushRequestSchema.parse(JSON.parse(rawBody));
+          const { supabase, userId } = await authenticate(input.accessToken);
 
           if (input.action === "status") {
             const status = await getPushRegistrationStatusForUser(supabase, userId);
