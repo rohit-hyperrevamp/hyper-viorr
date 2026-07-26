@@ -4388,7 +4388,7 @@ function CandidateWizard({
           )}
         </div>
 
-        <div className="shrink-0 px-2.5 py-2.5 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:overscroll-contain">
+        <div className="shrink-0 px-3 py-2.5 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:overscroll-contain sm:px-4">
           {/* ----- Full form (single page) ----- */}
           {true && (
             <div className="space-y-4 sm:space-y-6">
@@ -4545,7 +4545,7 @@ function CandidateWizard({
                       {form.contacts.map((ct, i) => (
                         <div
                           key={i}
-                          className="rounded-lg border border-border bg-secondary/30 p-3"
+                          className="rounded-lg border border-border bg-secondary/30 p-2.5 sm:p-3"
                         >
                           <div className="mb-2 flex items-center justify-between">
                             <span className="text-xs font-semibold text-muted-foreground">
@@ -4673,7 +4673,7 @@ function CandidateWizard({
                       {form.references.map((ref, i) => (
                         <div
                           key={i}
-                          className="rounded-lg border border-border bg-secondary/30 p-3"
+                          className="rounded-lg border border-border bg-secondary/30 p-2.5 sm:p-3"
                         >
                           <div className="mb-2 flex items-center justify-between">
                             <span className="text-xs font-semibold text-muted-foreground">
@@ -5113,7 +5113,7 @@ function CandidateWizard({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-sm sm:p-5">
+    <div className="rounded-2xl border border-border/70 bg-card p-2.5 shadow-sm sm:p-5">
       <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
         {title}
       </div>
