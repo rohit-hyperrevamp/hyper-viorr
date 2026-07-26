@@ -301,11 +301,13 @@ function AdminLayout() {
         pathname === "/admin/employee-dashboard" ||
         pathname === "/admin/my-inventory" ||
         pathname === "/admin/profile" ||
+        pathname === "/admin/my-attendance" ||
         pathname === "/admin/notifications" ||
         pathname.startsWith("/admin/my-inventory/") ||
         pathname.startsWith("/admin/notifications/");
       if (!allowed) navigate({ to: "/admin/employee-dashboard", replace: true });
       return;
+
     }
     // Field officers must never land on the Inventory Command Center hub.
     if (roleKey === "field_officer" && !isSuperAdmin) {
