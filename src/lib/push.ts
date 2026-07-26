@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getNativeRuntimeSnapshot, isNativePlatform, logNativeEvent } from "./native";
 import { playNotificationChime } from "./notification-sound";
-import { saveMyPushToken } from "./push.functions";
+import { saveMyPushTokenViaApi } from "./native-push-api";
 
 let initialized = false;
 let initPromise: Promise<void> | null = null;
@@ -42,7 +42,7 @@ async function saveTokenForSignedInUser(token: string): Promise<boolean> {
   }
 
   try {
-    const result = await saveMyPushToken({ data: { token, platform: "ios" } });
+    const result = await saveMyPushTokenViaApi({ token, platform: "ios" });
     if (!result?.saved) {
       lastError = "The iPhone token was received, but the backend did not confirm it was saved.";
       logNativeEvent("push", "APNs token save not confirmed", {
