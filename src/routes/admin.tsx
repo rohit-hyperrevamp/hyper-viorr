@@ -800,7 +800,7 @@ function AdminLayout() {
               })()
             ) : (
               (() => {
-                const tiles: Array<{ to: string; label: string; icon: typeof LayoutDashboard; active: boolean }> = [];
+                const tiles: Array<{ to: string; label: string; icon: GroupItem["icon"]; active: boolean }> = [];
                 for (const g of visibleGroups) {
                   const to = g.to ?? g.children?.[0]?.to;
                   if (!to) continue;
