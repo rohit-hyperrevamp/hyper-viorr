@@ -36,14 +36,13 @@ export function MobileBottomNav({
 
   return (
     <nav
-      data-bottom-nav
       aria-label="Primary"
       className={cn(
-        "fixed inset-x-0 bottom-0 z-30",
+        "fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_32px_-20px_rgba(15,23,42,0.45)] backdrop-blur-xl",
         !nativeShell && "lg:hidden",
       )}
     >
-      <ul className="mx-auto flex max-w-xl items-stretch justify-around gap-0 px-1">
+      <ul className="mx-auto flex h-[58px] max-w-xl items-stretch justify-around gap-0 px-1 py-1">
 
 
         {primary.map((it) => {
@@ -51,7 +50,7 @@ export function MobileBottomNav({
           const inner = (
             <div
               className={cn(
-                "flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1.5 transition-colors",
+                "flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1.5 py-1 transition-colors",
                 it.active
                   ? "text-accent"
                   : "text-muted-foreground hover:text-foreground",
@@ -59,15 +58,15 @@ export function MobileBottomNav({
             >
               <span
                 className={cn(
-                  "grid h-8 w-8 place-items-center rounded-xl transition-colors",
+                  "grid h-7 w-7 place-items-center rounded-lg transition-colors",
                   it.active && "bg-accent/12",
                 )}
               >
-                <Icon className="h-[18px] w-[18px]" />
+                <Icon className="h-4 w-4" />
               </span>
               <span
                 className={cn(
-                  "max-w-full truncate text-[10.5px] font-semibold leading-none tracking-tight",
+                  "max-w-full truncate text-[10px] font-semibold leading-none tracking-tight",
                   it.active ? "text-accent" : "text-foreground/70",
                 )}
               >
@@ -99,7 +98,7 @@ export function MobileBottomNav({
             >
               <div
                 className={cn(
-                  "flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1.5 transition-colors",
+                    "flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1.5 py-1 transition-colors",
                   moreActive
                     ? "text-accent"
                     : "text-muted-foreground hover:text-foreground",
@@ -107,13 +106,13 @@ export function MobileBottomNav({
               >
                 <span
                   className={cn(
-                    "grid h-8 w-8 place-items-center rounded-xl transition-colors",
+                    "grid h-7 w-7 place-items-center rounded-lg transition-colors",
                     moreActive && "bg-accent/12",
                   )}
                 >
-                  <MoreHorizontal className="h-[18px] w-[18px]" />
+                  <MoreHorizontal className="h-4 w-4" />
                 </span>
-                <span className="text-[10.5px] font-semibold leading-none tracking-tight text-foreground/70">
+                <span className="text-[10px] font-semibold leading-none tracking-tight text-foreground/70">
                   More
                 </span>
               </div>
