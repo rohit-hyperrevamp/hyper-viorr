@@ -355,9 +355,8 @@ function FieldOfficerDashboard() {
             <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Overview</div>
             <h2 className="mt-0.5 font-display text-2xl font-bold tracking-tight text-foreground">My Summary</h2>
           </div>
-          <span className="rounded-full border border-border/70 bg-card px-3 py-1 text-xs font-semibold text-muted-foreground shadow-sm">This week</span>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <PastelTile
             palette="lime"
             label="Team size"
@@ -383,8 +382,18 @@ function FieldOfficerDashboard() {
             icon={ClipboardList}
             to="/admin/employees"
           />
+          <PastelTile
+            palette="amber"
+            label="My stock available"
+            value={data?.myStockQty ?? 0}
+            hint={`${data?.myStockSkus ?? 0} SKU${(data?.myStockSkus ?? 0) === 1 ? "" : "s"} in hand`}
+            delta={0} deltaSuffix=""
+            icon={Warehouse}
+            to="/admin/inventory/stock"
+          />
         </div>
       </section>
+
 
       {/* Units list */}
       <section className="overflow-hidden rounded-[28px] border border-border/70 bg-card/90 shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_20px_50px_-30px_rgba(15,23,42,0.2)] backdrop-blur-xl">
