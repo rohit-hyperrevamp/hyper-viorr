@@ -527,29 +527,30 @@ function AttendanceUnitsPage() {
         <SummaryTile icon={Users} label="Active employees" value={summary.activeEmployees} accent="employee" />
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20 sm:rounded-3xl">
-        <div className="space-y-3 border-b border-border/60 px-3.5 py-3.5 sm:space-y-4 sm:px-5 sm:py-5">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-1">
-              <h2 className="text-base font-semibold text-foreground sm:text-lg">Attendance unit register</h2>
-              <p className="text-xs text-muted-foreground sm:text-sm">
-                Open any unit to view its month-wise muster roll. Attendance is always recorded per unit.
-              </p>
-            </div>
-            <div className="relative w-full max-w-lg">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search organization, unit, code, location, contract, or employee"
-                className="h-10 rounded-xl border-border/60 bg-background pl-10 sm:h-11"
-              />
-            </div>
+      <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20">
+        <div className="space-y-3 border-b border-border/60 px-4 py-4 sm:px-5 sm:py-5">
+          <div className="flex flex-col gap-1">
+            <h2 className="font-display text-base font-bold tracking-tight text-foreground sm:text-lg">
+              Attendance unit register
+            </h2>
+            <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
+              Open any unit to view its month-wise muster roll.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search unit, client, code, employee…"
+              className="h-11 rounded-2xl border-border/60 bg-background pl-10 text-sm"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <FilterSelect
-              label="Client (search by ID or name)"
+              label="Client"
               value={orgFilter}
               onChange={setOrgFilter}
               options={organizations.map((o) => ({
@@ -572,21 +573,21 @@ function AttendanceUnitsPage() {
 
 
           {anyFilter && (
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
               <span>
-                Showing <span className="font-semibold text-foreground">{filtered.length}</span> of {units.length} units
+                Showing <span className="font-bold text-foreground">{filtered.length}</span> of {units.length} units
               </span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 gap-1.5 text-xs"
+                className="h-7 gap-1.5 text-xs"
                 onClick={() => {
                   setQ("");
                   setOrgFilter("all");
                   setUnitFilter("all");
                 }}
               >
-                <X className="h-3.5 w-3.5" /> Clear filters
+                <X className="h-3.5 w-3.5" /> Clear
               </Button>
             </div>
           )}
