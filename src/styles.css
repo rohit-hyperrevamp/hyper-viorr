@@ -1224,20 +1224,20 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
    proper elevation, safe-area aware. Behavior/routing untouched.
    ========================================================================= */
 nav[data-bottom-nav] {
-  /* attach to edge — kill the "floating" look */
-  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
-  background: color-mix(in oklab, var(--card) 92%, transparent);
-  box-shadow:
-    0 -0.5px 0 0 color-mix(in oklab, var(--foreground) 6%, transparent),
-    0 -12px 32px -18px rgb(0 0 0 / 0.12);
+  /* Solid bar, flush to edge — no floating look, no upward shadow. */
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: none;
+  /* Reserve safe-area on the bar itself; do NOT let inner ul add its own pad. */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 nav[data-bottom-nav] > ul {
   padding-top: 0.375rem !important;
-  padding-bottom: 0.125rem !important;
+  padding-bottom: 0.25rem !important;
+  min-height: 52px;
 }
-/* icon container: tighter, more native */
 nav[data-bottom-nav] li > * > div > span:first-child {
-  height: 30px !important;
+  height: 28px !important;
   width: 44px !important;
   border-radius: 10px !important;
 }
@@ -1245,14 +1245,11 @@ nav[data-bottom-nav] li svg {
   height: 20px !important;
   width: 20px !important;
 }
-/* label: compact SF-style caption */
 nav[data-bottom-nav] li > * > div > span:last-child {
   font-size: 10px !important;
   letter-spacing: 0.01em !important;
   margin-top: 1px;
 }
-/* remove the min-height 44px bump that made tabs feel oversized — the tap
-   area on the LI is what matters, and it's still ≥44px via the ul row. */
 @media (pointer: coarse) {
   nav[data-bottom-nav] button,
   nav[data-bottom-nav] a[role="button"] {
@@ -1260,3 +1257,4 @@ nav[data-bottom-nav] li > * > div > span:last-child {
     min-width: 0 !important;
   }
 }
+
