@@ -2283,8 +2283,27 @@ function EmployeesPage() {
 
   const renderMobileCards = (rows: CandidateListItem[], mode: "employee" | "candidate") => {
     if (isLoading) {
-      return <div className="rounded-2xl border border-border/70 bg-card p-6 text-center text-sm text-muted-foreground md:hidden">Loading…</div>;
+      return (
+        <div className="space-y-2.5 md:hidden">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-border/70 bg-card p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-3/5" />
+                  <Skeleton className="h-3 w-2/5" />
+                </div>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Skeleton className="h-5 w-14 rounded-full" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      );
     }
+
     if (candidatesError) {
       return (
         <div className="rounded-2xl border border-border/70 bg-card p-6 text-center text-sm text-muted-foreground md:hidden">
