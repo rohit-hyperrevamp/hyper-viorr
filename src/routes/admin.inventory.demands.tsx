@@ -212,17 +212,17 @@ function DemandsPage() {
                 const reqSub = req ? `${(req.role_key ?? "").replace(/_/g, " ")}${req.employee_code ? ` · ${req.employee_code}` : ""}` : "";
                 return (
                   <tr key={d.id} className="hover:bg-secondary/30">
-                    <td className="px-5 py-3 font-mono text-xs">{d.demand_number}</td>
-                    <td className="px-5 py-3">{destLabel}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-3 font-mono text-xs" data-label="Demand #">{d.demand_number}</td>
+                    <td className="px-5 py-3" data-label="Requested from">{destLabel}</td>
+                    <td className="px-5 py-3" data-label="Requested by">
                       <div className="font-medium">{reqLabel}</div>
                       {reqSub && <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{reqSub}</div>}
                     </td>
-                    <td className="px-5 py-3 text-xs text-muted-foreground">{d.demand_date}</td>
-                    <td className="px-5 py-3 text-right tabular-nums">{agg.items}</td>
-                    <td className="px-5 py-3 text-right tabular-nums">{agg.qty}</td>
-                    <td className="px-5 py-3"><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${statusBadgeClass(d.status)}`}>{d.status.replace("_", " ")}</span></td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="px-5 py-3 text-xs text-muted-foreground" data-label="Date">{d.demand_date}</td>
+                    <td className="px-5 py-3 text-right tabular-nums" data-label="Items">{agg.items}</td>
+                    <td className="px-5 py-3 text-right tabular-nums" data-label="Total qty">{agg.qty}</td>
+                    <td className="px-5 py-3" data-label="Status" data-col="status"><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${statusBadgeClass(d.status)}`}>{d.status.replace("_", " ")}</span></td>
+                    <td className="px-5 py-3 text-right" data-label="Actions" data-col="actions">
                       <div className="inline-flex gap-1">
                         <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setViewing(d); }}><Eye className="h-4 w-4" /></Button>
                         {d.status === "draft" && scope.isScoped && (
