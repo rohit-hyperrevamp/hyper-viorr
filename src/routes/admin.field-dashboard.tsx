@@ -354,7 +354,7 @@ function FieldOfficerDashboard() {
           </div>
         )}
 
-        <div className="relative mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="relative mt-4 grid grid-cols-3 min-[320px]:grid-cols-3 gap-2 sm:gap-3">
           <HeroStat label="Team" value={totalListings} tint="sky" />
           <HeroStat label="Present" value={attnPresent} tint="emerald" />
           <HeroStat label="Items" value={totalItems} tint="amber" />
