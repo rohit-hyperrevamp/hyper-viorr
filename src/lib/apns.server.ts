@@ -36,23 +36,20 @@ function getApnsConfig(): ApnsConfig {
 let cachedJwt: { token: string; exp: number } | null = null;
 
 /**
- * Apple .p8 keys are PKCS#8 (`-----BEGIN PRIVATE KEY-----`).
- * If the user pasted a SEC1 EC key (`-----BEGIN EC PRIVATE KEY-----`),
- * convert it to PKCS#8 so jose can import it.
+ * Normalize a .p8 key to a proper PKCS#8 PEM with real newlines. The
+ * Cloudflare Worker's Web Crypto is stricter than Node about PEM formatting:
+ * a single-line "-----BEGIN PRIVATE KEY----- BASE64 -----END PRIVATE KEY-----"
+ * pasted through env vars must be split into 64-char lines before import.
  */
 function normalizeP8(raw: string): string {
   const trimmed = raw.trim();
-  if (trimmed.startsWith("-----BEGIN PRIVATE KEY-----")) {
-    return trimmed;
-  }
-  if (trimmed.startsWith("-----BEGIN EC PRIVATE KEY-----")) {
-    const key = createPrivateKey(trimmed);
-    return key.export({ type: "pkcs8", format: "pem" }) as string;
-  }
-  // Bare base64 body — wrap as SEC1, then convert.
-  const sec1 = `-----BEGIN EC PRIVATE KEY-----\n${trimmed}\n-----END EC PRIVATE KEY-----`;
-  const key = createPrivateKey(sec1);
-  return key.export({ type: "pkcs8", format: "pem" }) as string;
+  // Extract base64 body, regardless of whether headers or newlines are present.
+  const body = trimmed
+    .replace(/-----BEGIN [A-Z ]+-----/g, "")
+    .replace(/-----END [A-Z ]+-----/g, "")
+    .replace(/\s+/g, "");
+  const wrapped = body.match(/.{1,64}/g)?.join("\n") ?? body;
+  return `-----BEGIN PRIVATE KEY-----\n${wrapped}\n-----END PRIVATE KEY-----`;
 }
 
 async function getApnsJwt(): Promise<string> {
