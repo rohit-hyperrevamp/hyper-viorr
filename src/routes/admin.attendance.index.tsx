@@ -487,7 +487,7 @@ function AttendanceUnitsPage() {
 
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-4 p-3 sm:space-y-6 sm:p-6">
       <HeroTile
         eyebrow="Attendance month"
         title={MONTH_NAMES[monthIdx]}
@@ -521,18 +521,18 @@ function AttendanceUnitsPage() {
       />
 
 
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 xl:grid-cols-3">
         <SummaryTile icon={Building2} label="Organizations" value={summary.organizations} accent="organization" />
         <SummaryTile icon={MapPinned} label="Units" value={summary.units} accent="unit" />
         <SummaryTile icon={Users} label="Active employees" value={summary.activeEmployees} accent="employee" />
       </div>
 
-      <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20">
-        <div className="space-y-4 border-b border-border/60 px-5 py-5">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20 sm:rounded-3xl">
+        <div className="space-y-3 border-b border-border/60 px-3.5 py-3.5 sm:space-y-4 sm:px-5 sm:py-5">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-1">
-              <h2 className="text-lg font-semibold text-foreground">Attendance unit register</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-base font-semibold text-foreground sm:text-lg">Attendance unit register</h2>
+              <p className="text-xs text-muted-foreground sm:text-sm">
                 Open any unit to view its month-wise muster roll. Attendance is always recorded per unit.
               </p>
             </div>
@@ -542,12 +542,12 @@ function AttendanceUnitsPage() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search organization, unit, code, location, contract, or employee"
-                className="h-11 rounded-xl border-border/60 bg-background pl-10"
+                className="h-10 rounded-xl border-border/60 bg-background pl-10 sm:h-11"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
             <FilterSelect
               label="Client (search by ID or name)"
               value={orgFilter}
@@ -704,19 +704,19 @@ function AttendanceUnitsPage() {
               return (
                 <div
                   key={unit.id}
-                  className="group flex flex-col gap-4 px-5 py-5 transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-500/5 lg:grid lg:items-start lg:gap-5"
+                  className="group grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 px-3.5 py-3.5 transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-500/5 sm:px-5 sm:py-5 lg:grid lg:items-start lg:gap-5"
                   style={{ gridTemplateColumns: "minmax(0,2.2fr) minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,2fr) 90px 150px 130px" }}
                 >
                   {/* row contents below; on mobile they stack as flex column, on lg+ they fill grid columns */}
-                  <div className="flex min-w-0 items-start gap-3">
-                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-100/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
+                  <div className="col-span-2 flex min-w-0 items-start gap-2.5 lg:col-auto lg:gap-3">
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sky-100/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300 sm:h-10 sm:w-10 sm:rounded-2xl">
                       <MapPinned className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="break-words text-sm font-semibold leading-snug text-foreground">
+                      <div className="break-words text-[13px] font-semibold leading-snug text-foreground sm:text-sm">
                         {unit.name || unit.code}
                       </div>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:mt-1.5">
                         <span className="inline-flex whitespace-nowrap rounded-md bg-secondary px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-foreground">
                           {unit.code || "—"}
                         </span>
@@ -738,23 +738,23 @@ function AttendanceUnitsPage() {
                   </div>
 
                   {/* Organization */}
-                  <div className="min-w-0">
+                  <div className="col-span-2 min-w-0 text-[12px] lg:col-auto lg:text-sm">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
                       Organization
                     </div>
-                    <div className="break-words text-sm text-foreground">{unit.customer_name}</div>
+                    <div className="break-words text-foreground">{unit.customer_name}</div>
                   </div>
 
                   {/* Location */}
-                  <div className="min-w-0">
+                  <div className="col-span-2 min-w-0 text-[12px] lg:col-auto lg:text-sm">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
                       Location
                     </div>
-                    <div className="break-words text-sm text-muted-foreground">{unit.location || "—"}</div>
+                    <div className="break-words text-muted-foreground">{unit.location || "—"}</div>
                   </div>
 
                   {/* Security guards */}
-                  <div className="min-w-0">
+                  <div className="col-span-2 min-w-0 lg:col-auto">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
                       Security guards
                     </div>
@@ -766,24 +766,24 @@ function AttendanceUnitsPage() {
                     <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
                       Active
                     </div>
-                    <div className="text-2xl font-semibold tracking-tight text-foreground leading-none">
+                    <div className="text-xl font-semibold tracking-tight text-foreground leading-none sm:text-2xl">
                       {unit.active_employee_count}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">employees</div>
+                    <div className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">employees</div>
                   </div>
 
                   {/* Status */}
-                  <div className="min-w-0">
+                  <div className="min-w-0 justify-self-end lg:justify-self-auto">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
                       Status
                     </div>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium whitespace-normal break-words ${statusBadge.cls}`}>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-medium whitespace-normal break-words sm:px-2.5 sm:text-[11px] ${statusBadge.cls}`}>
                       <statusBadge.Icon className="h-3.5 w-3.5 shrink-0" /> {statusBadge.label}
                     </span>
                   </div>
 
                   {/* Action */}
-                  <div className="min-w-0 lg:text-right">
+                  <div className="col-span-2 min-w-0 lg:col-auto lg:text-right">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
                       Action
                     </div>
@@ -794,7 +794,7 @@ function AttendanceUnitsPage() {
                           data-no-pill
                           onClick={() => sheet && reopenSheet.mutate(sheet)}
                           disabled={!sheet || reopenSheet.isPending}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:border-amber-400 hover:bg-amber-100 disabled:opacity-60"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 text-xs font-semibold text-amber-900 transition hover:border-amber-400 hover:bg-amber-100 disabled:opacity-60"
                         >
                           <RotateCcw className="h-3.5 w-3.5" /> Reopen
                         </button>
@@ -804,7 +804,7 @@ function AttendanceUnitsPage() {
                           params={{ unitId: unit.id }}
                           search={{ month: monthIdx, year }}
                           data-no-pill
-                          className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-accent/50 hover:text-accent"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 text-xs font-semibold text-muted-foreground transition hover:border-accent/50 hover:text-accent"
                         >
                           View roll <ArrowRight className="h-3.5 w-3.5" />
                         </Link>
@@ -815,7 +815,7 @@ function AttendanceUnitsPage() {
                         params={{ unitId: unit.id }}
                         search={{ month: monthIdx, year }}
                         data-no-pill
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent/50 hover:text-accent"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 text-xs font-semibold text-foreground transition hover:border-accent/50 hover:text-accent"
                       >
                         Open roll <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
@@ -917,14 +917,14 @@ function SummaryTile({
         ? "bg-sky-100/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
         : "bg-emerald-100/80 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300";
   return (
-    <div className="rounded-3xl border border-border/70 bg-card p-5 shadow-sm shadow-stone-200/30 dark:shadow-black/10">
-      <div className="flex items-center gap-4">
-        <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${accentClass}`}>
-          <Icon className="h-6 w-6" />
+    <div className="rounded-2xl border border-border/70 bg-card p-2.5 shadow-sm shadow-stone-200/30 dark:shadow-black/10 sm:rounded-3xl sm:p-5">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+        <div className={`flex h-8 w-8 items-center justify-center rounded-xl sm:h-14 sm:w-14 sm:rounded-2xl ${accentClass}`}>
+          <Icon className="h-4 w-4 sm:h-6 sm:w-6" />
         </div>
-        <div>
-          <div className="text-2xl font-semibold tracking-tight text-foreground">{value}</div>
-          <div className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="min-w-0">
+          <div className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{value}</div>
+          <div className="mt-0.5 truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-xs sm:tracking-[0.2em]">
             {label}
           </div>
         </div>
