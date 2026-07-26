@@ -617,6 +617,24 @@ function AdminLayout() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {isFieldOfficer && (
+            <div
+              className={cn(
+                "mt-2 flex w-full items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-2 py-1.5",
+                collapsed && "justify-center px-1.5",
+              )}
+            >
+              <NotificationBell />
+              {!collapsed && (
+                <span className="flex-1 truncate text-[12px] font-semibold text-foreground">
+                  Notifications
+                </span>
+              )}
+            </div>
+          )}
+
+
+
           <button
             type="button"
             onClick={toggleTheme}
