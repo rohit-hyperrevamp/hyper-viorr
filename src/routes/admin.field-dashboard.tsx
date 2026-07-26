@@ -98,13 +98,14 @@ function FieldOfficerDashboard() {
       const mePhoto = (me as { photo_url?: string } | null)?.photo_url ?? "";
 
       const empty = {
-        meName, meCode,
+        meName, meCode, mePhoto,
         units: [] as UnitNode[],
         guardsTotal: 0, joinedThisWeek: 0, joinedLastWeek: 0,
         attendanceRateToday: 0, attendanceRateYesterday: 0,
         pendingOnboardingTotal: 0, pendingOnboardingLastWeek: 0,
         openDemandsTotal: 0, inventoryItemsTotal: 0,
       };
+
       if (!meId) return empty;
 
       const [scopeRes, cuRes] = await Promise.all([
