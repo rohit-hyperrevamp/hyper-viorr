@@ -753,8 +753,8 @@ function AdminLayout() {
                   { to: "/admin/my-attendance", label: "My Attendance", icon: Clock },
                 ];
                 return (
-                  <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
-                    <div className="grid grid-cols-2 gap-3">
+                  <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pt-1 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+                    <div className="grid grid-cols-3 gap-2.5">
                       {foTiles.map((t) => {
                         const Icon = t.icon;
                         const active = isActive(t.to);
@@ -762,25 +762,27 @@ function AdminLayout() {
                           <Link
                             key={t.to}
                             to={t.to}
+                            onClick={() => setMobileOpen(false)}
                             className={cn(
-                              "flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center transition",
+                              "flex flex-col items-center justify-center gap-1.5 rounded-2xl border p-2.5 text-center transition",
                               active
                                 ? "border-accent/40 bg-accent/10 text-accent"
                                 : "border-border/60 bg-background text-foreground hover:border-accent/30 hover:bg-accent/5",
                             )}
                           >
                             <span className={cn(
-                              "grid h-11 w-11 place-items-center rounded-xl",
+                              "grid h-9 w-9 place-items-center rounded-xl",
                               active ? "bg-accent/15 text-accent" : "bg-muted/60 text-foreground/80",
                             )}>
-                              <Icon className="h-5 w-5" />
+                              <Icon className="h-4 w-4" />
                             </span>
-                            <span className="text-[12px] font-semibold leading-tight">{t.label}</span>
+                            <span className="text-[11px] font-semibold leading-tight">{t.label}</span>
                           </Link>
                         );
                       })}
                     </div>
                   </nav>
+
                 );
               })()
             ) : (
