@@ -2199,10 +2199,11 @@ function EmployeesPage() {
                 </th>
               )}
               {mode === "employee" && columnsVisible.role && (
-                <th className="hidden w-[128px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[128px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Role
                 </th>
               )}
+
               {mode === "employee" && columnsVisible.active && (
                 <th className="hidden w-[92px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
                   Active
