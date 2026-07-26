@@ -107,9 +107,10 @@ export async function checkIn(candidateId: string, geo: Geo, faceVerified: boole
   };
   const { data, error } = await supabase
     .from("self_attendance_punches" as never)
-    .upsert(row, { onConflict: "candidate_id,punch_date" })
+    .upsert(row as never, { onConflict: "candidate_id,punch_date" })
     .select("*")
     .single();
+
   if (error) throw error;
   return data as SelfPunch;
 }
