@@ -435,14 +435,27 @@ function UnitBlock({ unit, guards, balByGuard, itemMap, onCollect }: {
           {guards.map((g) => {
             const bals = balByGuard.get(g.id) ?? [];
             const totalQty = bals.reduce((s, b) => s + Number(b.qty || 0), 0);
+            const isPendingOff =
+              g.offboarding_details?.collection_status === "pending" &&
+              !!g.offboarding_details?.pending_collection_fo_id;
             return (
-              <div key={g.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                key={g.id}
+                className={`flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${isPendingOff ? "bg-rose-500/5" : ""}`}
+              >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isPendingOff ? "bg-rose-500/15 text-rose-600" : "bg-emerald-500/10 text-emerald-600"}`}>
                     <ShieldCheck className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-foreground">{g.full_name}</div>
+                    <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+                      <span>{g.full_name}</span>
+                      {isPendingOff && (
+                        <span className="inline-flex items-center rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-700">
+                          Offboarding · collect pending
+                        </span>
+                      )}
+                    </div>
                     <div className="text-[11px] text-muted-foreground">{g.employee_code ?? "—"}{g.mobile ? ` · +91 ${g.mobile}` : ""}</div>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {bals.length === 0 && <span className="text-[11px] text-muted-foreground">Nothing assigned</span>}
@@ -458,12 +471,18 @@ function UnitBlock({ unit, guards, balByGuard, itemMap, onCollect }: {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="text-right text-[11px] text-muted-foreground">{totalQty} item{totalQty === 1 ? "" : "s"} held</div>
-                  <Button size="sm" disabled={bals.length === 0} onClick={() => onCollect(g)} className="h-9 rounded-md">
-                    <PackageCheck className="mr-1.5 h-4 w-4" /> Recover
+                  <Button
+                    size="sm"
+                    disabled={bals.length === 0}
+                    onClick={() => onCollect(g)}
+                    className={`h-9 rounded-md ${isPendingOff ? "bg-rose-600 text-white hover:bg-rose-700" : ""}`}
+                  >
+                    <PackageCheck className="mr-1.5 h-4 w-4" /> {isPendingOff ? "Confirm collection" : "Recover"}
                   </Button>
                 </div>
               </div>
             );
+
           })}
         </div>
       )}
