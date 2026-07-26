@@ -697,23 +697,33 @@ function AdminLayout() {
         </div>
       </aside>
 
-      {/* Mobile top bar — native-app style, no hamburger (bottom nav has More) */}
+      {/* Mobile top bar — modern minimal, circular actions */}
       <header data-app-header className={cn(
-        "sticky top-0 z-20 flex min-h-12 items-center justify-between gap-3 px-4 animate-slide-in-top safe-top safe-x",
+        "sticky top-0 z-20 flex min-h-14 items-center justify-between gap-3 px-4 py-2 animate-slide-in-top safe-top safe-x",
         isFieldOfficer
-          ? "bg-white dark:bg-neutral-950 border-b border-border/40"
+          ? "bg-white/95 dark:bg-neutral-950/95 border-b border-border/30 backdrop-blur-xl"
           : "border-b border-border/30 bg-card/70 backdrop-blur-2xl backdrop-saturate-150",
         !nativeShell && "lg:hidden",
       )}>
-        <Link to={dashboardHref} className="flex min-w-0 items-center">
-          <BrandMark compact />
+        <Link to={dashboardHref} className="flex min-w-0 items-center gap-2.5">
+          <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 shadow-sm ring-1 ring-black/5 dark:from-slate-100 dark:to-slate-300">
+            <BrandMark compact />
+          </div>
+          <div className="min-w-0 leading-tight">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Welcome</div>
+            <div className="truncate text-sm font-bold text-foreground">
+              {me.fullName ? me.fullName.split(/\s+/)[0] : "Radiant"}
+            </div>
+          </div>
         </Link>
-        <div className="flex items-center gap-2">
-          <NotificationBell />
+        <div className="flex items-center gap-1.5">
+          <div className="grid h-10 w-10 place-items-center rounded-full border border-border/60 bg-card shadow-sm">
+            <NotificationBell />
+          </div>
           <Link
             to="/admin/profile"
             aria-label="Profile"
-            className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-card text-foreground transition-colors hover:border-accent hover:text-accent"
+            className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border border-border/60 bg-card text-foreground shadow-sm transition-colors hover:border-accent hover:text-accent"
           >
             {me.photoUrl ? (
               <img src={me.photoUrl} alt={me.fullName || "Profile"} className="h-full w-full object-cover" />
@@ -723,6 +733,7 @@ function AdminLayout() {
           </Link>
         </div>
       </header>
+
 
 
       {/* Mobile bottom-sheet drawer (slide-up) */}
