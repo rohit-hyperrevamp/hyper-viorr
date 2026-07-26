@@ -185,7 +185,67 @@ function DemandsPage() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      {/* Mobile card list */}
+      <div className="space-y-2.5 lg:hidden">
+        {filtered.map((d) => {
+          const agg = lineAgg.get(d.id) ?? { items: 0, qty: 0 };
+          const wh = d.warehouse_id ? warehouseMap.get(d.warehouse_id) : null;
+          const br = d.branch_id ? branchMap.get(d.branch_id) : null;
+          const destLabel = wh ? `${wh.name} (Warehouse)` : br ? `${br.code} – ${br.name}` : "—";
+          const req = d.requester_candidate_id ? requesterMap.get(d.requester_candidate_id) : null;
+          const reqLabel = req ? req.full_name : "—";
+          const reqSub = req ? `${(req.role_key ?? "").replace(/_/g, " ")}${req.employee_code ? ` · ${req.employee_code}` : ""}` : "";
+          return (
+            <div key={d.id} className="rounded-2xl border border-border bg-card p-3.5 shadow-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-mono text-[13px] font-semibold text-foreground">{d.demand_number}</div>
+                  <div className="mt-0.5 text-[11px] text-muted-foreground">{d.demand_date}</div>
+                </div>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${statusBadgeClass(d.status)}`}>
+                  {d.status.replace("_", " ")}
+                </span>
+              </div>
+              <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">From</div>
+                  <div className="break-words text-foreground">{destLabel}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">By</div>
+                  <div className="break-words font-medium text-foreground">{reqLabel}</div>
+                  {reqSub && <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{reqSub}</div>}
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                  <span><span className="font-semibold tabular-nums text-foreground">{agg.items}</span> items</span>
+                  <span><span className="font-semibold tabular-nums text-foreground">{agg.qty}</span> qty</span>
+                </div>
+                <div className="inline-flex gap-1">
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setViewing(d)}><Eye className="h-4 w-4" /></Button>
+                  {d.status === "draft" && scope.isScoped && (
+                    <>
+                      <Button size="sm" variant="ghost" className="h-8 px-2 text-xs" onClick={() => { setEditing(d); setOpen(true); }}>Edit</Button>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:text-destructive" onClick={async () => {
+                        if (!(await confirmAction({ title: "Delete demand?", description: `Delete ${d.demand_number}?`, confirmText: "Delete" }))) return;
+                        try { await deleteMut.mutateAsync(d); toast.success("Deleted"); } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+                      }}><Trash2 className="h-4 w-4" /></Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {!filtered.length && (
+          <div className="rounded-2xl border border-border bg-card px-5 py-12 text-center text-sm text-muted-foreground">
+            <ClipboardList className="mx-auto mb-2 h-8 w-8 opacity-40" />No demands yet.
+          </div>
+        )}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-2xl border border-border bg-card lg:block">
         <div className="overflow-x-auto">
           <table className="ios-table w-full min-w-[820px] text-sm">
 
@@ -248,6 +308,7 @@ function DemandsPage() {
           </table>
         </div>
       </div>
+
 
       <DemandFormDialog
         open={open}
