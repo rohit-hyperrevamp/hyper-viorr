@@ -174,7 +174,7 @@ function LoginPage() {
   return (
     <div
       className="relative min-h-dvh w-full overflow-x-clip bg-slate-950 bg-cover bg-center bg-no-repeat text-foreground"
-      style={{ backgroundImage: `url(${loginBg.url})` }}
+      style={{ backgroundImage: `url(${loginBg})` }}
     >
       {/* Subtle dark scrim for text legibility */}
       <div
