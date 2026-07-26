@@ -26,7 +26,13 @@ import {
   Wallet,
   Building2,
   X,
+  X,
+  LogOut,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "@/lib/use-theme";
+import { useNavigate } from "@tanstack/react-router";
 import { computeWages, fmtINR, type ContractResourceLike } from "@/lib/payroll-calc";
 import { PageHeader } from "@/components/PageHeader";
 import { useI18n, LANG_LABELS, type LangCode } from "@/lib/i18n";
