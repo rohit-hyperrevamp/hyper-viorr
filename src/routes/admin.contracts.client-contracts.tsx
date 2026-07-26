@@ -3354,6 +3354,7 @@ function ResourceFormDialog({
       const nextDeductions = (initial.deductions ?? []).map(cloneBenefitItem);
       const nextEmployerContributions = (initial.employerContributions ?? []).map(cloneBenefitItem);
       setDesignationId(initial.designationId);
+      setRoleKey(initial.roleKey ?? "");
       setServiceTypeId(initial.serviceTypeId);
       setQuantity(String(initial.quantity));
       setComponents(nextComponents);
