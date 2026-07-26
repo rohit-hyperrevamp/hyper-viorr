@@ -5005,16 +5005,18 @@ function CandidateWizard({
                       />
                     </Field>
                   </div>
-                  <div className="sm:col-span-2 flex items-center justify-between rounded-md border border-border bg-secondary/30 p-3">
-                    <div>
-                      <Label className="m-0">Do not re-hire</Label>
-                      <p className="text-xs text-muted-foreground">Flag this employee as ineligible for re-hiring. Auto-enabled when offboarded as Absconding.</p>
+                  <div className="sm:col-span-2 flex items-start justify-between gap-3 rounded-md border border-border bg-secondary/30 p-3">
+                    <div className="min-w-0 flex-1">
+                      <Label className="m-0 block">Do not re-hire</Label>
+                      <p className="mt-0.5 text-xs text-muted-foreground leading-snug">Flag this employee as ineligible for re-hiring. Auto-enabled when offboarded as Absconding.</p>
                     </div>
                     <Switch
+                      className="mt-0.5 shrink-0"
                       checked={form.no_hire}
                       onCheckedChange={(v) => set("no_hire", v)}
                     />
                   </div>
+
                 </div>
               </Section>
 
