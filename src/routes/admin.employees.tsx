@@ -1501,7 +1501,7 @@ function EmployeesPage() {
             const itemsSummary = returns
               .map((r) => `${r.item_name}${r.size_value ? " (" + r.size_value + ")" : ""} × ${r.qty_returned}`)
               .join(", ");
-            await createNotificationFn({
+            await createNotification({
               userId: foUserId,
               type: "offboarding_collection_pending",
               title: `Collection pending · ${candidate.full_name || candidate.employee_code}`,
