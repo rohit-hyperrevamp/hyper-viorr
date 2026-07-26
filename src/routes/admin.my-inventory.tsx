@@ -84,20 +84,42 @@ function MyInventoryPage() {
     return m;
   }, [lines]);
 
-  // Aggregate current holdings (acknowledged / received only)
-  const holdings = useMemo(() => {
-    const map = new Map<string, { item_id: string; size_value: string; qty: number }>();
-    for (const i of issuances) {
-      if (i.status !== "completed") continue;
-      for (const l of linesByIss.get(i.id) ?? []) {
-        const key = `${l.item_id}::${l.size_value ?? ""}`;
-        const cur = map.get(key) ?? { item_id: l.item_id, size_value: l.size_value ?? "", qty: 0 };
-        cur.qty += Number(l.qty || 0);
-        map.set(key, cur);
-      }
-    }
-    return Array.from(map.values()).filter((h) => h.qty > 0);
-  }, [issuances, linesByIss]);
+  // Live net possession from inv_stock_balances (accounts for collections, transfers, hand-outs)
+  const { data: holdings = [] } = useQuery({
+    queryKey: ["my-stock-balance", me?.id],
+    enabled: !!me?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inv_stock_balances" as never)
+        .select("item_id,size_value,qty")
+        .eq("location_id", me!.id)
+        .in("location_type", ["guard", "field_officer"]);
+      if (error) throw error;
+      return ((data as unknown as { item_id: string; size_value: string; qty: number }[]) ?? [])
+        .filter((r) => Number(r.qty) > 0)
+        .map((r) => ({ item_id: r.item_id, size_value: r.size_value ?? "", qty: Number(r.qty) }));
+    },
+  });
+
+  // Realtime: refresh on any stock movement touching this user's location
+  useEffect(() => {
+    if (!me?.id) return;
+    const ch = supabase
+      .channel(`my-inv-${me.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "inv_stock_movements", filter: `location_id=eq.${me.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["my-stock-balance", me.id] });
+        qc.invalidateQueries({ queryKey: ["my-issuances", me.id] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "inv_issuances", filter: `destination_id=eq.${me.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["my-issuances", me.id] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, [me?.id, qc]);
+
+  // Ensure item metadata is fetched for holdings items too
+  const holdingItemIds = useMemo(() => holdings.map((h) => h.item_id), [holdings]);
+
 
   const pending = issuances.filter((i) => i.status === "issued");
 
