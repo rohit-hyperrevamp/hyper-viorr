@@ -5113,7 +5113,7 @@ function CandidateWizard({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-sm sm:p-5">
+    <div className="rounded-2xl border border-border/70 bg-card p-2.5 shadow-sm sm:p-5">
       <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
         {title}
       </div>
