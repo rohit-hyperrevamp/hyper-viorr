@@ -96,6 +96,18 @@ export async function isBiometricAvailable(): Promise<boolean> {
   return !!info?.available;
 }
 
+/** Returns the phone currently saved in the iOS Keychain, or null. */
+export async function getStoredBiometricPhone(): Promise<string | null> {
+  const s = store();
+  if (!s) return null;
+  try {
+    const res = await s.getPhone();
+    return res?.phone ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getBiometricStatus(): Promise<{
   supported: boolean;
   available: boolean;
