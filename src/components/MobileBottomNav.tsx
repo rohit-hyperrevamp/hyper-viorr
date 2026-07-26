@@ -40,11 +40,12 @@ export function MobileBottomNav({
       data-bottom-nav
       style={{
         paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6px)",
-        transform: "translateZ(0)",
-        WebkitTransform: "translateZ(0)",
+        bottom: "0px",
+        left: "env(safe-area-inset-left, 0px)",
+        right: "env(safe-area-inset-right, 0px)",
       }}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-[80] border-t border-border/40 bg-card/95 backdrop-blur-xl [will-change:transform] [contain:layout_paint]",
+        "fixed z-[80] border-t border-border/40 bg-card/98 backdrop-blur-xl [contain:layout_paint]",
         "shadow-[0_-1px_0_0_rgba(255,255,255,0.04)_inset,0_-12px_28px_-16px_rgba(15,23,42,0.22)]",
         !nativeShell && "lg:hidden",
       )}
@@ -60,9 +61,9 @@ export function MobileBottomNav({
             >
               <span
                 className={cn(
-                  "grid h-9 w-9 place-items-center rounded-xl transition-colors",
+                  "grid h-9 w-9 place-items-center rounded-2xl transition-colors",
                   it.active
-                    ? "bg-accent text-accent-foreground shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-transparent text-foreground/70",
                 )}
               >
@@ -71,7 +72,7 @@ export function MobileBottomNav({
               <span
                 className={cn(
                   "max-w-full truncate text-[10px] leading-none tracking-tight",
-                  it.active ? "font-bold text-foreground" : "font-semibold text-foreground/70",
+                  it.active ? "font-bold text-primary" : "font-semibold text-foreground/70",
                 )}
               >
                 {it.label}
@@ -99,13 +100,13 @@ export function MobileBottomNav({
             <div className="relative mx-auto flex min-w-0 max-w-[72px] flex-col items-center justify-center gap-1 rounded-2xl px-2 pt-1 pb-1 transition-colors">
               <span
                 className={cn(
-                  "grid h-9 w-9 place-items-center rounded-xl transition-colors",
-                  moreActive ? "bg-accent text-accent-foreground shadow-sm" : "bg-transparent text-foreground/70",
+                  "grid h-9 w-9 place-items-center rounded-2xl transition-colors",
+                  moreActive ? "bg-primary text-primary-foreground shadow-sm" : "bg-transparent text-foreground/70",
                 )}
               >
                 <MoreHorizontal className="h-[18px] w-[18px] shrink-0" strokeWidth={moreActive ? 2.4 : 2} />
               </span>
-              <span className={cn("text-[10px] leading-none tracking-tight", moreActive ? "font-bold text-foreground" : "font-semibold text-foreground/70")}>
+              <span className={cn("text-[10px] leading-none tracking-tight", moreActive ? "font-bold text-primary" : "font-semibold text-foreground/70")}>
                 More
               </span>
             </div>

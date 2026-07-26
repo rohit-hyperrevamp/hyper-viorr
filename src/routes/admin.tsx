@@ -496,7 +496,10 @@ function AdminLayout() {
 
   return (
     <TooltipProvider delayDuration={150} skipDelayDuration={100}>
-    <div className={cn("relative min-h-dvh", isFieldOfficer && "bg-white dark:bg-neutral-950")}>
+    <div className={cn(
+      "relative flex h-dvh min-h-dvh flex-col overflow-hidden lg:block lg:h-auto lg:overflow-visible",
+      isFieldOfficer && "bg-white dark:bg-neutral-950",
+    )}>
       <AppleNativeSetupCard autoStart nativeOnly className="hidden" />
       {/* Soft tinted canvas — clean glass backdrop, no grid */}
       {!isFieldOfficer && <div className="pointer-events-none fixed inset-0 z-0 app-canvas" />}
@@ -752,15 +755,18 @@ function AdminLayout() {
           />
           <aside
             className={cn(
-              "absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col",
-              "rounded-t-3xl border-t border-border/50 bg-card shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.35)]",
+              "absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden",
+              "rounded-t-[26px] border-t border-border/50 bg-card shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.35)]",
               "animate-in slide-in-from-bottom duration-300 ease-out",
               "safe-bottom",
             )}
           >
             {/* Grabber */}
-            <div className="flex justify-center pt-2.5 pb-1">
-              <div className="h-1.5 w-10 rounded-full bg-muted-foreground/30" />
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="h-1.5 w-24 rounded-full bg-muted/80" />
+            </div>
+            <div className="px-4 pb-3">
+              <h2 className="text-[22px] font-bold leading-tight text-foreground">All sections</h2>
             </div>
             {isFieldOfficer ? (
               (() => {
@@ -773,8 +779,8 @@ function AdminLayout() {
                   { to: "/admin/profile", label: "Profile", icon: Users },
                 ];
                 return (
-                  <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
-                    <div className="grid grid-cols-3 gap-2.5">
+                  <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+                    <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-3">
                       {foTiles.map((t) => {
                         const Icon = t.icon;
                         const active = isActive(t.to);
@@ -784,28 +790,28 @@ function AdminLayout() {
                             to={t.to}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                              "group relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
+                              "group relative flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               active
-                                ? "border-accent/50 bg-accent/10 text-accent shadow-sm"
-                                : "border-border/60 bg-background text-foreground hover:border-accent/30 hover:bg-accent/5",
+                                ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                                : "border-border/70 bg-background text-primary hover:border-primary/30 hover:bg-muted/40",
                             )}
                           >
                             <span className={cn(
-                              "grid h-9 w-9 place-items-center rounded-xl",
-                              active ? "bg-accent text-accent-foreground" : "bg-muted/60 text-foreground/80",
+                              "grid h-8 w-8 place-items-center rounded-2xl",
+                              active ? "text-primary-foreground" : "text-primary",
                             )}>
                               <Icon className="h-[18px] w-[18px]" />
                             </span>
-                            <span className="line-clamp-2 text-[10.5px] font-semibold leading-tight">{t.label}</span>
+                            <span className="line-clamp-2 text-[11.5px] font-semibold leading-tight">{t.label}</span>
                           </Link>
                         );
                       })}
                       <button
                         type="button"
                         onClick={() => { setMobileOpen(false); toggleTheme(); }}
-                        className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-background px-2 py-2 text-center text-foreground transition hover:border-accent/30 hover:bg-accent/5 [-webkit-tap-highlight-color:transparent]"
+                        className="flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border border-border/70 bg-background px-2 py-2 text-center text-primary transition hover:border-primary/30 hover:bg-muted/40 [-webkit-tap-highlight-color:transparent]"
                       >
-                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/60 text-foreground/80">
+                        <span className="grid h-8 w-8 place-items-center rounded-2xl text-primary">
                           {themeMounted && theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
                         </span>
                         <span className="text-[10.5px] font-semibold leading-tight">
@@ -815,9 +821,9 @@ function AdminLayout() {
                       <Link
                         to="/admin/notifications"
                         onClick={() => setMobileOpen(false)}
-                        className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-background px-2 py-2 text-center text-foreground transition hover:border-accent/30 hover:bg-accent/5 [-webkit-tap-highlight-color:transparent]"
+                        className="flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border border-border/70 bg-background px-2 py-2 text-center text-primary transition hover:border-primary/30 hover:bg-muted/40 [-webkit-tap-highlight-color:transparent]"
                       >
-                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/60 text-foreground/80">
+                        <span className="grid h-8 w-8 place-items-center rounded-2xl text-primary">
                           <Bell className="h-[18px] w-[18px]" />
                         </span>
                         <span className="text-[10.5px] font-semibold leading-tight">Alerts</span>
@@ -825,9 +831,9 @@ function AdminLayout() {
                       <button
                         type="button"
                         onClick={handleLogout}
-                        className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border border-destructive/30 bg-destructive/5 px-2 py-2 text-center text-destructive transition hover:bg-destructive/10 [-webkit-tap-highlight-color:transparent]"
+                        className="flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border border-destructive/30 bg-destructive/5 px-2 py-2 text-center text-destructive transition hover:bg-destructive/10 [-webkit-tap-highlight-color:transparent]"
                       >
-                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-destructive/15 text-destructive">
+                        <span className="grid h-8 w-8 place-items-center rounded-2xl text-destructive">
                           <LogOut className="h-[18px] w-[18px]" />
                         </span>
                         <span className="text-[10.5px] font-semibold leading-tight">Sign out</span>
@@ -851,8 +857,8 @@ function AdminLayout() {
                 tiles.push({ to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") });
                 tiles.push({ to: "/admin/notifications", label: "Notifications", icon: Bell, active: isActive("/admin/notifications") });
                 return (
-                  <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                    <div className="grid grid-cols-3 gap-2.5">
+                  <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                    <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-3">
                       {tiles.map((t) => {
                         const Icon = t.icon;
                         return (
@@ -861,28 +867,28 @@ function AdminLayout() {
                             to={t.to}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                              "group relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
+                              "group relative flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               t.active
-                                ? "border-accent/50 bg-accent/10 text-accent shadow-sm"
-                                : "border-border/60 bg-background text-foreground hover:border-accent/30 hover:bg-accent/5",
+                                ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                                : "border-border/70 bg-background text-primary hover:border-primary/30 hover:bg-muted/40",
                             )}
                           >
                             <span className={cn(
-                              "grid h-9 w-9 place-items-center rounded-xl",
-                              t.active ? "bg-accent text-accent-foreground" : "bg-muted/60 text-foreground/80",
+                              "grid h-8 w-8 place-items-center rounded-2xl",
+                              t.active ? "text-primary-foreground" : "text-primary",
                             )}>
                               <Icon className="h-[18px] w-[18px]" />
                             </span>
-                            <span className="line-clamp-2 text-[10.5px] font-semibold leading-tight">{t.label}</span>
+                            <span className="line-clamp-2 text-[11.5px] font-semibold leading-tight">{t.label}</span>
                           </Link>
                         );
                       })}
                       <button
                         type="button"
                         onClick={() => { setMobileOpen(false); toggleTheme(); }}
-                        className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-background px-2 py-2 text-center text-foreground transition hover:border-accent/30 hover:bg-accent/5 [-webkit-tap-highlight-color:transparent]"
+                        className="flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border border-border/70 bg-background px-2 py-2 text-center text-primary transition hover:border-primary/30 hover:bg-muted/40 [-webkit-tap-highlight-color:transparent]"
                       >
-                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/60 text-foreground/80">
+                        <span className="grid h-8 w-8 place-items-center rounded-2xl text-primary">
                           {themeMounted && theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
                         </span>
                         <span className="text-[10.5px] font-semibold leading-tight">
@@ -892,9 +898,9 @@ function AdminLayout() {
                       <button
                         type="button"
                         onClick={handleLogout}
-                        className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border border-destructive/30 bg-destructive/5 px-2 py-2 text-center text-destructive transition hover:bg-destructive/10 [-webkit-tap-highlight-color:transparent]"
+                        className="flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border border-destructive/30 bg-destructive/5 px-2 py-2 text-center text-destructive transition hover:bg-destructive/10 [-webkit-tap-highlight-color:transparent]"
                       >
-                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-destructive/15 text-destructive">
+                        <span className="grid h-8 w-8 place-items-center rounded-2xl text-destructive">
                           <LogOut className="h-[18px] w-[18px]" />
                         </span>
                         <span className="text-[10.5px] font-semibold leading-tight">Sign out</span>
@@ -911,7 +917,7 @@ function AdminLayout() {
 
 
       {/* Main */}
-      <main className={cn("relative z-10 min-h-[calc(100dvh-3.5rem)] overflow-x-clip safe-x py-3 !pb-[calc(72px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
+      <main className={cn("relative z-10 min-h-0 flex-1 overflow-x-clip overflow-y-auto safe-x py-3 !pb-[calc(78px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:overflow-y-visible lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
         {/* Desktop top utility bar — global search + notifications */}
         {!isFieldOfficer && !nativeShell && (
           <div className="mb-4 hidden items-center gap-3 lg:flex animate-slide-in-top">
