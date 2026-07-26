@@ -816,10 +816,10 @@ function ProfilePage() {
       <div className="space-y-5">
         <PageHeader title="My Profile" crumbs={[{ label: "My Profile" }]} />
         {appleNativeCard}
-        {preferencesCard}
         <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
           No employee record is linked to your phone number ({phone}). Please contact your admin.
         </div>
+        {bottomActions}
       </div>
     );
   }
