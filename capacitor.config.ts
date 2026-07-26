@@ -13,7 +13,7 @@ const config: CapacitorConfig = {
   appName: "Radiant Guard",
   webDir: "capacitor-web",
   server: {
-    url: "https://radiant.hyperrevamp.com",
+    url: "https://radiant-guard-services.lovable.app",
     cleartext: false,
     androidScheme: "https",
     iosScheme: "https",
