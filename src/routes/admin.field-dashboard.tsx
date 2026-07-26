@@ -362,6 +362,9 @@ function FieldOfficerDashboard() {
 
       <MarkAttendanceCard candidateId={data?.meId ?? null} />
 
+      <MyLiveStatusCard />
+
+
 
 
       {/* Pastel summary tiles — "My Summary" */}
