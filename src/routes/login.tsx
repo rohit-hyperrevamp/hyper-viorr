@@ -188,23 +188,23 @@ function LoginPage() {
       <div className={revealing ? "animate-slide-out-up" : ""}>
 
       {/* Centered glass card */}
-      <div className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6 lg:py-10">
+      <div className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-6 sm:px-6 sm:py-10">
 
-        <div className="w-full max-w-[440px]">
+        <div className="w-full max-w-[420px]">
           {/* Brand */}
-          <div className="mb-7 flex flex-col items-center gap-4 text-center">
-            <div className="grid h-20 w-20 place-items-center rounded-full bg-white shadow-[0_22px_54px_-16px_rgba(15,23,42,0.45)] ring-1 ring-white/50">
-              <img src={logo} alt="Radiant" className="h-14 w-14 object-contain" />
+          <div className="mb-5 flex flex-col items-center gap-3 text-center sm:mb-7 sm:gap-4">
+            <div className="grid h-16 w-16 place-items-center rounded-full bg-white shadow-[0_22px_54px_-16px_rgba(15,23,42,0.45)] ring-1 ring-white/50 sm:h-20 sm:w-20">
+              <img src={logo} alt="Radiant" className="h-11 w-11 object-contain sm:h-14 sm:w-14" />
             </div>
             <div>
               <div
-                className="font-display text-[18px] font-semibold tracking-tight text-white"
+                className="font-display text-[17px] font-semibold tracking-tight text-white sm:text-[18px]"
                 style={{ textShadow: "0 2px 12px rgba(15,23,42,0.55)" }}
               >
                 Radiant Guard
               </div>
               <div
-                className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/90"
+                className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90 sm:text-[11px]"
                 style={{ textShadow: "0 1px 8px rgba(15,23,42,0.55)" }}
               >
                 Services Pvt. Ltd.
@@ -213,7 +213,7 @@ function LoginPage() {
           </div>
 
           {/* Glass card */}
-          <div className="relative overflow-hidden rounded-[28px] border border-white/85 bg-white/[0.98] p-7 shadow-[0_32px_90px_-24px_rgba(15,23,42,0.5)] backdrop-blur-2xl sm:p-9">
+          <div className="relative overflow-hidden rounded-[24px] border border-white/85 bg-white/[0.98] p-5 shadow-[0_32px_90px_-24px_rgba(15,23,42,0.5)] backdrop-blur-2xl sm:rounded-[28px] sm:p-9">
             {/* inner highlight */}
             <div
               aria-hidden
