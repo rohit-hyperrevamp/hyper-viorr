@@ -85,7 +85,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("candidates" as never)
-        .select("id,full_name,employee_code,mobile,role_key,unit_id,reports_to")
+        .select("id,full_name,employee_code,mobile,role_key,unit_id,reports_to,offboarding_details")
         .eq("reports_to", me.id)
         .in("role_key", ["guard", "security_guard"])
         .eq("status", "active")
@@ -94,6 +94,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
       return (data as unknown as Candidate[]) ?? [];
     },
   });
+
 
   // Units covered by this field officer, so Collections opens with unit coverage first.
   const { data: coveredUnitIds = [] } = useQuery({
