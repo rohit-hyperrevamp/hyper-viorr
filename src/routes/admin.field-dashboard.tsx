@@ -418,17 +418,6 @@ function FoPeopleInsights() {
   );
 }
 
-function QuickChip({ to, icon: Icon, label }: { to: string; icon: React.ComponentType<{ className?: string }>; label: string }) {
-  return (
-    <Link
-      to={to}
-      className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card/85 px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-accent/50 hover:text-accent"
-    >
-      <Icon className="h-3.5 w-3.5" />
-      {label}
-    </Link>
-  );
-}
 
 function StatBar({ label, value, bar }: { label: string; value: number | string; bar: string }) {
   return (
