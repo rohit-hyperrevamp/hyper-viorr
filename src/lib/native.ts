@@ -71,13 +71,27 @@ export function clearNativeDebugLog() {
 export function isNativePlatform(): boolean {
   if (typeof window === "undefined") return false;
   try {
-    return Capacitor.isNativePlatform();
+    if (Capacitor.isNativePlatform()) return true;
   } catch {
-    // Capacitor also injects window.Capacitor in the WebView. Keep this as a
-    // fallback for older native shells.
-    const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
-    return !!cap?.isNativePlatform?.();
+    /* fallback below */
   }
+  // Capacitor also injects window.Capacitor in the WebView. Keep this as a
+  // fallback for older native shells and custom-domain hybrid shells where the
+  // npm-side Capacitor singleton can report "web" before bridge hydration.
+  const cap = (window as unknown as {
+    Capacitor?: {
+      isNativePlatform?: () => boolean;
+      getPlatform?: () => string;
+      Plugins?: Record<string, unknown>;
+    };
+  }).Capacitor;
+  try {
+    if (cap?.isNativePlatform?.()) return true;
+  } catch {
+    /* noop */
+  }
+  const platform = cap?.getPlatform?.();
+  return platform === "ios" || platform === "android" || !!cap?.Plugins?.RadiantBiometrics;
 }
 
 export function getNativeRuntimeSnapshot() {
