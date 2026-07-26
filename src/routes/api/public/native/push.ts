@@ -12,6 +12,8 @@ import {
 
 const VITE_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const VITE_SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+const LOVABLE_NATIVE_BRIDGE_ORIGIN = "https://project--dc741c55-be5a-40d9-b6e9-523fed099022-dev.lovable.app";
+const NATIVE_PUSH_PATH = "/api/public/native/push";
 
 const AccessTokenSchema = z.object({ accessToken: z.string().min(20) });
 
@@ -72,6 +74,28 @@ function jsonResponse(request: Request, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers });
 }
 
+function shouldProxyToLovableBridge(request: Request) {
+  try {
+    const url = new URL(request.url);
+    return url.hostname !== new URL(LOVABLE_NATIVE_BRIDGE_ORIGIN).hostname;
+  } catch {
+    return false;
+  }
+}
+
+async function proxyToLovableBridge(request: Request, rawBody: string) {
+  const upstream = await fetch(`${LOVABLE_NATIVE_BRIDGE_ORIGIN}${NATIVE_PUSH_PATH}`, {
+    method: "POST",
+    headers: { "content-type": "text/plain;charset=UTF-8" },
+    body: rawBody,
+  });
+
+  const text = await upstream.text();
+  const headers = corsHeaders(request);
+  headers.set("content-type", upstream.headers.get("content-type") || "application/json; charset=utf-8");
+  return new Response(text, { status: upstream.status, headers });
+}
+
 function getBackendConfig() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || VITE_SUPABASE_URL;
   const publishableKey =
@@ -125,6 +149,10 @@ export const Route = createFileRoute("/api/public/native/push")({
       POST: async ({ request }) => {
         try {
           const rawBody = await request.text();
+          if (shouldProxyToLovableBridge(request)) {
+            return proxyToLovableBridge(request, rawBody);
+          }
+
           const input = PushRequestSchema.parse(JSON.parse(rawBody));
           const { supabase, userId } = await authenticate(input.accessToken);
 
