@@ -177,151 +177,160 @@ function MyAttendancePage() {
         crumbs={[{ label: "Home", to: "/" }, { label: "My Attendance" }]}
       />
 
-
       <MarkAttendanceCard candidateId={me.candidate_id} />
 
-      <section className="rounded-2xl border border-border/60 bg-card/90 p-3.5 shadow-sm backdrop-blur-xl sm:rounded-3xl sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl" onClick={() => shiftMonth(-1)} aria-label="Previous month">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="min-w-[10rem] text-center">
-              <div className="flex items-center justify-center gap-1.5 font-display text-base font-bold tracking-tight sm:text-lg">
-                <Calendar className="h-4 w-4 text-muted-foreground" /> {monthLabel}
-              </div>
+      {/* Month picker + totals */}
+      <section className="rounded-3xl border border-border/60 bg-card/95 p-4 shadow-sm backdrop-blur-xl sm:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <Button variant="outline" size="icon" className="h-10 w-10 rounded-full" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-1.5 font-display text-[15px] font-bold tracking-tight sm:text-lg">
+              <Calendar className="h-4 w-4 text-muted-foreground" /> {monthLabel}
             </div>
-            <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl" onClick={() => shiftMonth(1)} aria-label="Next month">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <div className="text-[10.5px] font-medium uppercase tracking-wider text-muted-foreground">
+              Monthly attendance
+            </div>
           </div>
-          <div className="relative w-full sm:w-64">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by day (e.g. 05) or date"
-              className="h-10 rounded-xl pl-9 text-sm"
-            />
-          </div>
+          <Button variant="outline" size="icon" className="h-10 w-10 rounded-full" onClick={() => shiftMonth(1)} aria-label="Next month">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
 
-        <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4 sm:gap-3">
+        <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
           <StatBox label="Present" value={totals.present} tone="emerald" />
           <StatBox label="Absent" value={totals.absent} tone="rose" />
           <StatBox label="Leave" value={totals.leave} tone="sky" />
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-xl border border-border/50">
-          <div className="hidden grid-cols-[80px_60px_120px_120px_1fr_1fr] gap-2 border-b border-border/50 bg-muted/40 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground md:grid">
-            <div>Date</div>
-            <div>Day</div>
-            <div>Check-in</div>
-            <div>Check-out</div>
-            <div>Location</div>
-            <div>Status</div>
-          </div>
-          <ul className="divide-y divide-border/50">
-            {filteredDays.map((d) => {
-              const rec = byDay.get(d.date);
-              const p = rec?.punch;
-              const code = rec?.entry?.code ? codeMap.get(rec.entry.code) : undefined;
-              type Tone = "emerald" | "rose" | "amber" | "sky" | "muted";
-              const badge: { label: string; tone: Tone } = p?.check_in_at
-                ? { label: p.check_out_at ? `Present · ${duration(p.check_in_at, p.check_out_at)}` : "On duty", tone: p.check_out_at ? "emerald" : "amber" }
-                : code
-                ? { label: `${code.label || code.code}`, tone: code.is_leave ? "sky" : code.counts_as_present ? "emerald" : "rose" }
-                : d.isFuture
-                ? { label: "—", tone: "muted" }
-                : { label: "Absent", tone: "rose" };
+        <div className="relative mt-4">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by day (e.g. 05)"
+            className="h-11 rounded-2xl border-border/60 bg-background/80 pl-10 text-sm"
+          />
+        </div>
+      </section>
 
+      {/* Day cards */}
+      <section className="space-y-2.5">
+        {filteredDays.map((d) => {
+          const rec = byDay.get(d.date);
+          const p = rec?.punch;
+          const code = rec?.entry?.code ? codeMap.get(rec.entry.code) : undefined;
+          type Tone = "emerald" | "rose" | "amber" | "sky" | "muted";
+          const badge: { label: string; tone: Tone } = p?.check_in_at
+            ? { label: p.check_out_at ? `Present · ${duration(p.check_in_at, p.check_out_at)}` : "On duty", tone: p.check_out_at ? "emerald" : "amber" }
+            : code
+            ? { label: `${code.label || code.code}`, tone: code.is_leave ? "sky" : code.counts_as_present ? "emerald" : "rose" }
+            : d.isFuture
+            ? { label: "—", tone: "muted" }
+            : { label: "Absent", tone: "rose" };
 
-              const inUrl = mapsUrl(p?.check_in_lat, p?.check_in_lng);
-              const outUrl = mapsUrl(p?.check_out_lat, p?.check_out_lng);
-              const dist = distanceMeters(
-                p?.check_in_lat != null && p?.check_in_lng != null ? { lat: p.check_in_lat, lng: p.check_in_lng } : null,
-                p?.check_out_lat != null && p?.check_out_lng != null ? { lat: p.check_out_lat, lng: p.check_out_lng } : null,
-              );
-              const deviated = dist != null && dist > DEVIATION_THRESHOLD_M;
+          const inUrl = mapsUrl(p?.check_in_lat, p?.check_in_lng);
+          const outUrl = mapsUrl(p?.check_out_lat, p?.check_out_lng);
+          const dist = distanceMeters(
+            p?.check_in_lat != null && p?.check_in_lng != null ? { lat: p.check_in_lat, lng: p.check_in_lng } : null,
+            p?.check_out_lat != null && p?.check_out_lng != null ? { lat: p.check_out_lat, lng: p.check_out_lng } : null,
+          );
+          const deviated = dist != null && dist > DEVIATION_THRESHOLD_M;
+          const dateObj = new Date(d.date);
+          const monthAbbr = dateObj.toLocaleDateString([], { month: "short" });
 
-              return (
-                <li
-                  key={d.date}
-                  className={cn(
-                    "grid grid-cols-[1fr_auto] gap-2 px-3 py-2.5 text-sm md:grid-cols-[80px_60px_120px_120px_1fr_1fr] md:items-center",
-                    d.isToday && "bg-amber-50/40 dark:bg-amber-500/5",
+          return (
+            <div
+              key={d.date}
+              className={cn(
+                "flex items-stretch gap-3 rounded-2xl border border-border/60 bg-card p-3 shadow-sm sm:p-4",
+                d.isToday && "ring-2 ring-primary/40 border-primary/30",
+              )}
+            >
+              {/* Date pill */}
+              <div className={cn(
+                "flex w-14 shrink-0 flex-col items-center justify-center rounded-xl px-1 py-2",
+                d.isToday ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-foreground",
+              )}>
+                <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+                  {monthAbbr}
+                </div>
+                <div className="font-display text-xl font-bold leading-none tabular-nums">
+                  {d.date.slice(8)}
+                </div>
+                <div className="mt-0.5 text-[10px] font-semibold opacity-80">
+                  {d.weekday}
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <StatusBadge label={badge.label} tone={badge.tone} />
+                  {d.isToday && (
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                      Today
+                    </span>
                   )}
-                >
-                  <div className="md:contents">
-                    <div className="tabular-nums font-semibold text-foreground">{d.date.slice(8)}</div>
-                    <div className="hidden text-xs text-muted-foreground md:block">{d.weekday}</div>
-                    <div className="hidden tabular-nums text-foreground md:block">{fmtHM(p?.check_in_at ?? null)}</div>
-                    <div className="hidden tabular-nums text-foreground md:block">{fmtHM(p?.check_out_at ?? null)}</div>
-                    <div className="hidden min-w-0 flex-col gap-0.5 text-xs md:flex">
-                      {inUrl ? (
-                        <a href={inUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 truncate font-semibold text-primary hover:underline">
-                          <MapPin className="h-3 w-3 shrink-0" /> In · {p!.check_in_lat!.toFixed(4)}, {p!.check_in_lng!.toFixed(4)}
-                          <ExternalLink className="h-2.5 w-2.5 opacity-70" />
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground">In · —</span>
-                      )}
-                      {outUrl ? (
-                        <a href={outUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 truncate font-semibold text-primary hover:underline">
-                          <MapPin className="h-3 w-3 shrink-0" /> Out · {p!.check_out_lat!.toFixed(4)}, {p!.check_out_lng!.toFixed(4)}
-                          <ExternalLink className="h-2.5 w-2.5 opacity-70" />
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground">Out · —</span>
-                      )}
-                      {dist != null && (
-                        <span
-                          className={cn(
-                            "mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider",
-                            deviated ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400",
-                          )}
-                        >
-                          {deviated && <AlertTriangle className="h-3 w-3" />}
-                          {deviated ? "Deviation" : "Same spot"} · {formatDistance(dist)}
-                        </span>
-                      )}
+                </div>
+
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="rounded-lg bg-secondary/40 px-2.5 py-1.5">
+                    <div className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">In</div>
+                    <div className="mt-0.5 flex items-center gap-1 text-[13px] font-semibold tabular-nums text-foreground">
+                      <Clock className="h-3 w-3 text-muted-foreground" />
+                      {fmtHM(p?.check_in_at ?? null)}
                     </div>
                   </div>
-                  <div className="md:hidden text-xs text-muted-foreground">
-                    <Clock className="mr-1 inline h-3 w-3" />
-                    {fmtHM(p?.check_in_at ?? null)} → {fmtHM(p?.check_out_at ?? null)}
-                    {(inUrl || outUrl) && (
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                        {inUrl && (
-                          <a href={inUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-primary">
-                            <MapPin className="h-3 w-3" /> In
-                          </a>
+                  <div className="rounded-lg bg-secondary/40 px-2.5 py-1.5">
+                    <div className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">Out</div>
+                    <div className="mt-0.5 flex items-center gap-1 text-[13px] font-semibold tabular-nums text-foreground">
+                      <Clock className="h-3 w-3 text-muted-foreground" />
+                      {fmtHM(p?.check_out_at ?? null)}
+                    </div>
+                  </div>
+                </div>
+
+                {(inUrl || outUrl || dist != null) && (
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                    {inUrl && (
+                      <a href={inUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+                        <MapPin className="h-3 w-3" /> In map
+                        <ExternalLink className="h-2.5 w-2.5 opacity-70" />
+                      </a>
+                    )}
+                    {outUrl && (
+                      <a href={outUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+                        <MapPin className="h-3 w-3" /> Out map
+                        <ExternalLink className="h-2.5 w-2.5 opacity-70" />
+                      </a>
+                    )}
+                    {dist != null && (
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-semibold",
+                          deviated
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                            : "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300",
                         )}
-                        {outUrl && (
-                          <a href={outUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-primary">
-                            <MapPin className="h-3 w-3" /> Out
-                          </a>
-                        )}
-                        {dist != null && (
-                          <span className={cn("font-semibold", deviated ? "text-amber-600" : "text-emerald-600")}>
-                            {deviated ? "⚠ " : ""}{formatDistance(dist)}
-                          </span>
-                        )}
-                      </div>
+                      >
+                        {deviated && <AlertTriangle className="h-3 w-3" />}
+                        {deviated ? "Deviation" : "Same spot"} · {formatDistance(dist)}
+                      </span>
                     )}
                   </div>
-                  <div className="justify-self-end md:justify-self-start">
-                    <StatusBadge label={badge.label} tone={badge.tone} />
-                  </div>
-                </li>
-              );
-            })}
+                )}
+              </div>
+            </div>
+          );
+        })}
 
-            {filteredDays.length === 0 && (
-              <li className="px-3 py-6 text-center text-sm text-muted-foreground">No days match your search.</li>
-            )}
-          </ul>
-        </div>
+        {filteredDays.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-border/60 bg-card/60 px-4 py-10 text-center text-sm text-muted-foreground">
+            No days match your search.
+          </div>
+        )}
       </section>
     </div>
   );

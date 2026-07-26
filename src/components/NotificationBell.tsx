@@ -129,9 +129,14 @@ export function NotificationBell() {
 
   const notificationList = (
     <>
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <div className="text-sm font-semibold">Notifications</div>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+        <div>
+          <div className="text-[15px] font-bold tracking-tight text-foreground">Notifications</div>
+          <div className="text-[11px] text-muted-foreground">
+            {unread > 0 ? `${unread} unread` : "You’re all caught up"}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => {
@@ -142,7 +147,7 @@ export function NotificationBell() {
             }}
             aria-label={muted ? "Unmute notification sound" : "Mute notification sound"}
             title={muted ? "Sound off" : "Sound on"}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground [-webkit-tap-highlight-color:transparent]"
           >
             {muted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
           </button>
@@ -153,51 +158,68 @@ export function NotificationBell() {
               await markAllRead();
               qc.invalidateQueries({ queryKey: NQK });
             }}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-accent disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/15 disabled:opacity-40 [-webkit-tap-highlight-color:transparent]"
           >
             <CheckCheck className="h-3.5 w-3.5" />
-            Mark all read
+            Mark all
           </button>
         </div>
       </div>
-      <div className="max-h-[min(65dvh,24rem)] overflow-y-auto overscroll-contain">
+      <div className="max-h-[min(65dvh,26rem)] overflow-y-auto overscroll-contain">
         {top.length === 0 ? (
-          <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-            No notifications yet.
+          <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
+            <div className="mb-2 grid h-12 w-12 place-items-center rounded-full bg-secondary/60">
+              <Bell className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="text-sm font-semibold text-foreground">No notifications</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">New alerts will appear here.</div>
           </div>
         ) : (
-          top.map((n) => (
-            <button
-              key={n.id}
-              type="button"
-              onClick={() => void handleOpenNotification(n)}
-              className={cn(
-                "block w-full border-b border-border/60 px-3 py-2.5 text-left transition-colors hover:bg-secondary/50",
-                !n.readAt && "bg-accent/5",
-              )}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="text-[13px] font-semibold text-foreground">
-                  {n.title}
-                </div>
-                {!n.readAt && (
-                  <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full bg-accent" />
-                )}
-              </div>
-              {n.message && (
-                <div className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-                  {n.message}
-                </div>
-              )}
-              <div className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">
-                {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-              </div>
-            </button>
-          ))
+          <ul className="divide-y divide-border/50">
+            {top.map((n) => (
+              <li key={n.id}>
+                <button
+                  type="button"
+                  onClick={() => void handleOpenNotification(n)}
+                  className={cn(
+                    "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/40 [-webkit-tap-highlight-color:transparent]",
+                    !n.readAt && "bg-primary/[0.04]",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full",
+                      !n.readAt ? "bg-primary/15 text-primary" : "bg-secondary/60 text-muted-foreground",
+                    )}
+                  >
+                    <Bell className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="text-[13.5px] font-semibold leading-snug text-foreground">
+                        {n.title}
+                      </div>
+                      {!n.readAt && (
+                        <span className="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full bg-primary" />
+                      )}
+                    </div>
+                    {n.message && (
+                      <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                        {n.message}
+                      </div>
+                    )}
+                    <div className="mt-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                      {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                    </div>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
-      <div className="border-t border-border px-3 py-2 text-center">
-        <Button asChild variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setMobileOpen(false)}>
+      <div className="border-t border-border/60 px-4 py-2.5">
+        <Button asChild variant="ghost" size="sm" className="h-9 w-full justify-center rounded-xl text-xs font-semibold" onClick={() => setMobileOpen(false)}>
           <Link to="/admin/notifications">Open Notification Center</Link>
         </Button>
       </div>
@@ -212,28 +234,27 @@ export function NotificationBell() {
               type="button"
               aria-label="Close notifications"
               data-no-tip
-              className="absolute inset-0 bg-foreground/35 backdrop-blur-sm"
+              className="absolute inset-0 bg-foreground/40 backdrop-blur-md animate-in fade-in-0 duration-200"
               onClick={() => setMobileOpen(false)}
             />
             <div
-              className="absolute inset-x-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-2xl border border-border bg-card shadow-[0_-24px_70px_-28px_rgba(15,23,42,0.55)]"
+              className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col overflow-hidden rounded-t-[28px] border-t border-x border-border/60 bg-card shadow-[0_-24px_80px_-20px_rgba(15,23,42,0.55)] animate-in slide-in-from-bottom duration-300 ease-out"
               style={{
-                bottom: "calc(env(safe-area-inset-bottom, 0px) * -1)",
-                paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
+                paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 4px)",
               }}
             >
-              <div className="flex justify-center py-2">
+              <div className="relative flex items-center justify-center pt-2.5 pb-1.5">
                 <span className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+                <button
+                  type="button"
+                  aria-label="Close notifications"
+                  data-no-tip
+                  onClick={() => setMobileOpen(false)}
+                  className="absolute right-3 top-2 grid h-8 w-8 place-items-center rounded-full bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground [-webkit-tap-highlight-color:transparent]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                aria-label="Close notifications"
-                data-no-tip
-                onClick={() => setMobileOpen(false)}
-                className="absolute right-3 top-2 grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
               {notificationList}
             </div>
           </div>,

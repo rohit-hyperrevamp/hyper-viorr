@@ -231,11 +231,13 @@ type SignedDocRow = {
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="min-w-0 rounded-xl border border-border/50 bg-secondary/30 px-3 py-2">
+      <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </span>
-      <span className="text-sm text-foreground">{value || "—"}</span>
+      <span className="mt-0.5 block break-words text-[13.5px] font-semibold text-foreground">
+        {value || "—"}
+      </span>
     </div>
   );
 }
@@ -856,13 +858,13 @@ function ProfilePage() {
 
 
       {/* Hero card */}
-      <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
-        <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
-          <div className="relative">
+      <div className="overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br from-card via-card to-secondary/40 shadow-sm">
+        <div className="flex flex-col items-center gap-4 px-5 pb-5 pt-6 text-center sm:flex-row sm:items-center sm:gap-6 sm:px-6 sm:text-left">
+          <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="block h-24 w-24 overflow-hidden rounded-full border border-border bg-secondary sm:h-28 sm:w-28"
+              className="block h-24 w-24 overflow-hidden rounded-full border-4 border-background bg-secondary shadow-md ring-2 ring-primary/20 sm:h-28 sm:w-28"
               title="Change photo"
             >
               {profile.photo_url ? (
@@ -872,7 +874,7 @@ function ProfilePage() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-muted-foreground">
+                <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-muted-foreground">
                   {(profile.full_name || "?").slice(0, 1).toUpperCase()}
                 </div>
               )}
@@ -882,7 +884,7 @@ function ProfilePage() {
                 <button
                   type="button"
                   disabled={uploadingPhoto}
-                  className="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:border-accent hover:text-accent disabled:opacity-60 sm:-bottom-2 sm:-right-2 sm:h-9 sm:w-9"
+                  className="absolute -bottom-1 -right-1 inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-md transition-colors hover:opacity-90 disabled:opacity-60"
                   title="Change photo"
                 >
                   {uploadingPhoto ? (
@@ -919,41 +921,50 @@ function ProfilePage() {
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center justify-center gap-1.5 sm:justify-start sm:gap-2">
-              <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-                {profile.full_name || "Unnamed"}
-              </h1>
-              <Badge variant="outline" className="capitalize">
-                {profile.status}
-              </Badge>
-              {lookups?.role?.name && (
-                <Badge className="bg-accent/15 text-accent">{lookups.role.name}</Badge>
-              )}
-            </div>
-            <p className="mt-1 break-words text-[13px] text-muted-foreground sm:text-sm">
+            <h1 className="break-words font-display text-xl font-bold leading-tight tracking-tight text-foreground sm:text-2xl">
+              {profile.full_name || "Unnamed"}
+            </h1>
+            <p className="mt-1 break-words text-[13px] font-medium text-muted-foreground sm:text-sm">
               {lookups?.designation?.name || "—"}
               {lookups?.unit ? ` · ${lookups.unit.name}` : ""}
               {lookups?.unit?.city ? ` (${lookups.unit.city})` : ""}
             </p>
-            <div className="mt-3 grid grid-cols-1 gap-2 text-left sm:grid-cols-3 sm:gap-3">
-              <InfoRow label="Employee Code" value={profile.employee_code || "—"} />
-              <InfoRow
-                label="Role"
-                value={lookups?.role?.name || (profile.role_key ? profile.role_key : "Not assigned")}
-              />
-              <InfoRow
-                label="Date of Joining"
-                value={
-                  profile.approved_at?.slice(0, 10) ??
-                  profile.preferred_joining_date ??
-                  "—"
-                }
-              />
-              <InfoRow label="Status" value={profile.status} />
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
+              <Badge variant="outline" className="rounded-full px-2.5 py-0.5 capitalize">
+                {profile.status}
+              </Badge>
+              {lookups?.role?.name && (
+                <Badge className="rounded-full bg-primary/15 px-2.5 py-0.5 text-primary hover:bg-primary/20">
+                  {lookups.role.name}
+                </Badge>
+              )}
+              {profile.employee_code && (
+                <Badge variant="outline" className="rounded-full px-2.5 py-0.5 font-mono text-[11px]">
+                  {profile.employee_code}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
+
+        <div className="grid grid-cols-1 gap-2 border-t border-border/60 bg-background/60 px-4 py-4 sm:grid-cols-2 sm:gap-3 sm:px-6">
+          <InfoRow label="Employee Code" value={profile.employee_code || "—"} />
+          <InfoRow
+            label="Role"
+            value={lookups?.role?.name || (profile.role_key ? profile.role_key : "Not assigned")}
+          />
+          <InfoRow
+            label="Date of Joining"
+            value={
+              profile.approved_at?.slice(0, 10) ??
+              profile.preferred_joining_date ??
+              "—"
+            }
+          />
+          <InfoRow label="Status" value={profile.status} />
+        </div>
       </div>
+
 
 
       <Section title="My Posting & Reporting" icon={Building2}>
