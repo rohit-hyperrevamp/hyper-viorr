@@ -633,6 +633,8 @@ function EmployeesPage() {
 
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"employee" | "candidate">("employee");
+  useEffect(() => { if (isFieldOfficer) setTab("candidate"); }, [isFieldOfficer]);
+
   const [empStatusTab, setEmpStatusTab] = useState<"active" | "inactive">("active");
   const [viewMode, setViewMode] = useState<"list" | "tree">("list");
   const [openWizard, setOpenWizard] = useState(false);
@@ -2243,7 +2245,7 @@ function EmployeesPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        {(tab === "employee"
+        {(tab === "employee" && !isFieldOfficer
           ? [
               { label: "Total", value: stats.empTotal, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
               { label: "Active", value: stats.empActive, accent: false as const, dot: "bg-emerald-500", tone: "neutral" as const },
@@ -2323,12 +2325,14 @@ function EmployeesPage() {
       <Tabs value={tab} onValueChange={(v) => setTab(v as "employee" | "candidate")} className="space-y-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <TabsList className="inline-flex h-auto rounded-xl border border-border/60 bg-secondary/40 p-1 backdrop-blur-sm">
-            <TabsTrigger
-              value="employee"
-              className="rounded-lg px-6 py-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-            >
-              {isFieldOfficer ? "My Employees" : "Employees"} <span className="ml-1.5 text-xs opacity-60">({isFieldOfficer ? employees.length : stats.empTotal})</span>
-            </TabsTrigger>
+            {!isFieldOfficer && (
+              <TabsTrigger
+                value="employee"
+                className="rounded-lg px-6 py-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
+                Employees <span className="ml-1.5 text-xs opacity-60">({stats.empTotal})</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger
               value="candidate"
               className="rounded-lg px-6 py-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
@@ -2336,6 +2340,7 @@ function EmployeesPage() {
               {isFieldOfficer ? "My Candidates" : "Candidates"} <span className="ml-1.5 text-xs opacity-60">({candidateRows.length})</span>
             </TabsTrigger>
           </TabsList>
+
 
           <div className="flex w-full items-center gap-3 md:w-auto">
             <div className="relative flex-1 md:w-80">
