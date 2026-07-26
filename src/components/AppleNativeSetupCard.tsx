@@ -75,12 +75,6 @@ export function AppleNativeSetupCard({
         setPushStatus(
           `This iPhone is registered for native notifications${status.count > 1 ? ` (${status.count} active tokens).` : "."}`,
         );
-      } else if (phoneDigits) {
-        try {
-          window.localStorage.removeItem(`${AUTO_PUSH_KEY_PREFIX}:${phoneDigits}`);
-        } catch {
-          /* noop */
-        }
       }
     } catch {
       /* registration status is best-effort */
