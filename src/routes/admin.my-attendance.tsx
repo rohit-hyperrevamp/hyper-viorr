@@ -218,13 +218,15 @@ function MyAttendancePage() {
               const rec = byDay.get(d.date);
               const p = rec?.punch;
               const code = rec?.entry?.code ? codeMap.get(rec.entry.code) : undefined;
-              const badge = p?.check_in_at
-                ? { label: p.check_out_at ? `Present · ${duration(p.check_in_at, p.check_out_at)}` : "On duty", tone: p.check_out_at ? "emerald" : "amber" as const }
+              type Tone = "emerald" | "rose" | "amber" | "sky" | "muted";
+              const badge: { label: string; tone: Tone } = p?.check_in_at
+                ? { label: p.check_out_at ? `Present · ${duration(p.check_in_at, p.check_out_at)}` : "On duty", tone: p.check_out_at ? "emerald" : "amber" }
                 : code
-                ? { label: `${code.label || code.code}`, tone: code.is_leave ? "sky" : code.counts_as_present ? "emerald" : "rose" as const }
+                ? { label: `${code.label || code.code}`, tone: code.is_leave ? "sky" : code.counts_as_present ? "emerald" : "rose" }
                 : d.isFuture
-                ? { label: "—", tone: "muted" as const }
-                : { label: "Absent", tone: "rose" as const };
+                ? { label: "—", tone: "muted" }
+                : { label: "Absent", tone: "rose" };
+
 
               return (
                 <li
