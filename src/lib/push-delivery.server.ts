@@ -87,16 +87,19 @@ export async function sendNativePushForRecentNotifications(
   const recipients = uniqueUserIds(userIds);
   if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
 
-  const since = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  // Authorization: only fan out native pushes to users for whom the caller
+  // just created a notification row in the last 5 minutes. We intentionally
+  // don't match on title/message/link — those fields are fragile (whitespace,
+  // punctuation, i18n) and were silently suppressing valid pushes. Matching
+  // on actor + recipient + recency is enough to prove the caller is the
+  // legitimate origin of this notification.
   const { data, error } = await supabaseAdmin
     .from("notifications")
     .select("user_id")
     .in("user_id", recipients)
     .eq("actor_id", actorUserId)
-    .eq("title", payload.title ?? "")
-    .eq("message", payload.body ?? "")
-    .eq("link", payload.link ?? "")
     .gte("created_at", since);
   if (error) throw error;
 
