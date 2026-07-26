@@ -779,7 +779,6 @@ function AdminLayout() {
                   { to: "/admin/attendance", label: "Attendance", icon: ClipboardList },
                   { to: "/admin/inventory/items", label: "Uniform", icon: Boxes },
                   { to: "/admin/my-attendance", label: "My Attendance", icon: Clock },
-                  { to: "/admin/profile", label: "Profile", icon: Users },
                 ];
                 return (
                   <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
@@ -809,21 +808,8 @@ function AdminLayout() {
                           </Link>
                         );
                       })}
-                      <Link
-                        to="/admin/notifications"
-                        onClick={() => setMobileOpen(false)}
-                        className="flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border border-border/70 bg-background px-2 py-2 text-center text-primary transition hover:border-primary/30 hover:bg-muted/40 [-webkit-tap-highlight-color:transparent]"
-                      >
-                        <span className="grid h-8 w-8 place-items-center rounded-2xl text-primary">
-                          <Bell className="h-[18px] w-[18px]" />
-                        </span>
-                        <span className="text-[10.5px] font-semibold leading-tight">Alerts</span>
-                      </Link>
-
                     </div>
                   </nav>
-
-
                 );
               })()
 
