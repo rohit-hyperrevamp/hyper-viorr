@@ -799,46 +799,69 @@ function AdminLayout() {
                 );
               })()
             ) : (
-              <nav className="flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                {visibleGroups.map((g) => (
-                  <MobileGroup key={g.key} group={g} isActive={isActive} isGroupActive={isGroupActive(g)} />
-                ))}
-                <div className="my-2 border-t border-border/40" />
-                <Link
-                  to="/admin/profile"
-                  className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
-                >
-                  <Users className="h-4 w-4 shrink-0" /> My Profile
-                </Link>
-                <Link
-                  to="/admin/my-attendance"
-                  className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
-                >
-                  <Clock className="h-4 w-4 shrink-0" /> My Attendance
-                </Link>
-
-                <Link
-                  to="/admin/notifications"
-                  className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
-                >
-                  <Bell className="h-4 w-4 shrink-0" /> Notifications
-                </Link>
-                <button
-                  type="button"
-                  onClick={toggleTheme}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-foreground hover:bg-muted/60"
-                >
-                  {themeMounted && theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
-                  {themeMounted && theme === "dark" ? "Light mode" : "Dark mode"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-destructive hover:bg-destructive/10"
-                >
-                  <LogOut className="h-4 w-4 shrink-0" /> Sign out
-                </button>
-              </nav>
+              (() => {
+                const tiles: Array<{ to: string; label: string; icon: typeof LayoutDashboard; active: boolean }> = [];
+                for (const g of visibleGroups) {
+                  const to = g.to ?? g.children?.[0]?.to;
+                  if (!to) continue;
+                  tiles.push({ to, label: g.label, icon: g.icon, active: isGroupActive(g) });
+                }
+                tiles.push({ to: "/admin/profile", label: "My Profile", icon: Users, active: isActive("/admin/profile") });
+                tiles.push({ to: "/admin/my-attendance", label: "My Attendance", icon: Clock, active: isActive("/admin/my-attendance") });
+                tiles.push({ to: "/admin/notifications", label: "Notifications", icon: Bell, active: isActive("/admin/notifications") });
+                return (
+                  <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {tiles.map((t) => {
+                        const Icon = t.icon;
+                        return (
+                          <Link
+                            key={t.to + t.label}
+                            to={t.to}
+                            onClick={() => setMobileOpen(false)}
+                            className={cn(
+                              "group relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
+                              t.active
+                                ? "border-accent/50 bg-accent/10 text-accent shadow-sm"
+                                : "border-border/60 bg-background text-foreground hover:border-accent/30 hover:bg-accent/5",
+                            )}
+                          >
+                            <span className={cn(
+                              "grid h-9 w-9 place-items-center rounded-xl",
+                              t.active ? "bg-accent text-accent-foreground" : "bg-muted/60 text-foreground/80",
+                            )}>
+                              <Icon className="h-[18px] w-[18px]" />
+                            </span>
+                            <span className="line-clamp-2 text-[10.5px] font-semibold leading-tight">{t.label}</span>
+                          </Link>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => { setMobileOpen(false); toggleTheme(); }}
+                        className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-background px-2 py-2 text-center text-foreground transition hover:border-accent/30 hover:bg-accent/5 [-webkit-tap-highlight-color:transparent]"
+                      >
+                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/60 text-foreground/80">
+                          {themeMounted && theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+                        </span>
+                        <span className="text-[10.5px] font-semibold leading-tight">
+                          {themeMounted && theme === "dark" ? "Light" : "Dark"}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border border-destructive/30 bg-destructive/5 px-2 py-2 text-center text-destructive transition hover:bg-destructive/10 [-webkit-tap-highlight-color:transparent]"
+                      >
+                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-destructive/15 text-destructive">
+                          <LogOut className="h-[18px] w-[18px]" />
+                        </span>
+                        <span className="text-[10.5px] font-semibold leading-tight">Sign out</span>
+                      </button>
+                    </div>
+                  </nav>
+                );
+              })()
             )}
           </aside>
         </div>
