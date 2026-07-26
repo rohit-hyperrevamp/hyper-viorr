@@ -127,6 +127,33 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
     [punch?.check_in_at, punch?.check_out_at],
   );
 
+  // While checked-in, push live location + battery + network every 45s.
+  useEffect(() => {
+    if (state !== "in" || !punch?.id) return;
+    let cancelled = false;
+    const send = async () => {
+      try {
+        const [geo, battery] = await Promise.allSettled([getCurrentPosition(), readBattery()]);
+        if (cancelled) return;
+        await pushTelemetry(punch.id, {
+          geo: geo.status === "fulfilled" ? geo.value : null,
+          battery: battery.status === "fulfilled" ? battery.value : null,
+          network: readNetworkType(),
+        });
+        void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
+      } catch {
+        /* ignore transient errors */
+      }
+    };
+    void send();
+    const t = setInterval(send, 45_000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [state, punch?.id, candidateId, qc]);
+
+
   const pillClass =
     state === "done"
       ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20"
