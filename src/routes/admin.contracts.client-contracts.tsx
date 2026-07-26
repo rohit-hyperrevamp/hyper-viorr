@@ -3379,6 +3379,7 @@ function ResourceFormDialog({
           fixedDutyDivisor: a.fixedDutyDivisor ?? "base_days",
         }));
       setDesignationId("");
+      setRoleKey("");
       setServiceTypeId("");
       setQuantity("1");
       // Pre-load defaults from allowance types
