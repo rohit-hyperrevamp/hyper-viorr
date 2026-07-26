@@ -3751,7 +3751,11 @@ function CandidateWizard({
       }
     }
     toast.success(successMsg);
-    qc.invalidateQueries({ queryKey: QK });
+    // Await so the caller (Save/Send-to-Approval handlers) can close the
+    // wizard AFTER the list has refetched — prevents the "count went up
+    // but I don't see my row" flash.
+    await qc.invalidateQueries({ queryKey: QK, refetchType: "active" });
+    await qc.invalidateQueries({ queryKey: ["candidate_units"], refetchType: "active" });
   };
 
 

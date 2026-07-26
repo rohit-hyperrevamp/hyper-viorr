@@ -12,7 +12,12 @@ export const getRouter = () => {
         gcTime: 30 * 60 * 1000, // 30 min in memory
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
-        refetchOnMount: false,
+        // Refetch when a component re-mounts if the query is stale.
+        // After a mutation calls invalidateQueries, this guarantees the
+        // very next visit to that page shows fresh data instead of a
+        // cached copy — the "count updates but the row is missing until
+        // I refresh" symptom users see across admin lists.
+        refetchOnMount: true,
         retry: 1,
       },
     },
