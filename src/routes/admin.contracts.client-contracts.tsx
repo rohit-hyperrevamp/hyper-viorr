@@ -3307,8 +3307,10 @@ function ResourceFormDialog({
   const allowanceTypes = useAllowanceTypes();
   const payrollDayBases = usePayrollDayBases();
   const costComponents = useCostComponentOptions();
+  const rolesList = useRolesList();
 
   const [designationId, setDesignationId] = useState("");
+  const [roleKey, setRoleKey] = useState<string>("");
   const [serviceTypeId, setServiceTypeId] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [components, setComponents] = useState<ResourceComponent[]>([]);
