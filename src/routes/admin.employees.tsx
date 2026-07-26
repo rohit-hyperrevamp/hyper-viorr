@@ -1435,16 +1435,52 @@ function EmployeesPage() {
       details: OffboardingDetails;
       noHire: boolean;
     }) => {
+      const returns = (details.inventory_returns ?? []).filter((r) => r.qty_returned > 0);
+      const pendingFoId =
+        returns.length > 0 && returns[0].destination_type === "field_officer"
+          ? returns[0].destination_id
+          : null;
+      const isDeferred = !!pendingFoId;
+      const nowIso = new Date().toISOString();
+
+      // Look up FO name for the offboarding_details record (nice-to-have for UI).
+      let foName: string | null = null;
+      if (pendingFoId) {
+        const { data: foRow } = await supabase
+          .from("candidates" as never)
+          .select("full_name,employee_code")
+          .eq("id", pendingFoId)
+          .maybeSingle();
+        const fo = foRow as { full_name?: string; employee_code?: string } | null;
+        foName = fo?.full_name || fo?.employee_code || null;
+      }
+
+      const enrichedDetails: OffboardingDetails = {
+        ...details,
+        pending_collection_fo_id: pendingFoId,
+        pending_collection_fo_name: foName,
+        collection_status: isDeferred ? "pending" : returns.length > 0 ? "completed" : null,
+        collection_requested_at: isDeferred ? nowIso : details.collection_requested_at ?? null,
+        collection_completed_at: isDeferred ? null : returns.length > 0 ? nowIso : null,
+      };
+
+      const updatePayload: Record<string, unknown> = {
+        offboarding_reason_id: reasonId,
+        offboarding_details: enrichedDetails,
+        no_hire: noHire,
+      };
+      if (isDeferred) {
+        // Keep the employee active/enabled until the FO confirms collection.
+        // Do NOT set offboarded_at here — finalisation happens on FO confirmation.
+      } else {
+        updatePayload.is_enabled = false;
+        updatePayload.status = "inactive";
+        updatePayload.offboarded_at = nowIso;
+      }
+
       const { data: updated, error } = await supabase
         .from("candidates" as never)
-        .update({
-          is_enabled: false,
-          status: "inactive",
-          offboarding_reason_id: reasonId,
-          offboarded_at: new Date().toISOString(),
-          offboarding_details: details,
-          no_hire: noHire,
-        } as unknown as never)
+        .update(updatePayload as unknown as never)
         .eq("id", candidate.id)
         .select("id");
       if (error) throw error;
@@ -1452,10 +1488,34 @@ function EmployeesPage() {
         throw new Error("You don't have permission to offboard this employee, or the record could not be updated.");
       }
 
-
-      // Post inventory return movements: negative at guard, positive at destination
-      const returns = (details.inventory_returns ?? []).filter((r) => r.qty_returned > 0);
-      if (returns.length) {
+      if (isDeferred) {
+        // Do NOT post inventory movements yet — the FO will confirm and then movements post.
+        // Notify the selected Field Officer.
+        try {
+          const { data: uidRow } = await supabase.rpc(
+            "get_user_id_by_candidate_id" as never,
+            { _candidate_id: pendingFoId } as never,
+          );
+          const foUserId = (uidRow as unknown as string | null) ?? null;
+          if (foUserId) {
+            const itemsSummary = returns
+              .map((r) => `${r.item_name}${r.size_value ? " (" + r.size_value + ")" : ""} × ${r.qty_returned}`)
+              .join(", ");
+            await createNotificationFn({
+              userId: foUserId,
+              type: "offboarding_collection_pending",
+              title: `Collection pending · ${candidate.full_name || candidate.employee_code}`,
+              message: `HR has initiated offboarding. Please recover ${returns.length} item${returns.length === 1 ? "" : "s"}: ${itemsSummary}. Confirm in Uniform Manager → Collections.`,
+              link: "/admin/inventory/collections",
+              entityType: "candidate",
+              entityId: candidate.id,
+            });
+          }
+        } catch (e) {
+          console.warn("Failed to notify field officer of pending collection", e);
+        }
+      } else if (returns.length) {
+        // No pending FO handshake — post movements directly (e.g. no items, or non-FO path).
         const moves = returns.flatMap((r) => [
           {
             movement_type: "offboarding_return",
@@ -1483,7 +1543,6 @@ function EmployeesPage() {
         try {
           await postMovements(moves);
         } catch (e) {
-          // Do not fail offboarding on movement error; surface a toast.
           console.error("Inventory return movement failed", e);
           toast.error("Employee offboarded, but inventory return failed to post. Please review Stock Ledger.");
         }
@@ -1491,16 +1550,32 @@ function EmployeesPage() {
 
       await logActivity({
         module: "Employees",
-        action: "offboard",
+        action: isDeferred ? "offboard_requested" : "offboard",
         entityType: "candidate",
         entityId: candidate.id,
         entityLabel: candidate.full_name || candidate.employee_code,
         before: { is_enabled: candidate.is_enabled, status: candidate.status },
-        after: { is_enabled: false, status: "inactive", offboarding_reason: reasonName, no_hire: noHire, offboarding_details: details, inventory_returns_count: returns.length },
+        after: {
+          is_enabled: isDeferred ? candidate.is_enabled : false,
+          status: isDeferred ? candidate.status : "inactive",
+          offboarding_reason: reasonName,
+          no_hire: noHire,
+          offboarding_details: enrichedDetails,
+          inventory_returns_count: returns.length,
+          pending_collection_fo_id: pendingFoId,
+        },
       });
+
+      return { isDeferred, pendingFoName: foName };
     },
-    onSuccess: () => {
-      toast.success("Employee offboarded");
+    onSuccess: (res) => {
+      if (res?.isDeferred) {
+        toast.success(
+          `Offboarding submitted — awaiting inventory collection by ${res.pendingFoName ?? "field officer"}.`,
+        );
+      } else {
+        toast.success("Employee offboarded");
+      }
       qc.invalidateQueries({ queryKey: QK });
       qc.invalidateQueries({ queryKey: ["inv_stock_balances"] });
       qc.invalidateQueries({ queryKey: ["inv_stock_movements"] });
@@ -1509,6 +1584,7 @@ function EmployeesPage() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Offboarding failed"),
   });
+
 
   const assignManagerMut = useMutation({
     mutationFn: async ({ candidate, managerId }: { candidate: CandidateListItem; managerId: string | null }) => {
