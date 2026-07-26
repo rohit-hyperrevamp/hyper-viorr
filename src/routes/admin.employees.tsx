@@ -2682,7 +2682,8 @@ function EmployeesPage() {
                 }}
               >
                 <Plus className="h-4 w-4" />
-                Add Candidate
+                <span className="hidden min-[360px]:inline">Add Candidate</span>
+                <span className="min-[360px]:hidden">Add</span>
               </Button>
             ) : (
               <>
