@@ -66,9 +66,20 @@ export async function saveNativePushTokenForUser(
 
   if (error) throw error;
 
-  const rows = (data as unknown as NativePushRegistrationResult[] | null) ?? [];
+  const rows =
+    (data as unknown as Array<{
+      saved: boolean;
+      token_suffix: string;
+      token_count: number;
+    }> | null) ?? [];
   const result = rows[0];
-  if (result) return result;
+  if (result) {
+    return {
+      saved: result.saved,
+      tokenSuffix: result.token_suffix,
+      tokenCount: result.token_count,
+    };
+  }
 
   const status = await getPushRegistrationStatusForUser(supabase, userId);
   return {
