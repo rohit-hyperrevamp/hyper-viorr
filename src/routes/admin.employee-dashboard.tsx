@@ -106,7 +106,7 @@ function EmployeeDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code,photo_url,mobile,email,role_key,status,unit_id,designation_id,date_of_birth,approved_at,created_at")
+        .select("id,full_name,employee_code,photo_url,mobile,email,role_key,status,unit_id,designation_id,reports_to,date_of_birth,approved_at,created_at")
         .eq("mobile", phone)
         .maybeSingle();
       if (error) throw error;
