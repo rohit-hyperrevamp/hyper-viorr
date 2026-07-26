@@ -8,6 +8,7 @@ import {
   OtherSection,
   ListSection,
   NomineeSection,
+  SectionHeaderContext,
 } from "@/components/candidate-extra-sections";
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -5111,11 +5112,13 @@ function CandidateWizard({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-sm sm:p-5">
+      <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
         {title}
       </div>
-      {children}
+      <SectionHeaderContext.Provider value={{ hideHeader: true }}>
+        {children}
+      </SectionHeaderContext.Provider>
     </div>
   );
 }
