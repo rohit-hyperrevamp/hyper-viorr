@@ -1877,7 +1877,8 @@ function EmployeesPage() {
             <td className="hidden px-2.5 py-2.5 text-sm whitespace-nowrap text-muted-foreground 2xl:table-cell">{fmtDate(c.approved_at ?? c.preferred_joining_date)}</td>
           )}
           {mode === "employee" && columnsVisible.role && (
-            <td className="hidden px-2.5 py-2.5 2xl:table-cell">
+            <td className="hidden px-2.5 py-2.5 md:table-cell">
+
               {c.role_key ? (
                 <Select
                   value={c.role_key}
@@ -2198,10 +2199,11 @@ function EmployeesPage() {
                 </th>
               )}
               {mode === "employee" && columnsVisible.role && (
-                <th className="hidden w-[128px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
+                <th className="hidden w-[128px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground md:table-cell">
                   Role
                 </th>
               )}
+
               {mode === "employee" && columnsVisible.active && (
                 <th className="hidden w-[92px] px-3 py-3 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground 2xl:table-cell">
                   Active
@@ -3688,13 +3690,28 @@ function CandidateWizard({
     } else {
       const { data: authData } = await supabase.auth.getUser();
       const creatorId = authData.user?.id ?? null;
-      const insertPayload = { ...(payload as Record<string, unknown>), created_by: creatorId };
+      // Auto-derive role_key from the contract_resource mapped to this designation
+      // (used primarily by the non-billable "Add Employee" flow).
+      let derivedRoleKey = (payload as { role_key?: string | null }).role_key ?? "";
+      if (!derivedRoleKey && (payload as { designation_id?: string | null }).designation_id) {
+        const { data: cr } = await supabase
+          .from("contract_resources" as never)
+          .select("role_key")
+          .eq("designation_id", (payload as { designation_id: string }).designation_id)
+          .not("role_key", "is", null)
+          .limit(1)
+          .maybeSingle();
+        const roleFromContract = (cr as { role_key?: string | null } | null)?.role_key ?? "";
+        if (roleFromContract) derivedRoleKey = roleFromContract;
+      }
+      const insertPayload = { ...(payload as Record<string, unknown>), created_by: creatorId, role_key: derivedRoleKey || null };
       const { data, error } = await supabase
         .from("candidates" as never)
         .insert(insertPayload as never)
         .select("id")
         .single();
       if (error) throw error;
+
       const newId = (data as { id: string }).id;
       await syncCandidateUnits(newId);
       setInitialUnitIds([...form.unit_ids]);
