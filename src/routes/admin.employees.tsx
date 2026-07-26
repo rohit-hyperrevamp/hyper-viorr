@@ -620,6 +620,7 @@ function EmployeesPage() {
 
   const { roleKey, isSuperAdmin, can } = useCurrentPermissions();
   const isFieldOfficer = roleKey === "field_officer" && !isSuperAdmin;
+  const canAddEmployee = isSuperAdmin || ["admin", "super_admin", "hr", "leadership"].includes(roleKey ?? "");
   // Approval capability is now driven entirely by RBAC (Employees → Approve).
   // Super admin implicitly gets true via useCurrentPermissions.
   const canApproveOnboarding = can("employees", "approve");
