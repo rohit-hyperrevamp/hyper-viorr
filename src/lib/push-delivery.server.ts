@@ -13,6 +13,12 @@ export type NativePushDeliveryResult = {
   failures: Array<{ tokenSuffix: string; error: string }>;
 };
 
+export type NativePushRegistrationResult = {
+  saved: boolean;
+  tokenSuffix: string;
+  tokenCount: number;
+};
+
 function uniqueUserIds(userIds: string[]) {
   return Array.from(new Set(userIds.filter(Boolean)));
 }
@@ -79,6 +85,35 @@ export async function getPushRegistrationStatusForUser(userId: string) {
   };
 }
 
+export async function saveNativePushTokenForUser(
+  userId: string,
+  input: { token: string; platform: "ios" | "android" | "web" },
+): Promise<NativePushRegistrationResult> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const now = new Date().toISOString();
+
+  const { error } = await supabaseAdmin
+    .from("device_push_tokens")
+    .upsert(
+      {
+        user_id: userId,
+        token: input.token,
+        platform: input.platform,
+        last_seen_at: now,
+      },
+      { onConflict: "token" },
+    );
+
+  if (error) throw error;
+
+  const status = await getPushRegistrationStatusForUser(userId);
+  return {
+    saved: true,
+    tokenSuffix: input.token.slice(-8),
+    tokenCount: status.count,
+  };
+}
+
 export async function sendNativePushToUsersServer(
   userIds: string[],
   payload: ApnsPayload,
@@ -107,7 +142,7 @@ export async function sendNativePushToUsersServer(
 
     const errorMessage = result.error || `HTTP ${result.status ?? "unknown"}`;
     failures.push({ tokenSuffix: row.token.slice(-8), error: errorMessage });
-    if (/Unregistered|BadDeviceToken|DeviceTokenNotForTopic/i.test(errorMessage)) {
+    if (/Unregistered/i.test(errorMessage)) {
       await deleteDeadToken(row.token);
     }
   }
