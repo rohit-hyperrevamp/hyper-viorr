@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { MoreHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { isNativePlatform } from "@/lib/native";
 import { cn } from "@/lib/utils";
 
@@ -29,23 +30,25 @@ export function MobileBottomNav({
 }) {
   const primary = items.slice(0, 4);
   const [nativeShell, setNativeShell] = useState(false);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     setNativeShell(isNativePlatform());
+    setPortalTarget(document.body);
   }, []);
 
-  return (
+  const nav = (
     <nav
       aria-label="Primary"
       data-bottom-nav
       style={{
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6px)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
         bottom: "0px",
-        left: "env(safe-area-inset-left, 0px)",
-        right: "env(safe-area-inset-right, 0px)",
+        left: "0px",
+        right: "0px",
       }}
       className={cn(
-        "fixed z-[80] border-t border-border/40 bg-card/98 backdrop-blur-xl [contain:layout_paint]",
+        "fixed z-[80] border-t border-border/40 bg-card/98 backdrop-blur-xl",
         "shadow-[0_-1px_0_0_rgba(255,255,255,0.04)_inset,0_-12px_28px_-16px_rgba(15,23,42,0.22)]",
         !nativeShell && "lg:hidden",
       )}
@@ -115,4 +118,6 @@ export function MobileBottomNav({
       </ul>
     </nav>
   );
+
+  return portalTarget ? createPortal(nav, portalTarget) : nav;
 }
