@@ -1,9 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logNativeEvent } from "./native";
 
-// Stable Lovable dev app URL: always serves the latest preview build and has
-// Lovable Cloud secrets available. The published Lovable URL may lag until the
-// user clicks Publish, while the Vercel/custom-domain native shell must be able
-// to bridge APNs calls immediately.
 const LOVABLE_NATIVE_API_ORIGIN = "https://project--dc741c55-be5a-40d9-b6e9-523fed099022-dev.lovable.app";
 const NATIVE_PUSH_API_PATH = "/api/public/native/push";
 
@@ -27,18 +24,15 @@ export type NativePushDeliveryResult = {
   message?: string;
 };
 
-function nativePushApiUrl() {
-  if (typeof window === "undefined") return `${LOVABLE_NATIVE_API_ORIGIN}${NATIVE_PUSH_API_PATH}`;
-
-  const host = window.location.hostname;
-  if (host === "project--dc741c55-be5a-40d9-b6e9-523fed099022-dev.lovable.app") {
-    return `${window.location.origin}${NATIVE_PUSH_API_PATH}`;
+function nativePushApiUrls() {
+  const urls: string[] = [];
+  if (typeof window !== "undefined") {
+    // First try the app's own host. On Vercel this route proxies to Lovable
+    // Cloud server-side, avoiding iOS WebView cross-origin "Load Failed" errors.
+    urls.push(`${window.location.origin}${NATIVE_PUSH_API_PATH}`);
   }
-
-  // The installed iOS app stays on the Vercel/custom-domain frontend, while
-  // APNs keys remain bound to the Lovable deployment. Always bridge native
-  // push operations back to the Lovable-hosted API instead of same-origin.
-  return `${LOVABLE_NATIVE_API_ORIGIN}${NATIVE_PUSH_API_PATH}`;
+  urls.push(`${LOVABLE_NATIVE_API_ORIGIN}${NATIVE_PUSH_API_PATH}`);
+  return Array.from(new Set(urls));
 }
 
 async function accessToken() {
@@ -54,26 +48,52 @@ async function accessToken() {
 }
 
 async function callNativePushApi<T>(payload: Record<string, unknown>): Promise<T> {
-  const response = await fetch(nativePushApiUrl(), {
-    method: "POST",
-    headers: {
-      // Keep this a simple cross-origin request from the Vercel iOS shell to
-      // the Lovable-hosted API; some WebViews/proxies are brittle around
-      // Authorization preflights.
-      "content-type": "text/plain;charset=UTF-8",
-    },
-    body: JSON.stringify({ ...payload, accessToken: await accessToken() }),
-  });
+  const bodyText = JSON.stringify({ ...payload, accessToken: await accessToken() });
+  let lastError: Error | null = null;
 
-  const text = await response.text();
-  const body = text ? JSON.parse(text) : {};
-  const errorBody = body as { error?: string; message?: string };
+  for (const url of nativePushApiUrls()) {
+    try {
+      logNativeEvent("push", "calling native push bridge", { url });
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "text/plain;charset=UTF-8",
+        },
+        body: bodyText,
+      });
 
-  if (!response.ok) {
-    throw new Error(errorBody.error || errorBody.message || `Apple push API failed (${response.status}).`);
+      const text = await response.text();
+      let body: unknown = {};
+      try {
+        body = text ? JSON.parse(text) : {};
+      } catch {
+        body = { error: text || `Apple push API returned ${response.status}` };
+      }
+
+      const errorBody = body as { error?: string; message?: string };
+      if (!response.ok) {
+        lastError = new Error(errorBody.error || errorBody.message || `Apple push API failed (${response.status}).`);
+        logNativeEvent("push", "native push bridge rejected request", {
+          url,
+          status: response.status,
+          error: lastError.message,
+        });
+        if (response.status !== 404 && response.status < 500) throw lastError;
+        continue;
+      }
+
+      logNativeEvent("push", "native push bridge succeeded", { url });
+      return body as T;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      logNativeEvent("push", "native push bridge failed to load", {
+        url,
+        error: lastError.message,
+      });
+    }
   }
 
-  return body as T;
+  throw new Error(lastError?.message || "Apple push bridge could not be reached.");
 }
 
 export function getNativePushRegistrationStatus() {
