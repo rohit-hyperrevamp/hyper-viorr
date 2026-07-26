@@ -5053,7 +5053,7 @@ function CandidateWizard({
 
         <DialogFooter className="sticky bottom-0 z-10 flex-col gap-2 border-t border-border bg-card/95 px-3 py-3 backdrop-blur-md pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:flex-row sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
           <div className="flex flex-wrap items-center gap-2 sm:mr-auto">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="h-11 flex-1 sm:h-10 sm:flex-none">
               Cancel
             </Button>
             {canReview && (
@@ -5061,7 +5061,7 @@ function CandidateWizard({
                 <Button
                   onClick={() => onApprove?.()}
                   disabled={isApproving || submitting || savingDraft || !!uploading || scanning}
-                  className="bg-emerald-600 text-white hover:bg-emerald-700"
+                  className="h-11 flex-1 bg-emerald-600 text-white hover:bg-emerald-700 sm:h-10 sm:flex-none"
                   title="Approve & assign Employee ID"
                 >
                   {isApproving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Check className="mr-1.5 h-4 w-4" />}
@@ -5071,7 +5071,7 @@ function CandidateWizard({
                   variant="outline"
                   onClick={() => onReject?.()}
                   disabled={submitting || savingDraft || !!uploading || scanning}
-                  className="border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-50 hover:text-rose-600 dark:border-rose-500/40 dark:bg-transparent dark:text-rose-300 dark:hover:bg-rose-500/10 dark:hover:text-rose-300"
+                  className="h-11 flex-1 border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-50 hover:text-rose-600 sm:h-10 sm:flex-none dark:border-rose-500/40 dark:bg-transparent dark:text-rose-300 dark:hover:bg-rose-500/10 dark:hover:text-rose-300"
                 >
                   <X className="mr-1.5 h-4 w-4" />
                   Reject
@@ -5084,6 +5084,7 @@ function CandidateWizard({
               variant="secondary"
               onClick={saveDraft}
               disabled={savingDraft || submitting || !!uploading || scanning}
+              className="h-11 w-full sm:h-10 sm:w-auto"
             >
               {savingDraft && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Save Draft
@@ -5096,7 +5097,7 @@ function CandidateWizard({
                   onClick={submit}
                   disabled={submitDisabled}
                   title={!isExistingEmployee && !profileComplete ? `Tip: complete all ${completionTotal} required fields (${completionPct}% done)` : undefined}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:h-10 sm:w-auto"
                 >
                   {submitting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                   {isExistingEmployee ? "Save Changes" : "Save & Send to Approval"}
