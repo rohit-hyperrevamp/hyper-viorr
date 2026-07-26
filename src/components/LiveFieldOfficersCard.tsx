@@ -5,6 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { mapsUrl } from "@/lib/self-attendance";
 import { cn } from "@/lib/utils";
 
+function realtimeChannelName() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `live-fo-punches-${crypto.randomUUID()}`;
+  }
+  return `live-fo-punches-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 type LivePunch = {
   id: string;
   candidate_id: string;
@@ -61,18 +68,24 @@ export function LiveFieldOfficersCard() {
   });
 
   useEffect(() => {
-    const ch = supabase
-      .channel("live-fo-punches")
-      .on(
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+
+    try {
+      ch = supabase.channel(realtimeChannelName());
+      ch.on(
         "postgres_changes",
         { event: "*", schema: "public", table: "self_attendance_punches" },
         () => {
           void qc.invalidateQueries({ queryKey: ["live-field-officers", today()] });
         },
-      )
-      .subscribe();
+      ).subscribe();
+    } catch (error) {
+      console.error("Live field officer realtime setup failed", error);
+      ch = null;
+    }
+
     return () => {
-      void supabase.removeChannel(ch);
+      if (ch) void supabase.removeChannel(ch);
     };
   }, [qc]);
 
