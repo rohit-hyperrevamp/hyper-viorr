@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   getPushRegistrationStatusForUser,
+  saveNativePushTokenForUser,
   sendNativePushForRecentNotifications,
   sendNativePushToUsersServer,
 } from "./push-delivery.server";
@@ -10,6 +11,21 @@ import {
 export const getMyPushRegistrationStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => getPushRegistrationStatusForUser(context.userId));
+
+export const saveMyPushToken = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z.object({
+      token: z.string().min(32).max(512),
+      platform: z.enum(["ios", "android", "web"]).default("ios"),
+    }).parse(data),
+  )
+  .handler(async ({ context, data }) =>
+    saveNativePushTokenForUser(context.userId, {
+      token: data.token,
+      platform: data.platform,
+    }),
+  );
 
 export const sendTestPushToMe = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
