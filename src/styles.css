@@ -741,13 +741,13 @@
     }
     .ios-table tbody td {
       display: grid;
-      grid-template-columns: minmax(96px, 38%) minmax(0, 1fr);
+      grid-template-columns: minmax(72px, 30%) minmax(0, 1fr);
       align-items: start;
       gap: 10px;
       min-width: 0;
       max-width: none;
       width: 100%;
-      padding: 10px 12px !important;
+      padding: 9px 12px !important;
       white-space: normal !important;
       overflow: visible !important;
       text-align: left !important;
@@ -756,10 +756,11 @@
       content: attr(data-label);
       font-size: 10px;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--muted-foreground);
-      overflow-wrap: anywhere;
+      overflow-wrap: break-word;
+      word-break: normal;
     }
     .ios-table tbody td:not([data-label])::before,
     .ios-table tbody td[data-label=""]::before {
