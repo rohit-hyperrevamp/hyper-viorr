@@ -167,7 +167,7 @@ function MyInventoryPage() {
   if (isSuperAdmin) {
     return <div className="text-sm text-muted-foreground">My Uniform is for end-users (guards). Switch account.</div>;
   }
-  if (meLoading) return <div className="text-sm text-muted-foreground">Loading…</div>;
+  if (meLoading) return <DashboardSkeleton />;
   if (!me) return <div className="text-sm text-muted-foreground">No employee profile found for this phone.</div>;
 
   return (

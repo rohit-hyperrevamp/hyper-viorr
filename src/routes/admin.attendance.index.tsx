@@ -56,6 +56,8 @@ import {
 import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
 import { supabase } from "@/integrations/supabase/client";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
+import { ListSkeleton } from "@/components/Skeletons";
+
 
 export const Route = createFileRoute("/admin/attendance/")({
   component: AttendanceUnitsPage,
@@ -664,9 +666,8 @@ function AttendanceUnitsPage() {
 
         <div className="divide-y divide-border/50">
           {isLoading ? (
-            <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-              Loading attendance units…
-            </div>
+            <ListSkeleton rows={5} />
+
           ) : error ? (
             <div className="px-5 py-12 text-center text-sm text-destructive">
               {error instanceof Error ? error.message : "Could not load attendance units right now."}

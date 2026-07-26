@@ -112,6 +112,8 @@ import {
 
 import { useBranches, useCustomers, useStates } from "@/lib/admin-data";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
+import { Skeleton } from "@/components/ui/skeleton";
+
 
 export const Route = createFileRoute("/admin/employees")({
   component: EmployeesPage,
