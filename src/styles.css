@@ -1045,6 +1045,16 @@ p, span, div, td, th, li, dd, dt, label, a, button {
 /* Images — never stretch, always contain aspect */
 img, video { max-width: 100%; height: auto; }
 
+/* Profile / avatar images: always fill the circular frame edge-to-edge */
+img.rounded-full,
+.rounded-full > img:only-child,
+[data-avatar] img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
 /* Dialog / drawer safe area — Radix dialogs on small screens */
 @media (max-width: 767px) {
   [role="dialog"] {
