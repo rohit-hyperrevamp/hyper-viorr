@@ -2659,7 +2659,10 @@ function EmployeesPage() {
           </TabsList>
 
 
-          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 md:flex md:w-auto md:gap-3">
+          <div className={cn(
+            "grid w-full items-center gap-2 md:flex md:w-auto md:gap-3",
+            isFieldOfficer ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_auto_auto]",
+          )}>
             <div className="relative flex-1 md:w-80">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -2669,92 +2672,108 @@ function EmployeesPage() {
                 className="h-10 rounded-xl border-border/70 bg-card pl-11 text-sm shadow-sm focus-visible:ring-4 focus-visible:ring-amber-500/10 focus-visible:border-amber-500/60 sm:h-11"
               />
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  disabled={exporting || (tab === "employee" ? employees.length === 0 : candidateRows.length === 0)}
-                  className="h-10 whitespace-nowrap rounded-xl border-border/70 bg-card px-3 font-semibold shadow-sm sm:h-11 sm:px-4"
-                >
-                  {exporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
-                  <span className="hidden sm:inline">Export</span>
-                  <ChevronDown className="ml-1.5 h-4 w-4 opacity-60" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                  Export {tab === "employee" ? "employees" : "candidates"}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleExport("summary-csv")} className="gap-2">
-                  <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">Summary</span>
-                    <span className="text-[11px] text-muted-foreground">Visible list columns</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("full-csv")} className="gap-2">
-                  <FileSpreadsheet className="h-4 w-4 text-amber-600" />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">All details</span>
-                    <span className="text-[11px] text-muted-foreground">Every field, flattened</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("full-json")} className="gap-2">
-                  <FileJson className="h-4 w-4 text-sky-600" />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">All details (JSON)</span>
-                    <span className="text-[11px] text-muted-foreground">Full record incl. nested</span>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  className="h-10 whitespace-nowrap rounded-xl bg-primary px-3 font-semibold text-primary-foreground shadow-lg shadow-primary/10 transition-all hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0 sm:h-11 sm:px-6"
-                >
-                  <Plus className="mr-1.5 h-4 w-4" />
-                  <span className="hidden sm:inline">Add Candidate</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                  Choose type
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    setEditing(null);
-                    setWizardMode("candidate");
-                    setOpenWizard(true);
-                  }}
-                  className="gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">Billable</span>
-                    <span className="text-[11px] text-muted-foreground">Client-facing guards / field staff</span>
-                  </div>
-                </DropdownMenuItem>
-                {canAddEmployee && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setEditing(null);
-                      setWizardMode("employee");
-                      setOpenWizard(true);
-                    }}
-                    className="gap-2"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">Non-billable</span>
-                      <span className="text-[11px] text-muted-foreground">Internal Radiant employee</span>
-                    </div>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {isFieldOfficer ? (
+              <Button
+                className="h-10 whitespace-nowrap rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-none sm:h-11 sm:px-5 sm:text-sm"
+                onClick={() => {
+                  setEditing(null);
+                  setWizardMode("candidate");
+                  setOpenWizard(true);
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                Add Candidate
+              </Button>
+            ) : (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={exporting || (tab === "employee" ? employees.length === 0 : candidateRows.length === 0)}
+                      className="h-10 whitespace-nowrap rounded-xl border-border/70 bg-card px-3 font-semibold shadow-sm sm:h-11 sm:px-4"
+                    >
+                      {exporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+                      <span className="hidden sm:inline">Export</span>
+                      <ChevronDown className="ml-1.5 h-4 w-4 opacity-60" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      Export {tab === "employee" ? "employees" : "candidates"}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleExport("summary-csv")} className="gap-2">
+                      <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">Summary</span>
+                        <span className="text-[11px] text-muted-foreground">Visible list columns</span>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport("full-csv")} className="gap-2">
+                      <FileSpreadsheet className="h-4 w-4 text-amber-600" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">All details</span>
+                        <span className="text-[11px] text-muted-foreground">Every field, flattened</span>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport("full-json")} className="gap-2">
+                      <FileJson className="h-4 w-4 text-sky-600" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">All details (JSON)</span>
+                        <span className="text-[11px] text-muted-foreground">Full record incl. nested</span>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      className="h-10 whitespace-nowrap rounded-xl bg-primary px-3 font-semibold text-primary-foreground shadow-lg shadow-primary/10 transition-all hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0 sm:h-11 sm:px-6"
+                    >
+                      <Plus className="mr-1.5 h-4 w-4" />
+                      <span className="hidden sm:inline">Add Candidate</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      Choose type
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setEditing(null);
+                        setWizardMode("candidate");
+                        setOpenWizard(true);
+                      }}
+                      className="gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">Billable</span>
+                        <span className="text-[11px] text-muted-foreground">Client-facing guards / field staff</span>
+                      </div>
+                    </DropdownMenuItem>
+                    {canAddEmployee && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setEditing(null);
+                          setWizardMode("employee");
+                          setOpenWizard(true);
+                        }}
+                        className="gap-2"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">Non-billable</span>
+                          <span className="text-[11px] text-muted-foreground">Internal Radiant employee</span>
+                        </div>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
 
 
           </div>

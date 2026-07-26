@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import { Bell, CheckCheck, Volume2, VolumeX, X } from "lucide-react";
@@ -33,7 +34,8 @@ export function NotificationBell() {
   const router = useRouter();
   const isMobile = useIsMobile();
   const [nativeShell, setNativeShell] = useState(false);
-  const mobileSheet = isMobile || nativeShell;
+  const [drawerMode, setDrawerMode] = useState(false);
+  const mobileSheet = isMobile || nativeShell || drawerMode;
   const { data: items = [] } = useQuery({
     queryKey: NQK,
     queryFn: listMyNotifications,
@@ -49,7 +51,18 @@ export function NotificationBell() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    setNativeShell(isNativePlatform());
+    const sync = () => {
+      const isNative = isNativePlatform();
+      setNativeShell(isNative);
+      setDrawerMode(isNative || window.innerWidth < 1024);
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", sync);
+    };
   }, []);
 
   useEffect(() => {
@@ -91,7 +104,17 @@ export function NotificationBell() {
     <button
       type="button"
       aria-label="Notifications"
-      onClick={mobileSheet ? () => setMobileOpen(true) : undefined}
+      data-no-tip
+      onClick={(event) => {
+        const shouldOpenDrawer =
+          mobileSheet ||
+          (typeof window !== "undefined" && window.innerWidth < 1024) ||
+          isNativePlatform();
+        if (!shouldOpenDrawer) return;
+        event.preventDefault();
+        event.stopPropagation();
+        setMobileOpen(true);
+      }}
       className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:border-accent hover:text-accent"
     >
       <Bell className="h-4 w-4" />
@@ -180,25 +203,31 @@ export function NotificationBell() {
     </>
   );
 
-  if (mobileSheet) {
-    return (
-      <>
-        {trigger}
-        {mobileOpen && (
-          <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="Notifications">
+  const notificationDrawer =
+    mobileOpen && typeof document !== "undefined"
+      ? createPortal(
+          <div className="fixed inset-0 z-[120]" role="dialog" aria-modal="true" aria-label="Notifications">
             <button
               type="button"
               aria-label="Close notifications"
+              data-no-tip
               className="absolute inset-0 bg-foreground/35 backdrop-blur-sm"
               onClick={() => setMobileOpen(false)}
             />
-            <div className="absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-2xl border border-border bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-24px_70px_-28px_rgba(15,23,42,0.55)]">
+            <div
+              className="absolute inset-x-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-2xl border border-border bg-card shadow-[0_-24px_70px_-28px_rgba(15,23,42,0.55)]"
+              style={{
+                bottom: "calc(env(safe-area-inset-bottom, 0px) * -1)",
+                paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
+              }}
+            >
               <div className="flex justify-center py-2">
                 <span className="h-1 w-10 rounded-full bg-muted-foreground/30" />
               </div>
               <button
                 type="button"
                 aria-label="Close notifications"
+                data-no-tip
                 onClick={() => setMobileOpen(false)}
                 className="absolute right-3 top-2 grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
               >
@@ -206,8 +235,16 @@ export function NotificationBell() {
               </button>
               {notificationList}
             </div>
-          </div>
-        )}
+          </div>,
+          document.body,
+        )
+      : null;
+
+  if (mobileSheet) {
+    return (
+      <>
+        {trigger}
+        {notificationDrawer}
         <NotificationDetailDialog
           notification={detail}
           open={detail !== null}
@@ -244,6 +281,7 @@ export function NotificationBell() {
         onOpenChange={(o) => { if (!o) setDetail(null); }}
         onOpenLink={openLink}
       />
+      {notificationDrawer}
     </Popover>
   );
 }
