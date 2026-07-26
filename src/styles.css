@@ -308,9 +308,9 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    min-height: 168px;
-    padding: 1.25rem;
-    border-radius: 22px;
+    min-height: var(--tile-min-h, 120px);
+    padding: var(--tile-pad, 1rem);
+    border-radius: 18px;
     background: rgb(var(--surface) / var(--surface-glass-alpha));
     border: 1px solid rgb(var(--surface-hairline) / var(--surface-border-alpha));
     backdrop-filter: blur(22px) saturate(160%);
@@ -321,6 +321,7 @@
     transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
     color: var(--foreground);
   }
+
   .tile-interactive:hover {
     transform: translateY(-2px);
     border-color: color-mix(in oklab, var(--accent) 40%, transparent);
