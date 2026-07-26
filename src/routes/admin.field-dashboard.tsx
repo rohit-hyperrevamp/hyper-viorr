@@ -103,6 +103,7 @@ function FieldOfficerDashboard() {
         attendanceRateToday: 0, attendanceRateYesterday: 0,
         pendingOnboardingTotal: 0, pendingOnboardingLastWeek: 0,
         openDemandsTotal: 0, inventoryItemsTotal: 0,
+        myStockQty: 0, myStockSkus: 0,
       };
 
       if (!meId) return empty;
@@ -217,7 +218,14 @@ function FieldOfficerDashboard() {
           demandsByUnit.set(uid, (demandsByUnit.get(uid) ?? 0) + 1);
         }
       } catch { /* ignore */ }
+      let myStockQty = 0;
+      let myStockSkus = 0;
       try {
+        const { data: myBal } = await supabase.from("inv_stock_balances" as never).select("item_id,size_value,qty").eq("location_type", "field_officer").eq("location_id", meId);
+        for (const b of (myBal ?? []) as Array<{ qty: number }>) {
+          const q = Number(b.qty) || 0;
+          if (q > 0) { myStockQty += q; myStockSkus += 1; }
+        }
         if (guardIds.length) {
           const { data: bal } = await supabase.from("inv_stock_balances" as never).select("location_type,location_id,qty").in("location_type", ["guard", "security_guard", "field_officer"]).in("location_id", [meId, ...guardIds]);
           for (const b of (bal ?? []) as Array<{ location_id: string; qty: number }>) {
@@ -255,6 +263,7 @@ function FieldOfficerDashboard() {
         meName, meCode, mePhoto, units, guardsTotal, joinedThisWeek, joinedLastWeek,
         attendanceRateToday, attendanceRateYesterday, pendingOnboardingTotal,
         pendingOnboardingLastWeek, openDemandsTotal, inventoryItemsTotal,
+        myStockQty, myStockSkus,
       };
 
     },
@@ -346,9 +355,8 @@ function FieldOfficerDashboard() {
             <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Overview</div>
             <h2 className="mt-0.5 font-display text-2xl font-bold tracking-tight text-foreground">My Summary</h2>
           </div>
-          <span className="rounded-full border border-border/70 bg-card px-3 py-1 text-xs font-semibold text-muted-foreground shadow-sm">This week</span>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <PastelTile
             palette="lime"
             label="Team size"
@@ -374,8 +382,18 @@ function FieldOfficerDashboard() {
             icon={ClipboardList}
             to="/admin/employees"
           />
+          <PastelTile
+            palette="amber"
+            label="My stock available"
+            value={data?.myStockQty ?? 0}
+            hint={`${data?.myStockSkus ?? 0} SKU${(data?.myStockSkus ?? 0) === 1 ? "" : "s"} in hand`}
+            delta={0} deltaSuffix=""
+            icon={Warehouse}
+            to="/admin/inventory/stock"
+          />
         </div>
       </section>
+
 
       {/* Units list */}
       <section className="overflow-hidden rounded-[28px] border border-border/70 bg-card/90 shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_20px_50px_-30px_rgba(15,23,42,0.2)] backdrop-blur-xl">
@@ -432,7 +450,7 @@ function StatBar({ label, value, bar }: { label: string; value: number | string;
 function PastelTile({
   palette, label, value, hint, delta, deltaSuffix, invertColor, icon: Icon, to,
 }: {
-  palette: "lime" | "teal" | "rose";
+  palette: "lime" | "teal" | "rose" | "amber";
   label: string; value: number | string; hint: string;
   delta: number; deltaSuffix: string; invertColor?: boolean;
   icon: React.ComponentType<{ className?: string }>; to?: string;
@@ -441,11 +459,13 @@ function PastelTile({
     lime: "bg-[color-mix(in_oklab,oklch(0.75_0.16_140)_18%,var(--card))]",
     teal: "bg-[color-mix(in_oklab,oklch(0.75_0.12_195)_18%,var(--card))]",
     rose: "bg-[color-mix(in_oklab,oklch(0.72_0.16_20)_18%,var(--card))]",
+    amber: "bg-[color-mix(in_oklab,oklch(0.82_0.14_75)_20%,var(--card))]",
   }[palette];
   const ring = {
     lime: "ring-[color-mix(in_oklab,oklch(0.75_0.16_140)_35%,transparent)]",
     teal: "ring-[color-mix(in_oklab,oklch(0.75_0.12_195)_35%,transparent)]",
     rose: "ring-[color-mix(in_oklab,oklch(0.72_0.16_20)_35%,transparent)]",
+    amber: "ring-[color-mix(in_oklab,oklch(0.82_0.14_75)_40%,transparent)]",
   }[palette];
 
   const positive = invertColor ? delta < 0 : delta > 0;
