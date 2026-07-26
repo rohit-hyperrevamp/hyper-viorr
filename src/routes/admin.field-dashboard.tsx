@@ -218,7 +218,14 @@ function FieldOfficerDashboard() {
           demandsByUnit.set(uid, (demandsByUnit.get(uid) ?? 0) + 1);
         }
       } catch { /* ignore */ }
+      let myStockQty = 0;
+      let myStockSkus = 0;
       try {
+        const { data: myBal } = await supabase.from("inv_stock_balances" as never).select("item_id,size_value,qty").eq("location_type", "field_officer").eq("location_id", meId);
+        for (const b of (myBal ?? []) as Array<{ qty: number }>) {
+          const q = Number(b.qty) || 0;
+          if (q > 0) { myStockQty += q; myStockSkus += 1; }
+        }
         if (guardIds.length) {
           const { data: bal } = await supabase.from("inv_stock_balances" as never).select("location_type,location_id,qty").in("location_type", ["guard", "security_guard", "field_officer"]).in("location_id", [meId, ...guardIds]);
           for (const b of (bal ?? []) as Array<{ location_id: string; qty: number }>) {
@@ -256,6 +263,7 @@ function FieldOfficerDashboard() {
         meName, meCode, mePhoto, units, guardsTotal, joinedThisWeek, joinedLastWeek,
         attendanceRateToday, attendanceRateYesterday, pendingOnboardingTotal,
         pendingOnboardingLastWeek, openDemandsTotal, inventoryItemsTotal,
+        myStockQty, myStockSkus,
       };
 
     },
