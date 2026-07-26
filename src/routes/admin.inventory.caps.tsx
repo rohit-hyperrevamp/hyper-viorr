@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
 import { createNotification } from "@/lib/notifications";
+import { queueRecentNativePush } from "@/lib/native-push-api";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/inventory/caps")({
@@ -288,6 +289,11 @@ function CapsInner() {
           }).catch(() => null),
         ),
       );
+      void queueRecentNativePush(recipients, {
+        title,
+        message,
+        link: "/admin/inventory/caps",
+      }).catch((error) => console.warn("inventory cap native push failed", error));
     }
   }
 

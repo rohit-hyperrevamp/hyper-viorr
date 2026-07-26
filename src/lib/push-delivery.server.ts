@@ -148,18 +148,46 @@ export async function sendNativePushToUsersServer(
 }
 
 export async function sendNativePushForRecentNotifications(
-  supabase: AppSupabaseClient,
+  _supabase: AppSupabaseClient,
   userIds: string[],
   payload: ApnsPayload,
+  options?: { actorUserId?: string | null },
 ): Promise<NativePushDeliveryResult> {
   const recipients = uniqueUserIds(userIds);
   if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
 
-  const { data, error } = await supabase.rpc("get_recent_notification_push_tokens" as never, {
-    _user_ids: recipients,
-  } as never);
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  let notificationQuery = supabaseAdmin
+    .from("notifications")
+    .select("user_id")
+    .in("user_id", recipients)
+    .eq("title", payload.title || "Radiant Guard")
+    .eq("message", payload.body || "You have a new notification")
+    .gte("created_at", tenMinutesAgo);
+
+  if (options?.actorUserId) {
+    notificationQuery = notificationQuery.eq("actor_id", options.actorUserId);
+  }
+
+  const { data: recentNotifications, error: notificationError } = await notificationQuery;
+
+  if (notificationError) throw notificationError;
+
+  const allowedRecipients = uniqueUserIds(
+    ((recentNotifications as Array<{ user_id: string }> | null) ?? []).map((row) => row.user_id),
+  );
+  if (allowedRecipients.length === 0) return { sent: 0, total: 0, failures: [] };
+
+  const { data, error } = await supabaseAdmin
+    .from("device_push_tokens")
+    .select("user_id,token,platform,last_seen_at")
+    .in("user_id", allowedRecipients)
+    .eq("platform", "ios")
+    .order("last_seen_at", { ascending: false });
+
   if (error) throw error;
 
   const rows = ((data as unknown as TokenRow[] | null) ?? []).filter((row) => row.platform === "ios");
-  return sendNativePushToTokenRows(supabase, rows, payload);
+  return sendNativePushToTokenRows(supabaseAdmin, rows, payload);
 }

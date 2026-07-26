@@ -71,5 +71,5 @@ export const sendNativePushToUsers = createServerFn({ method: "POST" })
       title: data.title,
       body: data.message,
       link: data.link,
-    }),
+    }, { actorUserId: context.userId }),
   );

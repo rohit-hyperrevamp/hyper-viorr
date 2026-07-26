@@ -192,7 +192,7 @@ export const Route = createFileRoute("/api/public/native/push")({
             title: input.title,
             body: input.message,
             link: input.link,
-          });
+          }, { actorUserId: userId });
           return jsonResponse(request, result);
         } catch (error) {
           if (error instanceof Response) {
