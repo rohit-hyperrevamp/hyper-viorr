@@ -44,8 +44,8 @@ export const sendNativePushToUsers = createServerFn({ method: "POST" })
   .inputValidator((data) =>
     z.object({
       userIds: z.array(z.string().uuid()).min(1).max(100),
-      title: z.string().min(1).max(120),
-      message: z.string().min(1).max(500),
+      title: z.string().min(1).max(180),
+      message: z.string().min(1).max(3000),
       link: z.string().max(500).optional(),
     }).parse(data),
   )
