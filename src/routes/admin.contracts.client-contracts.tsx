@@ -870,7 +870,7 @@ function useContractResources(contractId: string | null) {
       const { data, error } = await supabase
         .from("contract_resources" as never)
         .select(
-          "id,designation_id,service_type_id,quantity,components,sort_order,payroll_day_base_id,benefits,deductions,employer_contributions",
+          "id,designation_id,role_key,service_type_id,quantity,components,sort_order,payroll_day_base_id,benefits,deductions,employer_contributions",
         )
         .eq("contract_id", contractId)
         .order("sort_order");
@@ -878,6 +878,7 @@ function useContractResources(contractId: string | null) {
       return (data as unknown as Record<string, unknown>[]).map((r) => ({
         id: String(r.id),
         designationId: r.designation_id ? String(r.designation_id) : "",
+        roleKey: r.role_key ? String(r.role_key) : null,
         serviceTypeId: r.service_type_id ? String(r.service_type_id) : "",
         quantity: Number(r.quantity ?? 1),
         components: Array.isArray(r.components)
