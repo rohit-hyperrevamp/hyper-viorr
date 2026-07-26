@@ -4225,7 +4225,7 @@ function CandidateWizard({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] w-[96vw] max-w-4xl overflow-y-auto p-0">
+      <DialogContent className="flex max-h-[92dvh] w-[96vw] max-w-4xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b border-border bg-secondary/30 px-4 py-3 sm:px-6 sm:py-4">
           <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <UserPlus className="h-5 w-5 shrink-0" />
