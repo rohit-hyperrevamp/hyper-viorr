@@ -151,18 +151,21 @@ export async function sendNativePushForRecentNotifications(
   _supabase: AppSupabaseClient,
   userIds: string[],
   payload: ApnsPayload,
-  _options?: { actorUserId?: string | null },
+  options?: { actorUserId?: string | null; notificationIds?: string[] },
 ): Promise<NativePushDeliveryResult> {
   const recipients = uniqueUserIds(userIds);
   if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
 
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: recentNotifications, error: notificationError } = await supabaseAdmin
+  const notificationIds = uniqueUserIds(options?.notificationIds ?? []);
+  const baseNotificationQuery = supabaseAdmin
     .from("notifications")
     .select("user_id")
-    .in("user_id", recipients)
-    .gte("created_at", oneHourAgo);
+    .in("user_id", recipients);
+  const notificationQuery = notificationIds.length > 0
+    ? baseNotificationQuery.in("id", notificationIds)
+    : baseNotificationQuery.gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
+  const { data: recentNotifications, error: notificationError } = await notificationQuery;
 
   if (notificationError) throw notificationError;
 
@@ -181,5 +184,11 @@ export async function sendNativePushForRecentNotifications(
   if (error) throw error;
 
   const rows = ((data as unknown as TokenRow[] | null) ?? []).filter((row) => row.platform === "ios");
+  console.log("native push real notification dispatch", {
+    recipients: allowedRecipients.length,
+    tokens: rows.length,
+    notificationIds: notificationIds.length,
+    title: payload.title,
+  });
   return sendNativePushToTokenRows(supabaseAdmin, rows, payload);
 }

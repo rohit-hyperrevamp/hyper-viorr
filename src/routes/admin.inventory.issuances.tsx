@@ -514,7 +514,7 @@ function IssuanceDialog({ open, onOpenChange, initial, warehouses, branches, fos
       }
 
 
-      void logActivity({ module: MODULE, action: target === "issue" ? "issue" : (initial ? "update" : "create"), entityType: ENTITY, entityId: id, entityLabel: initial?.issuance_number ?? "Issuance" });
+      await logActivity({ module: MODULE, action: target === "issue" ? "issue" : (initial ? "update" : "create"), entityType: ENTITY, entityId: id, entityLabel: initial?.issuance_number ?? "Issuance" });
       toast.success(target === "issue" ? "Issued — stock dispatched from source. Awaiting acknowledgement." : "Saved");
       onSaved(); onOpenChange(false);
     } catch (e) {

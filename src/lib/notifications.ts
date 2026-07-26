@@ -31,6 +31,10 @@ function rowToNotification(r: Record<string, unknown>): Notification {
   };
 }
 
+function newNotificationId() {
+  return crypto.randomUUID();
+}
+
 export async function currentUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getUser();
   return data.user?.id ?? null;
@@ -59,7 +63,9 @@ export async function createNotification(input: {
   entityId?: string;
 }) {
   const actor = await currentUserId();
+  const notificationId = newNotificationId();
   const { error } = await supabase.from("notifications" as never).insert({
+    id: notificationId,
     user_id: input.userId,
     actor_id: actor,
     type: input.type,
@@ -70,16 +76,17 @@ export async function createNotification(input: {
     entity_id: input.entityId ?? "",
   } as never);
   if (error) throw error;
-  await deliverNativePush([input.userId], input);
+  await deliverNativePush([input.userId], input, [notificationId]);
 }
 
 async function deliverNativePush(
   userIds: string[],
   input: { title: string; message: string; link?: string },
+  notificationIds: string[] = [],
 ) {
   const recipients = Array.from(new Set(userIds.filter(Boolean)));
   if (recipients.length === 0) return;
-  await queueRecentNativePush(recipients, input).catch((error) => {
+  await queueRecentNativePush(recipients, { ...input, notificationIds }).catch((error) => {
     console.warn("native push delivery failed", error);
   });
 }
@@ -105,6 +112,7 @@ export async function notifyAdmins(input: {
   if (ids.length === 0) return;
   const actor = await currentUserId();
   const rows = ids.map((uid) => ({
+    id: newNotificationId(),
     user_id: uid,
     actor_id: actor,
     type: input.type,
@@ -119,10 +127,7 @@ export async function notifyAdmins(input: {
     console.error("notifyAdmins insert error", error);
     return;
   }
-  // Single batched push call — previously we fired one bridge fetch per admin
-  // (via createNotification), and a post-submit navigation cancelled most of
-  // them before they reached the bridge. Batching + keepalive fixes that.
-  await deliverNativePush(ids, input);
+  await deliverNativePush(ids, input, rows.map((row) => row.id));
 }
 
 export async function markNotificationRead(id: string) {
@@ -181,6 +186,7 @@ export async function notifyApprovers(input: {
   const recipients = ids.filter((id) => id !== actor);
   if (recipients.length === 0) return 0;
   const rows = recipients.map((uid) => ({
+    id: newNotificationId(),
     user_id: uid,
     actor_id: actor,
     type: input.type,
@@ -195,7 +201,7 @@ export async function notifyApprovers(input: {
     console.error("notifyApprovers insert error", error);
     return 0;
   }
-  await deliverNativePush(recipients, input);
+  await deliverNativePush(recipients, input, rows.map((row) => row.id));
   return recipients.length;
 }
 
@@ -234,6 +240,7 @@ export async function notifyOnboardingApprovers(input: {
   const recipients = ids.filter((id) => id !== actor);
   if (recipients.length === 0) return 0;
   const rows = recipients.map((uid) => ({
+    id: newNotificationId(),
     user_id: uid,
     actor_id: actor,
     type: input.type,
@@ -248,7 +255,7 @@ export async function notifyOnboardingApprovers(input: {
     console.error("notifyOnboardingApprovers insert error", error);
     return 0;
   }
-  await deliverNativePush(recipients, input);
+  await deliverNativePush(recipients, input, rows.map((row) => row.id));
   return recipients.length;
 }
 
