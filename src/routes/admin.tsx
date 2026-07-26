@@ -766,8 +766,9 @@ function AdminLayout() {
               <div className="h-1.5 w-24 rounded-full bg-muted/80" />
             </div>
             <div className="px-4 pb-3">
-              <h2 className="text-[22px] font-bold leading-tight text-foreground">All sections</h2>
+              <h2 className="text-[22px] font-bold leading-tight text-foreground">Menu</h2>
             </div>
+
             {isFieldOfficer ? (
               (() => {
                 const foTiles: Array<{ to: string; label: string; icon: typeof LayoutDashboard; onClick?: () => void; tone?: "default" | "danger" }> = [
