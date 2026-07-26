@@ -42,7 +42,19 @@ async function saveTokenForSignedInUser(token: string): Promise<boolean> {
   }
 
   try {
-    await saveMyPushToken({ data: { token, platform: "ios" } });
+    const result = await saveMyPushToken({ data: { token, platform: "ios" } });
+    if (!result?.saved) {
+      lastError = "The iPhone token was received, but the backend did not confirm it was saved.";
+      logNativeEvent("push", "APNs token save not confirmed", {
+        tokenSuffix: token.slice(-8),
+      });
+      return false;
+    }
+
+    logNativeEvent("push", "APNs token saved in backend", {
+      tokenSuffix: result.tokenSuffix || token.slice(-8),
+      tokenCount: result.tokenCount,
+    });
   } catch (err) {
     lastError = err instanceof Error ? err.message : String(err);
     logNativeEvent("push", "failed to store APNs token", { error: lastError });
@@ -51,8 +63,7 @@ async function saveTokenForSignedInUser(token: string): Promise<boolean> {
   }
 
   lastError = null;
-  logNativeEvent("push", "APNs token stored", { tokenSuffix: token.slice(-8) });
-  console.info("[push] APNs token stored", token.slice(-8));
+  console.info("[push] APNs token stored in backend", token.slice(-8));
   return true;
 }
 
