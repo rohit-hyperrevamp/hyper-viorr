@@ -4606,6 +4606,10 @@ export type Database = {
         Args: { _candidate_id: string }
         Returns: string
       }
+      get_user_id_by_candidate_id: {
+        Args: { _candidate_id: string }
+        Returns: string
+      }
       get_user_ids_by_branch: {
         Args: { _branch_id: string }
         Returns: {
