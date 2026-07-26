@@ -275,28 +275,26 @@ function FieldOfficerDashboard() {
 
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />}>
-      {/* Page title (mirrors "My Activity") */}
-      <div className="flex items-end justify-between gap-4">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-2xl">
-          My Activity
-        </h1>
-        <div className="hidden items-center gap-2 sm:flex">
-          <QuickChip to="/admin/employees" icon={UserPlus} label="Onboard" />
-          <QuickChip to="/admin/my-inventory" icon={PackageSearch} label="My Uniform" />
-        </div>
-      </div>
-
       {/* Profile hero card — avatar + identity + 3 stat bars */}
       <section className="rounded-[32px] border border-border/60 bg-card/85 p-6 shadow-[0_1px_0_0_rgba(255,255,255,0.9)_inset,0_28px_70px_-38px_rgba(15,23,42,0.24)] backdrop-blur-2xl sm:p-7">
         <div className="grid gap-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
           <div className="relative shrink-0">
-            <div className="grid h-28 w-28 place-items-center rounded-[28px] bg-accent font-display text-2xl font-bold text-accent-foreground shadow-md sm:h-32 sm:w-32">
-              {initials(data?.meName || "FO")}
-            </div>
+            {data?.mePhoto ? (
+              <img
+                src={data.mePhoto}
+                alt={data?.meName || "Profile"}
+                className="h-28 w-28 rounded-[28px] object-cover shadow-md sm:h-32 sm:w-32"
+              />
+            ) : (
+              <div className="grid h-28 w-28 place-items-center rounded-[28px] bg-accent font-display text-2xl font-bold text-accent-foreground shadow-md sm:h-32 sm:w-32">
+                {initials(data?.meName || "FO")}
+              </div>
+            )}
             <span className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full bg-card text-emerald-500 shadow ring-1 ring-emerald-500/30">
               <ShieldCheck className="h-4 w-4" />
             </span>
           </div>
+
 
           <div className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
