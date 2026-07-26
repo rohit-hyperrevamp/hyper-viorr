@@ -375,7 +375,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
       }));
       const { error: linesErr } = await supabase.from("inv_demand_lines" as never).insert(payload as never);
       if (linesErr) throw linesErr;
-      void logActivity({ module: MODULE, action: submit ? "post" : (initial ? "update" : "create"), entityType: ENTITY, entityId: id!, entityLabel: initial?.demand_number ?? "Demand" });
+      await logActivity({ module: MODULE, action: submit ? "post" : (initial ? "update" : "create"), entityType: ENTITY, entityId: id!, entityLabel: initial?.demand_number ?? "Demand" });
       const destLabel = isWarehouse
         ? `${warehouseMap.get(targetWarehouseId)?.name ?? "warehouse"} (Warehouse)`
         : (branchMap.get(targetBranchId)?.name ?? "branch");

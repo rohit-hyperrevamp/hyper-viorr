@@ -225,7 +225,7 @@ export async function logActivity(p: LogParams): Promise<void> {
       const link = MODULE_LINKS[p.module] ?? ENTITY_LINKS[p.entityType ?? ""] ?? "";
       const label = p.entityLabel || p.entityType || "record";
       const actionTitle = titleCase(p.action);
-      void notifyAdmins({
+      await notifyAdmins({
         type: `${p.module}:${p.action}`.toLowerCase().replace(/\s+/g, "_"),
         title: `${p.module} — ${actionTitle}`,
         message: `${actionTitle} ${label}${phone ? ` by ${phone}` : ""}`,

@@ -59,7 +59,7 @@ export async function createNotification(input: {
   entityId?: string;
 }) {
   const actor = await currentUserId();
-  const { error } = await supabase.from("notifications" as never).insert({
+  const { data, error } = await supabase.from("notifications" as never).insert({
     user_id: input.userId,
     actor_id: actor,
     type: input.type,
@@ -68,18 +68,20 @@ export async function createNotification(input: {
     link: input.link ?? "",
     entity_type: input.entityType ?? "",
     entity_id: input.entityId ?? "",
-  } as never);
+  } as never).select("id").single();
   if (error) throw error;
-  await deliverNativePush([input.userId], input);
+  const notificationId = (data as unknown as { id?: string } | null)?.id;
+  await deliverNativePush([input.userId], input, notificationId ? [notificationId] : []);
 }
 
 async function deliverNativePush(
   userIds: string[],
   input: { title: string; message: string; link?: string },
+  notificationIds: string[] = [],
 ) {
   const recipients = Array.from(new Set(userIds.filter(Boolean)));
   if (recipients.length === 0) return;
-  await queueRecentNativePush(recipients, input).catch((error) => {
+  await queueRecentNativePush(recipients, { ...input, notificationIds }).catch((error) => {
     console.warn("native push delivery failed", error);
   });
 }
@@ -114,15 +116,15 @@ export async function notifyAdmins(input: {
     entity_type: input.entityType ?? "",
     entity_id: input.entityId ?? "",
   }));
-  const { error } = await supabase.from("notifications" as never).insert(rows as never);
+  const { data, error } = await supabase.from("notifications" as never).insert(rows as never).select("id,user_id");
   if (error) {
     console.error("notifyAdmins insert error", error);
     return;
   }
-  // Single batched push call — previously we fired one bridge fetch per admin
-  // (via createNotification), and a post-submit navigation cancelled most of
-  // them before they reached the bridge. Batching + keepalive fixes that.
-  await deliverNativePush(ids, input);
+  const insertedRows = ((data as unknown) as Array<{ id?: string; user_id?: string }> | null) ?? [];
+  const notificationIds = insertedRows.map((row) => row.id).filter((id): id is string => Boolean(id));
+  const recipients = insertedRows.map((row) => row.user_id).filter((id): id is string => Boolean(id));
+  await deliverNativePush(recipients.length ? recipients : ids, input, notificationIds);
 }
 
 export async function markNotificationRead(id: string) {
@@ -190,12 +192,15 @@ export async function notifyApprovers(input: {
     entity_type: input.entityType ?? "",
     entity_id: input.entityId ?? "",
   }));
-  const { error } = await supabase.from("notifications" as never).insert(rows as never);
+  const { data, error } = await supabase.from("notifications" as never).insert(rows as never).select("id,user_id");
   if (error) {
     console.error("notifyApprovers insert error", error);
     return 0;
   }
-  await deliverNativePush(recipients, input);
+  const insertedRows = ((data as unknown) as Array<{ id?: string; user_id?: string }> | null) ?? [];
+  const notificationIds = insertedRows.map((row) => row.id).filter((id): id is string => Boolean(id));
+  const insertedRecipients = insertedRows.map((row) => row.user_id).filter((id): id is string => Boolean(id));
+  await deliverNativePush(insertedRecipients.length ? insertedRecipients : recipients, input, notificationIds);
   return recipients.length;
 }
 
@@ -243,12 +248,15 @@ export async function notifyOnboardingApprovers(input: {
     entity_type: input.entityType ?? "",
     entity_id: input.entityId ?? "",
   }));
-  const { error } = await supabase.from("notifications" as never).insert(rows as never);
+  const { data, error } = await supabase.from("notifications" as never).insert(rows as never).select("id,user_id");
   if (error) {
     console.error("notifyOnboardingApprovers insert error", error);
     return 0;
   }
-  await deliverNativePush(recipients, input);
+  const insertedRows = ((data as unknown) as Array<{ id?: string; user_id?: string }> | null) ?? [];
+  const notificationIds = insertedRows.map((row) => row.id).filter((id): id is string => Boolean(id));
+  const insertedRecipients = insertedRows.map((row) => row.user_id).filter((id): id is string => Boolean(id));
+  await deliverNativePush(insertedRecipients.length ? insertedRecipients : recipients, input, notificationIds);
   return recipients.length;
 }
 

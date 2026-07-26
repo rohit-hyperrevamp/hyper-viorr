@@ -37,6 +37,7 @@ const PushRequestSchema = z.discriminatedUnion("action", [
     title: z.string().min(1).max(180),
     message: z.string().min(1).max(3000),
     link: z.string().max(500).optional(),
+    notificationIds: z.array(z.string().uuid()).max(100).default([]),
   }),
 ]);
 
@@ -192,7 +193,7 @@ export const Route = createFileRoute("/api/public/native/push")({
             title: input.title,
             body: input.message,
             link: input.link,
-          }, { actorUserId: userId });
+          }, { actorUserId: userId, notificationIds: input.notificationIds });
           return jsonResponse(request, result);
         } catch (error) {
           if (error instanceof Response) {
