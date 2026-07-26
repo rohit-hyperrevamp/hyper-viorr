@@ -11,11 +11,19 @@ import {
   PartyPopper,
   UserRound,
   Users,
-  ArrowRight, ArrowUpRight,
+  ArrowUpRight,
+  ShieldCheck,
+  Phone,
+  MapPin,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-import { PageHeader } from "@/components/PageHeader";
+
 import { supabase } from "@/integrations/supabase/client";
+
 import { useAuth } from "@/lib/auth";
 import { useCountUp } from "@/hooks/useCountUp";
 import { nextOccurrence, ageFrom, yearsBetween } from "@/lib/people-insights";
@@ -348,59 +356,102 @@ function EmployeeDashboard() {
   const tenureYears = started ? yearsBetween(started, new Date()) : null;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={`Welcome back, ${me.full_name.split(" ")[0] || "there"}`}
-        description={desig?.name ? `${desig.name}${unit?.name ? ` · ${unit.name}` : ""}` : "Your workspace"}
-        crumbs={[{ label: "My Dashboard" }]}
-      />
+    <div className="space-y-5">
+
+      {/* Profile hero — matches Field Officer dashboard */}
+      <section className="relative overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 text-white shadow-[0_20px_50px_-24px_rgba(15,23,42,0.55)] sm:p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-accent/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-emerald-400/15 blur-3xl" />
+
+        <div className="relative flex items-center gap-3 sm:gap-4">
+          <div className="relative shrink-0">
+            <div className="rounded-full bg-white/10 p-[3px] ring-1 ring-white/20 backdrop-blur">
+              {me.photo_url ? (
+                <img
+                  src={me.photo_url}
+                  alt={me.full_name}
+                  className="!aspect-square h-16 w-16 !rounded-full object-cover sm:h-20 sm:w-20"
+                />
+              ) : (
+                <div className="grid !aspect-square h-16 w-16 place-items-center !rounded-full bg-accent font-display text-lg font-bold text-accent-foreground sm:h-20 sm:w-20">
+                  {initials(me.full_name)}
+                </div>
+              )}
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white shadow ring-2 ring-slate-900 sm:h-6 sm:w-6">
+              <ShieldCheck className="h-3 w-3" />
+            </span>
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/50">
+              {(me.role_key || "employee").replace(/_/g, " ")}
+            </div>
+            <div className="mt-0.5 truncate font-display text-lg font-bold tracking-tight sm:text-2xl">
+              {me.full_name}
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {me.employee_code && (
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/85 ring-1 ring-white/15">{me.employee_code}</span>
+              )}
+              {unit && (
+                <span className="max-w-[180px] truncate rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-200 ring-1 ring-emerald-300/25">
+                  {unit.name}
+                </span>
+              )}
+              {desig?.name && (
+                <span className="max-w-[160px] truncate rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/85 ring-1 ring-white/15">
+                  {desig.name}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <Link
+            to="/admin/profile"
+            aria-label="Edit profile"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/20 backdrop-blur transition hover:bg-white/20"
+          >
+            <ArrowUpRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        {(me.mobile || unit?.site_address) && (
+          <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/75 sm:text-xs">
+            {me.mobile && (
+              <span className="inline-flex items-center gap-1.5"><Phone className="h-3 w-3" /><span className="tabular-nums">{me.mobile}</span></span>
+            )}
+            {(unit?.site_address || unit?.name) && (
+              <span className="inline-flex items-center gap-1.5 min-w-0"><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{unit?.site_address || unit?.name}</span></span>
+            )}
+          </div>
+        )}
+
+        <div className="relative mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+          <HeroStat label="Present" value={attStats.present} tint="emerald" />
+          <HeroStat label="OT hrs" value={attStats.ot} tint="sky" />
+          <HeroStat label="Team" value={guardTeam.length + 1} tint="amber" />
+        </div>
+      </section>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-w-0 space-y-6">
-          {/* Profile card — matches admin card aesthetic */}
-          <section className="overflow-hidden rounded-[24px] border border-border/60 bg-card/70 p-5 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)]">
-            <div className="flex items-start gap-4">
-              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full bg-secondary text-lg font-semibold ring-1 ring-border">
-                {me.photo_url ? <img src={me.photo_url} alt="" className="h-full w-full object-cover" /> : initials(me.full_name)}
+        <div className="min-w-0 space-y-5">
+          {/* Pastel summary tiles — matches FO */}
+          <section>
+            <div className="mb-2 flex items-end justify-between sm:mb-3">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Overview</div>
+                <h2 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-2xl">My Summary</h2>
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <div className="font-display text-lg font-bold text-foreground">{me.full_name}</div>
-                  {me.employee_code && <div className="font-mono text-xs text-muted-foreground">{me.employee_code}</div>}
-                  <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 ring-1 ring-inset ring-emerald-500/25 dark:text-emerald-300">{me.status}</span>
-                </div>
-                <div className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-muted-foreground sm:grid-cols-2">
-                  <div><span className="font-medium text-foreground">Phone:</span> {me.mobile ?? "—"}</div>
-                  <div><span className="font-medium text-foreground">Email:</span> {me.email || "—"}</div>
-                  <div><span className="font-medium text-foreground">Designation:</span> {desig?.name ?? "—"}</div>
-                  <div className="sm:col-span-2"><span className="font-medium text-foreground">Units:</span>{" "}
-                    {myUnits.length === 0 ? "—" : (
-                      <span className="inline-flex flex-wrap gap-1 align-middle">
-                        {myUnits.map((u) => (
-                          <span key={u.id} className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${ACCENT_CHIP.violet}`}>
-                            {u.name}{u.code ? ` · ${u.code}` : ""}
-                          </span>
-                        ))}
-                      </span>
-                    )}
-                  </div>
-                  {age !== null && <div><span className="font-medium text-foreground">Age:</span> {age}</div>}
-                  {tenureYears !== null && <div><span className="font-medium text-foreground">Tenure:</span> {tenureYears} yr</div>}
-                </div>
-              </div>
-              <Link to="/admin/profile" className="shrink-0 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-secondary">
-                <UserRound className="mr-1 inline h-3.5 w-3.5" /> View profile
-              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+              <PastelTile palette="lime" label="Present days" value={attStats.present} hint={new Date().toLocaleString("en-IN",{month:"long"})} delta={0} deltaSuffix="" icon={ClipboardCheck} />
+              <PastelTile palette="rose" label="Absent" value={attStats.absent} hint="this month" delta={0} deltaSuffix="" icon={ClipboardCheck} />
+              <PastelTile palette="amber" label="Leaves" value={attStats.leave} hint="this month" delta={0} deltaSuffix="" icon={ClipboardCheck} />
+              <PastelTile palette="teal" label="Uniform items" value={issQ.data?.total ?? 0} hint={issQ.data?.pending ? `${issQ.data.pending} pending OTP` : "in hand"} delta={0} deltaSuffix="" icon={Package} to="/admin/my-inventory" />
             </div>
           </section>
 
-          {/* Stat tiles — match admin MetricTile aesthetic */}
-          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <MetricTile icon={ClipboardCheck} label="Present days" value={attStats.present} accent="emerald" sub={new Date().toLocaleString("en-IN",{month:"long"})} />
-            <MetricTile icon={ClipboardCheck} label="Absent" value={attStats.absent} accent="rose" />
-            <MetricTile icon={ClipboardCheck} label="Leaves" value={attStats.leave} accent="amber" />
-            <MetricTile icon={Package} label="Uniform items" value={issQ.data?.total ?? 0} accent="sky" sub={issQ.data?.pending ? `${issQ.data.pending} pending OTP` : undefined} to="/admin/my-inventory" />
-          </section>
 
           {/* Duty & unit */}
           <section className="grid gap-4 lg:grid-cols-2">
@@ -450,7 +501,7 @@ function EmployeeDashboard() {
                   <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Team size</div>
                 </div>
                 <Link to="/admin/my-inventory" className="flex items-center justify-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-center text-sm font-semibold hover:bg-secondary">
-                  My Uniform <ArrowRight className="h-3.5 w-3.5" />
+                  My Uniform <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
             </div>
@@ -661,3 +712,79 @@ function MetricTile({
   return to ? <Link to={to} className={cls}>{inner}</Link> : <div className={cls}>{inner}</div>;
 
 }
+
+function HeroStat({ label, value, tint }: { label: string; value: number | string; tint: "sky" | "emerald" | "amber" }) {
+  const dot = { sky: "bg-sky-400", emerald: "bg-emerald-400", amber: "bg-amber-400" }[tint];
+  return (
+    <div className="min-w-0 rounded-2xl bg-white/8 px-3 py-2.5 ring-1 ring-white/10 backdrop-blur">
+      <div className="flex items-center gap-1.5">
+        <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
+        <span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60">{label}</span>
+      </div>
+      <div className="mt-1 font-display text-xl font-bold tabular-nums leading-none text-white sm:text-2xl">{value}</div>
+    </div>
+  );
+}
+
+function PastelTile({
+  palette, label, value, hint, delta, deltaSuffix, invertColor, icon: Icon, to,
+}: {
+  palette: "lime" | "teal" | "rose" | "amber";
+  label: string; value: number | string; hint: string;
+  delta: number; deltaSuffix: string; invertColor?: boolean;
+  icon: React.ComponentType<{ className?: string }>; to?: string;
+}) {
+  const bg = {
+    lime: "bg-[color-mix(in_oklab,oklch(0.75_0.16_140)_18%,var(--card))]",
+    teal: "bg-[color-mix(in_oklab,oklch(0.75_0.12_195)_18%,var(--card))]",
+    rose: "bg-[color-mix(in_oklab,oklch(0.72_0.16_20)_18%,var(--card))]",
+    amber: "bg-[color-mix(in_oklab,oklch(0.82_0.14_75)_20%,var(--card))]",
+  }[palette];
+  const ring = {
+    lime: "ring-[color-mix(in_oklab,oklch(0.75_0.16_140)_35%,transparent)]",
+    teal: "ring-[color-mix(in_oklab,oklch(0.75_0.12_195)_35%,transparent)]",
+    rose: "ring-[color-mix(in_oklab,oklch(0.72_0.16_20)_35%,transparent)]",
+    amber: "ring-[color-mix(in_oklab,oklch(0.82_0.14_75)_40%,transparent)]",
+  }[palette];
+
+  const positive = invertColor ? delta < 0 : delta > 0;
+  const negative = invertColor ? delta > 0 : delta < 0;
+  const TrendIcon = delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
+  const trendCls = delta === 0
+    ? "bg-card/70 text-foreground/60"
+    : positive ? "bg-card/85 text-emerald-700 dark:text-emerald-300"
+    : negative ? "bg-card/85 text-rose-700 dark:text-rose-300"
+    : "bg-card/70 text-foreground/60";
+
+  const inner = (
+    <div className={`relative flex h-full min-h-[86px] flex-col justify-between overflow-hidden rounded-2xl p-3 ring-1 ring-inset transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:rounded-[26px] sm:p-5 ${bg} ${ring}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="text-[11px] font-semibold leading-tight text-foreground/80 sm:text-[13px]">{label}</div>
+          <div className="mt-0.5 line-clamp-1 text-[10px] text-foreground/60 sm:text-[11px]">{hint}</div>
+        </div>
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 text-foreground/70 shadow-sm sm:h-9 sm:w-9">
+          <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        </span>
+      </div>
+      <div className="mt-2 flex items-end justify-between gap-2 sm:gap-3">
+        <div className="font-display text-[24px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[44px]">
+          {value}
+        </div>
+        <div className="flex flex-col items-end gap-1 sm:gap-1.5">
+          {delta !== 0 && (
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${trendCls}`}>
+              <TrendIcon className="h-3 w-3" />
+              {delta > 0 ? "+" : ""}{delta}{deltaSuffix}
+            </span>
+          )}
+          <span className="hidden h-7 w-7 place-items-center rounded-full bg-card/70 text-foreground/70 sm:grid">
+            <Icon className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+  return to ? <Link to={to} className="block">{inner}</Link> : inner;
+}
+
