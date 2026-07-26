@@ -495,10 +495,11 @@ function AdminLayout() {
 
   return (
     <TooltipProvider delayDuration={150} skipDelayDuration={100}>
-    <div className="relative min-h-dvh">
+    <div className={cn("relative min-h-dvh", isFieldOfficer && "bg-white dark:bg-neutral-950")}>
       <AppleNativeSetupCard autoStart nativeOnly className="hidden" />
       {/* Soft tinted canvas — clean glass backdrop, no grid */}
-      <div className="pointer-events-none fixed inset-0 z-0 app-canvas" />
+      {!isFieldOfficer && <div className="pointer-events-none fixed inset-0 z-0 app-canvas" />}
+
 
 
 
