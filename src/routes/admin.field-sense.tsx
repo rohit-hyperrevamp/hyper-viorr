@@ -216,8 +216,8 @@ function FieldSensePage() {
     <div className="space-y-4">
       <PageHeader
         title="Field Sense"
-        subtitle="Live map of on-duty field officers with battery and network telemetry."
-        badge={{ label: `${rows.length} live`, tone: "success" }}
+        description="Live map of on-duty field officers with battery and network telemetry."
+        crumbs={[{ label: "Admin", to: "/admin/dashboard" }, { label: "Field Sense" }]}
       />
 
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>
