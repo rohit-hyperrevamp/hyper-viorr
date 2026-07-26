@@ -64,28 +64,6 @@ function MyInventoryPage() {
     },
   });
 
-  const itemIds = useMemo(() => Array.from(new Set(lines.map((l) => l.item_id))), [lines]);
-  const allItemIds = useMemo(() => Array.from(new Set([...itemIds, ...holdings.map((h) => h.item_id)])), [itemIds, holdings]);
-  const { data: items = [] } = useQuery({
-    queryKey: ["items-by-id", allItemIds.join(",")],
-    enabled: allItemIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("inv_items" as never).select("id,name,item_code").in("id", allItemIds);
-      if (error) throw error;
-      return (data as unknown as Item[]) ?? [];
-    },
-  });
-
-  const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
-  const linesByIss = useMemo(() => {
-    const m = new Map<string, Line[]>();
-    for (const l of lines) {
-      const arr = m.get(l.issuance_id) ?? [];
-      arr.push(l); m.set(l.issuance_id, arr);
-    }
-    return m;
-  }, [lines]);
-
   // Live net possession from inv_stock_balances (accounts for collections, transfers, hand-outs)
   const { data: holdings = [] } = useQuery({
     queryKey: ["my-stock-balance", me?.id],
@@ -103,6 +81,30 @@ function MyInventoryPage() {
     },
   });
 
+  const itemIds = useMemo(
+    () => Array.from(new Set([...lines.map((l) => l.item_id), ...holdings.map((h) => h.item_id)])),
+    [lines, holdings],
+  );
+  const { data: items = [] } = useQuery({
+    queryKey: ["items-by-id", itemIds.join(",")],
+    enabled: itemIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("inv_items" as never).select("id,name,item_code").in("id", itemIds);
+      if (error) throw error;
+      return (data as unknown as Item[]) ?? [];
+    },
+  });
+
+  const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+  const linesByIss = useMemo(() => {
+    const m = new Map<string, Line[]>();
+    for (const l of lines) {
+      const arr = m.get(l.issuance_id) ?? [];
+      arr.push(l); m.set(l.issuance_id, arr);
+    }
+    return m;
+  }, [lines]);
+
   // Realtime: refresh on any stock movement touching this user's location
   useEffect(() => {
     if (!me?.id) return;
@@ -119,8 +121,6 @@ function MyInventoryPage() {
     return () => { void supabase.removeChannel(ch); };
   }, [me?.id, qc]);
 
-  // Ensure item metadata is fetched for holdings items too
-  const holdingItemIds = useMemo(() => holdings.map((h) => h.item_id), [holdings]);
 
 
   const pending = issuances.filter((i) => i.status === "issued");
