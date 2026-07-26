@@ -103,6 +103,7 @@ function FieldOfficerDashboard() {
         attendanceRateToday: 0, attendanceRateYesterday: 0,
         pendingOnboardingTotal: 0, pendingOnboardingLastWeek: 0,
         openDemandsTotal: 0, inventoryItemsTotal: 0,
+        myStockQty: 0, myStockSkus: 0,
       };
 
       if (!meId) return empty;
