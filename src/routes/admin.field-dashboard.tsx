@@ -527,7 +527,7 @@ function PastelTile({
         </span>
       </div>
       <div className="mt-2 flex items-end justify-between gap-2 sm:gap-3">
-        <div className="font-display text-[24px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[44px]">
+        <div className="font-display text-[22px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[36px]">
           {value}
         </div>
         <div className="flex flex-col items-end gap-1 sm:gap-1.5">
