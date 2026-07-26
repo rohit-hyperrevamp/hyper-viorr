@@ -614,7 +614,7 @@ export function InventoryOwnerDashboard() {
   const branchDashboardLoading = scope.isLoading || (scope.isScoped && scopeAssignmentsQ.isLoading);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <ScopeBanner />
       {branchDashboardLoading ? (
         <div className="flex min-h-[32vh] items-center justify-center rounded-2xl border border-border bg-card/60 text-sm text-muted-foreground">
@@ -623,15 +623,15 @@ export function InventoryOwnerDashboard() {
       ) : (
         <>
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card/60 p-3 backdrop-blur">
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="h-9 w-[220px]" />
+      <div className="grid grid-cols-2 items-center gap-2 rounded-2xl border border-border bg-card/60 p-2.5 backdrop-blur sm:flex sm:flex-wrap sm:p-3">
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="col-span-2 h-9 w-full sm:w-[220px]" />
         {scope.isScoped ? (
-          <div className="flex h-9 items-center rounded-lg border border-border bg-secondary/40 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="col-span-2 flex h-9 items-center rounded-lg border border-border bg-secondary/40 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:col-auto">
             Branch: {scope.branchLabel || branches[0]?.name || "Assigned branch"}
           </div>
         ) : (
           <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
-            <SelectTrigger className="h-9 w-[220px]"><SelectValue placeholder="Warehouse / Branch" /></SelectTrigger>
+            <SelectTrigger className="h-9 w-full sm:w-[220px]"><SelectValue placeholder="Warehouse / Branch" /></SelectTrigger>
             <SelectContent className="max-h-[320px]">
               <SelectItem value="all">All warehouses and branches ({whs.length + branches.length})</SelectItem>
               {whs.length > 0 && (
@@ -646,25 +646,25 @@ export function InventoryOwnerDashboard() {
           </Select>
         )}
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="h-9 w-[180px]"><SelectValue placeholder="Category" /></SelectTrigger>
+          <SelectTrigger className="h-9 w-full sm:w-[180px]"><SelectValue placeholder="Category" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All categories</SelectItem>
             {cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="col-span-2 flex flex-wrap items-center gap-2 sm:ml-auto">
           {range === "custom" && (
             <>
-              <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-9 w-[150px]" />
-              <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-9 w-[150px]" />
+              <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-9 flex-1 sm:w-[150px] sm:flex-none" />
+              <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-9 flex-1 sm:w-[150px] sm:flex-none" />
             </>
           )}
-          <div className="flex items-center gap-1 rounded-xl bg-secondary/40 p-1">
+          <div className="grid w-full grid-cols-2 gap-1 rounded-xl bg-secondary/40 p-1 sm:flex sm:w-auto sm:items-center">
             {(Object.keys(RANGE_LABEL) as Range[]).map((r) => (
               <button
                 key={r}
                 onClick={() => setRange(r)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${range === r ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                className={`rounded-lg px-2 py-1.5 text-[11px] font-medium transition sm:px-3 sm:text-xs ${range === r ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
               >{RANGE_LABEL[r]}</button>
             ))}
           </div>
@@ -672,7 +672,7 @@ export function InventoryOwnerDashboard() {
       </div>
 
       {scope.isScoped ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
           {(() => {
             const capLabel = myCap?.kind === "field_officer" ? "My Stock Value" : "Branch Stock Value";
             const capValue = myCap
@@ -695,7 +695,7 @@ export function InventoryOwnerDashboard() {
           <Kpi label="Guard Stock" value={guardHoldings.reduce((s, r) => s + r.qty, 0).toLocaleString("en-IN")} icon={ShieldCheck} tint="from-teal-500/15 to-teal-500/0" iconClass="text-teal-500" hint="Under your branch chain" to="/admin/inventory/stock" />
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
           <Kpi label="Stock Value" value={inr(stockValue)} icon={Wallet} tint="from-emerald-500/15 to-emerald-500/0" iconClass="text-emerald-500" hint="On-hand + in-transit at standard cost" />
           <Kpi label="Low Stock Lines" value={lowStock.length.toString()} icon={AlertTriangle} tint="from-amber-500/15 to-amber-500/0" iconClass="text-amber-500" hint={`${openPOs} open POs`} to="/admin/inventory/stock" />
         </div>
@@ -749,10 +749,10 @@ export function InventoryOwnerDashboard() {
       )}
 
       {/* Live Notifications — pending actions across the inventory pipeline */}
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-5">
+        <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:mb-4 sm:flex sm:flex-wrap sm:justify-between">
           <div className="flex items-center gap-2">
-            <span className={`relative flex h-9 w-9 items-center justify-center rounded-xl ${totalPending > 0 ? "bg-amber-500/15 text-amber-600" : "bg-emerald-500/15 text-emerald-600"}`}>
+            <span className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl sm:h-9 sm:w-9 ${totalPending > 0 ? "bg-amber-500/15 text-amber-600" : "bg-emerald-500/15 text-emerald-600"}`}>
               <Bell className="h-4 w-4" />
               {totalPending > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-amber-500 ring-2 ring-card" />}
             </span>
@@ -765,7 +765,7 @@ export function InventoryOwnerDashboard() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {(scope.isScoped || role.isFieldOfficer || role.isBranchManager) ? (
               <Link
                 to="/admin/inventory/demands"
@@ -786,7 +786,7 @@ export function InventoryOwnerDashboard() {
             <span className="hidden text-[10px] uppercase tracking-wider text-muted-foreground sm:inline">SLA: {SLA_DAYS} days</span>
           </div>
         </div>
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3 xl:grid-cols-5">
           {notifications.map(({ key, ...n }) => <NotifTile key={key} {...n} sla={SLA_DAYS} />)}
         </div>
       </div>
@@ -800,7 +800,7 @@ export function InventoryOwnerDashboard() {
         </div>
 
         {/* Master counts */}
-        {!scope.isScoped && <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        {!scope.isScoped && <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
           {canSub("inventory", "item_master") && <CountTile to="/admin/inventory/items" label="Products" value={items.length} icon={PackageOpen} accent="text-violet-500" />}
           {canSub("inventory", "vendors") && <CountTile to="/admin/inventory/vendors" label="Vendors" value={vendors.length} icon={ShoppingCart} accent="text-blue-500" />}
           {canSub("inventory", "warehouses") && <CountTile to="/admin/inventory/warehouses" label="Warehouses" value={whs.length} icon={Warehouse} accent="text-amber-500" />}
@@ -808,7 +808,7 @@ export function InventoryOwnerDashboard() {
         </div>}
 
         {/* Workflow counts with status split */}
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3 xl:grid-cols-6">
           {!scope.isScoped && canSub("inventory", "purchase_orders") && (
             <WorkflowTile to="/admin/inventory/purchase-orders" label="Purchase Orders" value={poSplit.total} icon={FileText} accent="text-blue-500"
               chips={[{ label: "Open", value: poSplit.open, tone: "amber" }, { label: "Closed", value: poSplit.closed, tone: "emerald" }]} />
@@ -932,22 +932,22 @@ function Kpi({ label, value, delta, icon: Icon, tint, iconClass, hint, to }: {
 }) {
   const up = (delta ?? 0) >= 0;
   const body = (
-    <div className={`relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${tint} p-4`}>
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-          <div className="mt-2 font-display text-2xl font-bold tracking-tight">{value}</div>
+    <div className={`relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${tint} p-3 sm:p-4`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:text-xs sm:tracking-wider">{label}</div>
+          <div className="mt-1 truncate font-display text-xl font-bold tracking-tight sm:mt-2 sm:text-2xl">{value}</div>
           {delta !== undefined ? (
-            <div className={`mt-1 flex items-center gap-1 text-xs font-medium ${up ? "text-emerald-600" : "text-rose-600"}`}>
+            <div className={`mt-1 flex items-center gap-1 text-[11px] font-medium sm:text-xs ${up ? "text-emerald-600" : "text-rose-600"}`}>
               {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
               {Math.abs(delta).toFixed(0)}% vs prev period
             </div>
           ) : hint ? (
-            <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
+            <div className="mt-1 line-clamp-2 text-[11px] text-muted-foreground sm:text-xs">{hint}</div>
           ) : null}
         </div>
-        <div className={`flex h-9 w-9 items-center justify-center rounded-xl bg-background/60 backdrop-blur ${iconClass}`}>
-          <Icon className="h-4 w-4" />
+        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-background/60 backdrop-blur sm:h-9 sm:w-9 ${iconClass}`}>
+          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </div>
       </div>
     </div>
@@ -960,8 +960,8 @@ function Panel({ title, subtitle, right, children, className = "" }: {
   title: string; subtitle?: string; right?: React.ReactNode; children: React.ReactNode; className?: string;
 }) {
   return (
-    <div className={`rounded-2xl border border-border bg-card p-5 ${className}`}>
-      <div className="mb-4 flex items-start justify-between gap-3">
+    <div className={`rounded-2xl border border-border bg-card p-3.5 sm:p-5 ${className}`}>
+      <div className="mb-3 flex items-start justify-between gap-3 sm:mb-4">
         <div>
           <div className="font-display text-sm font-bold tracking-tight">{title}</div>
           {subtitle && <div className="text-xs text-muted-foreground">{subtitle}</div>}
@@ -1072,11 +1072,11 @@ function Empty({ children }: { children: React.ReactNode }) {
 
 function CountTile({ to, label, value, icon: Icon, accent }: { to: string; label: string; value: number; icon: React.ComponentType<{ className?: string }>; accent: string }) {
   return (
-    <Link to={to} className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:border-accent/40 hover:bg-accent/5">
-      <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/50 ${accent}`}><Icon className="h-4 w-4" /></div>
+    <Link to={to} className="group flex items-center gap-2.5 rounded-2xl border border-border bg-card p-3 transition hover:border-accent/40 hover:bg-accent/5 sm:gap-3 sm:p-4">
+      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-secondary/50 sm:h-10 sm:w-10 ${accent}`}><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></div>
       <div className="min-w-0 flex-1">
-        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="font-display text-xl font-bold tabular-nums">{value.toLocaleString("en-IN")}</div>
+        <div className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:tracking-wider">{label}</div>
+        <div className="font-display text-lg font-bold tabular-nums sm:text-xl">{value.toLocaleString("en-IN")}</div>
       </div>
       <ArrowRight className="h-4 w-4 text-muted-foreground/40 transition group-hover:translate-x-0.5 group-hover:text-accent" />
     </Link>
@@ -1085,13 +1085,13 @@ function CountTile({ to, label, value, icon: Icon, accent }: { to: string; label
 
 function HeroTile({ to, label, value, icon: Icon, accent }: { to: string; label: string; value: string; icon: React.ComponentType<{ className?: string }>; accent: string; tone?: string }) {
   return (
-    <Link to={to} className="group relative overflow-hidden rounded-2xl border border-border bg-card p-4 transition hover:border-accent/40 hover:bg-accent/5">
-      <div className="flex items-start justify-between">
+    <Link to={to} className="group relative overflow-hidden rounded-2xl border border-border bg-card p-3 transition hover:border-accent/40 hover:bg-accent/5 sm:p-4">
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-          <div className="mt-2 font-display text-2xl font-bold tracking-tight">{value}</div>
+          <div className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:tracking-wider">{label}</div>
+          <div className="mt-1 truncate font-display text-xl font-bold tracking-tight sm:mt-2 sm:text-2xl">{value}</div>
         </div>
-        <div className={`flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/50 ${accent}`}><Icon className="h-4 w-4" /></div>
+        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-secondary/50 sm:h-9 sm:w-9 ${accent}`}><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></div>
       </div>
     </Link>
   );
@@ -1103,14 +1103,14 @@ function WorkflowTile({ to, label, value, icon: Icon, accent, chips }: {
 }) {
   const toneCls = (t: "amber" | "emerald") => t === "emerald" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400";
   return (
-    <Link to={to} className="group flex flex-col gap-2 rounded-2xl border border-border bg-card p-4 transition hover:border-accent/40 hover:bg-accent/5">
+    <Link to={to} className="group flex min-h-[112px] flex-col gap-2 rounded-2xl border border-border bg-card p-3 transition hover:border-accent/40 hover:bg-accent/5 sm:min-h-0 sm:p-4">
       <div className="flex items-center justify-between">
         <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 ${accent}`}><Icon className="h-4 w-4" /></div>
         <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 transition group-hover:translate-x-0.5 group-hover:text-accent" />
       </div>
       <div>
-        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="font-display text-xl font-bold tabular-nums">{value.toLocaleString("en-IN")}</div>
+        <div className="line-clamp-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:tracking-wider">{label}</div>
+        <div className="font-display text-lg font-bold tabular-nums sm:text-xl">{value.toLocaleString("en-IN")}</div>
       </div>
       <div className="flex flex-wrap gap-1">
         {chips.map((c) => (
@@ -1131,7 +1131,7 @@ function NotifTile({ label, hint, to, icon: Icon, accent, count, breached, oldes
   const isClear = count === 0;
   const isBreached = breached > 0;
   return (
-    <Link to={to} className={`group relative flex flex-col gap-2 rounded-2xl border p-4 transition hover:bg-accent/5 ${isBreached ? "border-rose-500/40 bg-rose-500/5" : isClear ? "border-border bg-card" : "border-amber-500/30 bg-amber-500/5"}`}>
+    <Link to={to} className={`group relative flex min-h-[116px] flex-col gap-1.5 rounded-2xl border p-3 transition hover:bg-accent/5 sm:min-h-0 sm:gap-2 sm:p-4 ${isBreached ? "border-rose-500/40 bg-rose-500/5" : isClear ? "border-border bg-card" : "border-amber-500/30 bg-amber-500/5"}`}>
       <div className="flex items-center justify-between">
         <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-background/70 ${accent}`}><Icon className="h-4 w-4" /></div>
         {!isClear && (
@@ -1141,11 +1141,11 @@ function NotifTile({ label, hint, to, icon: Icon, accent, count, breached, oldes
         )}
       </div>
       <div>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>
+        <div className="line-clamp-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:tracking-wider">{label}</div>
+        <div className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground sm:text-xs">{hint}</div>
       </div>
       {isClear ? (
-        <div className="flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+        <div className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 sm:text-[11px]">
           <ClipboardCheck className="h-3 w-3" /> No pending actions
         </div>
       ) : (
