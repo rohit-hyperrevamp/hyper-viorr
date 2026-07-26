@@ -212,28 +212,27 @@ export function NotificationBell() {
               type="button"
               aria-label="Close notifications"
               data-no-tip
-              className="absolute inset-0 bg-foreground/35 backdrop-blur-sm"
+              className="absolute inset-0 bg-foreground/40 backdrop-blur-md animate-in fade-in-0 duration-200"
               onClick={() => setMobileOpen(false)}
             />
             <div
-              className="absolute inset-x-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-2xl border border-border bg-card shadow-[0_-24px_70px_-28px_rgba(15,23,42,0.55)]"
+              className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col overflow-hidden rounded-t-[28px] border-t border-x border-border/60 bg-card shadow-[0_-24px_80px_-20px_rgba(15,23,42,0.55)] animate-in slide-in-from-bottom duration-300 ease-out"
               style={{
-                bottom: "calc(env(safe-area-inset-bottom, 0px) * -1)",
-                paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
+                paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 4px)",
               }}
             >
-              <div className="flex justify-center py-2">
+              <div className="relative flex items-center justify-center pt-2.5 pb-1.5">
                 <span className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+                <button
+                  type="button"
+                  aria-label="Close notifications"
+                  data-no-tip
+                  onClick={() => setMobileOpen(false)}
+                  className="absolute right-3 top-2 grid h-8 w-8 place-items-center rounded-full bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground [-webkit-tap-highlight-color:transparent]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                aria-label="Close notifications"
-                data-no-tip
-                onClick={() => setMobileOpen(false)}
-                className="absolute right-3 top-2 grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
               {notificationList}
             </div>
           </div>,
