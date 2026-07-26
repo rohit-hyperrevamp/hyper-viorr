@@ -3758,11 +3758,19 @@ function CandidateWizard({
               ? (editing.status === "approved" || editing.status === "active" || editing.status === "inactive")
                 ? "Edit Employee"
                 : "Edit Candidate"
-              : "Add Candidate"}
+              : isEmployeeMode ? "Add Employee" : "Add Candidate"}
           </DialogTitle>
           <DialogDescription>
-            Complete the candidate profile. Save a draft any time; only submit when 100% complete.
+            {isEmployeeMode
+              ? "Non-billable internal hire. Billing unit is auto-set to Radiant; salary follows the Radiant contract for the chosen designation. Client unit mapping is optional."
+              : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
           </DialogDescription>
+          {isEmployeeMode && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
+              <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Radiant Guards - Pune Office</Badge>
+            </div>
+          )}
           {editing && (editing.status === "approved" || editing.status === "active" || editing.status === "inactive") && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StatusBadge status={form.status || editing.status} />
