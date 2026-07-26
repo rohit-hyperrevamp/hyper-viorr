@@ -16,7 +16,7 @@ import {
 } from "@/lib/biometric";
 import { markNativeAppSessionUnlocked } from "@/lib/native-app-lock";
 import logo from "@/assets/radiant-logo-v2.png";
-import loginBg from "@/assets/login-bg.jpg.asset.json";
+import loginBg from "@/assets/login-bg.jpg";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
