@@ -754,7 +754,7 @@ function AdminLayout() {
       )}
 
       {/* Main */}
-      <main className={cn("relative z-10 min-h-[calc(100dvh-3.5rem)] overflow-x-clip safe-x py-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:py-8 lg:pr-6 lg:pb-8", mainOffset)}>
+      <main className={cn("relative z-10 min-h-[calc(100dvh-3.5rem)] overflow-x-clip safe-x py-3 pb-24 transition-[margin] duration-300 sm:px-6 sm:py-6 lg:py-8 lg:pr-6 lg:pb-8", mainOffset)}>
         {/* Desktop top utility bar — global search + notifications */}
         {!isFieldOfficer && !nativeShell && (
           <div className="mb-4 hidden items-center gap-3 lg:flex animate-slide-in-top">

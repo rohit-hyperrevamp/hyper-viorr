@@ -2271,12 +2271,223 @@ function EmployeesPage() {
     });
   };
 
+  const renderMobileCards = (rows: CandidateListItem[], mode: "employee" | "candidate") => {
+    if (isLoading) {
+      return <div className="rounded-2xl border border-border/70 bg-card p-6 text-center text-sm text-muted-foreground md:hidden">Loading…</div>;
+    }
+    if (candidatesError) {
+      return (
+        <div className="rounded-2xl border border-border/70 bg-card p-6 text-center text-sm text-muted-foreground md:hidden">
+          {candidatesError instanceof Error ? candidatesError.message : "Could not load employees right now. Please retry."}
+        </div>
+      );
+    }
+    if (rows.length === 0) {
+      return (
+        <div className="rounded-2xl border border-border/70 bg-card p-6 text-center text-sm text-muted-foreground md:hidden">
+          {mode === "employee" ? "No employees yet. Approve a candidate to generate an Employee ID." : "No candidates here. Add Candidate to start."}
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid gap-2.5 md:hidden">
+        {rows.map((c) => {
+          const unit = c.unit_id ? unitMap.get(c.unit_id) : undefined;
+          const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
+          const code = mode === "employee" ? c.employee_code || "—" : c.candidate_code || "—";
+          const isDisabled = mode === "employee" && !c.is_enabled;
+          const isPendingOffboarding =
+            c.offboarding_details?.collection_status === "pending" &&
+            !!c.offboarding_details?.pending_collection_fo_id;
+          const pendingFoName = c.offboarding_details?.pending_collection_fo_name;
+          const editLocked = c.status === "inactive" && !canEditInactiveProfile;
+          const lockedTitle = "Inactive profile — only leadership or super admin can edit.";
+          const roleName = rolesList.find((r) => r.key === c.role_key)?.name ?? c.role_key ?? "No role";
+
+          return (
+            <article
+              key={c.id}
+              className={cn(
+                "rounded-2xl border border-border/70 bg-card p-3 shadow-sm",
+                isDisabled && "opacity-65",
+                isPendingOffboarding && "border-amber-300/70 bg-amber-500/[0.05]",
+              )}
+            >
+              <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2.5">
+                {c.photo_url ? (
+                  <img src={c.photo_url} alt="" className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-border/70" />
+                ) : (
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary text-muted-foreground shadow-sm ring-1 ring-border/70">
+                    <UserPlus className="h-4 w-4" />
+                  </div>
+                )}
+
+                <div className="min-w-0">
+                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    <h3 className="max-w-full truncate text-sm font-semibold leading-tight text-foreground">{c.full_name || "—"}</h3>
+                    <span className="inline-flex shrink-0 items-center rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                      {code}
+                    </span>
+                  </div>
+                  <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                    <span className="truncate">{c.mobile || "No mobile"}</span>
+                    <span className="truncate text-right">{roleName}</span>
+                    <span className="truncate" title={unit?.name ?? ""}>{unit?.name || "No unit"}</span>
+                    <span className="truncate text-right" title={desig?.name ?? ""}>{desig?.name || "No designation"}</span>
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <StatusBadge status={c.status} />
+                  {mode === "employee" && columnsVisible.active && (
+                    <Switch
+                      checked={c.is_enabled && c.status !== "inactive"}
+                      onCheckedChange={async (v) => {
+                        if (!v) {
+                          setOffboardTarget(c);
+                          setOffboardReasonId("");
+                          return;
+                        }
+                        if (c.no_hire) {
+                          toast.error("This employee is flagged Do not re-hire and cannot be reactivated.");
+                          return;
+                        }
+                        const wasOffboarded = !!c.offboarding_reason_id || !!c.offboarded_at;
+                        if (wasOffboarded) {
+                          setReactivateTarget(c);
+                          return;
+                        }
+                        const ok = await confirmAction({
+                          title: "Activate employee?",
+                          description: `${c.full_name || c.employee_code} will be marked active again.`,
+                          confirmText: "Activate",
+                        });
+                        if (!ok) return;
+                        toggleEnabledMut.mutate({ candidate: c, enabled: true });
+                      }}
+                      disabled={!c.is_enabled && c.no_hire}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {isPendingOffboarding && (
+                <div
+                  className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"
+                  title={`Offboarding in progress — awaiting inventory collection${pendingFoName ? ` by ${pendingFoName}` : ""}. Employee stays active until the Field Officer confirms recovery.`}
+                >
+                  <Clock className="h-3 w-3 shrink-0" />
+                  <span className="truncate">Awaiting collection{pendingFoName ? ` · ${pendingFoName}` : ""}</span>
+                </div>
+              )}
+
+              {mode === "employee" && columnsVisible.role && (
+                <div className="mt-2">
+                  {c.role_key ? (
+                    <Select
+                      value={c.role_key}
+                      onValueChange={async (v) => {
+                        if (v === c.role_key) return;
+                        const ok = await confirmAction({
+                          title: "Change role?",
+                          description: `Change role for ${c.full_name || c.employee_code} to ${rolesList.find((r) => r.key === v)?.name ?? v}?`,
+                          confirmText: "Change role",
+                        });
+                        if (!ok) return;
+                        assignRoleMut.mutate({ candidate: c, roleKey: v });
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-full rounded-lg border-border/60 bg-card text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {rolesList.map((r) => (
+                          <SelectItem key={r.key} value={r.key} className="text-xs">{r.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Select
+                      value=""
+                      onValueChange={async (v) => {
+                        const ok = await confirmAction({
+                          title: "Assign role?",
+                          description: `Assign role ${rolesList.find((r) => r.key === v)?.name ?? v} to ${c.full_name || c.employee_code}?`,
+                          confirmText: "Assign",
+                        });
+                        if (!ok) return;
+                        assignRoleMut.mutate({ candidate: c, roleKey: v });
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-full rounded-lg border-dashed border-border/60 bg-card text-xs text-muted-foreground">
+                        <SelectValue placeholder="Map role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {rolesList.map((r) => (
+                          <SelectItem key={r.key} value={r.key} className="text-xs">{r.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-2 flex items-center justify-end gap-1.5 border-t border-border/50 pt-2">
+                {mode === "candidate" && c.status === "pending" && canApproveOnboarding && (
+                  <>
+                    <Button size="icon" data-variant="success" onClick={() => approveMut.mutate(c)} disabled={approveMut.isPending} className="h-8 w-8 rounded-full bg-emerald-600 text-white hover:bg-emerald-700" title="Approve" aria-label="Approve">
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" data-variant="danger" variant="outline" onClick={() => { setRejectTarget(c); setRejectReason(""); }} className="h-8 w-8 rounded-full border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100" title="Reject" aria-label="Reject">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                {mode === "employee" && (
+                  <>
+                    <Button variant="outline" size="icon" data-variant="warn" onClick={() => setSignTarget({ id: c.id, docType: "nda" })} className="h-8 w-8 rounded-full border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" title="Sign NDA" aria-label="Sign NDA">
+                      <FileSignature className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" data-variant="warn" onClick={() => setSignTarget({ id: c.id, docType: "appointment_letter" })} className="h-8 w-8 rounded-full border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100" title="Sign Appointment Letter" aria-label="Sign Appointment Letter">
+                      <FileText className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                {editLocked ? (
+                  <Button variant="ghost" size="icon" disabled className="h-8 w-8 rounded-md text-muted-foreground opacity-50" title={lockedTitle} aria-label={lockedTitle}>
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button asChild variant="ghost" size="icon" className="h-8 w-8 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground" title="Open full editor">
+                    <Link to="/admin/candidates/$id/details" params={{ id: c.id }}><FileText className="h-4 w-4" /></Link>
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => void openEditor(c.id)} disabled={openingCandidateId === c.id || editLocked} className="h-8 w-8 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50" title={editLocked ? lockedTitle : "Quick edit"} aria-label={editLocked ? lockedTitle : "Quick edit"}>
+                  {openingCandidateId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit2 className="h-4 w-4" />}
+                </Button>
+                {mode === "candidate" && (
+                  <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(c)} className="h-8 w-8 rounded-md text-muted-foreground hover:bg-rose-50 hover:text-rose-600" title="Delete" aria-label="Delete">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderTable = (rows: CandidateListItem[], mode: "employee" | "candidate") => (
-    <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20">
-      <div className="flex items-center justify-between border-b border-border bg-accent/10 px-5 py-2.5 text-xs font-medium text-foreground">
+    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20 sm:rounded-3xl">
+      <div className="flex items-center justify-between border-b border-border bg-accent/10 px-3 py-2 text-xs font-medium text-foreground sm:px-5 sm:py-2.5">
         <span className="inline-flex items-center gap-2"><span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">{rows.length}</span><span className="uppercase tracking-[0.14em] text-muted-foreground">Total {rows.length === 1 ? "row" : "rows"}</span></span>
       </div>
-      <div className="w-full overflow-x-auto">
+      <div className="p-2.5 md:hidden">
+        {renderMobileCards(rows, mode)}
+      </div>
+      <div className="hidden w-full overflow-x-auto md:block">
         <table className="ios-table w-full table-auto text-sm 2xl:min-w-[1480px]">
 
           <thead className="border-b border-border/60 bg-secondary/40">
@@ -2343,14 +2554,14 @@ function EmployeesPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Employees"
         description="Onboard and manage candidates joining client units."
         crumbs={[{ label: "Employees" }]}
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
         {(tab === "employee" && !isFieldOfficer
           ? [
               { label: "Total", value: stats.empTotal, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
@@ -2386,7 +2597,7 @@ function EmployeesPage() {
           <div
             key={s.label}
             className={cn(
-              "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all hover:shadow-md",
+              "group relative overflow-hidden rounded-2xl border p-3 shadow-sm transition-all hover:shadow-md sm:p-4",
               isAlert
                 ? "border-rose-300/70 bg-rose-50/70 backdrop-blur-md"
                 : s.accent
@@ -2397,7 +2608,7 @@ function EmployeesPage() {
             <div className="relative z-10 flex items-start justify-between gap-2">
               <p
                 className={cn(
-                  "truncate text-[10px] font-bold uppercase tracking-[0.18em] transition-colors",
+                    "truncate text-[9px] font-bold uppercase tracking-[0.12em] transition-colors sm:text-[10px] sm:tracking-[0.18em]",
                   isAlert
                     ? "text-rose-700"
                     : s.accent
@@ -2414,7 +2625,7 @@ function EmployeesPage() {
                 </span>
               )}
             </div>
-            <p className="relative z-10 mt-2 text-[28px] font-bold leading-none tabular-nums text-foreground">
+            <p className="relative z-10 mt-1.5 text-2xl font-bold leading-none tabular-nums text-foreground sm:mt-2 sm:text-[28px]">
               {s.value}
               {suffix && <span className="ml-1 text-sm font-medium text-muted-foreground">{suffix}</span>}
             </p>
@@ -2428,34 +2639,34 @@ function EmployeesPage() {
       </div>
 
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "employee" | "candidate")} className="space-y-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <TabsList className="inline-flex h-auto rounded-xl border border-border/60 bg-secondary/40 p-1 backdrop-blur-sm">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "employee" | "candidate")} className="space-y-4 sm:space-y-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <TabsList className="inline-flex h-auto w-full rounded-xl border border-border/60 bg-secondary/40 p-1 backdrop-blur-sm sm:w-auto">
             {!isFieldOfficer && (
               <TabsTrigger
                 value="employee"
-                className="rounded-lg px-6 py-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="flex-1 rounded-lg px-3 py-2 text-xs font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm sm:flex-none sm:px-6 sm:text-sm"
               >
                 Employees <span className="ml-1.5 text-xs opacity-60">({stats.empTotal})</span>
               </TabsTrigger>
             )}
             <TabsTrigger
               value="candidate"
-              className="rounded-lg px-6 py-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className="flex-1 rounded-lg px-3 py-2 text-xs font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm sm:flex-none sm:px-6 sm:text-sm"
             >
               {isFieldOfficer ? "My Candidates" : "Candidates"} <span className="ml-1.5 text-xs opacity-60">({candidateRows.length})</span>
             </TabsTrigger>
           </TabsList>
 
 
-          <div className="flex w-full items-center gap-3 md:w-auto">
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 md:flex md:w-auto md:gap-3">
             <div className="relative flex-1 md:w-80">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search name, Aadhaar, mobile, code…"
-                className="h-11 rounded-xl border-border/70 bg-card pl-11 shadow-sm focus-visible:ring-4 focus-visible:ring-amber-500/10 focus-visible:border-amber-500/60"
+                className="h-10 rounded-xl border-border/70 bg-card pl-11 text-sm shadow-sm focus-visible:ring-4 focus-visible:ring-amber-500/10 focus-visible:border-amber-500/60 sm:h-11"
               />
             </div>
             <DropdownMenu>
@@ -2463,10 +2674,10 @@ function EmployeesPage() {
                 <Button
                   variant="outline"
                   disabled={exporting || (tab === "employee" ? employees.length === 0 : candidateRows.length === 0)}
-                  className="h-11 whitespace-nowrap rounded-xl border-border/70 bg-card px-4 font-semibold shadow-sm"
+                  className="h-10 whitespace-nowrap rounded-xl border-border/70 bg-card px-3 font-semibold shadow-sm sm:h-11 sm:px-4"
                 >
                   {exporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
-                  Export
+                  <span className="hidden sm:inline">Export</span>
                   <ChevronDown className="ml-1.5 h-4 w-4 opacity-60" />
                 </Button>
               </DropdownMenuTrigger>
@@ -2501,10 +2712,10 @@ function EmployeesPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  className="h-11 whitespace-nowrap rounded-xl bg-stone-900 px-6 font-semibold text-white shadow-lg shadow-stone-900/10 transition-all hover:-translate-y-0.5 hover:bg-stone-800 active:translate-y-0 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
+                  className="h-10 whitespace-nowrap rounded-xl bg-primary px-3 font-semibold text-primary-foreground shadow-lg shadow-primary/10 transition-all hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0 sm:h-11 sm:px-6"
                 >
                   <Plus className="mr-1.5 h-4 w-4" />
-                  Add Candidate
+                  <span className="hidden sm:inline">Add Candidate</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
@@ -2552,12 +2763,12 @@ function EmployeesPage() {
         {/* Active / Inactive sub-tabs (Employees tab only) */}
         {tab === "employee" && (
           <div className="flex items-center gap-2">
-            <div className="inline-flex h-auto rounded-xl border border-border/60 bg-secondary/40 p-1 backdrop-blur-sm">
+            <div className="inline-flex h-auto w-full rounded-xl border border-border/60 bg-secondary/40 p-1 backdrop-blur-sm sm:w-auto">
               <button
                 type="button"
                 onClick={() => setEmpStatusTab("active")}
                 className={cn(
-                  "rounded-lg px-4 py-1.5 text-xs font-semibold transition-colors",
+                  "flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors sm:flex-none sm:px-4",
                   empStatusTab === "active"
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -2569,7 +2780,7 @@ function EmployeesPage() {
                 type="button"
                 onClick={() => setEmpStatusTab("inactive")}
                 className={cn(
-                  "rounded-lg px-4 py-1.5 text-xs font-semibold transition-colors",
+                  "flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors sm:flex-none sm:px-4",
                   empStatusTab === "inactive"
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -2583,7 +2794,7 @@ function EmployeesPage() {
 
         {/* Filter bar (Employees tab only) */}
         {tab === "employee" && (
-          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/60 bg-card/60 p-3 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/60 bg-card/60 p-2.5 shadow-sm sm:p-3">
 
             {filtersVisible.role && (
               <Select value={filterRole} onValueChange={setFilterRole}>
