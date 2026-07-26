@@ -2316,9 +2316,9 @@ function EmployeesPage() {
             >
               <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2.5">
                 {c.photo_url ? (
-                  <img src={c.photo_url} alt="" className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-border/70" />
+                  <img src={c.photo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover shadow-sm ring-1 ring-border/70" />
                 ) : (
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary text-muted-foreground shadow-sm ring-1 ring-border/70">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground shadow-sm ring-1 ring-border/70">
                     <UserPlus className="h-4 w-4" />
                   </div>
                 )}
