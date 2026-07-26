@@ -843,9 +843,6 @@ function ProfilePage() {
 
       {appleNativeCard}
 
-      {preferencesCard}
-
-
       {/* Hero card */}
       <div className="overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br from-card via-card to-secondary/40 shadow-sm">
         <div className="flex flex-col items-center gap-4 px-5 pb-5 pt-6 text-center sm:flex-row sm:items-center sm:gap-6 sm:px-6 sm:text-left">
