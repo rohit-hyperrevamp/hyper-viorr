@@ -148,7 +148,7 @@ export async function sendNativePushToUsersServer(
 }
 
 export async function sendNativePushForRecentNotifications(
-  supabase: AppSupabaseClient,
+  _supabase: AppSupabaseClient,
   userIds: string[],
   payload: ApnsPayload,
 ): Promise<NativePushDeliveryResult> {
