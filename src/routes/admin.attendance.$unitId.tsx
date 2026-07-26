@@ -280,6 +280,7 @@ function MusterRollPage() {
       const dMap = new Map((desigs ?? []).map((d) => [d.id, d.name]));
 
       const mappedEmployees = dedup
+        .filter((c) => (c.role_key ?? "") !== "field_officer")
         .map((c) => ({
           id: c.id,
           employee_code: c.employee_code || "",
@@ -292,6 +293,7 @@ function MusterRollPage() {
         .sort((a, b) =>
           (a.employee_code || a.full_name).localeCompare(b.employee_code || b.full_name),
         );
+
 
       return mappedEmployees;
     },
