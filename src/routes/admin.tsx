@@ -806,18 +806,6 @@ function AdminLayout() {
                           </Link>
                         );
                       })}
-                      <button
-                        type="button"
-                        onClick={() => { setMobileOpen(false); toggleTheme(); }}
-                        className="flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border border-border/70 bg-background px-2 py-2 text-center text-primary transition hover:border-primary/30 hover:bg-muted/40 [-webkit-tap-highlight-color:transparent]"
-                      >
-                        <span className="grid h-8 w-8 place-items-center rounded-2xl text-primary">
-                          {themeMounted && theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-                        </span>
-                        <span className="text-[10.5px] font-semibold leading-tight">
-                          {themeMounted && theme === "dark" ? "Light" : "Dark"}
-                        </span>
-                      </button>
                       <Link
                         to="/admin/notifications"
                         onClick={() => setMobileOpen(false)}
@@ -828,16 +816,7 @@ function AdminLayout() {
                         </span>
                         <span className="text-[10.5px] font-semibold leading-tight">Alerts</span>
                       </Link>
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border border-destructive/30 bg-destructive/5 px-2 py-2 text-center text-destructive transition hover:bg-destructive/10 [-webkit-tap-highlight-color:transparent]"
-                      >
-                        <span className="grid h-8 w-8 place-items-center rounded-2xl text-destructive">
-                          <LogOut className="h-[18px] w-[18px]" />
-                        </span>
-                        <span className="text-[10.5px] font-semibold leading-tight">Sign out</span>
-                      </button>
+
                     </div>
                   </nav>
 
@@ -883,28 +862,8 @@ function AdminLayout() {
                           </Link>
                         );
                       })}
-                      <button
-                        type="button"
-                        onClick={() => { setMobileOpen(false); toggleTheme(); }}
-                        className="flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border border-border/70 bg-background px-2 py-2 text-center text-primary transition hover:border-primary/30 hover:bg-muted/40 [-webkit-tap-highlight-color:transparent]"
-                      >
-                        <span className="grid h-8 w-8 place-items-center rounded-2xl text-primary">
-                          {themeMounted && theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-                        </span>
-                        <span className="text-[10.5px] font-semibold leading-tight">
-                          {themeMounted && theme === "dark" ? "Light" : "Dark"}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="flex aspect-[1.42/1] flex-col items-center justify-center gap-1.5 rounded-[22px] border border-destructive/30 bg-destructive/5 px-2 py-2 text-center text-destructive transition hover:bg-destructive/10 [-webkit-tap-highlight-color:transparent]"
-                      >
-                        <span className="grid h-8 w-8 place-items-center rounded-2xl text-destructive">
-                          <LogOut className="h-[18px] w-[18px]" />
-                        </span>
-                        <span className="text-[10.5px] font-semibold leading-tight">Sign out</span>
-                      </button>
+
+
                     </div>
                   </nav>
                 );
