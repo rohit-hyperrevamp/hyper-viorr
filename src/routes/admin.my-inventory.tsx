@@ -64,7 +64,7 @@ function MyInventoryPage() {
     },
   });
 
-  const itemIds = useMemo(() => Array.from(new Set(lines.map((l) => l.item_id))), [lines]);
+  const itemIds = useMemo(() => Array.from(new Set([...lines.map((l) => l.item_id), ...holdingItemIds])), [lines, holdingItemIds]);
   const { data: items = [] } = useQuery({
     queryKey: ["items-by-id", itemIds.join(",")],
     enabled: itemIds.length > 0,
