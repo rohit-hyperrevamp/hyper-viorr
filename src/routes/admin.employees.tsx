@@ -4847,13 +4847,15 @@ function CandidateWizard({
               </Section>
 
               <Section title="Present Address">
-                <div className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-secondary/30 p-3">
+                <label className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 p-3 cursor-pointer">
+                  <span className="text-sm font-medium leading-snug">Same as permanent address</span>
                   <Switch
+                    className="shrink-0"
                     checked={form.same_as_permanent}
                     onCheckedChange={(v) => set("same_as_permanent", v)}
                   />
-                  <Label className="m-0 cursor-pointer">Same as permanent address</Label>
-                </div>
+                </label>
+
                 {!form.same_as_permanent && (
                   <>
                     <CandidateAddressFields
