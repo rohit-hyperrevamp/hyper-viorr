@@ -1017,9 +1017,10 @@ body {
 header[data-app-header], .app-header-fixed {
   padding-top: max(0.5rem, env(safe-area-inset-top));
 }
-nav[data-bottom-nav], .app-bottom-bar, .sticky-action-bar {
+.app-bottom-bar, .sticky-action-bar {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
+
 
 /* Any content column: never allow horizontal overflow to leak */
 main {
