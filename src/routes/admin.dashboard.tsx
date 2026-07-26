@@ -789,10 +789,10 @@ function MetricTile({ icon, label, value, to, accent = "indigo", sub }: { icon: 
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} sub={sub} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="font-display text-[46px] font-bold leading-none tabular-nums tracking-tight text-foreground">
+        <div className="font-display text-[32px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[46px]">
           {display}
         </div>
-        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/80 ring-1 ring-inset ${ACCENT_CHIP[accent]}`}>
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/80 ring-1 ring-inset sm:h-9 sm:w-9 ${ACCENT_CHIP[accent]}`}>
           <I className="h-4 w-4" />
         </span>
       </div>
