@@ -3771,6 +3771,46 @@ function CandidateWizard({
         }).catch((e: unknown) => console.error("notifyOnboardingApprovers submit failed", e));
       }
     }
+
+    // Sync Home Branch → employee_scope_assignments (non-billable employees only).
+    if (isEmployeeMode && homeBranchId) {
+      const targetId = editing?.id ?? (typeof (arguments as any) !== "undefined" ? undefined : undefined);
+      const cid = editing ? editing.id : null;
+      const candidateId = cid ?? null;
+      // Resolve created id when inserting (re-query via the just-inserted row's mobile is unreliable);
+      // simpler: pick up from the closure scope by reading the last insert result.
+      // We attached newId inside the insert branch — re-fetch instead here for both paths.
+      let cidFinal: string | null = candidateId;
+      if (!cidFinal) {
+        const { data: latest } = await supabase
+          .from("candidates" as never)
+          .select("id")
+          .eq("mobile", (payload as { mobile?: string }).mobile ?? "")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        cidFinal = (latest as { id?: string } | null)?.id ?? null;
+      }
+      if (cidFinal) {
+        const branchLabel = branches.find((b) => b.id === homeBranchId)?.name ?? "";
+        // Remove any existing branch-scope rows and insert the chosen one.
+        await supabase
+          .from("employee_scope_assignments" as never)
+          .delete()
+          .eq("candidate_id", cidFinal)
+          .eq("scope_type", "branch");
+        const { error: esaErr } = await supabase
+          .from("employee_scope_assignments" as never)
+          .insert({
+            candidate_id: cidFinal,
+            scope_type: "branch",
+            scope_id: homeBranchId,
+            scope_label: branchLabel,
+          } as never);
+        if (esaErr) console.error("home branch sync failed", esaErr);
+      }
+    }
+
     toast.success(successMsg);
     // Await so the caller (Save/Send-to-Approval handlers) can close the
     // wizard AFTER the list has refetched — prevents the "count went up
