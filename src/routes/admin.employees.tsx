@@ -5478,31 +5478,26 @@ function OffboardingDialog({
               <>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1 sm:col-span-2">
-                    <Label>Where should returned items be received? *</Label>
+                    <Label>Collecting Field Officer *</Label>
                     <Select value={returnDestKey} onValueChange={setReturnDestKey}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select receiving location" />
+                        <SelectValue placeholder={fieldOfficersQ.isLoading ? "Loading…" : "Select field officer"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {isFieldOfficer && currentUserCandidateId && (
-                          <SelectItem value={`field_officer:${currentUserCandidateId}`}>
-                            My inventory (field officer)
-                          </SelectItem>
-                        )}
-                        {(warehousesQ.data ?? []).map((w) => (
-                          <SelectItem key={w.id} value={`warehouse:${w.id}`}>
-                            Warehouse · {w.name}{w.is_default ? " (default)" : ""}
+                        {(fieldOfficersQ.data ?? []).map((fo) => (
+                          <SelectItem key={fo.id} value={`field_officer:${fo.id}`}>
+                            {fo.full_name}{fo.employee_code ? ` · ${fo.employee_code}` : ""}
                           </SelectItem>
                         ))}
-                        <SelectItem value="scrap:00000000-0000-0000-0000-000000000000">
-                          Scrap / Write-off (item not usable)
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-[11px] text-muted-foreground">
-                      Set the quantity to 0 for items the employee did NOT return. Only returned quantities are moved back into stock.
+                      Offboarding will be marked <span className="font-medium text-foreground">Awaiting inventory collection</span>.
+                      The selected Field Officer will get a red-flagged notification under Uniform Manager → Collections.
+                      The employee is finalised as Inactive only once the FO confirms collection.
                     </p>
                   </div>
+
                 </div>
                 <div className="rounded-md border border-border">
                   <div className="grid grid-cols-[2fr,auto,auto,2fr] gap-3 border-b border-border bg-muted/30 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
