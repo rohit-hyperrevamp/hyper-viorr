@@ -221,6 +221,16 @@ function CollectionsPanel({ me }: { me: Candidate }) {
 
   const totalGuards = guards.length;
   const guardsWithStock = useMemo(() => guards.filter((g) => (balByGuard.get(g.id)?.length ?? 0) > 0).length, [guards, balByGuard]);
+  const pendingOffboardCount = useMemo(
+    () =>
+      guards.filter(
+        (g) =>
+          g.offboarding_details?.collection_status === "pending" &&
+          g.offboarding_details?.pending_collection_fo_id === me.id,
+      ).length,
+    [guards, me.id],
+  );
+
 
   const activeGuard = openGuard ? guards.find((g) => g.id === openGuard) ?? null : null;
   const activeBalances = openGuard ? balByGuard.get(openGuard) ?? [] : [];
