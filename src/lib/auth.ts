@@ -241,6 +241,22 @@ export function useAuth() {
     }
     const u: AuthUser = { phone, role };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+    // If a different phone had biometric enabled on this device, wipe it so
+    // the next Face ID prompt can't sign in as the previous user.
+    void (async () => {
+      try {
+        const { getStoredBiometricPhone, disableBiometric } = await import("./biometric");
+        const stored = await getStoredBiometricPhone();
+        if (stored) {
+          const storedDigits = stored.replace(/\D/g, "").slice(-10);
+          if (storedDigits && storedDigits !== digits) {
+            await disableBiometric();
+          }
+        }
+      } catch {
+        /* noop */
+      }
+    })();
     void ipPromise.then((ip) =>
       logActivity({
         module: "Authentication",
