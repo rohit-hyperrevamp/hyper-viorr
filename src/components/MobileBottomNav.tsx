@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 export type BottomNavItem = {
   key: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   to?: string;
   onClick?: () => void;
   active?: boolean;
