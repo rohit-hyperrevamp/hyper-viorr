@@ -2377,6 +2377,7 @@ function EmployeesPage() {
             <Button
               onClick={() => {
                 setEditing(null);
+                setWizardMode("candidate");
                 setOpenWizard(true);
               }}
               className="h-11 whitespace-nowrap rounded-xl bg-stone-900 px-6 font-semibold text-white shadow-lg shadow-stone-900/10 transition-all hover:-translate-y-0.5 hover:bg-stone-800 active:translate-y-0 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
@@ -2384,6 +2385,19 @@ function EmployeesPage() {
               <Plus className="mr-1.5 h-4 w-4" />
               Add Candidate
             </Button>
+            {canAddEmployee && (
+              <Button
+                onClick={() => {
+                  setEditing(null);
+                  setWizardMode("employee");
+                  setOpenWizard(true);
+                }}
+                className="h-11 whitespace-nowrap rounded-xl bg-amber-600 px-6 font-semibold text-white shadow-lg shadow-amber-600/20 transition-all hover:-translate-y-0.5 hover:bg-amber-700 active:translate-y-0"
+              >
+                <UserPlus className="mr-1.5 h-4 w-4" />
+                Add Employee
+              </Button>
+            )}
 
           </div>
         </div>
