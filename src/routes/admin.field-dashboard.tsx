@@ -261,11 +261,12 @@ function FieldOfficerDashboard() {
       const openDemandsTotal = units.reduce((s, u) => s + u.open_demands, 0);
       const inventoryItemsTotal = units.reduce((s, u) => s + u.inventory_items, 0);
       return {
-        meName, meCode, mePhoto, units, guardsTotal, joinedThisWeek, joinedLastWeek,
+        meId, meName, meCode, mePhoto, units, guardsTotal, joinedThisWeek, joinedLastWeek,
         attendanceRateToday, attendanceRateYesterday, pendingOnboardingTotal,
         pendingOnboardingLastWeek, openDemandsTotal, inventoryItemsTotal,
         myStockQty, myStockSkus,
       };
+
 
     },
   });
