@@ -620,6 +620,12 @@ function AdminLayout() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/admin/my-attendance" className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" /> My Attendance
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem asChild>
                 <Link to="/admin/notifications" className="flex items-center gap-2">
                   <Bell className="h-4 w-4" /> Notifications
                 </Link>
