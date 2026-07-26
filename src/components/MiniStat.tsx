@@ -58,7 +58,7 @@ export function MiniStat({
           </span>
         )}
       </div>
-      {(trend || subtle || trend?.label) && (
+      {(trend || subtle) && (
         <div className="relative mt-1.5 flex items-center gap-1.5 sm:mt-2.5">
           {trend && (
             <span
