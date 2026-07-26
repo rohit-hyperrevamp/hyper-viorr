@@ -16,7 +16,15 @@ export type SelfPunch = {
   check_out_accuracy: number | null;
   check_out_face_verified: boolean;
   notes: string | null;
+  last_lat: number | null;
+  last_lng: number | null;
+  last_accuracy: number | null;
+  last_seen_at: string | null;
+  battery_pct: number | null;
+  battery_charging: boolean | null;
+  network_type: string | null;
 };
+
 
 export type Geo = {
   lat: number;
