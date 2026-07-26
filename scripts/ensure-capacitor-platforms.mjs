@@ -16,10 +16,21 @@ const run = (command, args) => {
 const CLI = ["--yes", "--package", "@capacitor/cli", "--", "cap"];
 
 const removeIfExists = (path) => {
-  if (existsSync(path)) {
-    rmSync(path, { recursive: true, force: true });
+  if (!existsSync(path)) return;
+  try {
+    rmSync(path, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  } catch (err) {
+    // macOS DerivedData can transiently hit ENOTEMPTY while Xcode/indexers write
+    // into it. Fall back to a shell `rm -rf` which tolerates concurrent writes,
+    // and only warn if that also fails — this cleanup is best-effort.
+    if (process.platform !== "win32") {
+      const fallback = spawnSync("rm", ["-rf", path], { stdio: "ignore" });
+      if (fallback.status === 0) return;
+    }
+    console.warn(`⚠️  Could not fully remove ${path}: ${err.message}. Continuing.`);
   }
 };
+
 
 const ensureFullXcodeSelected = () => {
   if (process.platform !== "darwin") {
