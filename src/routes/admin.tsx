@@ -764,12 +764,13 @@ function AdminLayout() {
             </div>
             {isFieldOfficer ? (
               (() => {
-                const foTiles: Array<{ to: string; label: string; icon: typeof LayoutDashboard }> = [
+                const foTiles: Array<{ to: string; label: string; icon: typeof LayoutDashboard; onClick?: () => void; tone?: "default" | "danger" }> = [
                   { to: "/admin/field-dashboard", label: "Dashboard", icon: LayoutDashboard },
                   { to: "/admin/employees", label: "Employees", icon: UserPlus },
                   { to: "/admin/attendance", label: "Attendance", icon: ClipboardList },
-                  { to: "/admin/inventory/items", label: "Uniform Manager", icon: Boxes },
-                  { to: "/admin/my-attendance", label: "My Attendance", icon: Clock },
+                  { to: "/admin/inventory/items", label: "Uniform", icon: Boxes },
+                  { to: "/admin/my-attendance", label: "My Attend.", icon: Clock },
+                  { to: "/admin/profile", label: "Profile", icon: Users },
                 ];
                 return (
                   <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
@@ -783,28 +784,61 @@ function AdminLayout() {
                             to={t.to}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                              "group relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-3 text-center transition",
+                              "group relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-2 text-center transition [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]",
                               active
                                 ? "border-accent/50 bg-accent/10 text-accent shadow-sm"
                                 : "border-border/60 bg-background text-foreground hover:border-accent/30 hover:bg-accent/5",
                             )}
                           >
                             <span className={cn(
-                              "grid h-8 w-8 place-items-center rounded-xl",
-                              active ? "bg-accent/15 text-accent" : "bg-muted/60 text-foreground/80",
+                              "grid h-9 w-9 place-items-center rounded-xl",
+                              active ? "bg-accent text-accent-foreground" : "bg-muted/60 text-foreground/80",
                             )}>
-                              <Icon className="h-4 w-4" />
+                              <Icon className="h-[18px] w-[18px]" />
                             </span>
-                            <span className="text-[10.5px] font-semibold leading-tight">{t.label}</span>
+                            <span className="line-clamp-2 text-[10.5px] font-semibold leading-tight">{t.label}</span>
                           </Link>
                         );
                       })}
+                      <button
+                        type="button"
+                        onClick={() => { setMobileOpen(false); toggleTheme(); }}
+                        className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-background px-2 py-2 text-center text-foreground transition hover:border-accent/30 hover:bg-accent/5 [-webkit-tap-highlight-color:transparent]"
+                      >
+                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/60 text-foreground/80">
+                          {themeMounted && theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+                        </span>
+                        <span className="text-[10.5px] font-semibold leading-tight">
+                          {themeMounted && theme === "dark" ? "Light" : "Dark"}
+                        </span>
+                      </button>
+                      <Link
+                        to="/admin/notifications"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-background px-2 py-2 text-center text-foreground transition hover:border-accent/30 hover:bg-accent/5 [-webkit-tap-highlight-color:transparent]"
+                      >
+                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/60 text-foreground/80">
+                          <Bell className="h-[18px] w-[18px]" />
+                        </span>
+                        <span className="text-[10.5px] font-semibold leading-tight">Alerts</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border border-destructive/30 bg-destructive/5 px-2 py-2 text-center text-destructive transition hover:bg-destructive/10 [-webkit-tap-highlight-color:transparent]"
+                      >
+                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-destructive/15 text-destructive">
+                          <LogOut className="h-[18px] w-[18px]" />
+                        </span>
+                        <span className="text-[10.5px] font-semibold leading-tight">Sign out</span>
+                      </button>
                     </div>
                   </nav>
 
 
                 );
               })()
+
             ) : (
               (() => {
                 const tiles: Array<{ to: string; label: string; icon: GroupItem["icon"]; active: boolean }> = [];
