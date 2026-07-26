@@ -3291,9 +3291,8 @@ function CandidateWizard({
         setForm((f) => ({ ...f, unit_ids: ids, unit_id: ids[0] ?? null }));
       })();
     } else {
-      const seedUnits = isEmployeeMode ? [RADIANT_BILLING_UNIT_ID] : [];
-      setInitialUnitIds(seedUnits);
-      setForm({ ...emptyForm(), unit_ids: seedUnits, unit_id: seedUnits[0] ?? null });
+      setInitialUnitIds([]);
+      setForm(emptyForm());
     }
   }, [open, editing, isEmployeeMode]);
 
