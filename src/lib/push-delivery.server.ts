@@ -151,19 +151,26 @@ export async function sendNativePushForRecentNotifications(
   _supabase: AppSupabaseClient,
   userIds: string[],
   payload: ApnsPayload,
+  options?: { actorUserId?: string | null },
 ): Promise<NativePushDeliveryResult> {
   const recipients = uniqueUserIds(userIds);
   if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
 
   const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: recentNotifications, error: notificationError } = await supabaseAdmin
+  let notificationQuery = supabaseAdmin
     .from("notifications")
     .select("user_id")
     .in("user_id", recipients)
     .eq("title", payload.title || "Radiant Guard")
     .eq("message", payload.body || "You have a new notification")
     .gte("created_at", tenMinutesAgo);
+
+  if (options?.actorUserId) {
+    notificationQuery = notificationQuery.eq("actor_id", options.actorUserId);
+  }
+
+  const { data: recentNotifications, error: notificationError } = await notificationQuery;
 
   if (notificationError) throw notificationError;
 
