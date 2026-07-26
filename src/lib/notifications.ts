@@ -103,13 +103,26 @@ export async function notifyAdmins(input: {
 }) {
   const ids = await getAdminUserIds();
   if (ids.length === 0) return;
-  await Promise.all(
-    ids.map((uid) =>
-      createNotification({ userId: uid, ...input }).catch((e) =>
-        console.error("notifyAdmins insert failed", e),
-      ),
-    ),
-  );
+  const actor = await currentUserId();
+  const rows = ids.map((uid) => ({
+    user_id: uid,
+    actor_id: actor,
+    type: input.type,
+    title: input.title,
+    message: input.message,
+    link: input.link ?? "",
+    entity_type: input.entityType ?? "",
+    entity_id: input.entityId ?? "",
+  }));
+  const { error } = await supabase.from("notifications" as never).insert(rows as never);
+  if (error) {
+    console.error("notifyAdmins insert error", error);
+    return;
+  }
+  // Single batched push call — previously we fired one bridge fetch per admin
+  // (via createNotification), and a post-submit navigation cancelled most of
+  // them before they reached the bridge. Batching + keepalive fixes that.
+  deliverNativePush(ids, input);
 }
 
 export async function markNotificationRead(id: string) {

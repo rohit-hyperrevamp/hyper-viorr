@@ -60,6 +60,11 @@ async function callNativePushApi<T>(payload: Record<string, unknown>): Promise<T
           "content-type": "text/plain;charset=UTF-8",
         },
         body: bodyText,
+        // keepalive lets a fire-and-forget push survive a page navigation
+        // triggered right after the notification insert (e.g. a redirect
+        // after "submit"). Without it the iOS WebView / browser cancels
+        // the request mid-flight and no banner is ever dispatched.
+        keepalive: true,
       });
 
       const text = await response.text();
