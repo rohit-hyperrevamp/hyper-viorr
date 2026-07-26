@@ -119,6 +119,7 @@ export function MobileBottomNav({
           </button>
         </li>
         )}
+      </ul>
     </nav>
   );
 
