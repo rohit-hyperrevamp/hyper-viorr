@@ -26,9 +26,9 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("relative mb-6", className)}>
-      <nav aria-label="Breadcrumb" className="mb-3">
-        <ol className="flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+    <div className={cn("relative mb-3 sm:mb-5", className)}>
+      <nav aria-label="Breadcrumb" className="mb-2">
+        <ol className="flex flex-wrap items-center gap-1 text-[11px] font-medium text-muted-foreground">
           <li>
             <Link
               to="/admin/customers"
@@ -39,7 +39,7 @@ export function PageHeader({
             </Link>
           </li>
           {crumbs.map((c, i) => (
-            <li key={`${c.label}-${i}`} className="flex items-center gap-1.5">
+            <li key={`${c.label}-${i}`} className="flex items-center gap-1">
               <ChevronRight className="h-3 w-3 opacity-50" />
               {c.to && i < crumbs.length - 1 ? (
                 <Link to={c.to} className="transition-colors hover:text-foreground">
@@ -53,45 +53,46 @@ export function PageHeader({
         </ol>
       </nav>
 
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-[22px] border border-border/60 bg-card p-4 sm:p-6">
-        <div className="relative flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
-          <div className="flex min-w-0 items-start gap-3">
+      <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-3 sm:p-5">
+        <div className="relative flex flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
+          <div className="flex min-w-0 items-start gap-2.5">
             {Icon && (
               <div className="mt-0.5 shrink-0">
-                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20 sm:h-11 sm:w-11">
-                  <Icon className="h-[17px] w-[17px] sm:h-[18px] sm:w-[18px]" />
+                <div className="grid h-9 w-9 place-items-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20 sm:h-10 sm:w-10">
+                  <Icon className="h-4 w-4 sm:h-[17px] sm:w-[17px]" />
                 </div>
               </div>
             )}
             <div className="min-w-0">
               {eyebrow && (
-                <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
+                <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
                   {eyebrow}
                 </div>
               )}
-              <h1 className="font-display text-[20px] font-semibold leading-[1.2] tracking-tight text-foreground sm:truncate sm:text-[24px]">
+              <h1 className="font-display text-[17px] font-semibold leading-tight tracking-tight text-foreground sm:truncate sm:text-[22px]">
                 {title}
               </h1>
               {description && (
-                <p className="mt-1.5 max-w-2xl text-[12.5px] leading-relaxed text-muted-foreground sm:text-[13px]">
+                <p className="mt-1 max-w-2xl text-[12px] leading-snug text-muted-foreground sm:text-[13px]">
                   {description}
                 </p>
               )}
             </div>
           </div>
           {actions && (
-            <div className="-mx-1 flex flex-wrap items-center gap-2 self-start overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:shrink-0 sm:overflow-visible sm:px-0 sm:pb-0">{actions}</div>
+            <div className="-mx-1 flex flex-wrap items-center gap-1.5 self-start overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:shrink-0 sm:overflow-visible sm:px-0 sm:pb-0">{actions}</div>
           )}
         </div>
 
 
         {kpis && (
-          <div className="relative mt-5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">{kpis}</div>
+          <div className="relative mt-4 grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">{kpis}</div>
         )}
       </div>
     </div>
   );
 }
+
 
 /**
  * Compact stat pill used inside <PageHeader kpis={...}>.

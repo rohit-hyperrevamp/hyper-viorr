@@ -308,9 +308,9 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    min-height: 168px;
-    padding: 1.25rem;
-    border-radius: 22px;
+    min-height: var(--tile-min-h, 120px);
+    padding: var(--tile-pad, 1rem);
+    border-radius: 18px;
     background: rgb(var(--surface) / var(--surface-glass-alpha));
     border: 1px solid rgb(var(--surface-hairline) / var(--surface-border-alpha));
     backdrop-filter: blur(22px) saturate(160%);
@@ -321,6 +321,7 @@
     transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
     color: var(--foreground);
   }
+
   .tile-interactive:hover {
     transform: translateY(-2px);
     border-color: color-mix(in oklab, var(--accent) 40%, transparent);
@@ -1141,4 +1142,121 @@ button, [role="button"], nav, header, aside {
 input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
   -webkit-user-select: auto;
   user-select: auto;
+}
+
+/* =========================================================================
+   MOBILE DENSITY SYSTEM
+   System-level compaction so every screen inherits a native-app rhythm
+   without per-route CSS. Applies below the tablet breakpoint (<768px).
+   ========================================================================= */
+:root {
+  --tile-min-h: 120px;
+  --tile-pad: 1rem;
+  --card-pad: 1.25rem;
+  --section-gap: 1rem;
+  --shell-pad-x: clamp(0.75rem, 1.2vw + 0.5rem, 1.75rem);
+  --shell-pad-y: clamp(0.75rem, 1vw + 0.5rem, 1.5rem);
+}
+@media (max-width: 767px) {
+  :root {
+    --tile-min-h: 92px;
+    --tile-pad: 0.75rem;
+    --card-pad: 0.875rem;
+    --section-gap: 0.75rem;
+    --shell-pad-x: 0.75rem;
+    --shell-pad-y: 0.625rem;
+  }
+
+  /* Compact shared surfaces globally — the four shared primitives all use
+     .bg-card + inner p-* which our v3 caps handle above. Pull additional
+     legacy padding down so nothing has a "web-page" feel on phones. */
+  .p-4 { padding: 0.75rem !important; }
+  .p-5 { padding: 0.875rem !important; }
+  .px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+  .py-4 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+  .py-5 { padding-top: 0.875rem !important; padding-bottom: 0.875rem !important; }
+  .gap-4 { gap: 0.75rem !important; }
+  .gap-5 { gap: 0.875rem !important; }
+  .space-y-6 > * + * { margin-top: 1rem !important; }
+  .space-y-8 > * + * { margin-top: 1.25rem !important; }
+  .mb-6 { margin-bottom: 1rem !important; }
+  .mt-6 { margin-top: 1rem !important; }
+
+  /* Cards default to a lighter radius on phones — feels native, less "web". */
+  .bg-card { border-radius: 16px !important; }
+  [class*="rounded-[2"], [class*="rounded-3xl"], [class*="rounded-4xl"] {
+    border-radius: 18px !important;
+  }
+
+  /* Shared metric tiles: cap the giant display values so 3 fit above the fold. */
+  .font-display[class*="text-[26px]"],
+  .font-display[class*="text-2xl"],
+  .font-display[class*="text-3xl"] {
+    font-size: 20px !important;
+    line-height: 1.15 !important;
+  }
+  .font-display[class*="text-[20px]"] {
+    font-size: 18px !important;
+    line-height: 1.15 !important;
+  }
+
+  /* Page shell: give content breathing room to screen edges without waste. */
+  .page-shell {
+    padding-inline: var(--shell-pad-x);
+    padding-block: var(--shell-pad-y);
+  }
+
+  /* Any 3/4-column metric grid becomes 2-column on phones (below 480px it
+     already collapses to 1-column via the earlier safety net for grids
+     that don't specify their own responsive breakpoint). For grids that DO
+     declare sm:/lg: variants, prefer 2 columns on phone-sized viewports. */
+  .grid[class*="sm:grid-cols-2"]:not([class*="grid-cols-1"]),
+  .grid[class*="sm:grid-cols-3"]:not([class*="grid-cols-1"]),
+  .grid[class*="sm:grid-cols-4"]:not([class*="grid-cols-1"]),
+  .grid[class*="xl:grid-cols-4"]:not([class*="grid-cols-1"]),
+  .grid[class*="lg:grid-cols-4"]:not([class*="grid-cols-1"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =========================================================================
+   BOTTOM NAV POLISH — visual only. Native-app bar, flush to screen edge,
+   proper elevation, safe-area aware. Behavior/routing untouched.
+   ========================================================================= */
+nav[data-bottom-nav] {
+  /* attach to edge — kill the "floating" look */
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: color-mix(in oklab, var(--card) 92%, transparent);
+  box-shadow:
+    0 -0.5px 0 0 color-mix(in oklab, var(--foreground) 6%, transparent),
+    0 -12px 32px -18px rgb(0 0 0 / 0.12);
+}
+nav[data-bottom-nav] > ul {
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.125rem !important;
+}
+/* icon container: tighter, more native */
+nav[data-bottom-nav] li > * > div > span:first-child {
+  height: 30px !important;
+  width: 44px !important;
+  border-radius: 10px !important;
+}
+nav[data-bottom-nav] li svg {
+  height: 20px !important;
+  width: 20px !important;
+}
+/* label: compact SF-style caption */
+nav[data-bottom-nav] li > * > div > span:last-child {
+  font-size: 10px !important;
+  letter-spacing: 0.01em !important;
+  margin-top: 1px;
+}
+/* remove the min-height 44px bump that made tabs feel oversized — the tap
+   area on the LI is what matters, and it's still ≥44px via the ul row. */
+@media (pointer: coarse) {
+  nav[data-bottom-nav] button,
+  nav[data-bottom-nav] a[role="button"] {
+    min-height: 0 !important;
+    min-width: 0 !important;
+  }
 }

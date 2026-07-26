@@ -39,13 +39,12 @@ export function MobileBottomNav({
       data-bottom-nav
       aria-label="Primary"
       className={cn(
-        "fixed inset-x-0 bottom-0 z-30 safe-bottom",
+        "fixed inset-x-0 bottom-0 z-30",
         !nativeShell && "lg:hidden",
-        "border-t border-border/50 bg-card/90 backdrop-blur-2xl backdrop-saturate-150",
-        "shadow-[0_-8px_24px_-16px_rgba(15,23,42,0.25)]",
       )}
     >
-      <ul className="mx-auto flex max-w-lg items-stretch justify-around gap-0.5 px-2 pt-1.5 pb-1">
+      <ul className="mx-auto flex max-w-xl items-stretch justify-around gap-0 px-1">
+
 
         {primary.map((it) => {
           const Icon = it.icon;

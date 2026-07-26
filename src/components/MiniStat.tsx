@@ -36,16 +36,16 @@ export function MiniStat({
         : "text-muted-foreground bg-muted ring-border";
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card px-4 py-3.5 transition-all hover:-translate-y-0.5 hover:border-accent/40">
+    <div className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card px-3 py-2.5 transition-all hover:-translate-y-0.5 hover:border-accent/40 sm:px-4 sm:py-3.5">
 
-      <div className="relative flex items-start justify-between gap-3">
+      <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {label}
           </div>
           <div
             className={cn(
-              "mt-1 font-display text-[26px] font-bold leading-none tracking-tight tabular-nums",
+              "mt-0.5 font-display text-[18px] font-semibold leading-tight tracking-tight tabular-nums sm:mt-1 sm:text-[22px]",
               valueTone,
             )}
           >
@@ -53,29 +53,32 @@ export function MiniStat({
           </div>
         </div>
         {Icon && (
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20">
-            <Icon className="h-4 w-4" />
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent ring-1 ring-inset ring-accent/20 sm:h-8 sm:w-8">
+            <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </span>
         )}
       </div>
-      <div className="relative mt-2.5 flex items-center gap-2">
-        {trend && (
-          <span
-            className={cn(
-              "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset tabular-nums",
-              trendTone,
-            )}
-          >
-            <TrendIcon className="h-3 w-3" />
-            {trend.delta}
-          </span>
-        )}
-        {(trend?.label || subtle) && (
-          <span className="truncate text-[11px] text-muted-foreground">
-            {trend?.label ?? subtle}
-          </span>
-        )}
-      </div>
+      {(trend || subtle) && (
+        <div className="relative mt-1.5 flex items-center gap-1.5 sm:mt-2.5">
+          {trend && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset tabular-nums",
+                trendTone,
+              )}
+            >
+              <TrendIcon className="h-3 w-3" />
+              {trend.delta}
+            </span>
+          )}
+          {(trend?.label || subtle) && (
+            <span className="truncate text-[11px] text-muted-foreground">
+              {trend?.label ?? subtle}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
+
