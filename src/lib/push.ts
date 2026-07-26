@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getNativeRuntimeSnapshot, isNativePlatform, logNativeEvent } from "./native";
 import { playNotificationChime } from "./notification-sound";
+import { saveMyPushToken } from "./push.functions";
 
 let initialized = false;
 let initPromise: Promise<void> | null = null;
@@ -40,20 +41,12 @@ async function saveTokenForSignedInUser(token: string): Promise<boolean> {
     return false;
   }
 
-  const { error } = await supabase.from("device_push_tokens").upsert(
-    {
-      user_id: user.id,
-      token,
-      platform: "ios",
-      last_seen_at: new Date().toISOString(),
-    },
-    { onConflict: "token" },
-  );
-
-  if (error) {
-    lastError = error.message;
-    logNativeEvent("push", "failed to store APNs token", { error: error.message });
-    console.warn("[push] failed to store token", error);
+  try {
+    await saveMyPushToken({ data: { token, platform: "ios" } });
+  } catch (err) {
+    lastError = err instanceof Error ? err.message : String(err);
+    logNativeEvent("push", "failed to store APNs token", { error: lastError });
+    console.warn("[push] failed to store token", err);
     return false;
   }
 
