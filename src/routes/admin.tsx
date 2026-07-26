@@ -705,8 +705,8 @@ function AdminLayout() {
       )}>
         <Link to={dashboardHref} className="flex min-w-0 flex-1 items-center gap-2.5">
           <div className="relative shrink-0">
-            <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.4)] ring-1 ring-white/10 dark:from-white dark:via-slate-100 dark:to-slate-300">
-              <BrandMark compact />
+            <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-white shadow-[0_4px_12px_-4px_rgba(0,0,0,0.15)] ring-1 ring-border/60 dark:bg-neutral-100">
+              <img src={brandLogo} alt="Radiant" className="h-7 w-7 object-contain" />
             </div>
             <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-background" />
           </div>
@@ -722,10 +722,8 @@ function AdminLayout() {
             </div>
           </div>
         </Link>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <div className="grid h-10 w-10 place-items-center rounded-full bg-muted/60 text-foreground transition-colors hover:bg-muted">
-            <NotificationBell />
-          </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <NotificationBell />
           <Link
             to="/admin/profile"
             aria-label="Profile"
@@ -739,6 +737,7 @@ function AdminLayout() {
           </Link>
         </div>
       </header>
+
 
 
 
