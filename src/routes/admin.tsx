@@ -733,8 +733,7 @@ function AdminLayout() {
             <div className="flex justify-center pt-2.5 pb-1">
               <div className="h-1.5 w-10 rounded-full bg-muted-foreground/30" />
             </div>
-            <div className="flex items-center justify-between px-4 pb-2">
-              <BrandMark />
+            <div className="flex items-center justify-end px-4 pb-2">
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
@@ -744,49 +743,93 @@ function AdminLayout() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-              {visibleGroups.map((g) => (
-                <MobileGroup key={g.key} group={g} isActive={isActive} isGroupActive={isGroupActive(g)} />
-              ))}
-              <div className="my-2 border-t border-border/40" />
-              <Link
-                to="/admin/profile"
-                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
-              >
-                <Users className="h-4 w-4 shrink-0" /> My Profile
-              </Link>
-              <Link
-                to="/admin/my-attendance"
-                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
-              >
-                <Clock className="h-4 w-4 shrink-0" /> My Attendance
-              </Link>
+            {isFieldOfficer ? (
+              (() => {
+                const foTiles: Array<{ to: string; label: string; icon: typeof LayoutDashboard }> = [
+                  { to: "/admin/field-dashboard", label: "Dashboard", icon: LayoutDashboard },
+                  { to: "/admin/employees", label: "Employees", icon: UserPlus },
+                  { to: "/admin/attendance", label: "Attendance", icon: ClipboardList },
+                  { to: "/admin/inventory/items", label: "Uniform Manager", icon: Boxes },
+                  { to: "/admin/my-attendance", label: "My Attendance", icon: Clock },
+                ];
+                return (
+                  <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+                    <div className="grid grid-cols-2 gap-3">
+                      {foTiles.map((t) => {
+                        const Icon = t.icon;
+                        const active = isActive(t.to);
+                        return (
+                          <Link
+                            key={t.to}
+                            to={t.to}
+                            className={cn(
+                              "flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center transition",
+                              active
+                                ? "border-accent/40 bg-accent/10 text-accent"
+                                : "border-border/60 bg-background text-foreground hover:border-accent/30 hover:bg-accent/5",
+                            )}
+                          >
+                            <span className={cn(
+                              "grid h-11 w-11 place-items-center rounded-xl",
+                              active ? "bg-accent/15 text-accent" : "bg-muted/60 text-foreground/80",
+                            )}>
+                              <Icon className="h-5 w-5" />
+                            </span>
+                            <span className="text-[12px] font-semibold leading-tight">{t.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </nav>
+                );
+              })()
+            ) : (
+              <nav className="flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                {visibleGroups.map((g) => (
+                  <MobileGroup key={g.key} group={g} isActive={isActive} isGroupActive={isGroupActive(g)} />
+                ))}
+                <div className="my-2 border-t border-border/40" />
+                <Link
+                  to="/admin/profile"
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
+                >
+                  <Users className="h-4 w-4 shrink-0" /> My Profile
+                </Link>
+                <Link
+                  to="/admin/my-attendance"
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
+                >
+                  <Clock className="h-4 w-4 shrink-0" /> My Attendance
+                </Link>
 
-              <Link
-                to="/admin/notifications"
-                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
-              >
-                <Bell className="h-4 w-4 shrink-0" /> Notifications
-              </Link>
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-foreground hover:bg-muted/60"
-              >
-                {themeMounted && theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
-                {themeMounted && theme === "dark" ? "Light mode" : "Dark mode"}
-              </button>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-destructive hover:bg-destructive/10"
-              >
-                <LogOut className="h-4 w-4 shrink-0" /> Sign out
-              </button>
-            </nav>
+                <Link
+                  to="/admin/notifications"
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
+                >
+                  <Bell className="h-4 w-4 shrink-0" /> Notifications
+                </Link>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-foreground hover:bg-muted/60"
+                >
+                  {themeMounted && theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+                  {themeMounted && theme === "dark" ? "Light mode" : "Dark mode"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-destructive hover:bg-destructive/10"
+                >
+                  <LogOut className="h-4 w-4 shrink-0" /> Sign out
+                </button>
+              </nav>
+            )}
           </aside>
         </div>
       )}
+
+
 
       {/* Main */}
       <main className={cn("relative z-10 min-h-[calc(100dvh-3.5rem)] overflow-x-clip safe-x py-3 !pb-[calc(88px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
