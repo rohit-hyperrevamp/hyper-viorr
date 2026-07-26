@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   getPushRegistrationStatusForUser,
+  sendNativePushForRecentNotifications,
   sendNativePushToUsersServer,
 } from "./push-delivery.server";
 
@@ -47,8 +48,8 @@ export const sendNativePushToUsers = createServerFn({ method: "POST" })
       link: z.string().max(500).optional(),
     }).parse(data),
   )
-  .handler(async ({ data }) =>
-    sendNativePushToUsersServer(data.userIds, {
+  .handler(async ({ context, data }) =>
+    sendNativePushForRecentNotifications(context.userId, data.userIds, {
       title: data.title,
       body: data.message,
       link: data.link,

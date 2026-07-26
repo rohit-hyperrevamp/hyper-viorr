@@ -78,3 +78,30 @@ export async function sendNativePushToUsersServer(
 
   return { sent, total: rows.length, failures };
 }
+
+export async function sendNativePushForRecentNotifications(
+  actorUserId: string,
+  userIds: string[],
+  payload: ApnsPayload,
+): Promise<NativePushDeliveryResult> {
+  const recipients = uniqueUserIds(userIds);
+  if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
+
+  const since = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("notifications")
+    .select("user_id")
+    .in("user_id", recipients)
+    .eq("actor_id", actorUserId)
+    .eq("title", payload.title ?? "")
+    .eq("message", payload.body ?? "")
+    .eq("link", payload.link ?? "")
+    .gte("created_at", since);
+  if (error) throw error;
+
+  const authorizedRecipients = Array.from(
+    new Set(((data as Array<{ user_id: string }> | null) ?? []).map((row) => row.user_id)),
+  );
+  return sendNativePushToUsersServer(authorizedRecipients, payload);
+}
