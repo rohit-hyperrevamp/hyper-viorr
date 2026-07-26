@@ -263,7 +263,12 @@ function EmployeeDashboard() {
   const manager = managerQ.data ?? null;
 
 
-  const desigIds = useMemo(() => Array.from(new Set(team.map((t) => t.designation_id).filter(Boolean))) as string[], [team]);
+  const desigIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const t of team) if (t.designation_id) ids.add(t.designation_id);
+    if (manager?.designation_id) ids.add(manager.designation_id);
+    return Array.from(ids);
+  }, [team, manager]);
   const desigNameQ = useQuery({
     queryKey: ["me-team-desig", desigIds.join(",")],
     enabled: desigIds.length > 0,
