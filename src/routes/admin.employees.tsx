@@ -4333,7 +4333,7 @@ function CandidateWizard({
         </DialogHeader>
 
         {/* Profile completion meter */}
-        <div className="border-b border-border bg-card px-6 py-4">
+        <div className="border-b border-border bg-card px-4 py-3 sm:px-6 sm:py-4">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
