@@ -112,7 +112,7 @@ export function MobileBottomNav({
               >
                 <MoreHorizontal className="h-[18px] w-[18px] shrink-0" strokeWidth={moreActive ? 2.4 : 2} />
               </span>
-              <span className={cn("max-w-full text-[10px] leading-tight tracking-tight line-clamp-2", moreActive ? "font-bold text-primary" : "font-semibold text-foreground/70")}>
+              <span className={cn("block w-full truncate whitespace-nowrap text-[10px] leading-tight tracking-tight", moreActive ? "font-bold text-primary" : "font-semibold text-foreground/70")}>
                 More
               </span>
             </div>
