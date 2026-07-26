@@ -3813,6 +3813,7 @@ function ResourceFormDialog({
     onSubmit({
       id: initial?.id,
       designationId,
+      roleKey: roleKey || null,
       serviceTypeId,
       quantity: q,
       components,
