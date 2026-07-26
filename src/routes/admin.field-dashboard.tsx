@@ -8,18 +8,17 @@ import {
   ClipboardList,
   Mail,
   MapPin,
-  PackageSearch,
   Phone,
   ShieldCheck,
   TrendingDown,
   TrendingUp,
   Minus,
   Warehouse,
-  UserPlus,
   Activity,
   ArrowUpRight,
   Sparkles,
 } from "lucide-react";
+
 
 import { DashboardShell } from "@/components/LiveFeed";
 import { supabase } from "@/integrations/supabase/client";
