@@ -299,21 +299,21 @@ function FieldOfficerDashboard() {
 
         <div className="relative flex items-center gap-3 sm:gap-4">
           <div className="relative shrink-0">
-            <div className="rounded-full bg-white/10 p-[3px] ring-1 ring-white/20 backdrop-blur">
+            <div className="rounded-full bg-white/10 p-[2px] ring-1 ring-white/20 backdrop-blur">
               {data?.mePhoto ? (
                 <img
                   src={data.mePhoto}
                   alt={data?.meName || "Profile"}
-                  className="!aspect-square h-16 w-16 !rounded-full object-cover sm:h-20 sm:w-20"
+                  className="!aspect-square h-12 w-12 !rounded-full object-cover sm:h-14 sm:w-14"
                 />
               ) : (
-                <div className="grid !aspect-square h-16 w-16 place-items-center !rounded-full bg-accent font-display text-lg font-bold text-accent-foreground sm:h-20 sm:w-20">
+                <div className="grid !aspect-square h-12 w-12 place-items-center !rounded-full bg-accent font-display text-sm font-bold text-accent-foreground sm:h-14 sm:w-14">
                   {initials(data?.meName || "FO")}
                 </div>
               )}
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white shadow ring-2 ring-slate-900 sm:h-6 sm:w-6">
-              <ShieldCheck className="h-3 w-3" />
+            <span className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-white shadow ring-2 ring-slate-900 sm:h-5 sm:w-5">
+              <ShieldCheck className="h-2.5 w-2.5" />
             </span>
           </div>
 
