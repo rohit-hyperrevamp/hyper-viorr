@@ -429,7 +429,7 @@ function EmployeeDashboard() {
           </div>
         )}
 
-        <div className="relative mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="relative mt-4 grid grid-cols-3 min-[320px]:grid-cols-3 gap-2 sm:gap-3">
           <HeroStat label="Present" value={attStats.present} tint="emerald" />
           <HeroStat label="OT hrs" value={attStats.ot} tint="sky" />
           <HeroStat label="Team" value={guardTeam.length + 1} tint="amber" />
