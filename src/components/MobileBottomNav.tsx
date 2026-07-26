@@ -39,15 +39,16 @@ export function MobileBottomNav({
       aria-label="Primary"
       data-bottom-nav
       style={{
-        bottom: "calc(env(safe-area-inset-bottom, 0px) * -1)",
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 4px)",
+        bottom: 0,
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6px)",
       }}
       className={cn(
-        "fixed inset-x-0 z-[70] translate-y-0 border-t border-border bg-card text-foreground shadow-none [backface-visibility:hidden] [transform:translate3d(0,0,0)]",
+        "fixed inset-x-0 z-[70] border-t border-border bg-card text-foreground shadow-[0_-6px_20px_-12px_rgba(15,23,42,0.15)] [backface-visibility:hidden] [transform:translate3d(0,0,0)]",
         !nativeShell && "lg:hidden",
       )}
     >
-      <ul className="mx-auto flex h-14 max-w-xl items-stretch justify-around gap-0 px-1 py-1">
+      <ul className="mx-auto flex h-14 max-w-xl items-stretch justify-around gap-0 px-1 pt-1.5">
+
 
 
         {primary.map((it) => {
