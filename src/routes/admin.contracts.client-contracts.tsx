@@ -3169,6 +3169,7 @@ function ResourcesSection({
 }) {
   const designations = useDesignations();
   const serviceTypes = useServiceTypes();
+  const rolesList = useRolesList();
   const dById = useMemo(
     () => new Map(designations.map((d) => [d.id, d])),
     [designations],
@@ -3176,6 +3177,10 @@ function ResourcesSection({
   const sById = useMemo(
     () => new Map(serviceTypes.map((s) => [s.id, s])),
     [serviceTypes],
+  );
+  const roleByKey = useMemo(
+    () => new Map(rolesList.map((r) => [r.key, r])),
+    [rolesList],
   );
 
   return (
