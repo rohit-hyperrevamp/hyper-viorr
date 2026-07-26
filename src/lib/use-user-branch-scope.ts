@@ -82,6 +82,35 @@ export function useUserBranchScope(): UserBranchScope {
           }
         }
       }
+
+      // 3) Second fallback for FO / branch_manager / guard: derive branch from
+      // candidate_units mapping (field officers are often mapped via
+      // candidate_units instead of employee_scope_assignments).
+      if (branchScopedRoles.has(roleKey)) {
+        const { data: cuRows, error: cuErr } = await supabase
+          .from("candidate_units")
+          .select("unit_id")
+          .eq("candidate_id", cand.id);
+        if (cuErr) throw cuErr;
+        const unitIds2 = (cuRows ?? []).map((r: { unit_id: string }) => r.unit_id).filter(Boolean);
+        if (unitIds2.length) {
+          const { data: units2 } = await supabase
+            .from("units")
+            .select("branch_id")
+            .in("id", unitIds2);
+          const branchId = (units2 ?? []).map((u: { branch_id: string | null }) => u.branch_id).find((b): b is string => !!b);
+          if (branchId) {
+            const { data: br } = await supabase
+              .from("branches")
+              .select("name,code")
+              .eq("id", branchId)
+              .maybeSingle();
+            const b = br as { name?: string; code?: string } | null;
+            const label = b ? `${b.code ?? ""}${b.code && b.name ? " – " : ""}${b.name ?? ""}`.trim() : "";
+            return { scope_id: branchId, scope_label: label };
+          }
+        }
+      }
       return null;
     },
   });
