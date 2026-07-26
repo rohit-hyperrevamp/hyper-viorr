@@ -1853,14 +1853,22 @@ function EmployeesPage() {
     const empCols = 4 + Object.values(columnsVisible).filter(Boolean).length;
     const candCols = 7;
     if (isLoading) {
+      const cols = mode === "employee" ? empCols : candCols;
       return (
-        <tr>
-          <td colSpan={mode === "employee" ? empCols : candCols} className="px-4 py-10 text-center text-muted-foreground">
-            Loading…
-          </td>
-        </tr>
+        <>
+          {Array.from({ length: 6 }).map((_, r) => (
+            <tr key={r}>
+              {Array.from({ length: cols }).map((_, c) => (
+                <td key={c} className="px-4 py-3">
+                  <Skeleton className={c === 0 ? "h-8 w-8 rounded-full" : "h-4 w-full"} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </>
       );
     }
+
     if (candidatesError) {
       return (
         <tr>
