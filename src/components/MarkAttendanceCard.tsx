@@ -177,12 +177,16 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
     let cancelled = false;
     const send = async () => {
       try {
-        const [geo, battery] = await Promise.allSettled([getCurrentPosition(), readBattery()]);
+        const [geo, battery, network] = await Promise.allSettled([
+          getCurrentPosition(),
+          readBattery(),
+          readNetworkType(),
+        ]);
         if (cancelled) return;
         await pushTelemetry(punch.id, {
           geo: geo.status === "fulfilled" ? geo.value : null,
           battery: battery.status === "fulfilled" ? battery.value : null,
-          network: readNetworkType(),
+          network: network.status === "fulfilled" ? network.value : null,
         });
         void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
       } catch {

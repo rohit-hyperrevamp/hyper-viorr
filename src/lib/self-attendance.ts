@@ -196,9 +196,21 @@ export function mapsUrl(lat: number | null | undefined, lng: number | null | und
 /** Deviation threshold in metres — anything above this is flagged. */
 export const DEVIATION_THRESHOLD_M = 150;
 
-/** Battery info from the browser (may be unavailable, e.g. iOS Safari). */
+/** Battery info. Uses Capacitor Device on native (iOS/Android), Battery API on web. */
 export type BatteryInfo = { level: number | null; charging: boolean | null };
 export async function readBattery(): Promise<BatteryInfo> {
+  if (isNativePlatform()) {
+    try {
+      const { Device } = await import("@capacitor/device");
+      const info = await Device.getBatteryInfo();
+      return {
+        level: info.batteryLevel != null ? Math.round(info.batteryLevel * 100) : null,
+        charging: info.isCharging ?? null,
+      };
+    } catch {
+      return { level: null, charging: null };
+    }
+  }
   try {
     const nav = navigator as unknown as { getBattery?: () => Promise<{ level: number; charging: boolean }> };
     if (typeof nav.getBattery !== "function") return { level: null, charging: null };
@@ -209,8 +221,23 @@ export async function readBattery(): Promise<BatteryInfo> {
   }
 }
 
-/** Network label like "5G", "4G", "wifi", "3G". Best-effort — the NetworkInformation API is not universal. */
-export function readNetworkType(): string | null {
+/** Network label like "WiFi", "Cellular", "4G". Uses Capacitor Network on native. */
+export async function readNetworkType(): Promise<string | null> {
+  if (isNativePlatform()) {
+    try {
+      const { Network } = await import("@capacitor/network");
+      const s = await Network.getStatus();
+      if (!s.connected) return "Offline";
+      const t = (s.connectionType ?? "").toLowerCase();
+      if (t === "wifi") return "WiFi";
+      if (t === "cellular") return "Cellular";
+      if (t === "ethernet") return "Ethernet";
+      if (t === "none") return "Offline";
+      return t ? t.toUpperCase() : "Cellular";
+    } catch {
+      return null;
+    }
+  }
   try {
     const conn = (navigator as unknown as { connection?: { effectiveType?: string; type?: string } }).connection;
     if (!conn) return null;
