@@ -912,13 +912,17 @@ function AdminLayout() {
       {(() => {
         const bottomItems: BottomNavItem[] = (() => {
           if (isGuard) {
-            return guardGroups.map((g) => ({
-              key: g.key,
-              label: g.label.replace(/^My\s+/i, ""),
-              icon: g.icon,
-              to: g.to,
-              active: isGroupActive(g),
-            }));
+            const guardBottomKeys = ["dashboard", "my-inventory", "my-attendance"];
+            return guardGroups
+              .filter((g) => guardBottomKeys.includes(g.key))
+              .sort((a, b) => guardBottomKeys.indexOf(a.key) - guardBottomKeys.indexOf(b.key))
+              .map((g) => ({
+                key: g.key,
+                label: g.label.replace(/^My\s+/i, ""),
+                icon: g.icon,
+                to: g.to,
+                active: isGroupActive(g),
+              }));
           }
           // Build primary destinations in priority order, filtered by permissions.
           // FO gets exactly 3 tiles (Dashboard, Attendance, Uniform); others get up to 4.
