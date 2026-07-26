@@ -53,7 +53,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { classifyAttendanceEmployee, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
+import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
 import { supabase } from "@/integrations/supabase/client";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 
@@ -299,7 +299,7 @@ function AttendanceUnitsPage() {
           const employees = a ? Array.from(a.employees.entries()) : [];
           const sgs: EmployeeRef[] = [];
           for (const [id, info] of employees) {
-            if ((info.roleKey ?? "") === "field_officer") continue;
+            if (isNonBillableRoleKey(info.roleKey)) continue;
             sgs.push({ id, name: info.name });
           }
 

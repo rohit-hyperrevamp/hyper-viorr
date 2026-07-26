@@ -280,7 +280,7 @@ function MusterRollPage() {
       const dMap = new Map((desigs ?? []).map((d) => [d.id, d.name]));
 
       const mappedEmployees = dedup
-        .filter((c) => (c.role_key ?? "") !== "field_officer" && (c as { non_billable?: boolean }).non_billable !== true)
+        .filter((c) => !isNonBillableRoleKey(c.role_key) && (c as { non_billable?: boolean }).non_billable !== true)
         .map((c) => ({
           id: c.id,
           employee_code: c.employee_code || "",
