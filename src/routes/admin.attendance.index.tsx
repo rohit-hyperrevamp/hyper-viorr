@@ -709,84 +709,66 @@ function AttendanceUnitsPage() {
                 >
                   {/* Mobile card layout */}
                   <div className="lg:hidden">
-                    <div className="flex items-start gap-2.5">
-                      <div className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-100/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
-                        <MapPinned className="h-4 w-4" />
+                    <div className="flex items-start gap-3">
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
+                        <MapPinned className="h-[18px] w-[18px]" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="break-words text-[13.5px] font-semibold leading-snug text-foreground">
-                              {unit.name || unit.code}
-                            </div>
-                            <div className="mt-0.5 text-[11.5px] text-muted-foreground break-words">
-                              {unit.customer_name}
-                            </div>
-                          </div>
-                          <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusBadge.cls}`}>
-                            <statusBadge.Icon className="h-3 w-3" /> {statusBadge.label}
-                          </span>
+                        <div className="break-words text-[14px] font-bold leading-snug text-foreground">
+                          {unit.name || unit.code}
+                        </div>
+                        <div className="mt-0.5 break-words text-[12px] font-medium text-muted-foreground">
+                          {unit.customer_name}
+                          {unit.location ? ` · ${unit.location}` : ""}
                         </div>
                         <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                          <span className="inline-flex whitespace-nowrap rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-foreground">
+                          <span className="inline-flex rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-foreground">
                             {unit.code || "—"}
                           </span>
                           {unit.contract_codes.slice(0, 2).map((cc) => (
-                            <span key={cc} className="inline-flex whitespace-nowrap rounded-full border border-accent/20 bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent">
+                            <span key={cc} className="inline-flex rounded-full border border-accent/20 bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
                               {cc}
                             </span>
                           ))}
                         </div>
-                        {unit.location && (
-                          <div className="mt-1 text-[11.5px] text-muted-foreground break-words">
-                            {unit.location}
-                          </div>
-                        )}
                       </div>
+                      <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusBadge.cls}`}>
+                        <statusBadge.Icon className="h-3 w-3" /> {statusBadge.label}
+                      </span>
                     </div>
-                    <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background px-3 py-2.5">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-xl font-semibold tabular-nums text-foreground leading-none">{unit.active_employee_count}</span>
-                        <span className="text-[11px] text-muted-foreground">active</span>
+
+                    <div className="mt-3 flex items-center gap-3 rounded-2xl border border-border/60 bg-secondary/30 px-3 py-2.5">
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-display text-xl font-bold tabular-nums leading-none text-foreground">{unit.active_employee_count}</span>
+                        <span className="text-[11px] font-medium text-muted-foreground">active</span>
                       </div>
-                      <div className="min-w-0 flex-1 px-2">
+                      <div className="min-w-0 flex-1">
                         <EmployeeChips list={unit.security_guards} empty="—" tone="emerald" />
                       </div>
-                      {sheetStatus === "approved" ? (
-                        canApprove ? (
-                          <button
-                            type="button"
-                            data-no-pill
-                            onClick={() => sheet && reopenSheet.mutate(sheet)}
-                            disabled={!sheet || reopenSheet.isPending}
-                            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-amber-300/60 bg-amber-50 px-2.5 text-[11px] font-semibold text-amber-900 hover:border-amber-400 hover:bg-amber-100 disabled:opacity-60"
-                          >
-                            <RotateCcw className="h-3 w-3" /> Reopen
-                          </button>
-                        ) : (
-                          <Link
-                            to="/admin/attendance/$unitId"
-                            params={{ unitId: unit.id }}
-                            search={{ month: monthIdx, year }}
-                            data-no-pill
-                            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 text-[11px] font-semibold text-foreground hover:border-accent/50 hover:text-accent"
-                          >
-                            View <ArrowRight className="h-3 w-3" />
-                          </Link>
-                        )
+                      {sheetStatus === "approved" && canApprove ? (
+                        <button
+                          type="button"
+                          data-no-pill
+                          onClick={() => sheet && reopenSheet.mutate(sheet)}
+                          disabled={!sheet || reopenSheet.isPending}
+                          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full border border-amber-300/60 bg-amber-50 px-3 text-[11.5px] font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" /> Reopen
+                        </button>
                       ) : (
                         <Link
                           to="/admin/attendance/$unitId"
                           params={{ unitId: unit.id }}
                           search={{ month: monthIdx, year }}
                           data-no-pill
-                          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 text-[11px] font-semibold text-foreground hover:border-accent/50 hover:text-accent"
+                          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-primary px-3.5 text-[11.5px] font-bold text-primary-foreground shadow-sm hover:opacity-90"
                         >
-                          Open <ArrowRight className="h-3 w-3" />
+                          Open <ArrowRight className="h-3.5 w-3.5" />
                         </Link>
                       )}
                     </div>
                   </div>
+
 
                   {/* Desktop grid cells */}
                   <div className="hidden min-w-0 items-start gap-3 lg:flex">
