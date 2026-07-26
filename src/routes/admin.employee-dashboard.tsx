@@ -501,7 +501,7 @@ function EmployeeDashboard() {
                   <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Team size</div>
                 </div>
                 <Link to="/admin/my-inventory" className="flex items-center justify-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-center text-sm font-semibold hover:bg-secondary">
-                  My Uniform <ArrowRight className="h-3.5 w-3.5" />
+                  My Uniform <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
             </div>
