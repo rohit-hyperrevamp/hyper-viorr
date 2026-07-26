@@ -3928,6 +3928,71 @@ export type Database = {
         }
         Relationships: []
       }
+      self_attendance_punches: {
+        Row: {
+          candidate_id: string
+          check_in_accuracy: number | null
+          check_in_at: string | null
+          check_in_face_verified: boolean
+          check_in_lat: number | null
+          check_in_lng: number | null
+          check_out_accuracy: number | null
+          check_out_at: string | null
+          check_out_face_verified: boolean
+          check_out_lat: number | null
+          check_out_lng: number | null
+          created_at: string
+          id: string
+          notes: string | null
+          punch_date: string
+          updated_at: string
+        }
+        Insert: {
+          candidate_id: string
+          check_in_accuracy?: number | null
+          check_in_at?: string | null
+          check_in_face_verified?: boolean
+          check_in_lat?: number | null
+          check_in_lng?: number | null
+          check_out_accuracy?: number | null
+          check_out_at?: string | null
+          check_out_face_verified?: boolean
+          check_out_lat?: number | null
+          check_out_lng?: number | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          punch_date: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          check_in_accuracy?: number | null
+          check_in_at?: string | null
+          check_in_face_verified?: boolean
+          check_in_lat?: number | null
+          check_in_lng?: number | null
+          check_out_accuracy?: number | null
+          check_out_at?: string | null
+          check_out_face_verified?: boolean
+          check_out_lat?: number | null
+          check_out_lng?: number | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          punch_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "self_attendance_punches_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_types: {
         Row: {
           created_at: string
