@@ -29,6 +29,8 @@ import { usePeopleInsights } from "@/lib/people-insights";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { MyLiveStatusCard } from "@/components/MyLiveStatusCard";
 import { cn } from "@/lib/utils";
+import { ListSkeleton } from "@/components/Skeletons";
+
 
 
 export const Route = createFileRoute("/admin/field-dashboard")({
@@ -428,7 +430,8 @@ function FieldOfficerDashboard() {
         </div>
         <div className="divide-y divide-border/50">
           {isLoading ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
+            <ListSkeleton rows={3} />
+
           ) : units.length === 0 ? (
             <div className="flex flex-col items-center gap-2 p-12 text-center">
               <div className="grid h-11 w-11 place-items-center rounded-2xl bg-accent/10 text-accent"><Sparkles className="h-5 w-5" /></div>

@@ -112,6 +112,8 @@ import {
 
 import { useBranches, useCustomers, useStates } from "@/lib/admin-data";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
+import { Skeleton } from "@/components/ui/skeleton";
+
 
 export const Route = createFileRoute("/admin/employees")({
   component: EmployeesPage,
@@ -1851,14 +1853,22 @@ function EmployeesPage() {
     const empCols = 4 + Object.values(columnsVisible).filter(Boolean).length;
     const candCols = 7;
     if (isLoading) {
+      const cols = mode === "employee" ? empCols : candCols;
       return (
-        <tr>
-          <td colSpan={mode === "employee" ? empCols : candCols} className="px-4 py-10 text-center text-muted-foreground">
-            Loading…
-          </td>
-        </tr>
+        <>
+          {Array.from({ length: 6 }).map((_, r) => (
+            <tr key={r}>
+              {Array.from({ length: cols }).map((_, c) => (
+                <td key={c} className="px-4 py-3">
+                  <Skeleton className={c === 0 ? "h-8 w-8 rounded-full" : "h-4 w-full"} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </>
       );
     }
+
     if (candidatesError) {
       return (
         <tr>
@@ -2273,8 +2283,27 @@ function EmployeesPage() {
 
   const renderMobileCards = (rows: CandidateListItem[], mode: "employee" | "candidate") => {
     if (isLoading) {
-      return <div className="rounded-2xl border border-border/70 bg-card p-6 text-center text-sm text-muted-foreground md:hidden">Loading…</div>;
+      return (
+        <div className="space-y-2.5 md:hidden">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-border/70 bg-card p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-3/5" />
+                  <Skeleton className="h-3 w-2/5" />
+                </div>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Skeleton className="h-5 w-14 rounded-full" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      );
     }
+
     if (candidatesError) {
       return (
         <div className="rounded-2xl border border-border/70 bg-card p-6 text-center text-sm text-muted-foreground md:hidden">

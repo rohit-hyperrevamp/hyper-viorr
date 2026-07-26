@@ -27,6 +27,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useCountUp } from "@/hooks/useCountUp";
 import { nextOccurrence, ageFrom, yearsBetween } from "@/lib/people-insights";
+import { DashboardSkeleton } from "@/components/Skeletons";
+
 
 export const Route = createFileRoute("/admin/employee-dashboard")({
   component: EmployeeDashboard,
@@ -348,7 +350,7 @@ function EmployeeDashboard() {
     return list.sort((a, b) => a.days - b.days);
   }, [team, HORIZON]);
 
-  if (meQ.isLoading) return <div className="p-4 text-sm text-muted-foreground">Loading your dashboard…</div>;
+  if (meQ.isLoading) return <DashboardSkeleton />;
   if (!me) return <div className="p-4 text-sm text-muted-foreground">No employee profile found for this phone.</div>;
 
   const age = me.date_of_birth ? ageFrom(me.date_of_birth) : null;
