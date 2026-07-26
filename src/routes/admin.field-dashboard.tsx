@@ -444,6 +444,7 @@ function FoPeopleInsights() {
   const { isLoading, birthdays, anniversaries } = usePeopleInsights();
   return (
     <div className="flex flex-col gap-4">
+      <LiveFieldOfficersCard />
       <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
       <PeopleInsightsCard kind="anniversaries" items={anniversaries} isLoading={isLoading} />
     </div>
