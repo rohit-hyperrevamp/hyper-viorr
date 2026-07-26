@@ -26,6 +26,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
+import { cn } from "@/lib/utils";
 
 
 export const Route = createFileRoute("/admin/field-dashboard")({
