@@ -2,42 +2,14 @@ import UIKit
 import Capacitor
 import LocalAuthentication
 import Security
-import UserNotifications
 
 @UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Take ownership of the notification center so banners are shown while the app is in the foreground.
-        UNUserNotificationCenter.current().delegate = self
         return true
-    }
-
-    // Called when a remote push arrives while the app is in the FOREGROUND.
-    // Without this, iOS silently drops the banner and sound and only updates
-    // the notification centre. Returning .banner + .sound + .list ensures the
-    // native alert shows regardless of app state.
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                willPresent notification: UNNotification,
-                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        if #available(iOS 14.0, *) {
-            completionHandler([.banner, .list, .sound, .badge])
-        } else {
-            completionHandler([.alert, .sound, .badge])
-        }
-    }
-
-    // Handle taps on a native notification (foreground or background).
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                didReceive response: UNNotificationResponse,
-                                withCompletionHandler completionHandler: @escaping () -> Void) {
-        NotificationCenter.default.post(
-            name: Notification.Name("radiantPushTapped"),
-            object: response.notification.request.content.userInfo
-        )
-        completionHandler()
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

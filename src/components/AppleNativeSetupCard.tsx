@@ -1,5 +1,5 @@
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, CheckCircle2, Clipboard, Fingerprint, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,8 +28,6 @@ type AppleNativeSetupCardProps = {
   className?: string;
 };
 
-const AUTO_PUSH_KEY_PREFIX = "radiant.native.auto-push.v2";
-
 export function AppleNativeSetupCard({
   compact = false,
   autoStart = false,
@@ -43,6 +41,7 @@ export function AppleNativeSetupCard({
   );
   const sendTestPush = useServerFn(sendTestPushToMe);
   const getPushStatus = useServerFn(getMyPushRegistrationStatus);
+  const autoAttemptedPhoneRef = useRef<string | null>(null);
 
   const [nativeSupported, setNativeSupported] = useState(false);
   const [nativeSnapshot, setNativeSnapshot] = useState(() => getNativeRuntimeSnapshot());
@@ -76,12 +75,6 @@ export function AppleNativeSetupCard({
         setPushStatus(
           `This iPhone is registered for native notifications${status.count > 1 ? ` (${status.count} active tokens).` : "."}`,
         );
-      } else if (phoneDigits) {
-        try {
-          window.localStorage.removeItem(`${AUTO_PUSH_KEY_PREFIX}:${phoneDigits}`);
-        } catch {
-          /* noop */
-        }
       }
     } catch {
       /* registration status is best-effort */
@@ -90,12 +83,8 @@ export function AppleNativeSetupCard({
 
   useEffect(() => {
     if (!autoStart || !phoneDigits || !isNativePlatform()) return;
-    const key = `${AUTO_PUSH_KEY_PREFIX}:${phoneDigits}`;
-    try {
-      if (pushRegistered && window.localStorage.getItem(key) === "done") return;
-    } catch {
-      /* continue best-effort */
-    }
+    if (autoAttemptedPhoneRef.current === phoneDigits) return;
+    autoAttemptedPhoneRef.current = phoneDigits;
 
     setPushLoading(true);
     void registerPushForCurrentUser()
@@ -103,18 +92,7 @@ export function AppleNativeSetupCard({
         setPushStatus(result.message);
         void refreshPushStatus();
         if (result.tokenSaved) {
-          try {
-            window.localStorage.setItem(key, "done");
-          } catch {
-            /* noop */
-          }
           toast.success("This iPhone is registered for push notifications");
-        } else {
-          try {
-            window.localStorage.removeItem(key);
-          } catch {
-            /* noop */
-          }
         }
       })
       .catch((err) => {
@@ -122,7 +100,7 @@ export function AppleNativeSetupCard({
         setPushStatus(message);
       })
       .finally(() => setPushLoading(false));
-  }, [autoStart, phoneDigits, pushRegistered]);
+  }, [autoStart, phoneDigits]);
 
   async function refreshBiometricStatus() {
     setNativeSnapshot(getNativeRuntimeSnapshot());
@@ -155,6 +133,11 @@ export function AppleNativeSetupCard({
   async function handleTestPush() {
     setPushLoading(true);
     try {
+      if (isNativePlatform()) {
+        const registration = await registerPushForCurrentUser();
+        setPushStatus(registration.message);
+        await refreshPushStatus();
+      }
       const result = await sendTestPush({ data: { message: "Hello from Radiant Guard!" } });
       await refreshPushStatus();
       if (result.sent > 0) {

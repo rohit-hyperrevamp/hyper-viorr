@@ -62,8 +62,8 @@ function resolvePendingToken(token: string | null) {
   resolvers.forEach((resolve) => resolve(token));
 }
 
-function waitForToken(timeoutMs = 7000): Promise<string | null> {
-  if (lastApnsToken) return Promise.resolve(lastApnsToken);
+function waitForToken(timeoutMs = 7000, waitForFreshToken = false): Promise<string | null> {
+  if (lastApnsToken && !waitForFreshToken) return Promise.resolve(lastApnsToken);
   return new Promise((resolve) => {
     pendingTokenResolvers.push(resolve);
     window.setTimeout(() => {
@@ -212,6 +212,8 @@ export async function registerPushForCurrentUser(): Promise<PushRegisterResult> 
 
   await preparePushNotifications();
 
+  let tokenPromise: Promise<string | null> | null = null;
+
   try {
     const { PushNotifications } = await import("@capacitor/push-notifications");
     const perm = await PushNotifications.checkPermissions();
@@ -226,6 +228,7 @@ export async function registerPushForCurrentUser(): Promise<PushRegisterResult> 
     }
     if (lastPermission === "granted") {
       logNativeEvent("push", "manual APNs register requested");
+      tokenPromise = waitForToken(9000, true);
       await PushNotifications.register();
     } else {
       lastError = `Push permission is ${lastPermission}. Enable notifications for Radiant Guard in iOS Settings.`;
@@ -235,7 +238,7 @@ export async function registerPushForCurrentUser(): Promise<PushRegisterResult> 
     logNativeEvent("push", "manual register failed", { error: lastError });
   }
 
-  const token = lastPermission === "granted" ? await waitForToken() : lastApnsToken;
+  const token = lastPermission === "granted" ? (await tokenPromise) || lastApnsToken : lastApnsToken;
   const tokenSaved = token ? await saveTokenForSignedInUser(token) : false;
   return {
     supported: true,

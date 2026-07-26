@@ -98,7 +98,10 @@ export async function sendApnsPush(
       title: payload.title || "Radiant Guard",
       body: payload.body || "You have a new notification",
     },
-    sound: payload.sound || "radiant_chime.caf",
+    // Use the system default sound. A custom sound only works when the exact
+    // audio file is bundled into the native app; using "default" keeps test
+    // pushes audible across debug/release installs.
+    sound: payload.sound || "default",
   };
 
   if (payload.badge !== undefined) {
