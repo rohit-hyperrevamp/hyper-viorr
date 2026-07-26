@@ -166,9 +166,8 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
             {timeStr(punch?.check_in_at ?? null)}
           </div>
           {punch?.check_in_lat != null && (
-            <div className="mt-1 flex items-center gap-1 truncate text-[11px] text-muted-foreground">
-              <MapPin className="h-3 w-3" />
-              {punch.check_in_lat.toFixed(4)}, {punch.check_in_lng?.toFixed(4)}
+            <div className="mt-1 truncate">
+              <MapLink lat={punch.check_in_lat} lng={punch.check_in_lng} />
             </div>
           )}
         </div>
@@ -178,11 +177,37 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
             {timeStr(punch?.check_out_at ?? null)}
           </div>
           {punch?.check_out_lat != null && (
-            <div className="mt-1 flex items-center gap-1 truncate text-[11px] text-muted-foreground">
-              <MapPin className="h-3 w-3" />
-              {punch.check_out_lat.toFixed(4)}, {punch.check_out_lng?.toFixed(4)}
+            <div className="mt-1 truncate">
+              <MapLink lat={punch.check_out_lat} lng={punch.check_out_lng} />
             </div>
           )}
+        </div>
+      </div>
+
+      {(() => {
+        const dist = distanceMeters(
+          punch?.check_in_lat != null && punch?.check_in_lng != null ? { lat: punch.check_in_lat, lng: punch.check_in_lng } : null,
+          punch?.check_out_lat != null && punch?.check_out_lng != null ? { lat: punch.check_out_lat, lng: punch.check_out_lng } : null,
+        );
+        if (dist == null) return null;
+        const deviated = dist > DEVIATION_THRESHOLD_M;
+        return (
+          <div
+            className={cn(
+              "mt-3 flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-semibold ring-1",
+              deviated
+                ? "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-400"
+                : "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-400",
+            )}
+          >
+            {deviated ? <AlertTriangle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+            <span className="min-w-0 flex-1 truncate">
+              {deviated ? "Location deviation" : "Same location"} · in → out is {formatDistance(dist)}
+            </span>
+          </div>
+        );
+      })()}
+
         </div>
       </div>
 
