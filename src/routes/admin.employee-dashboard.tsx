@@ -429,21 +429,62 @@ function EmployeeDashboard() {
                 <span className={`grid h-8 w-8 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP.violet}`}><Building2 className="h-3.5 w-3.5" /></span>
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Assignment</div>
-                  <div className="font-display text-[15px] font-bold leading-tight">Unit</div>
+                  <div className="font-display text-[15px] font-bold leading-tight">Units ({myUnits.length})</div>
                 </div>
               </div>
-              <div className="font-display text-lg font-bold">{unit?.name ?? "Not assigned"}</div>
-              {unit?.code && <div className="font-mono text-xs text-muted-foreground">{unit.code}</div>}
-              <div className="mt-3 flex gap-2">
-                <div className="flex-1 rounded-xl bg-secondary/60 px-3 py-2 text-center ring-1 ring-border">
-                  <div className="font-display text-lg font-bold tabular-nums">{team.length + 1}</div>
+              {myUnits.length === 0 ? (
+                <div className="text-sm text-muted-foreground">Not assigned</div>
+              ) : (
+                <ul className="space-y-1.5">
+                  {myUnits.map((u) => (
+                    <li key={u.id} className="flex items-center justify-between gap-2 rounded-lg bg-secondary/40 px-2.5 py-1.5 ring-1 ring-border">
+                      <span className="truncate text-sm font-semibold text-foreground">{u.name}</span>
+                      {u.code && <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{u.code}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="rounded-xl bg-secondary/60 px-3 py-2 text-center ring-1 ring-border">
+                  <div className="font-display text-lg font-bold tabular-nums">{guardTeam.length + 1}</div>
                   <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Team size</div>
                 </div>
-                <Link to="/admin/my-inventory" className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-center text-sm font-semibold hover:bg-secondary">
+                <Link to="/admin/my-inventory" className="flex items-center justify-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-center text-sm font-semibold hover:bg-secondary">
                   My Uniform <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
             </div>
+          </section>
+
+          {/* Reporting manager */}
+          <section className="rounded-[24px] border border-border/60 bg-card/70 p-5 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)]">
+            <div className="mb-3 flex items-center gap-2">
+              <span className={`grid h-8 w-8 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP.sky}`}><UserRound className="h-3.5 w-3.5" /></span>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Reports to</div>
+                <div className="font-display text-[15px] font-bold leading-tight">Reporting Manager</div>
+              </div>
+            </div>
+            {!manager ? (
+              <div className="text-sm text-muted-foreground">No reporting manager assigned yet.</div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/15 text-[13px] font-bold text-accent ring-1 ring-inset ring-accent/20">
+                  {manager.photo_url ? <img src={manager.photo_url} alt="" className="h-full w-full object-cover" /> : initials(manager.full_name)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold text-foreground">{manager.full_name}</div>
+                  <div className="truncate text-[11px] text-muted-foreground">
+                    {manager.designation_id ? desigMap.get(manager.designation_id) ?? "" : ""}
+                    {manager.role_key ? ` · ${manager.role_key.replace(/_/g, " ")}` : ""}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                    {manager.employee_code && <span className="font-mono">{manager.employee_code}</span>}
+                    {manager.mobile && <span>{manager.mobile}</span>}
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Team roster */}
@@ -452,9 +493,9 @@ function EmployeeDashboard() {
               <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP.indigo}`}><Users className="h-3.5 w-3.5" /></span>
               <div className="min-w-0 flex-1">
                 <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Your unit</div>
-                <div className="font-display text-[15px] font-bold text-foreground leading-tight">Teammates</div>
+                <div className="font-display text-[15px] font-bold text-foreground leading-tight">Fellow guards</div>
               </div>
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent/15 px-1.5 text-[10px] font-bold text-accent ring-1 ring-inset ring-accent/20">{team.length}</span>
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent/15 px-1.5 text-[10px] font-bold text-accent ring-1 ring-inset ring-accent/20">{guardTeam.length}</span>
             </header>
             {team.length === 0 ? (
               <div className="px-4 py-8 text-center text-xs text-muted-foreground">No teammates yet.</div>
