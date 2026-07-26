@@ -4388,7 +4388,7 @@ function CandidateWizard({
           )}
         </div>
 
-        <div className="px-2.5 py-2.5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-2.5">
           {/* ----- Full form (single page) ----- */}
           {true && (
             <div className="space-y-6">
@@ -5051,7 +5051,7 @@ function CandidateWizard({
           )}
         </div>
 
-        <DialogFooter className="flex-col gap-2 border-t border-border bg-card px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
+        <DialogFooter className="sticky bottom-0 z-10 flex-col gap-2 border-t border-border bg-card/95 px-3 py-3 backdrop-blur-md pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:flex-row sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
           <div className="flex flex-wrap items-center gap-2 sm:mr-auto">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
