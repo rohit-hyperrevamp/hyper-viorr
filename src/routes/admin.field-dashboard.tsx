@@ -284,33 +284,33 @@ function FieldOfficerDashboard() {
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />}>
       {/* Profile hero card — avatar + identity + 3 stat bars */}
-      <section className="rounded-[32px] border border-border/60 bg-card/85 p-6 shadow-[0_1px_0_0_rgba(255,255,255,0.9)_inset,0_28px_70px_-38px_rgba(15,23,42,0.24)] backdrop-blur-2xl sm:p-7">
-        <div className="grid gap-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
+      <section className="rounded-2xl border border-border/60 bg-card/90 p-3.5 shadow-sm backdrop-blur-xl sm:rounded-3xl sm:p-6">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:gap-6">
           <div className="relative shrink-0">
             {data?.mePhoto ? (
               <img
                 src={data.mePhoto}
                 alt={data?.meName || "Profile"}
-                className="h-28 w-28 rounded-[28px] object-cover shadow-md sm:h-32 sm:w-32"
+                className="h-16 w-16 rounded-2xl object-cover shadow-sm sm:h-28 sm:w-28 sm:rounded-[26px]"
               />
             ) : (
-              <div className="grid h-28 w-28 place-items-center rounded-[28px] bg-accent font-display text-2xl font-bold text-accent-foreground shadow-md sm:h-32 sm:w-32">
+              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-accent font-display text-lg font-bold text-accent-foreground shadow-sm sm:h-28 sm:w-28 sm:rounded-[26px] sm:text-2xl">
                 {initials(data?.meName || "FO")}
               </div>
             )}
-            <span className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full bg-card text-emerald-500 shadow ring-1 ring-emerald-500/30">
-              <ShieldCheck className="h-4 w-4" />
+            <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-card text-emerald-500 shadow ring-1 ring-emerald-500/30 sm:h-8 sm:w-8">
+              <ShieldCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
 
 
-          <div className="min-w-0 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 space-y-2 sm:space-y-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
               <div className="min-w-0">
-                <div className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-[26px]">
+                <div className="truncate font-display text-lg font-bold leading-tight tracking-tight text-foreground sm:text-[26px]">
                   {data?.meName || (isLoading ? "…" : "Welcome")}
                 </div>
-                <div className="mt-0.5 text-sm text-muted-foreground">
+                <div className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
                   <span className="font-semibold text-foreground/80">Field Officer</span>
                   {data?.meCode ? <span className="opacity-70"> · {data.meCode}</span> : null}
                   <span className="opacity-70"> · {units.length} unit{units.length === 1 ? "" : "s"}</span>
@@ -318,13 +318,13 @@ function FieldOfficerDashboard() {
               </div>
               <Link
                 to="/admin/profile"
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 text-xs font-semibold text-foreground/80 shadow-sm transition hover:border-accent/40 hover:text-accent"
+                className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border/70 bg-card px-2.5 text-[11px] font-semibold text-foreground/80 shadow-sm transition hover:border-accent/40 hover:text-accent sm:h-9 sm:gap-1.5 sm:px-3 sm:text-xs"
               >
                 Edit profile <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 
-            <div className="grid gap-x-6 gap-y-2 text-sm text-foreground/80 sm:grid-cols-2">
+            <div className="grid gap-x-4 gap-y-1.5 text-xs text-foreground/80 sm:grid-cols-2 sm:text-sm">
               {phone && (
                 <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" /><span className="tabular-nums">+91 {phone}</span></div>
               )}
@@ -339,7 +339,7 @@ function FieldOfficerDashboard() {
               )}
             </div>
 
-            <div className="mt-2 grid grid-cols-3 gap-6 border-t border-border/40 pt-4">
+            <div className="mt-2 grid grid-cols-3 gap-2 border-t border-border/40 pt-3 sm:gap-6 sm:pt-4">
               <StatBar label="Team size" value={totalListings} bar="bg-gradient-to-r from-rose-300 to-rose-400" />
               <StatBar label="Present today" value={attnPresent} bar="bg-gradient-to-r from-emerald-300 to-teal-400" />
               <StatBar label="Items on team" value={totalItems} bar="bg-gradient-to-r from-lime-300 to-lime-400" />
@@ -350,13 +350,13 @@ function FieldOfficerDashboard() {
 
       {/* Pastel summary tiles — "My Summary" */}
       <section>
-        <div className="mb-3 flex items-end justify-between">
+        <div className="mb-2 flex items-end justify-between sm:mb-3">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Overview</div>
-            <h2 className="mt-0.5 font-display text-2xl font-bold tracking-tight text-foreground">My Summary</h2>
+            <h2 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-2xl">My Summary</h2>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
           <PastelTile
             palette="lime"
             label="Team size"
@@ -396,11 +396,11 @@ function FieldOfficerDashboard() {
 
 
       {/* Units list */}
-      <section className="overflow-hidden rounded-[28px] border border-border/70 bg-card/90 shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_20px_50px_-30px_rgba(15,23,42,0.2)] backdrop-blur-xl">
-        <div className="flex items-center justify-between border-b border-border/60 px-5 py-4 sm:px-6 sm:py-5">
+      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/90 shadow-sm backdrop-blur-xl sm:rounded-[28px]">
+        <div className="flex items-center justify-between border-b border-border/60 px-3.5 py-3 sm:px-6 sm:py-5">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">New objects ({units.length})</div>
-            <h2 className="mt-0.5 font-display text-xl font-bold text-foreground">My units</h2>
+            <h2 className="mt-0.5 font-display text-lg font-bold text-foreground sm:text-xl">My units</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">Tap to see the team and take action.</p>
           </div>
           <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-muted-foreground">
@@ -440,9 +440,9 @@ function FoPeopleInsights() {
 function StatBar({ label, value, bar }: { label: string; value: number | string; bar: string }) {
   return (
     <div className="min-w-0">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
-      <div className="mt-1 font-display text-2xl font-bold tabular-nums tracking-tight text-foreground">{value}</div>
-      <div className={`mt-2 h-1 w-full rounded-full ${bar}`} />
+      <div className="truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground sm:text-[10px] sm:tracking-[0.14em]">{label}</div>
+      <div className="mt-0.5 font-display text-lg font-bold tabular-nums tracking-tight text-foreground sm:mt-1 sm:text-2xl">{value}</div>
+      <div className={`mt-1 h-1 w-full rounded-full sm:mt-2 ${bar}`} />
     </div>
   );
 }
@@ -479,26 +479,26 @@ function PastelTile({
 
 
   const inner = (
-    <div className={`relative flex h-full min-h-[152px] flex-col justify-between overflow-hidden rounded-[26px] p-5 ring-1 ring-inset transition-transform hover:-translate-y-0.5 ${bg} ${ring}`}>
+    <div className={`relative flex h-full min-h-[94px] flex-col justify-between overflow-hidden rounded-2xl p-3 ring-1 ring-inset transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:rounded-[26px] sm:p-5 ${bg} ${ring}`}>
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="text-[13px] font-semibold text-foreground/80">{label}</div>
-          <div className="mt-0.5 text-[11px] text-foreground/55">{hint}</div>
+          <div className="text-[11px] font-semibold leading-tight text-foreground/80 sm:text-[13px]">{label}</div>
+          <div className="mt-0.5 line-clamp-1 text-[10px] text-foreground/60 sm:text-[11px]">{hint}</div>
         </div>
-        <span className="grid h-9 w-9 place-items-center rounded-full bg-card/80 text-foreground/70 shadow-sm">
-          <ArrowUpRight className="h-4 w-4" />
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 text-foreground/70 shadow-sm sm:h-9 sm:w-9">
+          <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </span>
       </div>
-      <div className="flex items-end justify-between gap-3">
-        <div className="font-display text-[44px] font-bold leading-none tabular-nums tracking-tight text-foreground">
+      <div className="mt-2 flex items-end justify-between gap-2 sm:gap-3">
+        <div className="font-display text-[26px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[44px]">
           {value}
         </div>
-        <div className="flex flex-col items-end gap-1.5">
+        <div className="flex flex-col items-end gap-1 sm:gap-1.5">
           <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${trendCls}`}>
             <TrendIcon className="h-3 w-3" />
             {delta > 0 ? "+" : ""}{delta}{deltaSuffix}
           </span>
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-card/70 text-foreground/70">
+          <span className="hidden h-7 w-7 place-items-center rounded-full bg-card/70 text-foreground/70 sm:grid">
             <Icon className="h-3.5 w-3.5" />
           </span>
         </div>
@@ -516,20 +516,20 @@ function UnitRow({ unit }: { unit: UnitNode }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-secondary/40 sm:px-6"
+        className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition hover:bg-secondary/40 sm:gap-4 sm:px-6 sm:py-4"
       >
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent sm:h-8 sm:w-8 sm:rounded-xl">
             {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </span>
           <div className="min-w-0">
-            <div className="flex items-center gap-2 truncate text-sm font-semibold">
+            <div className="flex items-center gap-2 truncate text-[13px] font-semibold sm:text-sm">
               {unit.name}
               {unit.is_primary && (
                 <span className="inline-flex rounded-full bg-emerald-500/15 dark:bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Primary</span>
               )}
             </div>
-            <div className="truncate text-xs text-muted-foreground">{unit.customer_name} · <span className="font-mono">{unit.code}</span></div>
+            <div className="truncate text-[11px] text-muted-foreground sm:text-xs">{unit.customer_name} · <span className="font-mono">{unit.code}</span></div>
           </div>
         </div>
         <div className="hidden shrink-0 items-center gap-2 text-[11px] font-medium sm:flex">
@@ -540,7 +540,7 @@ function UnitRow({ unit }: { unit: UnitNode }) {
         </div>
       </button>
       {open && (
-        <div className="space-y-3 border-t border-border/40 bg-secondary/20 px-5 py-4 sm:px-6">
+        <div className="space-y-3 border-t border-border/40 bg-secondary/20 px-3.5 py-3 sm:px-6 sm:py-4">
           <div className="grid grid-cols-2 gap-2 sm:hidden">
             <Pill tone="slate" value={total} label="team" />
             <Pill tone="amber" value={unit.pending_onboarding} label="pending" />
