@@ -771,7 +771,7 @@ function ProfilePage() {
   }
 
   const lookups = lookupsQ.data;
-  const issuedItems = issuedItemsQ.data ?? [];
+  const stockItems = stockBalanceQ.data ?? [];
   const postings = postingsQ.data?.postings ?? [];
   const manager = postingsQ.data?.manager ?? null;
   const overseenUnits = postingsQ.data?.overseenUnits ?? [];
