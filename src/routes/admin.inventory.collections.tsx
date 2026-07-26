@@ -244,13 +244,67 @@ function CollectionsPanel({ me }: { me: Candidate }) {
         },
       ]));
       await postMovements(movs);
+
+      // Offboarding handshake — if this guard was flagged pending-offboarding for me,
+      // check that no stock remains at the guard, then finalise the offboarding.
+      const od = payload.guard.offboarding_details ?? null;
+      const isPendingOffboarding =
+        od?.collection_status === "pending" && od?.pending_collection_fo_id === me.id;
+      let finalisedOffboarding = false;
+      if (isPendingOffboarding) {
+        const { data: remainingRows, error: remErr } = await supabase
+          .from("inv_stock_balances" as never)
+          .select("qty")
+          .eq("location_type", "guard")
+          .eq("location_id", payload.guard.id)
+          .gt("qty", 0);
+        if (remErr) throw remErr;
+        const remaining = ((remainingRows as unknown as { qty: number }[]) ?? []).reduce(
+          (s, r) => s + Number(r.qty || 0),
+          0,
+        );
+        if (remaining === 0) {
+          const nowIso = new Date().toISOString();
+          const nextDetails: OffboardingDetails = {
+            ...od,
+            collection_status: "completed",
+            collection_requested_at: od?.collection_requested_at ?? nowIso,
+          };
+          const { error: upErr } = await supabase
+            .from("candidates" as never)
+            .update({
+              is_enabled: false,
+              status: "inactive",
+              offboarded_at: nowIso,
+              offboarding_details: { ...nextDetails, collection_completed_at: nowIso, collection_completed_by: me.id },
+            } as unknown as never)
+            .eq("id", payload.guard.id);
+          if (upErr) throw upErr;
+          finalisedOffboarding = true;
+          void logActivity({
+            module: "Employees",
+            action: "offboard",
+            entityType: "candidate",
+            entityId: payload.guard.id,
+            entityLabel: `${payload.guard.full_name} finalised on FO collection`,
+            details: { collected_by: me.id },
+          });
+        }
+      }
+
       void logActivity({
         module: MODULE, action: "collect", entityType: ENTITY, entityId: payload.guard.id,
         entityLabel: `Collected from ${payload.guard.full_name} (${payload.rows.length} item${payload.rows.length === 1 ? "" : "s"})`,
       });
+
+      return { finalisedOffboarding };
     },
-    onSuccess: () => {
-      toast.success("Collected — stock returned to you");
+    onSuccess: (res) => {
+      if (res?.finalisedOffboarding) {
+        toast.success("Collection confirmed — employee offboarded.");
+      } else {
+        toast.success("Collected — stock returned to you");
+      }
       qc.invalidateQueries({ queryKey: ["collections"] });
       qc.invalidateQueries({ queryKey: ["inv", "balances-sum"] });
       qc.invalidateQueries({ queryKey: ["inv"] });
@@ -258,6 +312,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+
 
   return (
     <div>
