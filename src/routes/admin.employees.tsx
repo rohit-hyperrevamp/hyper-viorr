@@ -2609,6 +2609,7 @@ function EmployeesPage() {
           if (!v) setEditing(null);
         }}
         editing={editing}
+        mode={wizardMode}
         units={scopedUnitsForWizard}
         unitsLoading={unitsQuery.isLoading || scopeStillLoading}
         unitsError={
