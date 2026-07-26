@@ -31,11 +31,13 @@ import {
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
+import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 
 function PeopleInsightsSection() {
   const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights();
   return (
     <div className="flex flex-col gap-4">
+      <LiveFieldOfficersCard />
       <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
       <PeopleInsightsCard kind="anniversaries" items={anniversaries} isLoading={isLoading} />
       {showSixtyPlus && (
@@ -44,6 +46,7 @@ function PeopleInsightsSection() {
     </div>
   );
 }
+
 
 export const Route = createFileRoute("/admin/dashboard")({
   component: DashboardPage,
