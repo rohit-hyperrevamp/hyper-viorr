@@ -1717,6 +1717,8 @@ function ProfilePage() {
           </ul>
         )}
       </Section>
+
+      {bottomActions}
     </div>
   );
 }
