@@ -638,7 +638,7 @@ function DashboardPage() {
       </div>
 
       {/* Tiles */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
         {isLoading ? (
           Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="h-[172px] animate-pulse rounded-2xl border border-border/60 bg-card" />
@@ -755,7 +755,7 @@ function Shell({ children, to, accent = "indigo" }: { children: React.ReactNode;
   return (
     <Link
       to={to}
-      className={`group relative flex h-[188px] flex-col overflow-hidden rounded-[26px] border border-border/40 ${ACCENT_TILE_BG[accent]} p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+      className={`group relative flex h-[132px] flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
     >
       {children}
     </Link>
@@ -789,10 +789,10 @@ function MetricTile({ icon, label, value, to, accent = "indigo", sub }: { icon: 
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} sub={sub} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="font-display text-[46px] font-bold leading-none tabular-nums tracking-tight text-foreground">
+        <div className="font-display text-[32px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[46px]">
           {display}
         </div>
-        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/80 ring-1 ring-inset ${ACCENT_CHIP[accent]}`}>
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/80 ring-1 ring-inset sm:h-9 sm:w-9 ${ACCENT_CHIP[accent]}`}>
           <I className="h-4 w-4" />
         </span>
       </div>

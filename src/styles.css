@@ -683,7 +683,8 @@
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
   .ios-table .cell-secondary {
     font-size: 11px;
@@ -740,13 +741,13 @@
     }
     .ios-table tbody td {
       display: grid;
-      grid-template-columns: minmax(96px, 38%) minmax(0, 1fr);
+      grid-template-columns: minmax(72px, 30%) minmax(0, 1fr);
       align-items: start;
       gap: 10px;
       min-width: 0;
       max-width: none;
       width: 100%;
-      padding: 10px 12px !important;
+      padding: 9px 12px !important;
       white-space: normal !important;
       overflow: visible !important;
       text-align: left !important;
@@ -755,10 +756,11 @@
       content: attr(data-label);
       font-size: 10px;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--muted-foreground);
-      overflow-wrap: anywhere;
+      overflow-wrap: break-word;
+      word-break: normal;
     }
     .ios-table tbody td:not([data-label])::before,
     .ios-table tbody td[data-label=""]::before {
@@ -1028,9 +1030,12 @@ main {
   overflow-x: clip;
 }
 
-/* Keep long words / URLs / IDs from breaking layout */
+/* Keep long words / URLs / IDs from breaking layout — but break on word
+   boundaries by default so short strings like emails or phone numbers
+   don't stack character-per-line inside narrow cells. */
 p, span, div, td, th, li, dd, dt, label, a, button {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 /* But numeric cells and .num should stay tight */
 .num, [data-col="amount"], [data-col="qty"] { overflow-wrap: normal; }
