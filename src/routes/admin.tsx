@@ -463,13 +463,19 @@ function AdminLayout() {
       }));
     }
     const base = groups
-      .filter((g) => !g.module || can(g.module))
+      .filter((g) => {
+        if (g.module === "__field_sense__") {
+          return isSuperAdmin || roleKey === "leadership";
+        }
+        return !g.module || can(g.module);
+      })
       .map((g) => {
         if (g.key === "inventory") return { ...g, children: filteredInventoryChildren };
         if (!g.module || !g.children) return g;
         const filtered = g.children.filter((c) => !c.sub || canSub(g.module!, c.sub));
         return { ...g, children: filtered };
       });
+
     if (isFieldOfficer) {
       // FO gets a single dashboard entry that already shows their units and team.
       return base;
