@@ -3291,10 +3291,11 @@ function CandidateWizard({
         setForm((f) => ({ ...f, unit_ids: ids, unit_id: ids[0] ?? null }));
       })();
     } else {
-      setInitialUnitIds([]);
-      setForm(emptyForm());
+      const seedUnits = isEmployeeMode ? [RADIANT_BILLING_UNIT_ID] : [];
+      setInitialUnitIds(seedUnits);
+      setForm({ ...emptyForm(), unit_ids: seedUnits, unit_id: seedUnits[0] ?? null });
     }
-  }, [open, editing]);
+  }, [open, editing, isEmployeeMode]);
 
   const set = <K extends keyof CandidateForm>(k: K, v: CandidateForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
