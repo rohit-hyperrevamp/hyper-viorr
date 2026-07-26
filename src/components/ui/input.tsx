@@ -325,7 +325,7 @@ const FormattedInput = React.forwardRef<HTMLInputElement, FormattedInputProps>(
         }}
         className={cn(
           baseClasses,
-          spec.mono && "font-mono tracking-wide uppercase",
+          spec.mono && "font-mono tracking-wide uppercase placeholder:font-sans placeholder:normal-case placeholder:tracking-normal placeholder:text-muted-foreground/60",
           invalid &&
             "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20",
           className,
