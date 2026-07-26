@@ -3239,6 +3239,7 @@ function emptyForm(): CandidateForm {
 }
 
 const RADIANT_BILLING_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
+const DEFAULT_HOME_BRANCH_ID = "8897587c-e532-47ad-af01-353409cc6b23"; // PUNE — Radiant HQ branch
 
 function CandidateWizard({
   open,
