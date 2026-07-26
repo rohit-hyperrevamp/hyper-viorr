@@ -4533,12 +4533,14 @@ function CandidateWizard({
               </Section>
 
               <Section title="Identification Proofs">
-                <IdentificationSection form={form} set={setAny} setSection={setSection} />
+                <IdentificationSection form={form} set={setAny} setSection={setSection} hideWeapon={isEmployeeMode} />
               </Section>
 
-              <Section title="Criminal History">
-                <CriminalSection form={form} set={setAny} />
-              </Section>
+              {!isEmployeeMode && (
+                <Section title="Criminal History">
+                  <CriminalSection form={form} set={setAny} />
+                </Section>
+              )}
 
               <Section title="Nominee">
                 <NomineeSection form={form} setSection={setSection} />
