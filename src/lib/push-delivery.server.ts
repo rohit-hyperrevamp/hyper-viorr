@@ -1,4 +1,8 @@
 import { sendApnsPush, type ApnsPayload } from "./apns.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+
+type AppSupabaseClient = SupabaseClient<Database>;
 
 type TokenRow = {
   user_id: string;
@@ -23,57 +27,22 @@ function uniqueUserIds(userIds: string[]) {
   return Array.from(new Set(userIds.filter(Boolean)));
 }
 
-async function deleteDeadToken(token: string) {
+async function deleteDeadToken(supabase: AppSupabaseClient, token: string) {
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("device_push_tokens").delete().eq("token", token);
+    await supabase.from("device_push_tokens").delete().eq("token", token);
   } catch {
     /* best-effort cleanup only */
   }
 }
 
-async function resolveRelatedUserIds(userId: string): Promise<string[]> {
-  const ids = new Set<string>([userId]);
-
-  try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
-    const email = userData.user?.email ?? "";
-    const mobile = email.match(/^phone-(\d{10})@radiantguard\.local$/i)?.[1];
-    if (!mobile) return Array.from(ids);
-
-    const { data: candidate } = await supabaseAdmin
-      .from("candidates")
-      .select("id")
-      .eq("mobile", mobile)
-      .maybeSingle();
-
-    if (!candidate?.id) return Array.from(ids);
-
-    const { data: users } = await supabaseAdmin.rpc("get_user_id_by_candidate", {
-      _candidate_id: candidate.id,
-    });
-
-    if (typeof users === "string") ids.add(users);
-  } catch {
-    /* Keep the direct authenticated user as the authoritative fallback. */
-  }
-
-  return Array.from(ids);
-}
-
-async function resolveRelatedUserIdsForMany(userIds: string[]): Promise<string[]> {
-  const resolved = await Promise.all(userIds.map((id) => resolveRelatedUserIds(id)));
-  return Array.from(new Set(resolved.flat().filter(Boolean)));
-}
-
-export async function getPushRegistrationStatusForUser(userId: string) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const relatedUserIds = await resolveRelatedUserIds(userId);
-  const { data, error } = await supabaseAdmin
+export async function getPushRegistrationStatusForUser(
+  supabase: AppSupabaseClient,
+  userId: string,
+) {
+  const { data, error } = await supabase
     .from("device_push_tokens")
     .select("id,platform,last_seen_at,created_at")
-    .in("user_id", relatedUserIds)
+    .eq("user_id", userId)
     .order("last_seen_at", { ascending: false });
   if (error) throw error;
   const rows = (data as Array<{ id: string; platform: string; last_seen_at: string; created_at: string }> | null) ?? [];
@@ -86,27 +55,33 @@ export async function getPushRegistrationStatusForUser(userId: string) {
 }
 
 export async function saveNativePushTokenForUser(
+  supabase: AppSupabaseClient,
   userId: string,
   input: { token: string; platform: "ios" | "android" | "web" },
 ): Promise<NativePushRegistrationResult> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const now = new Date().toISOString();
-
-  const { error } = await supabaseAdmin
-    .from("device_push_tokens")
-    .upsert(
-      {
-        user_id: userId,
-        token: input.token,
-        platform: input.platform,
-        last_seen_at: now,
-      },
-      { onConflict: "token" },
-    );
+  const { data, error } = await supabase.rpc("register_device_push_token" as never, {
+    _token: input.token,
+    _platform: input.platform,
+  } as never);
 
   if (error) throw error;
 
-  const status = await getPushRegistrationStatusForUser(userId);
+  const rows =
+    (data as unknown as Array<{
+      saved: boolean;
+      token_suffix: string;
+      token_count: number;
+    }> | null) ?? [];
+  const result = rows[0];
+  if (result) {
+    return {
+      saved: result.saved,
+      tokenSuffix: result.token_suffix,
+      tokenCount: result.token_count,
+    };
+  }
+
+  const status = await getPushRegistrationStatusForUser(supabase, userId);
   return {
     saved: true,
     tokenSuffix: input.token.slice(-8),
@@ -114,22 +89,11 @@ export async function saveNativePushTokenForUser(
   };
 }
 
-export async function sendNativePushToUsersServer(
-  userIds: string[],
+async function sendNativePushToTokenRows(
+  supabase: AppSupabaseClient,
+  rows: TokenRow[],
   payload: ApnsPayload,
 ): Promise<NativePushDeliveryResult> {
-  const recipients = await resolveRelatedUserIdsForMany(uniqueUserIds(userIds));
-  if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
-    .from("device_push_tokens")
-    .select("user_id,token,platform,last_seen_at")
-    .in("user_id", recipients)
-    .order("last_seen_at", { ascending: false });
-  if (error) throw error;
-
-  const rows = ((data as TokenRow[] | null) ?? []).filter((row) => row.platform === "ios");
   let sent = 0;
   const failures: NativePushDeliveryResult["failures"] = [];
 
@@ -143,39 +107,59 @@ export async function sendNativePushToUsersServer(
     const errorMessage = result.error || `HTTP ${result.status ?? "unknown"}`;
     failures.push({ tokenSuffix: row.token.slice(-8), error: errorMessage });
     if (/Unregistered/i.test(errorMessage)) {
-      await deleteDeadToken(row.token);
+      await deleteDeadToken(supabase, row.token);
     }
   }
 
   return { sent, total: rows.length, failures };
 }
 
-export async function sendNativePushForRecentNotifications(
-  actorUserId: string,
+export async function sendNativePushToCurrentUserServer(
+  supabase: AppSupabaseClient,
+  payload: ApnsPayload,
+): Promise<NativePushDeliveryResult> {
+  const { data, error } = await supabase
+    .from("device_push_tokens")
+    .select("user_id,token,platform,last_seen_at")
+    .eq("platform", "ios")
+    .order("last_seen_at", { ascending: false });
+  if (error) throw error;
+
+  return sendNativePushToTokenRows(supabase, (data as TokenRow[] | null) ?? [], payload);
+}
+
+export async function sendNativePushToUsersServer(
   userIds: string[],
   payload: ApnsPayload,
 ): Promise<NativePushDeliveryResult> {
-  const recipients = await resolveRelatedUserIdsForMany(uniqueUserIds(userIds));
+  const recipients = uniqueUserIds(userIds);
   if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
 
-  const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  // Authorization: only fan out native pushes to users for whom the caller
-  // just created a notification row in the last 5 minutes. We intentionally
-  // don't match on title/message/link — those fields are fragile (whitespace,
-  // punctuation, i18n) and were silently suppressing valid pushes. Matching
-  // on actor + recipient + recency is enough to prove the caller is the
-  // legitimate origin of this notification.
   const { data, error } = await supabaseAdmin
-    .from("notifications")
-    .select("user_id")
+    .from("device_push_tokens")
+    .select("user_id,token,platform,last_seen_at")
     .in("user_id", recipients)
-    .eq("actor_id", actorUserId)
-    .gte("created_at", since);
+    .eq("platform", "ios")
+    .order("last_seen_at", { ascending: false });
   if (error) throw error;
 
-  const authorizedRecipients = Array.from(
-    new Set(((data as Array<{ user_id: string }> | null) ?? []).map((row) => row.user_id)),
-  );
-  return sendNativePushToUsersServer(authorizedRecipients, payload);
+  return sendNativePushToTokenRows(supabaseAdmin, (data as TokenRow[] | null) ?? [], payload);
+}
+
+export async function sendNativePushForRecentNotifications(
+  supabase: AppSupabaseClient,
+  userIds: string[],
+  payload: ApnsPayload,
+): Promise<NativePushDeliveryResult> {
+  const recipients = uniqueUserIds(userIds);
+  if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
+
+  const { data, error } = await supabase.rpc("get_recent_notification_push_tokens" as never, {
+    _user_ids: recipients,
+  } as never);
+  if (error) throw error;
+
+  const rows = ((data as unknown as TokenRow[] | null) ?? []).filter((row) => row.platform === "ios");
+  return sendNativePushToTokenRows(supabase, rows, payload);
 }

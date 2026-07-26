@@ -7,7 +7,7 @@
 import { SignJWT, importPKCS8 } from "jose";
 
 const APNS_HOST_PROD = "https://api.push.apple.com";
-const APNS_HOST_DEV = "https://api.development.push.apple.com";
+const APNS_HOST_DEV = "https://api.sandbox.push.apple.com";
 
 type ApnsConfig = {
   keyP8: string;

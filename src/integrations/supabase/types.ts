@@ -4594,6 +4594,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_recent_notification_push_tokens: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          last_seen_at: string
+          platform: string
+          token: string
+          user_id: string
+        }[]
+      }
       get_user_display_name: {
         Args: { _user_id: string }
         Returns: {
@@ -4657,6 +4666,14 @@ export type Database = {
         }[]
       }
       nextval: { Args: { sequence_name: string }; Returns: number }
+      register_device_push_token: {
+        Args: { _platform?: string; _token: string }
+        Returns: {
+          saved: boolean
+          token_count: number
+          token_suffix: string
+        }[]
+      }
     }
     Enums: {
       customer_status: "active" | "inactive"
