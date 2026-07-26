@@ -76,7 +76,7 @@ export function MobileBottomNav({
               </span>
               <span
                 className={cn(
-                  "max-w-full text-[10px] leading-tight tracking-tight line-clamp-2",
+                  "block w-full truncate whitespace-nowrap text-[10px] leading-tight tracking-tight",
                   it.active ? "font-bold text-primary" : "font-semibold text-foreground/70",
                 )}
               >
