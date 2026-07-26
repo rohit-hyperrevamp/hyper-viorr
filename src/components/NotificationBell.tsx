@@ -24,6 +24,7 @@ import {
 import { shouldRedirect } from "@/lib/notification-routing";
 import { NotificationDetailDialog } from "@/components/NotificationDetailDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { isNativePlatform } from "@/lib/native";
 
 const NQK = ["notifications", "mine"] as const;
 
@@ -31,6 +32,8 @@ export function NotificationBell() {
   const qc = useQueryClient();
   const router = useRouter();
   const isMobile = useIsMobile();
+  const [nativeShell, setNativeShell] = useState(false);
+  const mobileSheet = isMobile || nativeShell;
   const { data: items = [] } = useQuery({
     queryKey: NQK,
     queryFn: listMyNotifications,
@@ -44,6 +47,10 @@ export function NotificationBell() {
   const [muted, setMuted] = useState<boolean>(() => isNotificationSoundMuted());
   const [detail, setDetail] = useState<Notification | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setNativeShell(isNativePlatform());
+  }, []);
 
   useEffect(() => {
     if (!items || items.length === 0) return;
@@ -84,7 +91,7 @@ export function NotificationBell() {
     <button
       type="button"
       aria-label="Notifications"
-      onClick={isMobile ? () => setMobileOpen(true) : undefined}
+      onClick={mobileSheet ? () => setMobileOpen(true) : undefined}
       className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:border-accent hover:text-accent"
     >
       <Bell className="h-4 w-4" />
@@ -173,7 +180,7 @@ export function NotificationBell() {
     </>
   );
 
-  if (isMobile) {
+  if (mobileSheet) {
     return (
       <>
         {trigger}
