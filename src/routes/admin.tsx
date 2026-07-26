@@ -47,6 +47,7 @@ import {
   UserCheck,
   Moon,
   Sun,
+  Radio,
 } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { MobileBottomNav, type BottomNavItem } from "@/components/MobileBottomNav";
