@@ -355,7 +355,9 @@ function EmployeeDashboard() {
   const started = me.approved_at || me.created_at;
   const tenureYears = started ? yearsBetween(started, new Date()) : null;
 
+  return (
     <div className="space-y-5">
+
       {/* Profile hero — matches Field Officer dashboard */}
       <section className="relative overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 text-white shadow-[0_20px_50px_-24px_rgba(15,23,42,0.55)] sm:p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-accent/25 blur-3xl" />
