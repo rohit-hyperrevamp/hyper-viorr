@@ -5453,48 +5453,8 @@ function OffboardingDialog({
             </div>
           </section>
 
-          {/* Section: Handover Checklist */}
-          <section className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                Handover Checklist
-              </h3>
-              <span className="text-[11px] text-muted-foreground">
-                {assetReturns.filter((r) => r.returned).length} / {assetReturns.length} returned
-              </span>
-            </div>
-            {assetReturns.length === 0 ? (
-              <p className="rounded-md border border-dashed border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-                No assets were assigned to this employee. Assign assets from the Employee Info screen if a handover is required.
-              </p>
-            ) : (
-              <div className="rounded-md border border-border">
-                {assetReturns.map((row, idx) => {
-                  const a = assetById.get(row.asset_id);
-                  return (
-                    <div
-                      key={row.asset_id}
-                      className={cn(
-                        "grid grid-cols-[auto,1fr,2fr] items-center gap-3 p-3",
-                        idx > 0 && "border-t border-border",
-                      )}
-                    >
-                      <Switch checked={row.returned} onCheckedChange={() => toggleReturned(row.asset_id)} />
-                      <div className="text-sm">
-                        <div className="font-medium">{a?.name ?? "Unknown asset"}</div>
-                        {a?.category && <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{a.category}</div>}
-                      </div>
-                      <Input
-                        placeholder="Condition / remarks (optional)"
-                        value={row.remarks ?? ""}
-                        onChange={(e) => setReturnRemarks(row.asset_id, e.target.value)}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
+          {/* Handover Checklist removed — inventory return handshake below is the source of truth */}
+
 
           {/* Section: Return Issued Inventory (uniform / shoes / torch etc.) */}
           <section className="space-y-3">
