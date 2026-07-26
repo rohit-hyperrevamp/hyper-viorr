@@ -211,7 +211,8 @@ function AttendanceUnitsPage() {
       if (secondaryCandidateIds.length > 0) {
         const { data: linkedRows, error: linkedError } = await supabase
           .from("candidates")
-          .select("id, full_name, designation_id, role_key")
+          .select("id, full_name, designation_id, role_key, non_billable")
+          .eq("non_billable", false)
           .in("id", secondaryCandidateIds)
           .eq("is_enabled", true)
           .in("status", [...ACTIVE_EMPLOYEE_STATUSES]);
