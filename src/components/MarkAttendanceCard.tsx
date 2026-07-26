@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Fingerprint, LogIn, LogOut, MapPin, Loader2, Clock, CheckCircle2 } from "lucide-react";
+import { Fingerprint, LogIn, LogOut, MapPin, Loader2, Clock, CheckCircle2, AlertTriangle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,10 +9,40 @@ import {
   fetchTodayPunch,
   getCurrentPosition,
   verifyFaceForAttendance,
+  distanceMeters,
+  formatDistance,
+  mapsUrl,
+  DEVIATION_THRESHOLD_M,
   type SelfPunch,
 } from "@/lib/self-attendance";
 import { isNativePlatform } from "@/lib/native";
 import { cn } from "@/lib/utils";
+
+function MapLink({
+  lat,
+  lng,
+  label,
+}: {
+  lat: number | null | undefined;
+  lng: number | null | undefined;
+  label?: string;
+}) {
+  const url = mapsUrl(lat, lng);
+  if (!url || lat == null || lng == null) return null;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 rounded-md text-[11px] font-semibold text-primary underline-offset-2 hover:underline"
+    >
+      <MapPin className="h-3 w-3" />
+      {label ?? `${lat.toFixed(4)}, ${lng.toFixed(4)}`}
+      <ExternalLink className="h-2.5 w-2.5 opacity-70" />
+    </a>
+  );
+}
+
 
 function timeStr(iso: string | null) {
   if (!iso) return "—";
