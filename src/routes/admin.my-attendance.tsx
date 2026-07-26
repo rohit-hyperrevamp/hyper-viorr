@@ -165,8 +165,10 @@ function MyAttendancePage() {
     <div className="page-shell space-y-4 sm:space-y-6">
       <PageHeader
         title="My Attendance"
-        subtitle={me.name ? `${me.name}${me.code ? ` · ${me.code}` : ""}` : "Track your own check-in / check-out"}
+        description={me.name ? `${me.name}${me.code ? ` · ${me.code}` : ""}` : "Track your own check-in / check-out"}
+        crumbs={[{ label: "Home", to: "/" }, { label: "My Attendance" }]}
       />
+
 
       <MarkAttendanceCard candidateId={me.candidate_id} />
 
