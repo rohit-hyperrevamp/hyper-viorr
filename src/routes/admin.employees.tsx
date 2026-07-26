@@ -3197,10 +3197,13 @@ function emptyForm(): CandidateForm {
   };
 }
 
+const RADIANT_BILLING_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
+
 function CandidateWizard({
   open,
   onOpenChange,
   editing,
+  mode = "candidate",
   units,
   unitsLoading,
   unitsError,
@@ -3221,6 +3224,7 @@ function CandidateWizard({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   editing: Candidate | null;
+  mode?: "candidate" | "employee";
   units: UnitLite[];
   unitsLoading: boolean;
   unitsError: string | null;
@@ -3238,6 +3242,7 @@ function CandidateWizard({
   onReject?: () => void;
   onRequestOffboard?: () => void;
 }) {
+  const isEmployeeMode = mode === "employee" && !editing;
   const qc = useQueryClient();
   const extractFn = useServerFn(extractAadhaar);
   const [form, setForm] = useState<CandidateForm>(emptyForm());
