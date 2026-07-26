@@ -3874,9 +3874,30 @@ function CandidateWizard({
               : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
           </DialogDescription>
           {isEmployeeMode && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
-              <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Radiant Guards - Pune Office</Badge>
+            <div className="mt-3 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
+                <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Radiant Guards - Pune Office</Badge>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Branch</label>
+                <Select value={homeBranchId} onValueChange={setHomeBranchId}>
+                  <SelectTrigger className="h-8 w-[240px] text-xs">
+                    <SelectValue placeholder="Select home branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches
+                      .slice()
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((b) => (
+                        <SelectItem key={b.id} value={b.id} className="text-xs">
+                          {b.name} {b.code ? <span className="ml-1 text-muted-foreground">· {b.code}</span> : null}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-[11px] text-muted-foreground">Where this employee reports for stock, transfers &amp; demands.</span>
+              </div>
             </div>
           )}
           {editing && (editing.status === "approved" || editing.status === "active" || editing.status === "inactive") && (
