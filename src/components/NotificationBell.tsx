@@ -81,18 +81,21 @@ export function NotificationBell() {
         </button>
       </PopoverTrigger>
       <PopoverContent
-        align="end"
-        sideOffset={8}
+        side="right"
+        align="start"
+        sideOffset={12}
+        collisionPadding={12}
+        avoidCollisions
         className={cn(
-          "p-0 shadow-2xl",
-          // Desktop: compact popover
-          "sm:w-80 sm:rounded-xl",
-          // Mobile: full-width slide-down sheet pinned to the top of the viewport
-          "w-screen max-w-[100vw] rounded-none border-x-0 border-t-0 fixed top-0 left-0 right-0",
-          "data-[state=open]:animate-in data-[state=open]:slide-in-from-top-4",
-          "sm:static sm:w-80 sm:max-w-none",
+          "z-50 p-0 shadow-2xl",
+          // Desktop / tablet: compact popover next to the sidebar
+          "w-[min(22rem,calc(100vw-1.5rem))] rounded-xl",
+          // Mobile: full-width slide-down sheet pinned to top
+          "max-sm:fixed max-sm:inset-x-0 max-sm:top-0 max-sm:w-screen max-sm:max-w-none max-sm:rounded-none max-sm:border-x-0 max-sm:border-t-0",
+          "data-[state=open]:animate-in data-[state=open]:fade-in-0",
         )}
       >
+
         <div className="flex items-center justify-between border-b border-border px-3 py-2">
           <div className="text-sm font-semibold">Notifications</div>
           <div className="flex items-center gap-2">
