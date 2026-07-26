@@ -198,16 +198,69 @@ export const DEVIATION_THRESHOLD_M = 150;
 
 /** Battery info. Uses Capacitor Device on native (iOS/Android), Battery API on web. */
 export type BatteryInfo = { level: number | null; charging: boolean | null };
+
+type NativeTelemetryStatus = {
+  batteryLevel?: number | null;
+  isCharging?: boolean | null;
+  connected?: boolean;
+  networkType?: string | null;
+  source?: string;
+};
+
+type NativeTelemetryPlugin = {
+  getStatus(): Promise<NativeTelemetryStatus>;
+};
+
+function nativeTelemetryPlugin(): NativeTelemetryPlugin | null {
+  if (!isNativePlatform()) return null;
+  try {
+    const cap = (window as unknown as { Capacitor?: { Plugins?: Record<string, unknown> } }).Capacitor;
+    return (cap?.Plugins?.RadiantDeviceTelemetry as NativeTelemetryPlugin | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function readNativeTelemetry(): Promise<NativeTelemetryStatus | null> {
+  const plugin = nativeTelemetryPlugin();
+  if (!plugin) return null;
+  try {
+    const status = await plugin.getStatus();
+    logNativeEvent("telemetry", "native telemetry read", status);
+    return status;
+  } catch (err) {
+    logNativeEvent("telemetry", "native telemetry failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
+function normalizeBatteryLevel(level: number | null | undefined): number | null {
+  if (level == null || !Number.isFinite(level)) return null;
+  const pct = level <= 1 ? level * 100 : level;
+  return Math.max(0, Math.min(100, Math.round(pct)));
+}
+
 export async function readBattery(): Promise<BatteryInfo> {
   if (isNativePlatform()) {
+    const native = await readNativeTelemetry();
+    const nativeLevel = normalizeBatteryLevel(native?.batteryLevel);
+    if (nativeLevel != null || native?.isCharging != null) {
+      return { level: nativeLevel, charging: native?.isCharging ?? null };
+    }
+
     try {
       const { Device } = await import("@capacitor/device");
       const info = await Device.getBatteryInfo();
       return {
-        level: info.batteryLevel != null ? Math.round(info.batteryLevel * 100) : null,
+        level: normalizeBatteryLevel(info.batteryLevel),
         charging: info.isCharging ?? null,
       };
-    } catch {
+    } catch (err) {
+      logNativeEvent("telemetry", "Capacitor Device battery failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
       return { level: null, charging: null };
     }
   }
@@ -224,6 +277,10 @@ export async function readBattery(): Promise<BatteryInfo> {
 /** Network label like "WiFi", "Cellular", "4G". Uses Capacitor Network on native. */
 export async function readNetworkType(): Promise<string | null> {
   if (isNativePlatform()) {
+    const native = await readNativeTelemetry();
+    if (native?.connected === false) return "Offline";
+    if (native?.networkType) return native.networkType;
+
     try {
       const { Network } = await import("@capacitor/network");
       const s = await Network.getStatus();
@@ -234,7 +291,10 @@ export async function readNetworkType(): Promise<string | null> {
       if (t === "ethernet") return "Ethernet";
       if (t === "none") return "Offline";
       return t ? t.toUpperCase() : "Cellular";
-    } catch {
+    } catch (err) {
+      logNativeEvent("telemetry", "Capacitor Network status failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
       return null;
     }
   }
@@ -275,7 +335,7 @@ export async function pushTelemetry(
     if (telemetry.battery.level != null) patch.battery_pct = telemetry.battery.level;
     if (telemetry.battery.charging != null) patch.battery_charging = telemetry.battery.charging;
   }
-  if (telemetry.network !== undefined) patch.network_type = telemetry.network;
+  if (telemetry.network != null) patch.network_type = telemetry.network;
   const { error } = await supabase
     .from("self_attendance_punches" as never)
     .update(patch as never)

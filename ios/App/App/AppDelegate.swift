@@ -2,6 +2,8 @@ import UIKit
 import Capacitor
 import LocalAuthentication
 import Security
+import Network
+import CoreTelephony
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -63,6 +65,100 @@ class RadiantBridgeViewController: CAPBridgeViewController {
         super.capacitorDidLoad()
         bridge?.registerPluginInstance(RadiantBiometricsPlugin())
         bridge?.registerPluginInstance(RadiantNativeAuthStorePlugin())
+        bridge?.registerPluginInstance(RadiantDeviceTelemetryPlugin())
+    }
+}
+
+@objc(RadiantDeviceTelemetryPlugin)
+public class RadiantDeviceTelemetryPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "RadiantDeviceTelemetryPlugin"
+    public let jsName = "RadiantDeviceTelemetry"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "getStatus", returnType: CAPPluginReturnPromise)
+    ]
+
+    @objc func getStatus(_ call: CAPPluginCall) {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let rawBattery = UIDevice.current.batteryLevel
+        let batteryLevel: NSNumber? = rawBattery >= 0 ? NSNumber(value: Int(round(rawBattery * 100))) : nil
+        let batteryState = UIDevice.current.batteryState
+        let isCharging = batteryState == .charging || batteryState == .full
+
+        let monitor = NWPathMonitor()
+        let queue = DispatchQueue(label: "app.lovable.radiantguard.telemetry")
+        var didResolve = false
+
+        func cellularGeneration() -> String? {
+            let info = CTTelephonyNetworkInfo()
+            var technologies: [String] = []
+            if #available(iOS 12.0, *) {
+                if let currentByService = info.serviceCurrentRadioAccessTechnology {
+                    technologies = Array(currentByService.values)
+                } else if let current = info.currentRadioAccessTechnology {
+                    technologies = [current]
+                }
+            } else if let current = info.currentRadioAccessTechnology {
+                technologies = [current]
+            }
+
+            for tech in technologies {
+                if #available(iOS 14.1, *) {
+                    if tech == CTRadioAccessTechnologyNR || tech == CTRadioAccessTechnologyNRNSA {
+                        return "5G"
+                    }
+                }
+                if tech == CTRadioAccessTechnologyLTE {
+                    return "4G"
+                }
+                if [CTRadioAccessTechnologyWCDMA, CTRadioAccessTechnologyHSDPA, CTRadioAccessTechnologyHSUPA, CTRadioAccessTechnologyCDMAEVDORev0, CTRadioAccessTechnologyCDMAEVDORevA, CTRadioAccessTechnologyCDMAEVDORevB, CTRadioAccessTechnologyeHRPD].contains(tech) {
+                    return "3G"
+                }
+                if [CTRadioAccessTechnologyGPRS, CTRadioAccessTechnologyEdge, CTRadioAccessTechnologyCDMA1x].contains(tech) {
+                    return "2G"
+                }
+            }
+            return technologies.isEmpty ? "Cellular" : "Cellular"
+        }
+
+        func resolve(path: NWPath) {
+            if didResolve { return }
+            didResolve = true
+            monitor.cancel()
+
+            var networkType = "Offline"
+            if path.status == .satisfied {
+                if path.usesInterfaceType(.wifi) {
+                    networkType = "WiFi"
+                } else if path.usesInterfaceType(.cellular) {
+                    networkType = cellularGeneration() ?? "Cellular"
+                } else if path.usesInterfaceType(.wiredEthernet) {
+                    networkType = "Ethernet"
+                } else {
+                    networkType = "Online"
+                }
+            }
+
+            DispatchQueue.main.async {
+                var payload: [String: Any] = [
+                    "isCharging": isCharging,
+                    "connected": path.status == .satisfied,
+                    "networkType": networkType,
+                    "source": "ios-radiant"
+                ]
+                if let batteryLevel = batteryLevel {
+                    payload["batteryLevel"] = batteryLevel
+                }
+                call.resolve(payload)
+            }
+        }
+
+        monitor.pathUpdateHandler = { path in
+            resolve(path: path)
+        }
+        monitor.start(queue: queue)
+        queue.asyncAfter(deadline: .now() + 0.8) {
+            resolve(path: monitor.currentPath)
+        }
     }
 }
 

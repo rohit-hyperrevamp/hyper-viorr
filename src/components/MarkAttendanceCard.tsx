@@ -117,7 +117,10 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
   const punchQ = useQuery({
     queryKey: ["self-attendance-today", candidateId],
     enabled: !!candidateId,
-    queryFn: () => fetchTodayPunch(candidateId!),
+    queryFn: () => {
+      if (!candidateId) return null;
+      return fetchTodayPunch(candidateId);
+    },
     refetchInterval: 60_000,
   });
 
@@ -136,7 +139,18 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
         face = await verifyFaceForAttendance("Mark attendance check-in");
       }
       const geo = await getCurrentPosition();
-      return await checkIn(candidateId, geo, face);
+      const [row, battery, network] = await Promise.allSettled([
+        checkIn(candidateId, geo, face),
+        readBattery(),
+        readNetworkType(),
+      ]);
+      if (row.status !== "fulfilled") throw row.reason;
+      await pushTelemetry(row.value.id, {
+        geo,
+        battery: battery.status === "fulfilled" ? battery.value : null,
+        network: network.status === "fulfilled" ? network.value : null,
+      });
+      return row.value;
     },
     onSuccess: () => {
       toast.success("Checked in");
@@ -288,7 +302,7 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
         );
       })()}
 
-      {state === "in" && <LiveTelemetryStrip punch={punch!} />}
+      {state === "in" && punch && <LiveTelemetryStrip punch={punch} />}
 
       <div className="mt-3 sm:mt-4">
         {state === "idle" && (
