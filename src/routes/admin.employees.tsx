@@ -3239,6 +3239,7 @@ function emptyForm(): CandidateForm {
 }
 
 const RADIANT_BILLING_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
+const DEFAULT_HOME_BRANCH_ID = "8897587c-e532-47ad-af01-353409cc6b23"; // PUNE — Radiant HQ branch
 
 function CandidateWizard({
   open,
@@ -3286,12 +3287,14 @@ function CandidateWizard({
   const isEmployeeMode = mode === "employee" || (!!editing && (editing as any).billable === false);
   const qc = useQueryClient();
   const extractFn = useServerFn(extractAadhaar);
+  const { branches } = useBranches();
   const [form, setForm] = useState<CandidateForm>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
+  const [homeBranchId, setHomeBranchId] = useState<string>(DEFAULT_HOME_BRANCH_ID);
   const isEditingEmployeeProfile =
     !!editing && (editing.status === "approved" || editing.status === "active" || editing.status === "inactive");
 
@@ -3334,8 +3337,26 @@ function CandidateWizard({
     } else {
       setInitialUnitIds([]);
       setForm(emptyForm());
+      setHomeBranchId(DEFAULT_HOME_BRANCH_ID);
     }
   }, [open, editing, isEmployeeMode]);
+
+  // Load existing Home Branch (employee_scope_assignments · scope_type='branch') for edit mode.
+  useEffect(() => {
+    if (!open || !editing) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("employee_scope_assignments" as never)
+        .select("scope_id")
+        .eq("candidate_id", editing.id)
+        .eq("scope_type", "branch")
+        .limit(1)
+        .maybeSingle();
+      if (error || !data) return;
+      const sid = (data as { scope_id?: string }).scope_id;
+      if (sid) setHomeBranchId(sid);
+    })();
+  }, [open, editing]);
 
   const set = <K extends keyof CandidateForm>(k: K, v: CandidateForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -3664,6 +3685,7 @@ function CandidateWizard({
 
   const persist = async (status: string, successMsg: string) => {
     const payload = buildPayload(status);
+    let createdCandidateId: string | null = null;
     if (editing) {
       const wasRejected = editing.status === "rejected";
       const isResubmit = wasRejected && status === "pending";
@@ -3729,6 +3751,7 @@ function CandidateWizard({
       if (error) throw error;
 
       const newId = (data as { id: string }).id;
+      createdCandidateId = newId;
       await syncCandidateUnits(newId);
       setInitialUnitIds([...form.unit_ids]);
       await logActivity({
@@ -3750,6 +3773,27 @@ function CandidateWizard({
         }).catch((e: unknown) => console.error("notifyOnboardingApprovers submit failed", e));
       }
     }
+
+    // Sync Home Branch → employee_scope_assignments (non-billable employees only).
+    const cidForBranch = editing?.id ?? createdCandidateId;
+    if (isEmployeeMode && homeBranchId && cidForBranch) {
+      const branchLabel = branches.find((b) => b.id === homeBranchId)?.name ?? "";
+      await supabase
+        .from("employee_scope_assignments" as never)
+        .delete()
+        .eq("candidate_id", cidForBranch)
+        .eq("scope_type", "branch");
+      const { error: esaErr } = await supabase
+        .from("employee_scope_assignments" as never)
+        .insert({
+          candidate_id: cidForBranch,
+          scope_type: "branch",
+          scope_id: homeBranchId,
+          scope_label: branchLabel,
+        } as never);
+      if (esaErr) console.error("home branch sync failed", esaErr);
+    }
+
     toast.success(successMsg);
     // Await so the caller (Save/Send-to-Approval handlers) can close the
     // wizard AFTER the list has refetched — prevents the "count went up
@@ -3830,9 +3874,30 @@ function CandidateWizard({
               : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
           </DialogDescription>
           {isEmployeeMode && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
-              <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Radiant Guards - Pune Office</Badge>
+            <div className="mt-3 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
+                <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Radiant Guards - Pune Office</Badge>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Branch</label>
+                <Select value={homeBranchId} onValueChange={setHomeBranchId}>
+                  <SelectTrigger className="h-8 w-[240px] text-xs">
+                    <SelectValue placeholder="Select home branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches
+                      .slice()
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((b) => (
+                        <SelectItem key={b.id} value={b.id} className="text-xs">
+                          {b.name} {b.code ? <span className="ml-1 text-muted-foreground">· {b.code}</span> : null}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-[11px] text-muted-foreground">Where this employee reports for stock, transfers &amp; demands.</span>
+              </div>
             </div>
           )}
           {editing && (editing.status === "approved" || editing.status === "active" || editing.status === "inactive") && (
