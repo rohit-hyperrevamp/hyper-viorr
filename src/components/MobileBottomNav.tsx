@@ -40,13 +40,16 @@ export function MobileBottomNav({
       data-bottom-nav
       style={{
         paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 4px)",
+        transform: "translateZ(0)",
+        WebkitTransform: "translateZ(0)",
       }}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-[70] border-t border-border/70 bg-card/98 backdrop-blur-xl shadow-[0_-8px_24px_-12px_rgba(15,23,42,0.18)] [backface-visibility:hidden]",
+        "fixed inset-x-0 bottom-0 z-[80] border-t border-border bg-card shadow-[0_-8px_24px_-12px_rgba(15,23,42,0.18)] [will-change:transform] [contain:layout_paint]",
         !nativeShell && "lg:hidden",
       )}
     >
-      <ul className="mx-auto flex h-14 max-w-md items-stretch justify-around gap-0 px-2 pt-1">
+      <ul className="mx-auto flex h-14 w-full items-stretch justify-around gap-0 px-1 pt-1">
+
 
 
 
