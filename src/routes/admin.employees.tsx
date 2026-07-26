@@ -4225,7 +4225,7 @@ function CandidateWizard({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="candidate-wizard-page flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-y-auto overscroll-contain rounded-none border-0 p-0 sm:h-auto sm:max-h-[92dvh] sm:w-[96vw] sm:max-w-4xl sm:overflow-hidden sm:rounded-lg sm:border">
+      <DialogContent className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-y-auto overscroll-contain rounded-none border-0 p-0 sm:h-auto sm:max-h-[92dvh] sm:w-[96vw] sm:max-w-4xl sm:overflow-hidden sm:rounded-lg sm:border">
         <DialogHeader className="shrink-0 border-b border-border bg-secondary/30 px-4 py-3 pr-14 sm:px-6 sm:py-4 sm:pr-6">
           <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <UserPlus className="h-5 w-5 shrink-0" />
@@ -6156,7 +6156,7 @@ function AssetMultiPicker({
                 placeholder="Search by name or category…"
               />
             </div>
-            <div className="max-h-[340px] overflow-y-auto p-2">
+            <div className="p-2 sm:max-h-[340px] sm:overflow-y-auto">
               {grouped.length === 0 ? (
                 <div className="px-2 py-6 text-center text-sm text-muted-foreground">No matching assets available in inventory.</div>
               ) : (
@@ -6360,7 +6360,7 @@ function MultiUnitPicker({
                 placeholder="Search by code, name or organization…"
               />
             </div>
-            <div className="max-h-[340px] overflow-y-auto p-2">
+            <div className="p-2 sm:max-h-[340px] sm:overflow-y-auto">
               {grouped.length === 0 ? (
                 <div className="px-2 py-6 text-center text-sm text-muted-foreground">{emptyMessage}</div>
               ) : (
