@@ -2245,7 +2245,7 @@ function EmployeesPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        {(tab === "employee"
+        {(tab === "employee" && !isFieldOfficer
           ? [
               { label: "Total", value: stats.empTotal, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
               { label: "Active", value: stats.empActive, accent: false as const, dot: "bg-emerald-500", tone: "neutral" as const },
