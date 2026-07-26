@@ -2655,9 +2655,9 @@ function EmployeesPage() {
                 </span>
               )}
             </div>
-            <p className="relative z-10 mt-1.5 text-2xl font-bold leading-none tabular-nums text-foreground sm:mt-2 sm:text-[28px]">
+            <p className="relative z-10 mt-1 text-[20px] font-bold leading-none tabular-nums text-foreground sm:mt-2 sm:text-[24px]">
               {s.value}
-              {suffix && <span className="ml-1 text-sm font-medium text-muted-foreground">{suffix}</span>}
+              {suffix && <span className="ml-1 text-xs font-medium text-muted-foreground">{suffix}</span>}
             </p>
             {(isAlert || s.accent) && (
               <div className={cn("pointer-events-none absolute -right-4 -bottom-4 h-16 w-16 rounded-full blur-2xl", isAlert ? "bg-rose-200/40" : "bg-amber-200/30")} />

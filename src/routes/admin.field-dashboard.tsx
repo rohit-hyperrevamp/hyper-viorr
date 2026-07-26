@@ -354,7 +354,7 @@ function FieldOfficerDashboard() {
           </div>
         )}
 
-        <div className="relative mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="relative mt-4 grid grid-cols-3 min-[320px]:grid-cols-3 gap-2 sm:gap-3">
           <HeroStat label="Team" value={totalListings} tint="sky" />
           <HeroStat label="Present" value={attnPresent} tint="emerald" />
           <HeroStat label="Items" value={totalItems} tint="amber" />
@@ -477,7 +477,7 @@ function HeroStat({ label, value, tint }: { label: string; value: number | strin
         <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
         <span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60">{label}</span>
       </div>
-      <div className="mt-1 font-display text-xl font-bold tabular-nums leading-none text-white sm:text-2xl">{value}</div>
+      <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-white sm:text-2xl">{value}</div>
     </div>
   );
 }
@@ -527,7 +527,7 @@ function PastelTile({
         </span>
       </div>
       <div className="mt-2 flex items-end justify-between gap-2 sm:gap-3">
-        <div className="font-display text-[24px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[44px]">
+        <div className="font-display text-[22px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[36px]">
           {value}
         </div>
         <div className="flex flex-col items-end gap-1 sm:gap-1.5">

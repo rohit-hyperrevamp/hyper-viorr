@@ -45,7 +45,7 @@ export function MiniStat({
           </div>
           <div
             className={cn(
-              "mt-0.5 font-display text-[18px] font-semibold leading-tight tracking-tight tabular-nums sm:mt-1 sm:text-[22px]",
+              "mt-0.5 font-display text-[20px] font-semibold leading-none tracking-tight tabular-nums sm:mt-1 sm:text-[24px]",
               valueTone,
             )}
           >

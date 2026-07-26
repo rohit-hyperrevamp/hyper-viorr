@@ -198,7 +198,7 @@ function MyAttendancePage() {
           </Button>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="mt-4 grid grid-cols-3 min-[320px]:grid-cols-3 gap-2 sm:gap-3">
           <StatBox label="Present" value={totals.present} tone="emerald" />
           <StatBox label="Absent" value={totals.absent} tone="rose" />
           <StatBox label="Leave" value={totals.leave} tone="sky" />
