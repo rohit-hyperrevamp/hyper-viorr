@@ -115,7 +115,7 @@ export function NotificationBell() {
         event.stopPropagation();
         setMobileOpen(true);
       }}
-      className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:border-accent hover:text-accent"
+      className="relative inline-flex h-9 w-9 shrink-0 aspect-square items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:border-accent hover:text-accent"
     >
       <Bell className="h-4 w-4" />
       {unread > 0 && (

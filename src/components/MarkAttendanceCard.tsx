@@ -80,13 +80,14 @@ function LiveTelemetryStrip({ punch }: { punch: SelfPunch }) {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 font-bold text-primary-foreground shadow-sm hover:bg-primary/90"
+          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
         >
-          <MapPin className="h-3.5 w-3.5" />
+          <MapPin className="h-4 w-4" />
           View live location
           <ExternalLink className="h-3 w-3 opacity-80" />
         </a>
       )}
+
     </div>
   );
 }

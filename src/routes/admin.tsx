@@ -400,7 +400,7 @@ function AdminLayout() {
       { key: "payroll", label: "Payroll", module: "payroll", icon: Wallet, children: payrollChildren, activePrefixes: ["/admin/payroll", "/admin/additions", "/admin/deductions"] },
       { key: "invoice", label: "Invoice", module: "invoice", icon: CreditCard, to: "/admin/invoice", activePrefixes: ["/admin/invoice"] },
       { key: "inventory", label: "Uniform Manager", module: "inventory", icon: Boxes, children: inventoryChildren, activePrefixes: ["/admin/inventory"] },
-      { key: "field-sense", label: "Field Sense", icon: Radio, to: "/admin/field-sense", activePrefixes: ["/admin/field-sense"] },
+      { key: "field-sense", label: "Field Sense", icon: Radio, to: "/admin/field-sense", activePrefixes: ["/admin/field-sense"], module: "__field_sense__" },
       { key: "vehicles", label: "Vehicles", module: "vehicles", icon: Car, to: "/admin/vehicles", children: vehiclesChildren, activePrefixes: ["/admin/vehicles"] },
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       { key: "office-assets", label: "Office Assets", module: "office_assets", icon: Briefcase, to: "/admin/office-assets", children: officeAssetsChildren, activePrefixes: ["/admin/office-assets"] },
@@ -463,13 +463,19 @@ function AdminLayout() {
       }));
     }
     const base = groups
-      .filter((g) => !g.module || can(g.module))
+      .filter((g) => {
+        if (g.module === "__field_sense__") {
+          return isSuperAdmin || roleKey === "leadership";
+        }
+        return !g.module || can(g.module);
+      })
       .map((g) => {
         if (g.key === "inventory") return { ...g, children: filteredInventoryChildren };
         if (!g.module || !g.children) return g;
         const filtered = g.children.filter((c) => !c.sub || canSub(g.module!, c.sub));
         return { ...g, children: filtered };
       });
+
     if (isFieldOfficer) {
       // FO gets a single dashboard entry that already shows their units and team.
       return base;
@@ -489,10 +495,11 @@ function AdminLayout() {
 
   return (
     <TooltipProvider delayDuration={150} skipDelayDuration={100}>
-    <div className="relative min-h-dvh">
+    <div className={cn("relative min-h-dvh", isFieldOfficer && "bg-white dark:bg-neutral-950")}>
       <AppleNativeSetupCard autoStart nativeOnly className="hidden" />
       {/* Soft tinted canvas — clean glass backdrop, no grid */}
-      <div className="pointer-events-none fixed inset-0 z-0 app-canvas" />
+      {!isFieldOfficer && <div className="pointer-events-none fixed inset-0 z-0 app-canvas" />}
+
 
 
 
@@ -691,7 +698,13 @@ function AdminLayout() {
       </aside>
 
       {/* Mobile top bar — native-app style, no hamburger (bottom nav has More) */}
-      <header data-app-header className={cn("sticky top-0 z-20 flex min-h-12 items-center justify-between gap-3 border-b border-border/30 bg-card/70 px-4 backdrop-blur-2xl backdrop-saturate-150 animate-slide-in-top safe-top safe-x", !nativeShell && "lg:hidden")}>
+      <header data-app-header className={cn(
+        "sticky top-0 z-20 flex min-h-12 items-center justify-between gap-3 px-4 animate-slide-in-top safe-top safe-x",
+        isFieldOfficer
+          ? "bg-white dark:bg-neutral-950 border-b border-border/40"
+          : "border-b border-border/30 bg-card/70 backdrop-blur-2xl backdrop-saturate-150",
+        !nativeShell && "lg:hidden",
+      )}>
         <Link to={dashboardHref} className="flex min-w-0 items-center gap-2">
           <BrandMark />
         </Link>
@@ -699,6 +712,7 @@ function AdminLayout() {
           <NotificationBell />
         </div>
       </header>
+
 
       {/* Mobile bottom-sheet drawer (slide-up) */}
       {mobileOpen && (
@@ -719,8 +733,7 @@ function AdminLayout() {
             <div className="flex justify-center pt-2.5 pb-1">
               <div className="h-1.5 w-10 rounded-full bg-muted-foreground/30" />
             </div>
-            <div className="flex items-center justify-between px-4 pb-2">
-              <BrandMark />
+            <div className="flex items-center justify-end px-4 pb-2">
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
@@ -730,49 +743,93 @@ function AdminLayout() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-              {visibleGroups.map((g) => (
-                <MobileGroup key={g.key} group={g} isActive={isActive} isGroupActive={isGroupActive(g)} />
-              ))}
-              <div className="my-2 border-t border-border/40" />
-              <Link
-                to="/admin/profile"
-                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
-              >
-                <Users className="h-4 w-4 shrink-0" /> My Profile
-              </Link>
-              <Link
-                to="/admin/my-attendance"
-                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
-              >
-                <Clock className="h-4 w-4 shrink-0" /> My Attendance
-              </Link>
+            {isFieldOfficer ? (
+              (() => {
+                const foTiles: Array<{ to: string; label: string; icon: typeof LayoutDashboard }> = [
+                  { to: "/admin/field-dashboard", label: "Dashboard", icon: LayoutDashboard },
+                  { to: "/admin/employees", label: "Employees", icon: UserPlus },
+                  { to: "/admin/attendance", label: "Attendance", icon: ClipboardList },
+                  { to: "/admin/inventory/items", label: "Uniform Manager", icon: Boxes },
+                  { to: "/admin/my-attendance", label: "My Attendance", icon: Clock },
+                ];
+                return (
+                  <nav className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+                    <div className="grid grid-cols-2 gap-3">
+                      {foTiles.map((t) => {
+                        const Icon = t.icon;
+                        const active = isActive(t.to);
+                        return (
+                          <Link
+                            key={t.to}
+                            to={t.to}
+                            className={cn(
+                              "flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center transition",
+                              active
+                                ? "border-accent/40 bg-accent/10 text-accent"
+                                : "border-border/60 bg-background text-foreground hover:border-accent/30 hover:bg-accent/5",
+                            )}
+                          >
+                            <span className={cn(
+                              "grid h-11 w-11 place-items-center rounded-xl",
+                              active ? "bg-accent/15 text-accent" : "bg-muted/60 text-foreground/80",
+                            )}>
+                              <Icon className="h-5 w-5" />
+                            </span>
+                            <span className="text-[12px] font-semibold leading-tight">{t.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </nav>
+                );
+              })()
+            ) : (
+              <nav className="flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                {visibleGroups.map((g) => (
+                  <MobileGroup key={g.key} group={g} isActive={isActive} isGroupActive={isGroupActive(g)} />
+                ))}
+                <div className="my-2 border-t border-border/40" />
+                <Link
+                  to="/admin/profile"
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
+                >
+                  <Users className="h-4 w-4 shrink-0" /> My Profile
+                </Link>
+                <Link
+                  to="/admin/my-attendance"
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
+                >
+                  <Clock className="h-4 w-4 shrink-0" /> My Attendance
+                </Link>
 
-              <Link
-                to="/admin/notifications"
-                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
-              >
-                <Bell className="h-4 w-4 shrink-0" /> Notifications
-              </Link>
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-foreground hover:bg-muted/60"
-              >
-                {themeMounted && theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
-                {themeMounted && theme === "dark" ? "Light mode" : "Dark mode"}
-              </button>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-destructive hover:bg-destructive/10"
-              >
-                <LogOut className="h-4 w-4 shrink-0" /> Sign out
-              </button>
-            </nav>
+                <Link
+                  to="/admin/notifications"
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
+                >
+                  <Bell className="h-4 w-4 shrink-0" /> Notifications
+                </Link>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-foreground hover:bg-muted/60"
+                >
+                  {themeMounted && theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+                  {themeMounted && theme === "dark" ? "Light mode" : "Dark mode"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-destructive hover:bg-destructive/10"
+                >
+                  <LogOut className="h-4 w-4 shrink-0" /> Sign out
+                </button>
+              </nav>
+            )}
           </aside>
         </div>
       )}
+
+
 
       {/* Main */}
       <main className={cn("relative z-10 min-h-[calc(100dvh-3.5rem)] overflow-x-clip safe-x py-3 !pb-[calc(88px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
