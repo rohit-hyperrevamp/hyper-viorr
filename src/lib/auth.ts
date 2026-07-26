@@ -283,6 +283,8 @@ export function useAuth() {
     });
     window.localStorage.removeItem(STORAGE_KEY);
     void supabase.auth.signOut();
+    // Wipe biometric so the next tester must explicitly re-enable Face ID.
+    void import("./biometric").then((m) => m.disableBiometric()).catch(() => {});
     emit();
   }, []);
 
