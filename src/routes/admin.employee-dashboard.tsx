@@ -712,3 +712,79 @@ function MetricTile({
   return to ? <Link to={to} className={cls}>{inner}</Link> : <div className={cls}>{inner}</div>;
 
 }
+
+function HeroStat({ label, value, tint }: { label: string; value: number | string; tint: "sky" | "emerald" | "amber" }) {
+  const dot = { sky: "bg-sky-400", emerald: "bg-emerald-400", amber: "bg-amber-400" }[tint];
+  return (
+    <div className="min-w-0 rounded-2xl bg-white/8 px-3 py-2.5 ring-1 ring-white/10 backdrop-blur">
+      <div className="flex items-center gap-1.5">
+        <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
+        <span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60">{label}</span>
+      </div>
+      <div className="mt-1 font-display text-xl font-bold tabular-nums leading-none text-white sm:text-2xl">{value}</div>
+    </div>
+  );
+}
+
+function PastelTile({
+  palette, label, value, hint, delta, deltaSuffix, invertColor, icon: Icon, to,
+}: {
+  palette: "lime" | "teal" | "rose" | "amber";
+  label: string; value: number | string; hint: string;
+  delta: number; deltaSuffix: string; invertColor?: boolean;
+  icon: React.ComponentType<{ className?: string }>; to?: string;
+}) {
+  const bg = {
+    lime: "bg-[color-mix(in_oklab,oklch(0.75_0.16_140)_18%,var(--card))]",
+    teal: "bg-[color-mix(in_oklab,oklch(0.75_0.12_195)_18%,var(--card))]",
+    rose: "bg-[color-mix(in_oklab,oklch(0.72_0.16_20)_18%,var(--card))]",
+    amber: "bg-[color-mix(in_oklab,oklch(0.82_0.14_75)_20%,var(--card))]",
+  }[palette];
+  const ring = {
+    lime: "ring-[color-mix(in_oklab,oklch(0.75_0.16_140)_35%,transparent)]",
+    teal: "ring-[color-mix(in_oklab,oklch(0.75_0.12_195)_35%,transparent)]",
+    rose: "ring-[color-mix(in_oklab,oklch(0.72_0.16_20)_35%,transparent)]",
+    amber: "ring-[color-mix(in_oklab,oklch(0.82_0.14_75)_40%,transparent)]",
+  }[palette];
+
+  const positive = invertColor ? delta < 0 : delta > 0;
+  const negative = invertColor ? delta > 0 : delta < 0;
+  const TrendIcon = delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
+  const trendCls = delta === 0
+    ? "bg-card/70 text-foreground/60"
+    : positive ? "bg-card/85 text-emerald-700 dark:text-emerald-300"
+    : negative ? "bg-card/85 text-rose-700 dark:text-rose-300"
+    : "bg-card/70 text-foreground/60";
+
+  const inner = (
+    <div className={`relative flex h-full min-h-[86px] flex-col justify-between overflow-hidden rounded-2xl p-3 ring-1 ring-inset transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:rounded-[26px] sm:p-5 ${bg} ${ring}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="text-[11px] font-semibold leading-tight text-foreground/80 sm:text-[13px]">{label}</div>
+          <div className="mt-0.5 line-clamp-1 text-[10px] text-foreground/60 sm:text-[11px]">{hint}</div>
+        </div>
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 text-foreground/70 shadow-sm sm:h-9 sm:w-9">
+          <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        </span>
+      </div>
+      <div className="mt-2 flex items-end justify-between gap-2 sm:gap-3">
+        <div className="font-display text-[24px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[44px]">
+          {value}
+        </div>
+        <div className="flex flex-col items-end gap-1 sm:gap-1.5">
+          {delta !== 0 && (
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${trendCls}`}>
+              <TrendIcon className="h-3 w-3" />
+              {delta > 0 ? "+" : ""}{delta}{deltaSuffix}
+            </span>
+          )}
+          <span className="hidden h-7 w-7 place-items-center rounded-full bg-card/70 text-foreground/70 sm:grid">
+            <Icon className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+  return to ? <Link to={to} className="block">{inner}</Link> : inner;
+}
+
