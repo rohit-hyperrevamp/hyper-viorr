@@ -1566,65 +1566,81 @@ function MusterRollPage() {
           }
         }
       `}</style>
-      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link
-          to="/admin/attendance"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          <ChevronLeft className="h-4 w-4" /> Back to units
-        </Link>
+      <div className="rounded-2xl border border-border/60 bg-card/95 p-3 shadow-sm backdrop-blur-xl sm:p-4 print:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            to="/admin/attendance"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back to units</span><span className="sm:hidden">Back</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
+              <SelectTrigger className="h-9 w-[128px] rounded-xl text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONTH_NAMES.map((m, i) => {
+                  if (contractStartDate) {
+                    const [sy, sm] = contractStartDate.split("-").map(Number);
+                    if (year < sy || (year === sy && i < sm - 1)) return null;
+                  }
+                  if (year > now.getFullYear() || (year === now.getFullYear() && i > now.getMonth())) return null;
+                  return <SelectItem key={m} value={String(i)}>{m}</SelectItem>;
+                })}
+              </SelectContent>
+            </Select>
+            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+              <SelectTrigger className="h-9 w-[92px] rounded-xl text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[year - 2, year - 1, year, year + 1].map((y) => {
+                  if (contractStartDate) {
+                    const sy = Number(contractStartDate.split("-")[0]);
+                    if (y < sy) return null;
+                  }
+                  if (y > now.getFullYear()) return null;
+                  return <SelectItem key={y} value={String(y)}>{y}</SelectItem>;
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-        <div className="flex items-center gap-2">
-          <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
-            <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {MONTH_NAMES.map((m, i) => {
-                if (contractStartDate) {
-                  const [sy, sm] = contractStartDate.split("-").map(Number);
-                  if (year < sy || (year === sy && i < sm - 1)) return null;
-                }
-                if (year > now.getFullYear() || (year === now.getFullYear() && i > now.getMonth())) return null;
-                return <SelectItem key={m} value={String(i)}>{m}</SelectItem>;
-              })}
-            </SelectContent>
-          </Select>
-          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-            <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {[year - 2, year - 1, year, year + 1].map((y) => {
-                if (contractStartDate) {
-                  const sy = Number(contractStartDate.split("-")[0]);
-                  if (y < sy) return null;
-                }
-                if (y > now.getFullYear()) return null;
-                return <SelectItem key={y} value={String(y)}>{y}</SelectItem>;
-              })}
-            </SelectContent>
-          </Select>
+        <div className="mt-3 flex items-center gap-2">
           <Button
-            variant="outline"
             size="sm"
             onClick={() => { setUploadOpen(true); }}
             disabled={!editable}
             title={editable ? "Upload an attendance sheet image to auto-fill" : "Sheet locked"}
+            className="h-10 flex-1 rounded-xl font-semibold shadow-sm"
           >
             <Upload className="mr-1.5 h-4 w-4" /> Upload Attendance
           </Button>
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
+            onClick={() => window.print()}
+            title="Print"
+            className="h-10 w-10 shrink-0 rounded-xl"
+          >
+            <Printer className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            disabled
+            title="Export (coming soon)"
+            className="h-10 w-10 shrink-0 rounded-xl"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
             onClick={handleClearAll}
             disabled={!editable || clearingAll}
             title={editable ? "Delete every attendance entry on this sheet" : "Sheet locked"}
-            className="text-destructive hover:text-destructive"
+            className="h-10 w-10 shrink-0 rounded-xl text-destructive hover:text-destructive"
           >
-            {clearingAll ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1.5 h-4 w-4" />} Clear All
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
-            <Printer className="mr-1.5 h-4 w-4" /> Print
-          </Button>
-          <Button variant="outline" size="sm" disabled>
-            <Download className="mr-1.5 h-4 w-4" /> Export
+            {clearingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           </Button>
         </div>
       </div>
