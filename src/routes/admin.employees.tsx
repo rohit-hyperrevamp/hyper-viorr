@@ -264,7 +264,15 @@ export type OffboardingDetails = {
   inventory_returns?: OffboardingInventoryReturn[];
   rating?: number;
   rating_remarks?: string;
+  // Offboarding-collection handshake with the Field Officer
+  pending_collection_fo_id?: string | null;
+  pending_collection_fo_name?: string | null;
+  collection_status?: "pending" | "completed" | null;
+  collection_requested_at?: string | null;
+  collection_completed_at?: string | null;
+  collection_completed_by?: string | null;
 };
+
 
 type CandidateExperience = {
   company_name: string;
@@ -1427,16 +1435,52 @@ function EmployeesPage() {
       details: OffboardingDetails;
       noHire: boolean;
     }) => {
+      const returns = (details.inventory_returns ?? []).filter((r) => r.qty_returned > 0);
+      const pendingFoId =
+        returns.length > 0 && returns[0].destination_type === "field_officer"
+          ? returns[0].destination_id
+          : null;
+      const isDeferred = !!pendingFoId;
+      const nowIso = new Date().toISOString();
+
+      // Look up FO name for the offboarding_details record (nice-to-have for UI).
+      let foName: string | null = null;
+      if (pendingFoId) {
+        const { data: foRow } = await supabase
+          .from("candidates" as never)
+          .select("full_name,employee_code")
+          .eq("id", pendingFoId)
+          .maybeSingle();
+        const fo = foRow as { full_name?: string; employee_code?: string } | null;
+        foName = fo?.full_name || fo?.employee_code || null;
+      }
+
+      const enrichedDetails: OffboardingDetails = {
+        ...details,
+        pending_collection_fo_id: pendingFoId,
+        pending_collection_fo_name: foName,
+        collection_status: isDeferred ? "pending" : returns.length > 0 ? "completed" : null,
+        collection_requested_at: isDeferred ? nowIso : details.collection_requested_at ?? null,
+        collection_completed_at: isDeferred ? null : returns.length > 0 ? nowIso : null,
+      };
+
+      const updatePayload: Record<string, unknown> = {
+        offboarding_reason_id: reasonId,
+        offboarding_details: enrichedDetails,
+        no_hire: noHire,
+      };
+      if (isDeferred) {
+        // Keep the employee active/enabled until the FO confirms collection.
+        // Do NOT set offboarded_at here — finalisation happens on FO confirmation.
+      } else {
+        updatePayload.is_enabled = false;
+        updatePayload.status = "inactive";
+        updatePayload.offboarded_at = nowIso;
+      }
+
       const { data: updated, error } = await supabase
         .from("candidates" as never)
-        .update({
-          is_enabled: false,
-          status: "inactive",
-          offboarding_reason_id: reasonId,
-          offboarded_at: new Date().toISOString(),
-          offboarding_details: details,
-          no_hire: noHire,
-        } as unknown as never)
+        .update(updatePayload as unknown as never)
         .eq("id", candidate.id)
         .select("id");
       if (error) throw error;
@@ -1444,10 +1488,34 @@ function EmployeesPage() {
         throw new Error("You don't have permission to offboard this employee, or the record could not be updated.");
       }
 
-
-      // Post inventory return movements: negative at guard, positive at destination
-      const returns = (details.inventory_returns ?? []).filter((r) => r.qty_returned > 0);
-      if (returns.length) {
+      if (isDeferred) {
+        // Do NOT post inventory movements yet — the FO will confirm and then movements post.
+        // Notify the selected Field Officer.
+        try {
+          const { data: uidRow } = await supabase.rpc(
+            "get_user_id_by_candidate_id" as never,
+            { _candidate_id: pendingFoId } as never,
+          );
+          const foUserId = (uidRow as unknown as string | null) ?? null;
+          if (foUserId) {
+            const itemsSummary = returns
+              .map((r) => `${r.item_name}${r.size_value ? " (" + r.size_value + ")" : ""} × ${r.qty_returned}`)
+              .join(", ");
+            await createNotification({
+              userId: foUserId,
+              type: "offboarding_collection_pending",
+              title: `Collection pending · ${candidate.full_name || candidate.employee_code}`,
+              message: `HR has initiated offboarding. Please recover ${returns.length} item${returns.length === 1 ? "" : "s"}: ${itemsSummary}. Confirm in Uniform Manager → Collections.`,
+              link: "/admin/inventory/collections",
+              entityType: "candidate",
+              entityId: candidate.id,
+            });
+          }
+        } catch (e) {
+          console.warn("Failed to notify field officer of pending collection", e);
+        }
+      } else if (returns.length) {
+        // No pending FO handshake — post movements directly (e.g. no items, or non-FO path).
         const moves = returns.flatMap((r) => [
           {
             movement_type: "offboarding_return",
@@ -1475,7 +1543,6 @@ function EmployeesPage() {
         try {
           await postMovements(moves);
         } catch (e) {
-          // Do not fail offboarding on movement error; surface a toast.
           console.error("Inventory return movement failed", e);
           toast.error("Employee offboarded, but inventory return failed to post. Please review Stock Ledger.");
         }
@@ -1483,16 +1550,32 @@ function EmployeesPage() {
 
       await logActivity({
         module: "Employees",
-        action: "offboard",
+        action: isDeferred ? "offboard_requested" : "offboard",
         entityType: "candidate",
         entityId: candidate.id,
         entityLabel: candidate.full_name || candidate.employee_code,
         before: { is_enabled: candidate.is_enabled, status: candidate.status },
-        after: { is_enabled: false, status: "inactive", offboarding_reason: reasonName, no_hire: noHire, offboarding_details: details, inventory_returns_count: returns.length },
+        after: {
+          is_enabled: isDeferred ? candidate.is_enabled : false,
+          status: isDeferred ? candidate.status : "inactive",
+          offboarding_reason: reasonName,
+          no_hire: noHire,
+          offboarding_details: enrichedDetails,
+          inventory_returns_count: returns.length,
+          pending_collection_fo_id: pendingFoId,
+        },
       });
+
+      return { isDeferred, pendingFoName: foName };
     },
-    onSuccess: () => {
-      toast.success("Employee offboarded");
+    onSuccess: (res) => {
+      if (res?.isDeferred) {
+        toast.success(
+          `Offboarding submitted — awaiting inventory collection by ${res.pendingFoName ?? "field officer"}.`,
+        );
+      } else {
+        toast.success("Employee offboarded");
+      }
       qc.invalidateQueries({ queryKey: QK });
       qc.invalidateQueries({ queryKey: ["inv_stock_balances"] });
       qc.invalidateQueries({ queryKey: ["inv_stock_movements"] });
@@ -1501,6 +1584,7 @@ function EmployeesPage() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Offboarding failed"),
   });
+
 
   const assignManagerMut = useMutation({
     mutationFn: async ({ candidate, managerId }: { candidate: CandidateListItem; managerId: string | null }) => {
@@ -5247,20 +5331,21 @@ function OffboardingDialog({
     },
   });
 
-  // Fetch warehouses for return destination selection
-  const warehousesQ = useQuery({
-    queryKey: ["offboard-warehouses"],
+  // Fetch active Field Officers — the offboarding collection MUST be received by an FO
+  const fieldOfficersQ = useQuery({
+    queryKey: ["offboard-field-officers"],
     enabled: !!target?.id,
     staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("inv_warehouses" as never)
-        .select("id,name,is_default,enabled")
-        .eq("enabled", true)
-        .order("is_default", { ascending: false })
-        .order("name", { ascending: true });
+        .from("candidates" as never)
+        .select("id,full_name,employee_code,role_key,is_enabled,status")
+        .eq("role_key", "field_officer")
+        .eq("is_enabled", true)
+        .eq("status", "active")
+        .order("full_name", { ascending: true });
       if (error) throw error;
-      return ((data as unknown) as Array<{ id: string; name: string; is_default: boolean }>) ?? [];
+      return ((data as unknown) as Array<{ id: string; full_name: string; employee_code: string }>) ?? [];
     },
   });
 
@@ -5286,58 +5371,57 @@ function OffboardingDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.id]);
 
-  // Build default destination + inv return rows once balances/warehouses load
+  // Build default destination (Field Officer) + inv return rows once data loads
   useEffect(() => {
     if (!target) return;
     const bal = balancesQ.data ?? [];
     if (bal.length === 0) {
       setInvReturns([]);
-    } else {
-      // Default destination: FO → own field_officer bucket; else default warehouse if available
-      let destType: LocationType = "warehouse";
-      let destId = "";
-      let destLabel = "";
-      if (isFieldOfficer && currentUserCandidateId) {
-        destType = "field_officer";
-        destId = currentUserCandidateId;
-        destLabel = "My inventory (field officer)";
-      } else {
-        const wh = warehousesQ.data ?? [];
-        const def = wh.find((w) => w.is_default) ?? wh[0];
-        if (def) { destId = def.id; destLabel = `Warehouse · ${def.name}`; }
-      }
-      const key = destId ? `${destType}:${destId}` : "";
-      setReturnDestKey(key);
-      setInvReturns(
-        bal.map((b) => ({
-          item_id: b.item_id,
-          item_name: b.inv_items?.name ?? "Item",
-          size_value: b.size_value ?? "",
-          unit: b.inv_items?.unit ?? "pcs",
-          on_hand: Number(b.qty ?? 0),
-          qty_returned: Number(b.qty ?? 0),
-          destination_type: destType,
-          destination_id: destId,
-          destination_label: destLabel,
-          remarks: "",
-        })),
-      );
+      return;
     }
+    const fos = fieldOfficersQ.data ?? [];
+    // Prefer the guard's reports_to (their FO); else the current-user FO; else the first FO in list.
+    let foId = "";
+    let foLabel = "";
+    const reports = target.reports_to ?? null;
+    const preferred =
+      (reports && fos.find((f) => f.id === reports)) ||
+      (isFieldOfficer && currentUserCandidateId && fos.find((f) => f.id === currentUserCandidateId)) ||
+      fos[0];
+    if (preferred) {
+      foId = preferred.id;
+      foLabel = `Field Officer · ${preferred.full_name}${preferred.employee_code ? " · " + preferred.employee_code : ""}`;
+    }
+    const key = foId ? `field_officer:${foId}` : "";
+    setReturnDestKey(key);
+    setInvReturns(
+      bal.map((b) => ({
+        item_id: b.item_id,
+        item_name: b.inv_items?.name ?? "Item",
+        size_value: b.size_value ?? "",
+        unit: b.inv_items?.unit ?? "pcs",
+        on_hand: Number(b.qty ?? 0),
+        qty_returned: Number(b.qty ?? 0),
+        destination_type: "field_officer" as LocationType,
+        destination_id: foId,
+        destination_label: foLabel,
+        remarks: "",
+      })),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target?.id, balancesQ.data, warehousesQ.data]);
+  }, [target?.id, balancesQ.data, fieldOfficersQ.data]);
 
   // Propagate destination change to all rows
   useEffect(() => {
     if (!returnDestKey) return;
     const [type, id] = returnDestKey.split(":") as [LocationType, string];
-    let label = "";
-    if (type === "field_officer") label = "My inventory (field officer)";
-    else if (type === "warehouse") {
-      const w = (warehousesQ.data ?? []).find((x) => x.id === id);
-      label = w ? `Warehouse · ${w.name}` : "Warehouse";
-    } else if (type === "scrap") label = "Scrap / Write-off";
+    const fo = (fieldOfficersQ.data ?? []).find((f) => f.id === id);
+    const label = fo
+      ? `Field Officer · ${fo.full_name}${fo.employee_code ? " · " + fo.employee_code : ""}`
+      : "Field Officer";
     setInvReturns((rows) => rows.map((r) => ({ ...r, destination_type: type, destination_id: id, destination_label: label })));
-  }, [returnDestKey, warehousesQ.data]);
+  }, [returnDestKey, fieldOfficersQ.data]);
+
 
   const selectedReason = reasons.find((r) => r.id === reasonId);
   const isAbsconding = !!selectedReason && ABSCONDING_NAMES.has(selectedReason.name.trim().toLowerCase());
@@ -5374,8 +5458,10 @@ function OffboardingDialog({
             <span className="font-medium text-foreground">
               {target.full_name || target.employee_code || "this employee"}
             </span>
-            . Once saved, the employee will be marked Inactive.
+            . If any inventory is still held, the selected Field Officer must confirm collection
+            before the employee is finally marked Inactive.
           </DialogDescription>
+
         </DialogHeader>
 
         <div className="space-y-6">
@@ -5443,48 +5529,8 @@ function OffboardingDialog({
             </div>
           </section>
 
-          {/* Section: Handover Checklist */}
-          <section className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                Handover Checklist
-              </h3>
-              <span className="text-[11px] text-muted-foreground">
-                {assetReturns.filter((r) => r.returned).length} / {assetReturns.length} returned
-              </span>
-            </div>
-            {assetReturns.length === 0 ? (
-              <p className="rounded-md border border-dashed border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-                No assets were assigned to this employee. Assign assets from the Employee Info screen if a handover is required.
-              </p>
-            ) : (
-              <div className="rounded-md border border-border">
-                {assetReturns.map((row, idx) => {
-                  const a = assetById.get(row.asset_id);
-                  return (
-                    <div
-                      key={row.asset_id}
-                      className={cn(
-                        "grid grid-cols-[auto,1fr,2fr] items-center gap-3 p-3",
-                        idx > 0 && "border-t border-border",
-                      )}
-                    >
-                      <Switch checked={row.returned} onCheckedChange={() => toggleReturned(row.asset_id)} />
-                      <div className="text-sm">
-                        <div className="font-medium">{a?.name ?? "Unknown asset"}</div>
-                        {a?.category && <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{a.category}</div>}
-                      </div>
-                      <Input
-                        placeholder="Condition / remarks (optional)"
-                        value={row.remarks ?? ""}
-                        onChange={(e) => setReturnRemarks(row.asset_id, e.target.value)}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
+          {/* Handover Checklist removed — inventory return handshake below is the source of truth */}
+
 
           {/* Section: Return Issued Inventory (uniform / shoes / torch etc.) */}
           <section className="space-y-3">
@@ -5508,31 +5554,26 @@ function OffboardingDialog({
               <>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1 sm:col-span-2">
-                    <Label>Where should returned items be received? *</Label>
+                    <Label>Collecting Field Officer *</Label>
                     <Select value={returnDestKey} onValueChange={setReturnDestKey}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select receiving location" />
+                        <SelectValue placeholder={fieldOfficersQ.isLoading ? "Loading…" : "Select field officer"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {isFieldOfficer && currentUserCandidateId && (
-                          <SelectItem value={`field_officer:${currentUserCandidateId}`}>
-                            My inventory (field officer)
-                          </SelectItem>
-                        )}
-                        {(warehousesQ.data ?? []).map((w) => (
-                          <SelectItem key={w.id} value={`warehouse:${w.id}`}>
-                            Warehouse · {w.name}{w.is_default ? " (default)" : ""}
+                        {(fieldOfficersQ.data ?? []).map((fo) => (
+                          <SelectItem key={fo.id} value={`field_officer:${fo.id}`}>
+                            {fo.full_name}{fo.employee_code ? ` · ${fo.employee_code}` : ""}
                           </SelectItem>
                         ))}
-                        <SelectItem value="scrap:00000000-0000-0000-0000-000000000000">
-                          Scrap / Write-off (item not usable)
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-[11px] text-muted-foreground">
-                      Set the quantity to 0 for items the employee did NOT return. Only returned quantities are moved back into stock.
+                      Offboarding will be marked <span className="font-medium text-foreground">Awaiting inventory collection</span>.
+                      The selected Field Officer will get a red-flagged notification under Uniform Manager → Collections.
+                      The employee is finalised as Inactive only once the FO confirms collection.
                     </p>
                   </div>
+
                 </div>
                 <div className="rounded-md border border-border">
                   <div className="grid grid-cols-[2fr,auto,auto,2fr] gap-3 border-b border-border bg-muted/30 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">

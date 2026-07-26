@@ -19,7 +19,15 @@ export const Route = createFileRoute("/admin/inventory/collections")({ component
 const MODULE = "Inventory Collections";
 const ENTITY = "inv_stock_movements";
 
-type Candidate = { id: string; full_name: string; employee_code: string | null; mobile: string | null; role_key: string; unit_id: string | null; reports_to: string | null };
+type OffboardingDetails = {
+  pending_collection_fo_id?: string | null;
+  collection_status?: "pending" | "completed" | null;
+  collection_requested_at?: string | null;
+  reason_text?: string;
+  date_of_offboarding?: string | null;
+};
+type Candidate = { id: string; full_name: string; employee_code: string | null; mobile: string | null; role_key: string; unit_id: string | null; reports_to: string | null; offboarding_details?: OffboardingDetails | null };
+
 type Unit = { id: string; code: string; name: string };
 type Item = { id: string; name: string; item_code: string; is_sized: boolean };
 type Balance = { location_type: string; location_id: string; item_id: string; size_value: string; qty: number };
@@ -77,7 +85,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("candidates" as never)
-        .select("id,full_name,employee_code,mobile,role_key,unit_id,reports_to")
+        .select("id,full_name,employee_code,mobile,role_key,unit_id,reports_to,offboarding_details")
         .eq("reports_to", me.id)
         .in("role_key", ["guard", "security_guard"])
         .eq("status", "active")
@@ -86,6 +94,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
       return (data as unknown as Candidate[]) ?? [];
     },
   });
+
 
   // Units covered by this field officer, so Collections opens with unit coverage first.
   const { data: coveredUnitIds = [] } = useQuery({
@@ -212,6 +221,16 @@ function CollectionsPanel({ me }: { me: Candidate }) {
 
   const totalGuards = guards.length;
   const guardsWithStock = useMemo(() => guards.filter((g) => (balByGuard.get(g.id)?.length ?? 0) > 0).length, [guards, balByGuard]);
+  const pendingOffboardCount = useMemo(
+    () =>
+      guards.filter(
+        (g) =>
+          g.offboarding_details?.collection_status === "pending" &&
+          g.offboarding_details?.pending_collection_fo_id === me.id,
+      ).length,
+    [guards, me.id],
+  );
+
 
   const activeGuard = openGuard ? guards.find((g) => g.id === openGuard) ?? null : null;
   const activeBalances = openGuard ? balByGuard.get(openGuard) ?? [] : [];
@@ -235,13 +254,67 @@ function CollectionsPanel({ me }: { me: Candidate }) {
         },
       ]));
       await postMovements(movs);
+
+      // Offboarding handshake — if this guard was flagged pending-offboarding for me,
+      // check that no stock remains at the guard, then finalise the offboarding.
+      const od = payload.guard.offboarding_details ?? null;
+      const isPendingOffboarding =
+        od?.collection_status === "pending" && od?.pending_collection_fo_id === me.id;
+      let finalisedOffboarding = false;
+      if (isPendingOffboarding) {
+        const { data: remainingRows, error: remErr } = await supabase
+          .from("inv_stock_balances" as never)
+          .select("qty")
+          .eq("location_type", "guard")
+          .eq("location_id", payload.guard.id)
+          .gt("qty", 0);
+        if (remErr) throw remErr;
+        const remaining = ((remainingRows as unknown as { qty: number }[]) ?? []).reduce(
+          (s, r) => s + Number(r.qty || 0),
+          0,
+        );
+        if (remaining === 0) {
+          const nowIso = new Date().toISOString();
+          const nextDetails: OffboardingDetails = {
+            ...od,
+            collection_status: "completed",
+            collection_requested_at: od?.collection_requested_at ?? nowIso,
+          };
+          const { error: upErr } = await supabase
+            .from("candidates" as never)
+            .update({
+              is_enabled: false,
+              status: "inactive",
+              offboarded_at: nowIso,
+              offboarding_details: { ...nextDetails, collection_completed_at: nowIso, collection_completed_by: me.id },
+            } as unknown as never)
+            .eq("id", payload.guard.id);
+          if (upErr) throw upErr;
+          finalisedOffboarding = true;
+          void logActivity({
+            module: "Employees",
+            action: "offboard",
+            entityType: "candidate",
+            entityId: payload.guard.id,
+            entityLabel: `${payload.guard.full_name} finalised on FO collection`,
+            details: { collected_by: me.id },
+          });
+        }
+      }
+
       void logActivity({
         module: MODULE, action: "collect", entityType: ENTITY, entityId: payload.guard.id,
         entityLabel: `Collected from ${payload.guard.full_name} (${payload.rows.length} item${payload.rows.length === 1 ? "" : "s"})`,
       });
+
+      return { finalisedOffboarding };
     },
-    onSuccess: () => {
-      toast.success("Collected — stock returned to you");
+    onSuccess: (res) => {
+      if (res?.finalisedOffboarding) {
+        toast.success("Collection confirmed — employee offboarded.");
+      } else {
+        toast.success("Collected — stock returned to you");
+      }
       qc.invalidateQueries({ queryKey: ["collections"] });
       qc.invalidateQueries({ queryKey: ["inv", "balances-sum"] });
       qc.invalidateQueries({ queryKey: ["inv"] });
@@ -249,6 +322,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+
 
   return (
     <div>
@@ -259,12 +333,28 @@ function CollectionsPanel({ me }: { me: Candidate }) {
         <StatTile icon={Inbox} label="Total items at guards" value={balances.reduce((s, b) => s + Number(b.qty || 0), 0)} accent="bg-amber-500" />
       </div>
 
+      {pendingOffboardCount > 0 && (
+        <div className="mb-4 flex items-center gap-3 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 shadow-sm">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-500/20">
+            <PackageCheck className="h-4 w-4" />
+          </span>
+          <div className="flex-1">
+            <div className="font-semibold">Offboarding collection pending</div>
+            <div className="text-[12px] text-rose-700/80">
+              {pendingOffboardCount} guard{pendingOffboardCount === 1 ? "" : "s"} awaiting your inventory recovery.
+              Their offboarding will complete only after you confirm collection.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search guard name, code or mobile…" className="h-10 rounded-lg pl-9" />
         </div>
       </div>
+
 
       {guardsLoading ? (
         <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">Loading…</div>
@@ -345,14 +435,27 @@ function UnitBlock({ unit, guards, balByGuard, itemMap, onCollect }: {
           {guards.map((g) => {
             const bals = balByGuard.get(g.id) ?? [];
             const totalQty = bals.reduce((s, b) => s + Number(b.qty || 0), 0);
+            const isPendingOff =
+              g.offboarding_details?.collection_status === "pending" &&
+              !!g.offboarding_details?.pending_collection_fo_id;
             return (
-              <div key={g.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                key={g.id}
+                className={`flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${isPendingOff ? "bg-rose-500/5" : ""}`}
+              >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isPendingOff ? "bg-rose-500/15 text-rose-600" : "bg-emerald-500/10 text-emerald-600"}`}>
                     <ShieldCheck className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-foreground">{g.full_name}</div>
+                    <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+                      <span>{g.full_name}</span>
+                      {isPendingOff && (
+                        <span className="inline-flex items-center rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-700">
+                          Offboarding · collect pending
+                        </span>
+                      )}
+                    </div>
                     <div className="text-[11px] text-muted-foreground">{g.employee_code ?? "—"}{g.mobile ? ` · +91 ${g.mobile}` : ""}</div>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {bals.length === 0 && <span className="text-[11px] text-muted-foreground">Nothing assigned</span>}
@@ -368,12 +471,18 @@ function UnitBlock({ unit, guards, balByGuard, itemMap, onCollect }: {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="text-right text-[11px] text-muted-foreground">{totalQty} item{totalQty === 1 ? "" : "s"} held</div>
-                  <Button size="sm" disabled={bals.length === 0} onClick={() => onCollect(g)} className="h-9 rounded-md">
-                    <PackageCheck className="mr-1.5 h-4 w-4" /> Recover
+                  <Button
+                    size="sm"
+                    disabled={bals.length === 0}
+                    onClick={() => onCollect(g)}
+                    className={`h-9 rounded-md ${isPendingOff ? "bg-rose-600 text-white hover:bg-rose-700" : ""}`}
+                  >
+                    <PackageCheck className="mr-1.5 h-4 w-4" /> {isPendingOff ? "Confirm collection" : "Recover"}
                   </Button>
                 </div>
               </div>
             );
+
           })}
         </div>
       )}
