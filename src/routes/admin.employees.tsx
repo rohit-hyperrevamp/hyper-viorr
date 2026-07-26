@@ -104,9 +104,11 @@ import {
   QK_SCOPE_ASSIGNMENTS,
   SCOPE_TYPE_LABEL,
   useScopeAssignments,
+  useCandidateUnits,
   type ScopeAssignment,
   type ScopeType,
 } from "@/lib/deployment";
+
 import { useBranches, useCustomers, useStates } from "@/lib/admin-data";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
 
@@ -810,6 +812,8 @@ function EmployeesPage() {
   const desigMap = useMemo(() => new Map(designations.map((d) => [d.id, d])), [designations]);
 
   const { candidateId: currentCandidateId, isLoading: roleLoading } = useCurrentUserRole();
+  const candidateUnitsQuery = useCandidateUnits();
+  const NOMANS_UNIT_ID = "045fc1ec-a703-494f-8cce-29d353374c60";
   const scopedUnitsForWizard = useMemo(() => {
     if (!isFieldOfficer) return units;
     if (!currentCandidateId) return [] as typeof units;
@@ -817,17 +821,24 @@ function EmployeesPage() {
     const unitIds = new Set(mine.filter((s) => s.scope_type === "unit").map((s) => s.scope_id));
     const branchIds = new Set(mine.filter((s) => s.scope_type === "branch").map((s) => s.scope_id));
     const customerIds = new Set(mine.filter((s) => s.scope_type === "customer").map((s) => s.scope_id));
+    // Legacy: candidate_units mappings also count as unit scope.
+    for (const cu of candidateUnitsQuery.data ?? []) {
+      if (cu.candidate_id === currentCandidateId && cu.unit_id) unitIds.add(cu.unit_id);
+    }
+    // Always include "No Man's Land" as a fallback unit for FO onboarding.
+    unitIds.add(NOMANS_UNIT_ID);
     return units.filter((u) => {
       if (unitIds.has(u.id)) return true;
       if (u.branch_id && branchIds.has(u.branch_id)) return true;
       if (u.customer_id && customerIds.has(u.customer_id)) return true;
       return false;
     });
-  }, [isFieldOfficer, currentCandidateId, scopeAssignments, units]);
+  }, [isFieldOfficer, currentCandidateId, scopeAssignments, units, candidateUnitsQuery.data]);
   const scopedUnitIdSet = useMemo(
     () => new Set(scopedUnitsForWizard.map((u) => u.id)),
     [scopedUnitsForWizard],
   );
+
   const scopeStillLoading = isFieldOfficer && (roleLoading || scopeQuery.isLoading || !currentCandidateId);
 
   const matchesSearch = (c: CandidateListItem) => {
