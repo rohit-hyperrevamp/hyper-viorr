@@ -4,16 +4,16 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * Capacitor config for Radiant Guard Services.
  *
  * TanStack Start is server-rendered, so the native shell loads the hosted app
- * via `server.url` instead of bundling static assets. Use a public app URL here;
- * Lovable editor preview URLs route through an auth bridge and are not suitable
- * for the installed iOS WebView.
+ * via `server.url` instead of bundling static assets. The iOS app intentionally
+ * loads the production Vercel/custom-domain app; Apple push calls are bridged
+ * back to the Lovable-hosted native API where the APNs secrets live.
  */
 const config: CapacitorConfig = {
   appId: "app.lovable.radiantguard",
   appName: "Radiant Guard",
   webDir: "capacitor-web",
   server: {
-    url: "https://radiant-guard-services.lovable.app",
+    url: "https://radiant.hyperrevamp.com",
     cleartext: false,
     androidScheme: "https",
     iosScheme: "https",

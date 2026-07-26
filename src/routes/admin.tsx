@@ -69,6 +69,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/lib/use-theme";
+import { isNativePlatform } from "@/lib/native";
 import { toast } from "sonner";
 
 
@@ -204,7 +205,12 @@ function AdminLayout() {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
+  const [nativeShell, setNativeShell] = useState(false);
   const { theme, toggle: toggleTheme, mounted: themeMounted } = useTheme();
+
+  useEffect(() => {
+    setNativeShell(isNativePlatform());
+  }, []);
 
 
   // One-time backfill of stored public URLs → signed URLs after buckets were privatized.
@@ -471,7 +477,7 @@ function AdminLayout() {
     });
 
   const sidebarWidth = collapsed ? "lg:w-[72px]" : "lg:w-[244px]";
-  const mainOffset = collapsed ? "lg:ml-24" : "lg:ml-[260px]";
+  const mainOffset = nativeShell ? "" : collapsed ? "lg:ml-24" : "lg:ml-[260px]";
 
   return (
     <TooltipProvider delayDuration={150} skipDelayDuration={100}>
@@ -487,6 +493,7 @@ function AdminLayout() {
       <aside
         className={cn(
           "fixed inset-y-3 left-3 z-30 hidden flex-col rounded-[26px] border border-border/50 bg-card/65 shadow-[0_10px_40px_-16px_rgba(15,23,42,0.18)] backdrop-blur-2xl backdrop-saturate-150 transition-[width] duration-300 lg:flex animate-slide-in-left",
+          nativeShell && "lg:hidden",
           sidebarWidth,
         )}
       >
@@ -670,7 +677,7 @@ function AdminLayout() {
       </aside>
 
       {/* Mobile top bar — native-app style, no hamburger (bottom nav has More) */}
-      <header data-app-header className="sticky top-0 z-20 flex min-h-12 items-center justify-between gap-3 border-b border-border/30 bg-card/70 px-4 backdrop-blur-2xl backdrop-saturate-150 lg:hidden animate-slide-in-top safe-top safe-x">
+      <header data-app-header className={cn("sticky top-0 z-20 flex min-h-12 items-center justify-between gap-3 border-b border-border/30 bg-card/70 px-4 backdrop-blur-2xl backdrop-saturate-150 animate-slide-in-top safe-top safe-x", !nativeShell && "lg:hidden")}>
         <Link to={dashboardHref} className="flex min-w-0 items-center gap-2">
           <BrandMark />
         </Link>
@@ -749,7 +756,7 @@ function AdminLayout() {
       {/* Main */}
       <main className={cn("relative z-10 min-h-[calc(100dvh-3.5rem)] overflow-x-clip safe-x py-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:py-8 lg:pr-6 lg:pb-8", mainOffset)}>
         {/* Desktop top utility bar — global search + notifications */}
-        {!isFieldOfficer && (
+        {!isFieldOfficer && !nativeShell && (
           <div className="mb-4 hidden items-center gap-3 lg:flex animate-slide-in-top">
             <div className="flex h-10 flex-1 items-center gap-2 rounded-full border border-border/60 bg-card/70 px-4 text-sm text-muted-foreground backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_10px_30px_-18px_rgba(15,23,42,0.18)]">
               <svg className="h-4 w-4 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>

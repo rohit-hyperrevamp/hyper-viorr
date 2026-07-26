@@ -1,4 +1,3 @@
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, CheckCircle2, Clipboard, Fingerprint, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -18,7 +17,7 @@ import {
   getBiometricStatus,
 } from "@/lib/biometric";
 import { getPushDebugStatus, registerPushForCurrentUser } from "@/lib/push";
-import { getMyPushRegistrationStatus, sendTestPushToMe } from "@/lib/push.functions";
+import { getNativePushRegistrationStatus, sendNativeTestPush } from "@/lib/native-push-api";
 import { cn } from "@/lib/utils";
 
 type AppleNativeSetupCardProps = {
@@ -39,8 +38,6 @@ export function AppleNativeSetupCard({
     () => (user?.phone ?? "").replace(/\D/g, "").slice(-10),
     [user?.phone],
   );
-  const sendTestPush = useServerFn(sendTestPushToMe);
-  const getPushStatus = useServerFn(getMyPushRegistrationStatus);
   const autoAttemptedPhoneRef = useRef<string | null>(null);
 
   const [nativeSupported, setNativeSupported] = useState(false);
@@ -68,7 +65,7 @@ export function AppleNativeSetupCard({
 
   async function refreshPushStatus() {
     try {
-      const status = await getPushStatus();
+      const status = await getNativePushRegistrationStatus();
       setPushRegistered(status.registered);
       setPushTokenCount(status.count);
       if (status.registered) {
@@ -138,7 +135,7 @@ export function AppleNativeSetupCard({
         setPushStatus(registration.message);
         await refreshPushStatus();
       }
-      const result = await sendTestPush({ data: { message: "Hello from Radiant Guard!" } });
+      const result = await sendNativeTestPush("Hello from Radiant Guard!");
       await refreshPushStatus();
       if (result.sent > 0) {
         toast.success(`Test push sent to ${result.sent} device${result.sent === 1 ? "" : "s"}.`);
