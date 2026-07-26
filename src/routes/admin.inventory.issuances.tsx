@@ -727,22 +727,32 @@ function useResetOnOpen(open: boolean, reset: () => void) {
 
 function IssuanceDemandSelect({ openDemands, candById, value, onChange }: { openDemands: OpenDemand[]; candById: Map<string, Candidate>; value: string; onChange: (v: string) => void }) {
   const { data: summaries = new Map<string, string>() } = useDocItemSummaries("inv_demand_lines", openDemands.map((d) => d.id));
+
+  const renderRow = (d: OpenDemand) => {
+    const c = d.requester_candidate_id ? candById.get(d.requester_candidate_id) : null;
+    const s = summaries.get(d.id);
+    return (
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <span className="text-sm font-semibold">
+          <span className="font-mono">{d.demand_number}</span>
+          {c && <span className="text-muted-foreground font-normal"> → {c.full_name}</span>}
+        </span>
+        {c && <span className="text-[11px] text-muted-foreground truncate">{c.role_key?.replace(/_/g, " ")}{c.employee_code ? ` · ${c.employee_code}` : ""}</span>}
+        {s && <span className="text-[11px] text-muted-foreground truncate">{s}</span>}
+      </div>
+    );
+  };
+
+  const selected = openDemands.find((d) => d.id === value);
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger><SelectValue placeholder="Pick a pending demand to fulfil…" /></SelectTrigger>
+      <SelectTrigger className="h-auto min-h-11 py-2 items-start">
+        {selected ? renderRow(selected) : <SelectValue placeholder="Pick a pending demand to fulfil…" />}
+      </SelectTrigger>
       <SelectContent>
-        {openDemands.map((d) => {
-          const c = d.requester_candidate_id ? candById.get(d.requester_candidate_id) : null;
-          const s = summaries.get(d.id);
-          return (
-            <SelectItem key={d.id} value={d.id}>
-              <div className="flex flex-col gap-0.5">
-                <span className="font-mono text-xs">{d.demand_number}{c ? ` — ${c.full_name} (${c.role_key})` : ""}</span>
-                {s && <span className="text-[11px] text-muted-foreground">{s}</span>}
-              </div>
-            </SelectItem>
-          );
-        })}
+        {openDemands.map((d) => (
+          <SelectItem key={d.id} value={d.id} className="py-2">{renderRow(d)}</SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );
