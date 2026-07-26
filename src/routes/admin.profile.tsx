@@ -1460,7 +1460,7 @@ function ProfilePage() {
                   <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     SKUs
                   </div>
-                  <div className="mt-1 text-2xl font-bold tabular-nums">
+                  <div className="mt-1 text-xl font-bold tabular-nums leading-none sm:text-2xl">
                     {stockItems.length}
                   </div>
                 </div>
