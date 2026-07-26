@@ -1,6 +1,6 @@
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Clipboard, Fingerprint, Loader2, ShieldCheck } from "lucide-react";
+import { Bell, CheckCircle2, Clipboard, Fingerprint, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ import {
   getBiometricStatus,
 } from "@/lib/biometric";
 import { getPushDebugStatus, registerPushForCurrentUser } from "@/lib/push";
-import { sendTestPushToMe } from "@/lib/push.functions";
+import { getMyPushRegistrationStatus, sendTestPushToMe } from "@/lib/push.functions";
 import { cn } from "@/lib/utils";
 
 type AppleNativeSetupCardProps = {
@@ -42,6 +42,7 @@ export function AppleNativeSetupCard({
     [user?.phone],
   );
   const sendTestPush = useServerFn(sendTestPushToMe);
+  const getPushStatus = useServerFn(getMyPushRegistrationStatus);
 
   const [nativeSupported, setNativeSupported] = useState(false);
   const [nativeSnapshot, setNativeSnapshot] = useState(() => getNativeRuntimeSnapshot());
@@ -49,6 +50,8 @@ export function AppleNativeSetupCard({
   const [bioBusy, setBioBusy] = useState(false);
   const [bioEnabled, setBioEnabled] = useState(false);
   const [pushStatus, setPushStatus] = useState<string>("");
+  const [pushRegistered, setPushRegistered] = useState(false);
+  const [pushTokenCount, setPushTokenCount] = useState(0);
   const [bioStatus, setBioStatus] = useState<string>("");
 
   useEffect(() => {
@@ -56,14 +59,40 @@ export function AppleNativeSetupCard({
     setNativeSnapshot(snapshot);
     setNativeSupported(isNativePlatform());
     void refreshBiometricStatus();
+    void refreshPushStatus();
   }, []);
+
+  useEffect(() => {
+    if (!phoneDigits) return;
+    void refreshPushStatus();
+  }, [phoneDigits]);
+
+  async function refreshPushStatus() {
+    try {
+      const status = await getPushStatus();
+      setPushRegistered(status.registered);
+      setPushTokenCount(status.count);
+      if (status.registered) {
+        setPushStatus(
+          `This iPhone is registered for native notifications${status.count > 1 ? ` (${status.count} active tokens).` : "."}`,
+        );
+      } else if (phoneDigits) {
+        try {
+          window.localStorage.removeItem(`${AUTO_PUSH_KEY_PREFIX}:${phoneDigits}`);
+        } catch {
+          /* noop */
+        }
+      }
+    } catch {
+      /* registration status is best-effort */
+    }
+  }
 
   useEffect(() => {
     if (!autoStart || !phoneDigits || !isNativePlatform()) return;
     const key = `${AUTO_PUSH_KEY_PREFIX}:${phoneDigits}`;
     try {
-      if (window.localStorage.getItem(key) === "done") return;
-      window.localStorage.setItem(key, "done");
+      if (pushRegistered && window.localStorage.getItem(key) === "done") return;
     } catch {
       /* continue best-effort */
     }
@@ -72,8 +101,20 @@ export function AppleNativeSetupCard({
     void registerPushForCurrentUser()
       .then((result) => {
         setPushStatus(result.message);
+        void refreshPushStatus();
         if (result.tokenSaved) {
+          try {
+            window.localStorage.setItem(key, "done");
+          } catch {
+            /* noop */
+          }
           toast.success("This iPhone is registered for push notifications");
+        } else {
+          try {
+            window.localStorage.removeItem(key);
+          } catch {
+            /* noop */
+          }
         }
       })
       .catch((err) => {
@@ -81,7 +122,7 @@ export function AppleNativeSetupCard({
         setPushStatus(message);
       })
       .finally(() => setPushLoading(false));
-  }, [autoStart, phoneDigits]);
+  }, [autoStart, phoneDigits, pushRegistered]);
 
   async function refreshBiometricStatus() {
     setNativeSnapshot(getNativeRuntimeSnapshot());
@@ -96,6 +137,7 @@ export function AppleNativeSetupCard({
     try {
       const result = await registerPushForCurrentUser();
       setPushStatus(result.message);
+      await refreshPushStatus();
       if (result.tokenSaved) {
         toast.success("This iPhone is registered for push notifications");
       } else {
@@ -114,6 +156,7 @@ export function AppleNativeSetupCard({
     setPushLoading(true);
     try {
       const result = await sendTestPush({ data: { message: "Hello from Radiant Guard!" } });
+      await refreshPushStatus();
       if (result.sent > 0) {
         toast.success(`Test push sent to ${result.sent} device${result.sent === 1 ? "" : "s"}.`);
         setPushStatus(result.message || "Test push sent successfully.");
@@ -225,12 +268,15 @@ export function AppleNativeSetupCard({
             <Badge variant={nativeSnapshot.pushPluginAvailable ? "default" : "outline"}>
               Push plugin: {nativeSnapshot.pushPluginAvailable ? "available" : "missing"}
             </Badge>
+            <Badge variant={pushRegistered ? "default" : "outline"}>
+              Push: {pushRegistered ? `${pushTokenCount || 1} registered` : "not registered"}
+            </Badge>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRegisterPush} disabled={pushLoading || !nativeSupported}>
-            {pushLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Bell className="mr-1.5 h-4 w-4" />}
-            Register iPhone
+            {pushLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : pushRegistered ? <CheckCircle2 className="mr-1.5 h-4 w-4" /> : <Bell className="mr-1.5 h-4 w-4" />}
+            {pushRegistered ? "Refresh iPhone" : "Register iPhone"}
           </Button>
           <Button variant="outline" size="sm" onClick={handleTestPush} disabled={pushLoading}>
             {pushLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Bell className="mr-1.5 h-4 w-4" />}

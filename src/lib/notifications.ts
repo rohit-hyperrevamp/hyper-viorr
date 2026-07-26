@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { sendNativePushToUsers } from "./push.functions";
 
 export type Notification = {
   id: string;
@@ -69,6 +70,25 @@ export async function createNotification(input: {
     entity_id: input.entityId ?? "",
   } as never);
   if (error) throw error;
+  deliverNativePush([input.userId], input);
+}
+
+function deliverNativePush(
+  userIds: string[],
+  input: { title: string; message: string; link?: string },
+) {
+  const recipients = Array.from(new Set(userIds.filter(Boolean)));
+  if (recipients.length === 0) return;
+  void sendNativePushToUsers({
+    data: {
+      userIds: recipients,
+      title: input.title,
+      message: input.message,
+      link: input.link ?? "",
+    },
+  }).catch((error) => {
+    console.warn("native push delivery failed", error);
+  });
 }
 
 export async function getAdminUserIds(): Promise<string[]> {
@@ -169,6 +189,7 @@ export async function notifyApprovers(input: {
     console.error("notifyApprovers insert error", error);
     return 0;
   }
+  deliverNativePush(recipients, input);
   return recipients.length;
 }
 
@@ -221,6 +242,7 @@ export async function notifyOnboardingApprovers(input: {
     console.error("notifyOnboardingApprovers insert error", error);
     return 0;
   }
+  deliverNativePush(recipients, input);
   return recipients.length;
 }
 
