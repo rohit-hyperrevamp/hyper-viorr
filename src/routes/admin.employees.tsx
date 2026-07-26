@@ -633,6 +633,7 @@ function EmployeesPage() {
   const [empStatusTab, setEmpStatusTab] = useState<"active" | "inactive">("active");
   const [viewMode, setViewMode] = useState<"list" | "tree">("list");
   const [openWizard, setOpenWizard] = useState(false);
+  const [wizardMode, setWizardMode] = useState<"candidate" | "employee">("candidate");
   const [editing, setEditing] = useState<Candidate | null>(null);
   const [openingCandidateId, setOpeningCandidateId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<CandidateListItem | null>(null);
