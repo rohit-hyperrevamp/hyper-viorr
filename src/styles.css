@@ -423,6 +423,9 @@
       top: 0 !important;
       transform: none !important;
       transform-origin: center center;
+      /* Leave the bottom nav (62px + safe area) visible below the sheet */
+      height: calc(100dvh - 62px - env(safe-area-inset-bottom, 0px)) !important;
+      max-height: calc(100dvh - 62px - env(safe-area-inset-bottom, 0px)) !important;
     }
 
     .candidate-wizard-page.animate-dialog-in,
@@ -434,6 +437,7 @@
       top: calc(0.75rem + env(safe-area-inset-top, 0px));
       right: calc(0.75rem + env(safe-area-inset-right, 0px));
     }
+
 
     /* Tighter, more compact form typography inside the Add Candidate wizard on mobile.
        Kept at 15px to stay close to the 16px iOS zoom threshold while feeling smaller. */
