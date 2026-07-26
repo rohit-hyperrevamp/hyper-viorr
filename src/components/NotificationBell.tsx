@@ -243,14 +243,15 @@ export function NotificationBell() {
                 paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 4px)",
               }}
             >
-              <div className="relative flex items-center justify-center pt-2.5 pb-1.5">
+              <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5">
+                <div className="w-8" aria-hidden="true" />
                 <span className="h-1 w-10 rounded-full bg-muted-foreground/30" />
                 <button
                   type="button"
                   aria-label="Close notifications"
                   data-no-tip
                   onClick={() => setMobileOpen(false)}
-                  className="absolute right-3 top-2 grid h-8 w-8 place-items-center rounded-full bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground [-webkit-tap-highlight-color:transparent]"
+                  className="grid h-8 w-8 place-items-center rounded-full bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground [-webkit-tap-highlight-color:transparent]"
                 >
                   <X className="h-4 w-4" />
                 </button>
