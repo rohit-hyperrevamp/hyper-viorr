@@ -264,7 +264,15 @@ export type OffboardingDetails = {
   inventory_returns?: OffboardingInventoryReturn[];
   rating?: number;
   rating_remarks?: string;
+  // Offboarding-collection handshake with the Field Officer
+  pending_collection_fo_id?: string | null;
+  pending_collection_fo_name?: string | null;
+  collection_status?: "pending" | "completed" | null;
+  collection_requested_at?: string | null;
+  collection_completed_at?: string | null;
+  collection_completed_by?: string | null;
 };
+
 
 type CandidateExperience = {
   company_name: string;
