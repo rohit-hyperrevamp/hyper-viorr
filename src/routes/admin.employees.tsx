@@ -620,6 +620,7 @@ function EmployeesPage() {
 
   const { roleKey, isSuperAdmin, can } = useCurrentPermissions();
   const isFieldOfficer = roleKey === "field_officer" && !isSuperAdmin;
+  const canAddEmployee = isSuperAdmin || ["admin", "super_admin", "hr", "leadership"].includes(roleKey ?? "");
   // Approval capability is now driven entirely by RBAC (Employees → Approve).
   // Super admin implicitly gets true via useCurrentPermissions.
   const canApproveOnboarding = can("employees", "approve");
@@ -633,6 +634,7 @@ function EmployeesPage() {
   const [empStatusTab, setEmpStatusTab] = useState<"active" | "inactive">("active");
   const [viewMode, setViewMode] = useState<"list" | "tree">("list");
   const [openWizard, setOpenWizard] = useState(false);
+  const [wizardMode, setWizardMode] = useState<"candidate" | "employee">("candidate");
   const [editing, setEditing] = useState<Candidate | null>(null);
   const [openingCandidateId, setOpeningCandidateId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<CandidateListItem | null>(null);
@@ -2375,6 +2377,7 @@ function EmployeesPage() {
             <Button
               onClick={() => {
                 setEditing(null);
+                setWizardMode("candidate");
                 setOpenWizard(true);
               }}
               className="h-11 whitespace-nowrap rounded-xl bg-stone-900 px-6 font-semibold text-white shadow-lg shadow-stone-900/10 transition-all hover:-translate-y-0.5 hover:bg-stone-800 active:translate-y-0 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
@@ -2382,6 +2385,19 @@ function EmployeesPage() {
               <Plus className="mr-1.5 h-4 w-4" />
               Add Candidate
             </Button>
+            {canAddEmployee && (
+              <Button
+                onClick={() => {
+                  setEditing(null);
+                  setWizardMode("employee");
+                  setOpenWizard(true);
+                }}
+                className="h-11 whitespace-nowrap rounded-xl bg-amber-600 px-6 font-semibold text-white shadow-lg shadow-amber-600/20 transition-all hover:-translate-y-0.5 hover:bg-amber-700 active:translate-y-0"
+              >
+                <UserPlus className="mr-1.5 h-4 w-4" />
+                Add Employee
+              </Button>
+            )}
 
           </div>
         </div>
@@ -2593,6 +2609,7 @@ function EmployeesPage() {
           if (!v) setEditing(null);
         }}
         editing={editing}
+        mode={wizardMode}
         units={scopedUnitsForWizard}
         unitsLoading={unitsQuery.isLoading || scopeStillLoading}
         unitsError={
@@ -3180,10 +3197,13 @@ function emptyForm(): CandidateForm {
   };
 }
 
+const RADIANT_BILLING_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
+
 function CandidateWizard({
   open,
   onOpenChange,
   editing,
+  mode = "candidate",
   units,
   unitsLoading,
   unitsError,
@@ -3204,6 +3224,7 @@ function CandidateWizard({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   editing: Candidate | null;
+  mode?: "candidate" | "employee";
   units: UnitLite[];
   unitsLoading: boolean;
   unitsError: string | null;
@@ -3221,6 +3242,7 @@ function CandidateWizard({
   onReject?: () => void;
   onRequestOffboard?: () => void;
 }) {
+  const isEmployeeMode = mode === "employee" && !editing;
   const qc = useQueryClient();
   const extractFn = useServerFn(extractAadhaar);
   const [form, setForm] = useState<CandidateForm>(emptyForm());
@@ -3269,10 +3291,11 @@ function CandidateWizard({
         setForm((f) => ({ ...f, unit_ids: ids, unit_id: ids[0] ?? null }));
       })();
     } else {
-      setInitialUnitIds([]);
-      setForm(emptyForm());
+      const seedUnits = isEmployeeMode ? [RADIANT_BILLING_UNIT_ID] : [];
+      setInitialUnitIds(seedUnits);
+      setForm({ ...emptyForm(), unit_ids: seedUnits, unit_id: seedUnits[0] ?? null });
     }
-  }, [open, editing]);
+  }, [open, editing, isEmployeeMode]);
 
   const set = <K extends keyof CandidateForm>(k: K, v: CandidateForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -3318,11 +3341,13 @@ function CandidateWizard({
   });
   const allowedDesignationIds = contractDesigQuery.data ?? [];
   const filteredDesignations = useMemo(() => {
-    if (form.unit_ids.length === 0) return designations;
-    if (contractDesigQuery.isLoading) return designations;
+    let base = designations;
+    if (isEmployeeMode) base = base.filter((d) => d.billable === false);
+    if (form.unit_ids.length === 0) return base;
+    if (contractDesigQuery.isLoading) return base;
     const allow = new Set(allowedDesignationIds);
-    return designations.filter((d) => allow.has(d.id));
-  }, [designations, form.unit_ids.length, contractDesigQuery.isLoading, allowedDesignationIds]);
+    return base.filter((d) => allow.has(d.id));
+  }, [designations, form.unit_ids.length, contractDesigQuery.isLoading, allowedDesignationIds, isEmployeeMode]);
 
   // If the currently selected designation is no longer allowed by the units'
   // contracts, clear it so the user picks a valid one.
@@ -3733,11 +3758,19 @@ function CandidateWizard({
               ? (editing.status === "approved" || editing.status === "active" || editing.status === "inactive")
                 ? "Edit Employee"
                 : "Edit Candidate"
-              : "Add Candidate"}
+              : isEmployeeMode ? "Add Employee" : "Add Candidate"}
           </DialogTitle>
           <DialogDescription>
-            Complete the candidate profile. Save a draft any time; only submit when 100% complete.
+            {isEmployeeMode
+              ? "Non-billable internal hire. Billing unit is auto-set to Radiant; salary follows the Radiant contract for the chosen designation. Client unit mapping is optional."
+              : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
           </DialogDescription>
+          {isEmployeeMode && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
+              <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Radiant Guards - Pune Office</Badge>
+            </div>
+          )}
           {editing && (editing.status === "approved" || editing.status === "active" || editing.status === "inactive") && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StatusBadge status={form.status || editing.status} />
@@ -4500,12 +4533,14 @@ function CandidateWizard({
               </Section>
 
               <Section title="Identification Proofs">
-                <IdentificationSection form={form} set={setAny} setSection={setSection} />
+                <IdentificationSection form={form} set={setAny} setSection={setSection} hideWeapon={isEmployeeMode} />
               </Section>
 
-              <Section title="Criminal History">
-                <CriminalSection form={form} set={setAny} />
-              </Section>
+              {!isEmployeeMode && (
+                <Section title="Criminal History">
+                  <CriminalSection form={form} set={setAny} />
+                </Section>
+              )}
 
               <Section title="Nominee">
                 <NomineeSection form={form} setSection={setSection} />
