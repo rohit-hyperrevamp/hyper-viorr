@@ -704,88 +704,130 @@ function AttendanceUnitsPage() {
               return (
                 <div
                   key={unit.id}
-                  className="group grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 px-3.5 py-3.5 transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-500/5 sm:px-5 sm:py-5 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_minmax(0,2fr)_90px_150px_130px] lg:items-start lg:gap-5"
+                  className="group px-3.5 py-3.5 transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-500/5 sm:px-5 sm:py-5 lg:grid lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_minmax(0,2fr)_90px_150px_130px] lg:items-start lg:gap-5"
                 >
-                  {/* row contents below; on mobile they stack as flex column, on lg+ they fill grid columns */}
-                  <div className="col-span-2 flex min-w-0 items-start gap-2.5 lg:col-auto lg:gap-3">
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sky-100/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300 sm:h-10 sm:w-10 sm:rounded-2xl">
+                  {/* Mobile card layout */}
+                  <div className="lg:hidden">
+                    <div className="flex items-start gap-2.5">
+                      <div className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-100/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
+                        <MapPinned className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="break-words text-[13.5px] font-semibold leading-snug text-foreground">
+                              {unit.name || unit.code}
+                            </div>
+                            <div className="mt-0.5 text-[11.5px] text-muted-foreground break-words">
+                              {unit.customer_name}
+                            </div>
+                          </div>
+                          <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusBadge.cls}`}>
+                            <statusBadge.Icon className="h-3 w-3" /> {statusBadge.label}
+                          </span>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                          <span className="inline-flex whitespace-nowrap rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-foreground">
+                            {unit.code || "—"}
+                          </span>
+                          {unit.contract_codes.slice(0, 2).map((cc) => (
+                            <span key={cc} className="inline-flex whitespace-nowrap rounded-full border border-accent/20 bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent">
+                              {cc}
+                            </span>
+                          ))}
+                        </div>
+                        {unit.location && (
+                          <div className="mt-1 text-[11.5px] text-muted-foreground break-words">
+                            {unit.location}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background px-3 py-2.5">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xl font-semibold tabular-nums text-foreground leading-none">{unit.active_employee_count}</span>
+                        <span className="text-[11px] text-muted-foreground">active</span>
+                      </div>
+                      <div className="min-w-0 flex-1 px-2">
+                        <EmployeeChips list={unit.security_guards} empty="—" tone="emerald" />
+                      </div>
+                      {sheetStatus === "approved" ? (
+                        canApprove ? (
+                          <button
+                            type="button"
+                            data-no-pill
+                            onClick={() => sheet && reopenSheet.mutate(sheet)}
+                            disabled={!sheet || reopenSheet.isPending}
+                            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-amber-300/60 bg-amber-50 px-2.5 text-[11px] font-semibold text-amber-900 hover:border-amber-400 hover:bg-amber-100 disabled:opacity-60"
+                          >
+                            <RotateCcw className="h-3 w-3" /> Reopen
+                          </button>
+                        ) : (
+                          <Link
+                            to="/admin/attendance/$unitId"
+                            params={{ unitId: unit.id }}
+                            search={{ month: monthIdx, year }}
+                            data-no-pill
+                            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 text-[11px] font-semibold text-foreground hover:border-accent/50 hover:text-accent"
+                          >
+                            View <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        )
+                      ) : (
+                        <Link
+                          to="/admin/attendance/$unitId"
+                          params={{ unitId: unit.id }}
+                          search={{ month: monthIdx, year }}
+                          data-no-pill
+                          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 text-[11px] font-semibold text-foreground hover:border-accent/50 hover:text-accent"
+                        >
+                          Open <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Desktop grid cells */}
+                  <div className="hidden min-w-0 items-start gap-3 lg:flex">
+                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-100/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                       <MapPinned className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="break-words text-[13px] font-semibold leading-snug text-foreground sm:text-sm">
+                      <div className="break-words text-sm font-semibold leading-snug text-foreground">
                         {unit.name || unit.code}
                       </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:mt-1.5">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <span className="inline-flex whitespace-nowrap rounded-md bg-secondary px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-foreground">
                           {unit.code || "—"}
                         </span>
                         {unit.contract_codes.slice(0, 2).map((cc) => (
-                          <span
-                            key={cc}
-                            className="inline-flex whitespace-nowrap rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent"
-                          >
+                          <span key={cc} className="inline-flex whitespace-nowrap rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent">
                             {cc}
                           </span>
                         ))}
                         {unit.contract_codes.length > 2 && (
-                          <span className="text-[10px] text-muted-foreground">
-                            +{unit.contract_codes.length - 2}
-                          </span>
+                          <span className="text-[10px] text-muted-foreground">+{unit.contract_codes.length - 2}</span>
                         )}
                       </div>
                     </div>
                   </div>
-
-                  {/* Organization */}
-                  <div className="col-span-2 min-w-0 text-[12px] lg:col-auto lg:text-sm">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
-                      Organization
-                    </div>
-                    <div className="break-words text-foreground">{unit.customer_name}</div>
-                  </div>
-
-                  {/* Location */}
-                  <div className="col-span-2 min-w-0 text-[12px] lg:col-auto lg:text-sm">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
-                      Location
-                    </div>
-                    <div className="break-words text-muted-foreground">{unit.location || "—"}</div>
-                  </div>
-
-                  {/* Security guards */}
-                  <div className="col-span-2 min-w-0 lg:col-auto">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
-                      Security guards
-                    </div>
+                  <div className="hidden min-w-0 text-sm lg:block break-words text-foreground">{unit.customer_name}</div>
+                  <div className="hidden min-w-0 text-sm lg:block break-words text-muted-foreground">{unit.location || "—"}</div>
+                  <div className="hidden min-w-0 lg:block">
                     <EmployeeChips list={unit.security_guards} empty="—" tone="emerald" />
                   </div>
-
-                  {/* Active */}
-                  <div className="min-w-0 lg:text-right">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
-                      Active
-                    </div>
+                  <div className="hidden min-w-0 lg:block lg:text-right">
                     <div className="text-xl font-semibold tracking-tight text-foreground leading-none sm:text-2xl">
                       {unit.active_employee_count}
                     </div>
-                    <div className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">employees</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">employees</div>
                   </div>
-
-                  {/* Status */}
-                  <div className="min-w-0 justify-self-end lg:justify-self-auto">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
-                      Status
-                    </div>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-medium whitespace-normal break-words sm:px-2.5 sm:text-[11px] ${statusBadge.cls}`}>
+                  <div className="hidden min-w-0 lg:block">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusBadge.cls}`}>
                       <statusBadge.Icon className="h-3.5 w-3.5 shrink-0" /> {statusBadge.label}
                     </span>
                   </div>
-
-                  {/* Action */}
-                  <div className="col-span-2 min-w-0 lg:col-auto lg:text-right">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:hidden">
-                      Action
-                    </div>
+                  <div className="hidden min-w-0 lg:block lg:text-right">
                     {sheetStatus === "approved" ? (
                       canApprove ? (
                         <button
@@ -793,7 +835,7 @@ function AttendanceUnitsPage() {
                           data-no-pill
                           onClick={() => sheet && reopenSheet.mutate(sheet)}
                           disabled={!sheet || reopenSheet.isPending}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 text-xs font-semibold text-amber-900 transition hover:border-amber-400 hover:bg-amber-100 disabled:opacity-60"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 text-xs font-semibold text-amber-900 hover:border-amber-400 hover:bg-amber-100 disabled:opacity-60"
                         >
                           <RotateCcw className="h-3.5 w-3.5" /> Reopen
                         </button>
@@ -803,7 +845,7 @@ function AttendanceUnitsPage() {
                           params={{ unitId: unit.id }}
                           search={{ month: monthIdx, year }}
                           data-no-pill
-                            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 text-xs font-semibold text-muted-foreground transition hover:border-accent/50 hover:text-accent"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 text-xs font-semibold text-muted-foreground hover:border-accent/50 hover:text-accent"
                         >
                           View roll <ArrowRight className="h-3.5 w-3.5" />
                         </Link>
@@ -814,10 +856,11 @@ function AttendanceUnitsPage() {
                         params={{ unitId: unit.id }}
                         search={{ month: monthIdx, year }}
                         data-no-pill
-                        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 text-xs font-semibold text-foreground transition hover:border-accent/50 hover:text-accent"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 text-xs font-semibold text-foreground hover:border-accent/50 hover:text-accent"
                       >
                         Open roll <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
+
                     )}
                   </div>
                 </div>
