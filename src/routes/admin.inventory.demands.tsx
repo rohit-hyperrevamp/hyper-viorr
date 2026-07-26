@@ -456,22 +456,22 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="max-h-[92vh] w-[96vw] max-w-3xl overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>{initial ? `Edit Demand ${initial.demand_number}` : "New Demand"}</DialogTitle>
-          <DialogDescription>{isFieldOfficer ? "Request stock from a warehouse or any branch." : "Request stock from a warehouse. Submitting sends it to the warehouse team for fulfillment."}</DialogDescription>
+          <DialogTitle className="text-base sm:text-lg">{initial ? `Edit Demand ${initial.demand_number}` : "New Demand"}</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">{isFieldOfficer ? "Request stock from a warehouse or any branch." : "Request stock from a warehouse. Submitting sends it to the warehouse team for fulfillment."}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label>Demand Date</Label>
+            <div className="grid gap-1.5">
+              <Label className="text-xs font-semibold">Demand Date</Label>
               <Input type="date" value={demandDate} onChange={(e) => setDemandDate(e.target.value)} />
             </div>
-            <div className="grid gap-2">
-              <Label>Request From</Label>
+            <div className="grid gap-1.5">
+              <Label className="text-xs font-semibold">Request From</Label>
               <Select value={source} onValueChange={(v) => setSource(v)}>
-                <SelectTrigger className="h-10"><SelectValue placeholder="Choose source" /></SelectTrigger>
+                <SelectTrigger className="h-10 w-full"><SelectValue placeholder="Choose source" /></SelectTrigger>
                 <SelectContent>
                   {warehouses.map((w) => (
                     <SelectItem key={`wh-${w.id}`} value={`wh:${w.id}`}>{w.name} (Warehouse)</SelectItem>
@@ -481,18 +481,71 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
                   ))}
                 </SelectContent>
               </Select>
-              {!isFieldOfficer && <p className="text-[11px] text-muted-foreground">From branch: <span className="font-medium">{branchLabel}</span></p>}
+              {!isFieldOfficer && <p className="text-[11px] text-muted-foreground break-words">From branch: <span className="font-medium">{branchLabel}</span></p>}
             </div>
           </div>
 
           <div>
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between gap-2">
               <Label className="text-sm font-semibold">Items</Label>
               <Button size="sm" variant="outline" onClick={() => setLines((ls) => [...ls, { item_id: "", size_value: "", requested_qty: 1, fulfilled_qty: 0 }])}>
                 <Plus className="mr-1 h-3.5 w-3.5" />Add line
               </Button>
             </div>
-            <div className="overflow-x-clip rounded-xl border border-border">
+
+            {/* Mobile: stacked cards */}
+            <div className="grid gap-2 sm:hidden">
+              {lines.map((l, idx) => {
+                const it = itemMap.get(l.item_id);
+                const sizes = it ? (itemSizes.get(it.id) ?? []) : [];
+                const needsSize = !!it?.is_sized;
+                const missing = needsSize && !String(l.size_value ?? "").trim();
+                return (
+                  <div key={idx} className="rounded-xl border border-border bg-card p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Line {idx + 1}</span>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 hover:text-destructive" onClick={() => setLines((ls) => ls.filter((_, i) => i !== idx))}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label className="text-[11px] font-semibold">Item</Label>
+                      <Select value={l.item_id} onValueChange={(v) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, item_id: v } : x))}>
+                        <SelectTrigger className="h-10 w-full"><SelectValue placeholder="Pick item" /></SelectTrigger>
+                        <SelectContent>{items.map((x) => <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="grid gap-1.5 min-w-0">
+                        <Label className="text-[11px] font-semibold">Size</Label>
+                        {needsSize && sizes.length > 0 ? (
+                          <Select value={l.size_value} onValueChange={(v) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, size_value: v } : x))}>
+                            <SelectTrigger className={`h-10 w-full ${missing ? "border-destructive ring-1 ring-destructive/40" : ""}`}><SelectValue placeholder="Required" /></SelectTrigger>
+                            <SelectContent>{sizes.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            className={`h-10 ${missing ? "border-destructive ring-1 ring-destructive/40" : ""}`}
+                            disabled={!needsSize}
+                            value={l.size_value}
+                            onChange={(e) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, size_value: e.target.value } : x))}
+                            placeholder={needsSize ? "Required" : "—"}
+                          />
+                        )}
+                      </div>
+                      <div className="grid gap-1.5 min-w-0">
+                        <Label className="text-[11px] font-semibold">Requested Qty</Label>
+                        <Input type="number" min={0} className="h-10 text-right" value={l.requested_qty} onChange={(e) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, requested_qty: Number(e.target.value) || 0 } : x))} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {!lines.length && <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">No lines yet. Tap “Add line”.</div>}
+            </div>
+
+            {/* Tablet/desktop: original table */}
+            <div className="hidden overflow-x-clip rounded-xl border border-border sm:block">
               <table className="ios-table w-full text-sm">
                 <thead className="bg-secondary/60 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <tr>
@@ -553,16 +606,17 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
             </div>
           </div>
 
-          <div className="grid gap-2"><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Optional message to warehouse" /></div>
+          <div className="grid gap-1.5"><Label className="text-xs font-semibold">Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Optional message to warehouse" /></div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
-          <Button variant="outline" onClick={() => save(false)} disabled={saving}>Save Draft</Button>
-          <Button onClick={() => save(true)} disabled={saving}><Send className="mr-1.5 h-4 w-4" />{saving ? "Submitting…" : submitLabel}</Button>
+        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => save(false)} disabled={saving}>Save Draft</Button>
+          <Button className="w-full sm:w-auto" onClick={() => save(true)} disabled={saving}><Send className="mr-1.5 h-4 w-4" />{saving ? "Submitting…" : submitLabel}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
   );
 }
 

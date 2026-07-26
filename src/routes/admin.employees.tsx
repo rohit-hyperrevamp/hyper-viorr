@@ -4225,16 +4225,16 @@ function CandidateWizard({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[96vw] max-w-4xl overflow-y-auto p-0">
-        <DialogHeader className="border-b border-border bg-secondary/30 px-6 py-4">
-          <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            {editing
+        <DialogHeader className="border-b border-border bg-secondary/30 px-4 py-3 sm:px-6 sm:py-4">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <UserPlus className="h-5 w-5 shrink-0" />
+            <span className="truncate">{editing
               ? (editing.status === "approved" || editing.status === "active" || editing.status === "inactive")
                 ? "Edit Employee"
                 : "Edit Candidate"
-              : isEmployeeMode ? "Add Employee" : "Add Candidate"}
+              : isEmployeeMode ? "Add Employee" : "Add Candidate"}</span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             {isEmployeeMode
               ? "Non-billable internal hire. Billing unit is auto-set to Radiant; salary follows the Radiant contract for the chosen designation. Client unit mapping is optional."
               : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
@@ -4245,10 +4245,10 @@ function CandidateWizard({
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
                 <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Radiant Guards - Pune Office</Badge>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="grid gap-1.5">
                 <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Branch</label>
                 <Select value={homeBranchId} onValueChange={setHomeBranchId}>
-                  <SelectTrigger className="h-8 w-[240px] text-xs">
+                  <SelectTrigger className="h-10 w-full text-xs sm:w-[280px]">
                     <SelectValue placeholder="Select home branch" />
                   </SelectTrigger>
                   <SelectContent>
@@ -4266,6 +4266,7 @@ function CandidateWizard({
               </div>
             </div>
           )}
+
           {editing && (editing.status === "approved" || editing.status === "active" || editing.status === "inactive") && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StatusBadge status={form.status || editing.status} />
@@ -4332,7 +4333,7 @@ function CandidateWizard({
         </DialogHeader>
 
         {/* Profile completion meter */}
-        <div className="border-b border-border bg-card px-6 py-4">
+        <div className="border-b border-border bg-card px-4 py-3 sm:px-6 sm:py-4">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
@@ -4846,13 +4847,15 @@ function CandidateWizard({
               </Section>
 
               <Section title="Present Address">
-                <div className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-secondary/30 p-3">
+                <label className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 p-3 cursor-pointer">
+                  <span className="text-sm font-medium leading-snug">Same as permanent address</span>
                   <Switch
+                    className="shrink-0"
                     checked={form.same_as_permanent}
                     onCheckedChange={(v) => set("same_as_permanent", v)}
                   />
-                  <Label className="m-0 cursor-pointer">Same as permanent address</Label>
-                </div>
+                </label>
+
                 {!form.same_as_permanent && (
                   <>
                     <CandidateAddressFields
@@ -5002,16 +5005,18 @@ function CandidateWizard({
                       />
                     </Field>
                   </div>
-                  <div className="sm:col-span-2 flex items-center justify-between rounded-md border border-border bg-secondary/30 p-3">
-                    <div>
-                      <Label className="m-0">Do not re-hire</Label>
-                      <p className="text-xs text-muted-foreground">Flag this employee as ineligible for re-hiring. Auto-enabled when offboarded as Absconding.</p>
+                  <div className="sm:col-span-2 flex items-start justify-between gap-3 rounded-md border border-border bg-secondary/30 p-3">
+                    <div className="min-w-0 flex-1">
+                      <Label className="m-0 block">Do not re-hire</Label>
+                      <p className="mt-0.5 text-xs text-muted-foreground leading-snug">Flag this employee as ineligible for re-hiring. Auto-enabled when offboarded as Absconding.</p>
                     </div>
                     <Switch
+                      className="mt-0.5 shrink-0"
                       checked={form.no_hire}
                       onCheckedChange={(v) => set("no_hire", v)}
                     />
                   </div>
+
                 </div>
               </Section>
 
@@ -5045,7 +5050,7 @@ function CandidateWizard({
           )}
         </div>
 
-        <DialogFooter className="flex-col gap-2 border-t border-border bg-card px-6 py-4 sm:flex-row sm:justify-between">
+        <DialogFooter className="flex-col gap-2 border-t border-border bg-card px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
           <div className="flex flex-wrap items-center gap-2 sm:mr-auto">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
