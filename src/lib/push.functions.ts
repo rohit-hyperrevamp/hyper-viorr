@@ -1,19 +1,21 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePushAuth } from "./push-auth.server";
 import {
   getPushRegistrationStatusForUser,
   saveNativePushTokenForUser,
+  sendNativePushToCurrentUserServer,
   sendNativePushForRecentNotifications,
-  sendNativePushToUsersServer,
 } from "./push-delivery.server";
 
 export const getMyPushRegistrationStatus = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => getPushRegistrationStatusForUser(context.userId));
+  .middleware([requirePushAuth])
+  .handler(async ({ context }) =>
+    getPushRegistrationStatusForUser(context.supabase, context.userId),
+  );
 
 export const saveMyPushToken = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePushAuth])
   .inputValidator((data) =>
     z.object({
       token: z.string().min(32).max(512),
@@ -21,20 +23,19 @@ export const saveMyPushToken = createServerFn({ method: "POST" })
     }).parse(data),
   )
   .handler(async ({ context, data }) =>
-    saveNativePushTokenForUser(context.userId, {
+    saveNativePushTokenForUser(context.supabase, context.userId, {
       token: data.token,
       platform: data.platform,
     }),
   );
 
 export const sendTestPushToMe = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePushAuth])
   .inputValidator((data) =>
     z.object({ message: z.string().optional() }).parse(data),
   )
   .handler(async ({ context, data }) => {
-    const { userId } = context;
-    const result = await sendNativePushToUsersServer([userId], {
+    const result = await sendNativePushToCurrentUserServer(context.supabase, {
       title: "Radiant Guard",
       body: data.message || "Test push notification",
     });
@@ -56,7 +57,7 @@ export const sendTestPushToMe = createServerFn({ method: "POST" })
   });
 
 export const sendNativePushToUsers = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePushAuth])
   .inputValidator((data) =>
     z.object({
       userIds: z.array(z.string().uuid()).min(1).max(100),
@@ -66,7 +67,7 @@ export const sendNativePushToUsers = createServerFn({ method: "POST" })
     }).parse(data),
   )
   .handler(async ({ context, data }) =>
-    sendNativePushForRecentNotifications(context.userId, data.userIds, {
+    sendNativePushForRecentNotifications(context.supabase, data.userIds, {
       title: data.title,
       body: data.message,
       link: data.link,
