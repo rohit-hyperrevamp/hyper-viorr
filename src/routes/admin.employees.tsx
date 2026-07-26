@@ -2374,30 +2374,53 @@ function EmployeesPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setWizardMode("candidate");
-                setOpenWizard(true);
-              }}
-              className="h-11 whitespace-nowrap rounded-xl bg-stone-900 px-6 font-semibold text-white shadow-lg shadow-stone-900/10 transition-all hover:-translate-y-0.5 hover:bg-stone-800 active:translate-y-0 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
-            >
-              <Plus className="mr-1.5 h-4 w-4" />
-              Add Candidate
-            </Button>
-            {canAddEmployee && (
-              <Button
-                onClick={() => {
-                  setEditing(null);
-                  setWizardMode("employee");
-                  setOpenWizard(true);
-                }}
-                className="h-11 whitespace-nowrap rounded-xl bg-amber-600 px-6 font-semibold text-white shadow-lg shadow-amber-600/20 transition-all hover:-translate-y-0.5 hover:bg-amber-700 active:translate-y-0"
-              >
-                <UserPlus className="mr-1.5 h-4 w-4" />
-                Add Employee
-              </Button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className="h-11 whitespace-nowrap rounded-xl bg-stone-900 px-6 font-semibold text-white shadow-lg shadow-stone-900/10 transition-all hover:-translate-y-0.5 hover:bg-stone-800 active:translate-y-0 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
+                >
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  Add Candidate
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Choose type
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    setEditing(null);
+                    setWizardMode("candidate");
+                    setOpenWizard(true);
+                  }}
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">Billable</span>
+                    <span className="text-[11px] text-muted-foreground">Client-facing guards / field staff</span>
+                  </div>
+                </DropdownMenuItem>
+                {canAddEmployee && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setEditing(null);
+                      setWizardMode("employee");
+                      setOpenWizard(true);
+                    }}
+                    className="gap-2"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">Non-billable</span>
+                      <span className="text-[11px] text-muted-foreground">Internal Radiant employee</span>
+                    </div>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
 
           </div>
         </div>
