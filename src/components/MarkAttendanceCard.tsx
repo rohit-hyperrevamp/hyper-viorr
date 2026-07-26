@@ -299,7 +299,7 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
         );
       })()}
 
-      {state === "in" && <LiveTelemetryStrip punch={punch!} />}
+      {state === "in" && punch && <LiveTelemetryStrip punch={punch} />}
 
       <div className="mt-3 sm:mt-4">
         {state === "idle" && (

@@ -92,7 +92,11 @@ public class RadiantDeviceTelemetryPlugin: CAPPlugin, CAPBridgedPlugin {
             let info = CTTelephonyNetworkInfo()
             var technologies: [String] = []
             if #available(iOS 12.0, *) {
-                technologies = Array(info.serviceCurrentRadioAccessTechnology?.values ?? [])
+                if let currentByService = info.serviceCurrentRadioAccessTechnology {
+                    technologies = Array(currentByService.values)
+                } else if let current = info.currentRadioAccessTechnology {
+                    technologies = [current]
+                }
             } else if let current = info.currentRadioAccessTechnology {
                 technologies = [current]
             }
