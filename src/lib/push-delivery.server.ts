@@ -7,6 +7,10 @@ type TokenRow = {
   last_seen_at: string;
 };
 
+type CandidateUserRow = {
+  user_id: string | null;
+};
+
 export type NativePushDeliveryResult = {
   sent: number;
   total: number;
@@ -26,12 +30,52 @@ async function deleteDeadToken(token: string) {
   }
 }
 
+async function resolveRelatedUserIds(userId: string): Promise<string[]> {
+  const ids = new Set<string>([userId]);
+
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const email = userData.user?.email ?? "";
+    const mobile = email.match(/^phone-(\d{10})@radiantguard\.local$/i)?.[1];
+    if (!mobile) return Array.from(ids);
+
+    const { data: candidate } = await supabaseAdmin
+      .from("candidates")
+      .select("mobile")
+      .eq("mobile", mobile)
+      .maybeSingle();
+
+    if (!candidate?.mobile) return Array.from(ids);
+
+    const { data: users } = await supabaseAdmin.rpc("get_user_id_by_candidate", {
+      _candidate_id: (await supabaseAdmin
+        .from("candidates")
+        .select("id")
+        .eq("mobile", mobile)
+        .maybeSingle()).data?.id,
+    });
+
+    if (typeof users === "string") ids.add(users);
+  } catch {
+    /* Keep the direct authenticated user as the authoritative fallback. */
+  }
+
+  return Array.from(ids);
+}
+
+async function resolveRelatedUserIdsForMany(userIds: string[]): Promise<string[]> {
+  const resolved = await Promise.all(userIds.map((id) => resolveRelatedUserIds(id)));
+  return Array.from(new Set(resolved.flat().filter(Boolean)));
+}
+
 export async function getPushRegistrationStatusForUser(userId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const relatedUserIds = await resolveRelatedUserIds(userId);
   const { data, error } = await supabaseAdmin
     .from("device_push_tokens")
     .select("id,platform,last_seen_at,created_at")
-    .eq("user_id", userId)
+    .in("user_id", relatedUserIds)
     .order("last_seen_at", { ascending: false });
   if (error) throw error;
   const rows = (data as Array<{ id: string; platform: string; last_seen_at: string; created_at: string }> | null) ?? [];
@@ -47,7 +91,7 @@ export async function sendNativePushToUsersServer(
   userIds: string[],
   payload: ApnsPayload,
 ): Promise<NativePushDeliveryResult> {
-  const recipients = uniqueUserIds(userIds);
+  const recipients = await resolveRelatedUserIdsForMany(uniqueUserIds(userIds));
   if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
