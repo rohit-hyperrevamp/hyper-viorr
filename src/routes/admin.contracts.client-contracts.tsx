@@ -819,6 +819,15 @@ function useDesignations() {
   return data;
 }
 
+function useRolesList() {
+  const { data = [] } = useQuery({
+    queryKey: ["admin", "roles-list"],
+    queryFn: async (): Promise<RoleRow[]> => fetchRoles(),
+  });
+  return data;
+}
+
+
 function useAllowanceTypes() {
   const { data = [] } = useQuery({
     queryKey: QK_ALW,
