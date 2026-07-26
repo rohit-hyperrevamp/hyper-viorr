@@ -128,10 +128,11 @@ export async function checkOut(
       check_out_lng: geo.lng,
       check_out_accuracy: geo.accuracy,
       check_out_face_verified: faceVerified,
-    })
+    } as never)
     .eq("id", id)
     .select("*")
     .single();
+
   if (error) throw error;
   return data as SelfPunch;
 }
