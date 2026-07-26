@@ -4,9 +4,11 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * Capacitor config for Radiant Guard Services.
  *
  * TanStack Start is a server-rendered framework, so the native shell loads
- * the published web app via `server.url` (hybrid mode) instead of bundling
- * static assets. Point `server.url` at your published Lovable URL — or a
- * custom domain — and rebuild the native project with `npx cap sync`.
+ * the hosted web app via `server.url` (hybrid mode) instead of bundling static
+ * assets. For active device testing this must point at the current Lovable
+ * preview build; otherwise the installed app can run an older published bundle
+ * and native-only UI such as Face ID, bottom tabs, and APNs registration will
+ * appear to be missing.
  *
  * For a purely offline/static build you'd need to pre-render the app to
  * `dist/` and remove `server.url`; that is a separate migration.
@@ -19,9 +21,10 @@ const config: CapacitorConfig = {
   // placeholder shell. The real app loads from `server.url` below.
   webDir: "capacitor-web",
   server: {
-    // Load the Lovable production app so native builds use the same backend
-    // server-functions and push fixes shipped from this project.
-    url: "https://radiant-guard-services.lovable.app",
+    // Device-testing URL: load the current preview build where this native
+    // code and web UI are updated together. Change to the production URL only
+    // after publishing the exact same build for App Store/TestFlight release.
+    url: "https://id-preview--dc741c55-be5a-40d9-b6e9-523fed099022.lovable.app",
     cleartext: false,
     androidScheme: "https",
     iosScheme: "https",
