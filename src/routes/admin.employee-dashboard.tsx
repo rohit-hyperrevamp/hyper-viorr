@@ -497,11 +497,11 @@ function EmployeeDashboard() {
               </div>
               <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent/15 px-1.5 text-[10px] font-bold text-accent ring-1 ring-inset ring-accent/20">{guardTeam.length}</span>
             </header>
-            {team.length === 0 ? (
-              <div className="px-4 py-8 text-center text-xs text-muted-foreground">No teammates yet.</div>
+            {guardTeam.length === 0 ? (
+              <div className="px-4 py-8 text-center text-xs text-muted-foreground">No fellow guards in your unit yet.</div>
             ) : (
               <ul className="max-h-[320px] divide-y divide-border/60 overflow-y-auto">
-                {team.map((t) => (
+                {guardTeam.map((t) => (
                   <li key={t.id} className="flex items-center gap-3 px-4 py-2.5">
                     <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/15 text-[11px] font-bold text-accent ring-1 ring-inset ring-accent/20">
                       {t.photo_url ? <img src={t.photo_url} alt="" className="h-full w-full object-cover" /> : initials(t.full_name)}
