@@ -270,39 +270,28 @@ function ProfilePage() {
     logout();
     navigate({ to: "/login", replace: true });
   }
-  const preferencesCard = (
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <div className="text-sm font-semibold text-foreground">Preferences</div>
-          <div className="text-xs text-muted-foreground">Appearance & account</div>
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
+  const bottomActions = (
+    <div className="rounded-2xl border border-border bg-card p-2 shadow-sm">
+      <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={toggleTheme}
-          className="flex items-center justify-between rounded-xl border border-border/70 bg-background px-3 py-2.5 text-left transition hover:bg-muted/40 [-webkit-tap-highlight-color:transparent]"
+          className="flex items-center justify-center gap-2 rounded-xl bg-secondary/50 px-3 py-3 text-sm font-semibold text-foreground transition hover:bg-secondary [-webkit-tap-highlight-color:transparent]"
         >
-          <span className="flex items-center gap-2.5 text-sm font-medium text-foreground">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-muted/60 text-primary">
-              {themeMounted && theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </span>
-            {themeMounted && theme === "dark" ? "Light mode" : "Dark mode"}
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-background text-primary shadow-sm">
+            {themeMounted && theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </span>
-          <span className="text-xs text-muted-foreground">Tap to switch</span>
+          {themeMounted && theme === "dark" ? "Light mode" : "Dark mode"}
         </button>
         <button
           type="button"
           onClick={handleSignOut}
-          className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-left text-destructive transition hover:bg-destructive/10 [-webkit-tap-highlight-color:transparent]"
+          className="flex items-center justify-center gap-2 rounded-xl bg-destructive/5 px-3 py-3 text-sm font-semibold text-destructive transition hover:bg-destructive/10 [-webkit-tap-highlight-color:transparent]"
         >
-          <span className="flex items-center gap-2.5 text-sm font-semibold">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-destructive/10 text-destructive">
-              <LogOut className="h-4 w-4" />
-            </span>
-            Sign out
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-destructive/10 text-destructive">
+            <LogOut className="h-4 w-4" />
           </span>
+          Sign out
         </button>
       </div>
     </div>
@@ -827,10 +816,10 @@ function ProfilePage() {
       <div className="space-y-5">
         <PageHeader title="My Profile" crumbs={[{ label: "My Profile" }]} />
         {appleNativeCard}
-        {preferencesCard}
         <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
           No employee record is linked to your phone number ({phone}). Please contact your admin.
         </div>
+        {bottomActions}
       </div>
     );
   }
@@ -853,9 +842,6 @@ function ProfilePage() {
       <LanguagePreferenceCard candidateId={profile.id} />
 
       {appleNativeCard}
-
-      {preferencesCard}
-
 
       {/* Hero card */}
       <div className="overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br from-card via-card to-secondary/40 shadow-sm">
@@ -1731,6 +1717,8 @@ function ProfilePage() {
           </ul>
         )}
       </Section>
+
+      {bottomActions}
     </div>
   );
 }
