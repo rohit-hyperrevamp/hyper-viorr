@@ -202,11 +202,12 @@ export async function initNative(): Promise<void> {
     console.warn("[native] initialization failed", err);
   }
 
-  // Push notifications (APNs on iOS). Prepare listeners only; permission is
-  // requested after sign-in or when the user taps Register iPhone.
+  // Push notifications (APNs on iOS). Prepare listeners, then silently refresh
+  // the APNs token on every native launch when permission is already granted.
+  // This prevents stale tokens from surviving reinstalls or debug/release swaps.
   try {
-    const { preparePushNotifications } = await import("./push");
-    void preparePushNotifications();
+    const { initPushNotifications } = await import("./push");
+    void initPushNotifications();
   } catch (err) {
     logNativeEvent("push", "prepare import failed", {
       error: err instanceof Error ? err.message : String(err),
