@@ -23,10 +23,12 @@ export function MobileBottomNav({
   items,
   onMore,
   moreActive,
+  hideMore = false,
 }: {
   items: BottomNavItem[];
   onMore: () => void;
   moreActive?: boolean;
+  hideMore?: boolean;
 }) {
   const primary = items.slice(0, 4);
   const [nativeShell, setNativeShell] = useState(false);
@@ -93,6 +95,7 @@ export function MobileBottomNav({
             </li>
           );
         })}
+        {!hideMore && (
         <li className="flex-1">
           <button
             type="button"
@@ -115,6 +118,7 @@ export function MobileBottomNav({
             </div>
           </button>
         </li>
+        )}
       </ul>
     </nav>
   );

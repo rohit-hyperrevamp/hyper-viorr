@@ -958,6 +958,7 @@ function AdminLayout() {
             items={bottomItems}
             onMore={() => setMobileOpen(true)}
             moreActive={mobileOpen}
+            hideMore={isGuard}
           />
         );
       })()}
