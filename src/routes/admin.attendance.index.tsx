@@ -297,9 +297,10 @@ function AttendanceUnitsPage() {
           const employees = a ? Array.from(a.employees.entries()) : [];
           const sgs: EmployeeRef[] = [];
           for (const [id, info] of employees) {
-            // Include all designations on the attendance roster (not just security guards).
+            if ((info.roleKey ?? "") === "field_officer") continue;
             sgs.push({ id, name: info.name });
           }
+
           return {
             id: u.id,
             code: u.code,
