@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Fingerprint, LogIn, LogOut, MapPin, Loader2, Clock, CheckCircle2, AlertTriangle, ExternalLink } from "lucide-react";
+import { Fingerprint, LogIn, LogOut, MapPin, Loader2, Clock, CheckCircle2, AlertTriangle, ExternalLink, Battery, BatteryCharging, Wifi, Signal, Radio } from "lucide-react";
+
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,9 +13,13 @@ import {
   distanceMeters,
   formatDistance,
   mapsUrl,
+  pushTelemetry,
+  readBattery,
+  readNetworkType,
   DEVIATION_THRESHOLD_M,
   type SelfPunch,
 } from "@/lib/self-attendance";
+
 import { isNativePlatform } from "@/lib/native";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +47,50 @@ function MapLink({
     </a>
   );
 }
+function LiveTelemetryStrip({ punch }: { punch: SelfPunch }) {
+  const url = mapsUrl(punch.last_lat ?? punch.check_in_lat, punch.last_lng ?? punch.check_in_lng);
+  const seen = punch.last_seen_at ? new Date(punch.last_seen_at) : null;
+  const secs = seen ? Math.max(0, Math.round((Date.now() - seen.getTime()) / 1000)) : null;
+  const seenLabel = secs == null ? "waiting…" : secs < 60 ? `${secs}s ago` : `${Math.round(secs / 60)}m ago`;
+  const bat = punch.battery_pct;
+  const batTone = bat == null ? "text-muted-foreground" : bat <= 20 ? "text-rose-600 dark:text-rose-400" : bat <= 40 ? "text-amber-600 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400";
+  const net = punch.network_type;
+  const NetIcon = net === "WiFi" ? Wifi : net === "5G" || net === "4G" ? Signal : Radio;
+  return (
+    <div className="mt-3 flex flex-col gap-2 rounded-xl border border-primary/20 bg-primary/5 p-2.5 text-[11px] sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-semibold">
+        <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+          </span>
+          LIVE · {seenLabel}
+        </span>
+        <span className={cn("inline-flex items-center gap-1", batTone)}>
+          {punch.battery_charging ? <BatteryCharging className="h-3.5 w-3.5" /> : <Battery className="h-3.5 w-3.5" />}
+          {bat == null ? "Battery n/a" : `${bat}%${punch.battery_charging ? " ⚡" : ""}`}
+        </span>
+        <span className="inline-flex items-center gap-1 text-foreground">
+          <NetIcon className="h-3.5 w-3.5" />
+          {net ?? "Network n/a"}
+        </span>
+      </div>
+      {url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 font-bold text-primary-foreground shadow-sm hover:bg-primary/90"
+        >
+          <MapPin className="h-3.5 w-3.5" />
+          View live location
+          <ExternalLink className="h-3 w-3 opacity-80" />
+        </a>
+      )}
+    </div>
+  );
+}
+
 
 
 function timeStr(iso: string | null) {
@@ -121,6 +170,33 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
     () => (punch?.check_in_at ? elapsed(punch.check_in_at, punch.check_out_at) : ""),
     [punch?.check_in_at, punch?.check_out_at],
   );
+
+  // While checked-in, push live location + battery + network every 45s.
+  useEffect(() => {
+    if (state !== "in" || !punch?.id) return;
+    let cancelled = false;
+    const send = async () => {
+      try {
+        const [geo, battery] = await Promise.allSettled([getCurrentPosition(), readBattery()]);
+        if (cancelled) return;
+        await pushTelemetry(punch.id, {
+          geo: geo.status === "fulfilled" ? geo.value : null,
+          battery: battery.status === "fulfilled" ? battery.value : null,
+          network: readNetworkType(),
+        });
+        void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
+      } catch {
+        /* ignore transient errors */
+      }
+    };
+    void send();
+    const t = setInterval(send, 45_000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [state, punch?.id, candidateId, qc]);
+
 
   const pillClass =
     state === "done"
@@ -208,7 +284,7 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
         );
       })()}
 
-
+      {state === "in" && <LiveTelemetryStrip punch={punch!} />}
 
       <div className="mt-3 sm:mt-4">
         {state === "idle" && (

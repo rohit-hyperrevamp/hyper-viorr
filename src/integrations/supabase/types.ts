@@ -3930,6 +3930,8 @@ export type Database = {
       }
       self_attendance_punches: {
         Row: {
+          battery_charging: boolean | null
+          battery_pct: number | null
           candidate_id: string
           check_in_accuracy: number | null
           check_in_at: string | null
@@ -3943,11 +3945,18 @@ export type Database = {
           check_out_lng: number | null
           created_at: string
           id: string
+          last_accuracy: number | null
+          last_lat: number | null
+          last_lng: number | null
+          last_seen_at: string | null
+          network_type: string | null
           notes: string | null
           punch_date: string
           updated_at: string
         }
         Insert: {
+          battery_charging?: boolean | null
+          battery_pct?: number | null
           candidate_id: string
           check_in_accuracy?: number | null
           check_in_at?: string | null
@@ -3961,11 +3970,18 @@ export type Database = {
           check_out_lng?: number | null
           created_at?: string
           id?: string
+          last_accuracy?: number | null
+          last_lat?: number | null
+          last_lng?: number | null
+          last_seen_at?: string | null
+          network_type?: string | null
           notes?: string | null
           punch_date: string
           updated_at?: string
         }
         Update: {
+          battery_charging?: boolean | null
+          battery_pct?: number | null
           candidate_id?: string
           check_in_accuracy?: number | null
           check_in_at?: string | null
@@ -3979,6 +3995,11 @@ export type Database = {
           check_out_lng?: number | null
           created_at?: string
           id?: string
+          last_accuracy?: number | null
+          last_lat?: number | null
+          last_lng?: number | null
+          last_seen_at?: string | null
+          network_type?: string | null
           notes?: string | null
           punch_date?: string
           updated_at?: string
