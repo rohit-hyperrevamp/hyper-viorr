@@ -588,9 +588,9 @@ function AdminLayout() {
                   collapsed && "justify-center p-1.5",
                 )}
               >
-                <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary text-primary-foreground text-[11px] font-bold">
+                <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary text-primary-foreground text-[11px] font-bold">
                   {me.photoUrl ? (
-                    <img src={me.photoUrl} alt="" className="h-full w-full object-cover" />
+                    <img src={me.photoUrl} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
                   ) : (
                     me.initials
                   )}
