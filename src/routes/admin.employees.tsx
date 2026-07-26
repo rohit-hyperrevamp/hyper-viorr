@@ -3341,11 +3341,13 @@ function CandidateWizard({
   });
   const allowedDesignationIds = contractDesigQuery.data ?? [];
   const filteredDesignations = useMemo(() => {
-    if (form.unit_ids.length === 0) return designations;
-    if (contractDesigQuery.isLoading) return designations;
+    let base = designations;
+    if (isEmployeeMode) base = base.filter((d) => d.billable === false);
+    if (form.unit_ids.length === 0) return base;
+    if (contractDesigQuery.isLoading) return base;
     const allow = new Set(allowedDesignationIds);
-    return designations.filter((d) => allow.has(d.id));
-  }, [designations, form.unit_ids.length, contractDesigQuery.isLoading, allowedDesignationIds]);
+    return base.filter((d) => allow.has(d.id));
+  }, [designations, form.unit_ids.length, contractDesigQuery.isLoading, allowedDesignationIds, isEmployeeMode]);
 
   // If the currently selected designation is no longer allowed by the units'
   // contracts, clear it so the user picks a valid one.
