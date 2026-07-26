@@ -1,4 +1,3 @@
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendApnsPush, type ApnsPayload } from "./apns.server";
 
 type TokenRow = {
@@ -20,6 +19,7 @@ function uniqueUserIds(userIds: string[]) {
 
 async function deleteDeadToken(token: string) {
   try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("device_push_tokens").delete().eq("token", token);
   } catch {
     /* best-effort cleanup only */
@@ -27,6 +27,7 @@ async function deleteDeadToken(token: string) {
 }
 
 export async function getPushRegistrationStatusForUser(userId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("device_push_tokens")
     .select("id,platform,last_seen_at,created_at")
@@ -49,6 +50,7 @@ export async function sendNativePushToUsersServer(
   const recipients = uniqueUserIds(userIds);
   if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
 
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("device_push_tokens")
     .select("user_id,token,platform,last_seen_at")
