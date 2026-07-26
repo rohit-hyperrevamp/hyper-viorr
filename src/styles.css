@@ -434,6 +434,28 @@
       top: calc(0.75rem + env(safe-area-inset-top, 0px));
       right: calc(0.75rem + env(safe-area-inset-right, 0px));
     }
+
+    /* Tighter, more compact form typography inside the Add Candidate wizard on mobile.
+       Kept at 15px to stay close to the 16px iOS zoom threshold while feeling smaller. */
+    .candidate-wizard-page input:not([type="checkbox"]):not([type="radio"]),
+    .candidate-wizard-page textarea,
+    .candidate-wizard-page select,
+    .candidate-wizard-page [role="combobox"],
+    .candidate-wizard-page button[data-slot="select-trigger"] {
+      font-size: 15px !important;
+      line-height: 1.25 !important;
+    }
+    .candidate-wizard-page input:not([type="checkbox"]):not([type="radio"]),
+    .candidate-wizard-page [role="combobox"],
+    .candidate-wizard-page button[data-slot="select-trigger"] {
+      height: 40px !important;
+      padding-top: 6px !important;
+      padding-bottom: 6px !important;
+    }
+    .candidate-wizard-page textarea { min-height: 76px !important; }
+    .candidate-wizard-page label { font-size: 12px !important; }
+    .candidate-wizard-page [data-slot="select-value"],
+    .candidate-wizard-page [data-slot="select-item"] { font-size: 15px !important; }
   }
 
   /* Softly tinted canvas — subtle warm+cool wash so pages breathe instead of
