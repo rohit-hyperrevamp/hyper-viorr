@@ -31,6 +31,10 @@ function rowToNotification(r: Record<string, unknown>): Notification {
   };
 }
 
+function newNotificationId() {
+  return crypto.randomUUID();
+}
+
 export async function currentUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getUser();
   return data.user?.id ?? null;
@@ -59,7 +63,9 @@ export async function createNotification(input: {
   entityId?: string;
 }) {
   const actor = await currentUserId();
-  const { data, error } = await supabase.from("notifications" as never).insert({
+  const notificationId = newNotificationId();
+  const { error } = await supabase.from("notifications" as never).insert({
+    id: notificationId,
     user_id: input.userId,
     actor_id: actor,
     type: input.type,
@@ -68,10 +74,9 @@ export async function createNotification(input: {
     link: input.link ?? "",
     entity_type: input.entityType ?? "",
     entity_id: input.entityId ?? "",
-  } as never).select("id").single();
+  } as never);
   if (error) throw error;
-  const notificationId = (data as unknown as { id?: string } | null)?.id;
-  await deliverNativePush([input.userId], input, notificationId ? [notificationId] : []);
+  await deliverNativePush([input.userId], input, [notificationId]);
 }
 
 async function deliverNativePush(
@@ -107,6 +112,7 @@ export async function notifyAdmins(input: {
   if (ids.length === 0) return;
   const actor = await currentUserId();
   const rows = ids.map((uid) => ({
+    id: newNotificationId(),
     user_id: uid,
     actor_id: actor,
     type: input.type,
@@ -116,15 +122,12 @@ export async function notifyAdmins(input: {
     entity_type: input.entityType ?? "",
     entity_id: input.entityId ?? "",
   }));
-  const { data, error } = await supabase.from("notifications" as never).insert(rows as never).select("id,user_id");
+  const { error } = await supabase.from("notifications" as never).insert(rows as never);
   if (error) {
     console.error("notifyAdmins insert error", error);
     return;
   }
-  const insertedRows = ((data as unknown) as Array<{ id?: string; user_id?: string }> | null) ?? [];
-  const notificationIds = insertedRows.map((row) => row.id).filter((id): id is string => Boolean(id));
-  const recipients = insertedRows.map((row) => row.user_id).filter((id): id is string => Boolean(id));
-  await deliverNativePush(recipients.length ? recipients : ids, input, notificationIds);
+  await deliverNativePush(ids, input, rows.map((row) => row.id));
 }
 
 export async function markNotificationRead(id: string) {
@@ -183,6 +186,7 @@ export async function notifyApprovers(input: {
   const recipients = ids.filter((id) => id !== actor);
   if (recipients.length === 0) return 0;
   const rows = recipients.map((uid) => ({
+    id: newNotificationId(),
     user_id: uid,
     actor_id: actor,
     type: input.type,
@@ -192,15 +196,12 @@ export async function notifyApprovers(input: {
     entity_type: input.entityType ?? "",
     entity_id: input.entityId ?? "",
   }));
-  const { data, error } = await supabase.from("notifications" as never).insert(rows as never).select("id,user_id");
+  const { error } = await supabase.from("notifications" as never).insert(rows as never);
   if (error) {
     console.error("notifyApprovers insert error", error);
     return 0;
   }
-  const insertedRows = ((data as unknown) as Array<{ id?: string; user_id?: string }> | null) ?? [];
-  const notificationIds = insertedRows.map((row) => row.id).filter((id): id is string => Boolean(id));
-  const insertedRecipients = insertedRows.map((row) => row.user_id).filter((id): id is string => Boolean(id));
-  await deliverNativePush(insertedRecipients.length ? insertedRecipients : recipients, input, notificationIds);
+  await deliverNativePush(recipients, input, rows.map((row) => row.id));
   return recipients.length;
 }
 
@@ -239,6 +240,7 @@ export async function notifyOnboardingApprovers(input: {
   const recipients = ids.filter((id) => id !== actor);
   if (recipients.length === 0) return 0;
   const rows = recipients.map((uid) => ({
+    id: newNotificationId(),
     user_id: uid,
     actor_id: actor,
     type: input.type,
@@ -248,15 +250,12 @@ export async function notifyOnboardingApprovers(input: {
     entity_type: input.entityType ?? "",
     entity_id: input.entityId ?? "",
   }));
-  const { data, error } = await supabase.from("notifications" as never).insert(rows as never).select("id,user_id");
+  const { error } = await supabase.from("notifications" as never).insert(rows as never);
   if (error) {
     console.error("notifyOnboardingApprovers insert error", error);
     return 0;
   }
-  const insertedRows = ((data as unknown) as Array<{ id?: string; user_id?: string }> | null) ?? [];
-  const notificationIds = insertedRows.map((row) => row.id).filter((id): id is string => Boolean(id));
-  const insertedRecipients = insertedRows.map((row) => row.user_id).filter((id): id is string => Boolean(id));
-  await deliverNativePush(insertedRecipients.length ? insertedRecipients : recipients, input, notificationIds);
+  await deliverNativePush(recipients, input, rows.map((row) => row.id));
   return recipients.length;
 }
 
