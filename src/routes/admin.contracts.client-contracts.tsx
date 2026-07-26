@@ -3970,7 +3970,9 @@ function ResourceFormDialog({
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
               />
+            </Field>
           </div>
+
 
           <Field label="Role">
             <Select value={roleKey || "__none"} onValueChange={(v) => setRoleKey(v === "__none" ? "" : v)}>
