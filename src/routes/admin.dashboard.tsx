@@ -755,7 +755,7 @@ function Shell({ children, to, accent = "indigo" }: { children: React.ReactNode;
   return (
     <Link
       to={to}
-      className={`group relative flex h-[132px] flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
+      className={`group relative flex h-[104px] flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
     >
       {children}
     </Link>
@@ -766,13 +766,13 @@ function Shell({ children, to, accent = "indigo" }: { children: React.ReactNode;
 function TileHeader({ Icon, accent, label, sub }: { Icon?: React.ComponentType<{ className?: string }>; accent: Accent; label: string; sub?: string }) {
   void Icon; void accent;
   return (
-    <div className="relative flex items-start justify-between gap-3">
+    <div className="relative flex items-start justify-between gap-2 sm:gap-3">
       <div className="min-w-0">
-        <div className="font-display text-[15px] font-semibold text-foreground leading-tight">{label}</div>
-        {sub && <div className="mt-1 text-[11px] text-muted-foreground truncate">{sub}</div>}
+        <div className="truncate font-display text-[13px] font-semibold leading-tight text-foreground sm:text-[15px]">{label}</div>
+        {sub && <div className="mt-0.5 truncate text-[10px] text-muted-foreground sm:mt-1 sm:text-[11px]">{sub}</div>}
       </div>
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-foreground shadow-sm ring-1 ring-black/5 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-        <ArrowUpRight className="h-4 w-4" />
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card text-foreground shadow-sm ring-1 ring-border/60 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 sm:h-9 sm:w-9">
+        <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </span>
     </div>
   );
@@ -789,11 +789,11 @@ function MetricTile({ icon, label, value, to, accent = "indigo", sub }: { icon: 
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} sub={sub} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="font-display text-[32px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[46px]">
+        <div className="font-display text-[28px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[46px]">
           {display}
         </div>
-        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/80 ring-1 ring-inset sm:h-9 sm:w-9 ${ACCENT_CHIP[accent]}`}>
-          <I className="h-4 w-4" />
+        <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9 ${ACCENT_CHIP[accent]}`}>
+          <I className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </span>
       </div>
     </Shell>
@@ -811,10 +811,10 @@ function DualTile({ icon, label, primary, primaryLabel, secondary, secondaryLabe
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} sub={primaryLabel} />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="font-display text-[40px] font-bold leading-none tabular-nums tracking-tight text-foreground">{display}</div>
+        <div className="font-display text-[30px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[40px]">{display}</div>
         <div className="flex flex-col items-end text-right">
-          <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{secondaryLabel}</span>
-          <span className="mt-0.5 flex items-center gap-1 font-display text-sm font-semibold tabular-nums text-foreground">
+          <span className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:text-[10px] sm:tracking-[0.14em]">{secondaryLabel}</span>
+          <span className="mt-0.5 flex items-center gap-1 font-display text-xs font-semibold tabular-nums text-foreground sm:text-sm">
             <Fuel className="h-3.5 w-3.5 text-muted-foreground" />{secondary}
           </span>
         </div>
@@ -832,17 +832,17 @@ function StatusTile({ icon, label, approved, pending, draft, rejected, approvedL
   return (
     <Shell to={to} accent={accent}>
       <TileHeader accent={accent} label={label} />
-      <div className="relative mt-3 grid grid-cols-2 gap-3">
+      <div className="relative mt-2 grid grid-cols-2 gap-2 sm:mt-3 sm:gap-3">
         <div>
-          <div className="font-display text-[26px] font-bold tabular-nums leading-none text-foreground">{approved}</div>
-          <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{approvedLabel}</div>
+          <div className="font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-[26px]">{approved}</div>
+          <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">{approvedLabel}</div>
         </div>
         <div>
-          <div className="font-display text-[26px] font-bold tabular-nums leading-none text-foreground">{pending}</div>
-          <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{pendingLabel}</div>
+          <div className="font-display text-[22px] font-bold tabular-nums leading-none text-foreground sm:text-[26px]">{pending}</div>
+          <div className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-[10px] sm:tracking-[0.14em]">{pendingLabel}</div>
         </div>
       </div>
-      <div className="relative mt-auto flex h-1.5 overflow-hidden rounded-full bg-white/60">
+      <div className="relative mt-auto flex h-1.5 overflow-hidden rounded-full bg-card/60">
         {approved > 0 && <div className={ACCENT_BAR[accent]} style={{ width: `${(approved / total) * 100}%` }} />}
         {pending > 0 && <div className="bg-muted-foreground/50" style={{ width: `${(pending / total) * 100}%` }} />}
         {draft > 0 && <div className="bg-muted-foreground/30" style={{ width: `${(draft / total) * 100}%` }} />}
@@ -866,7 +866,7 @@ function ContractsTile({ active, expiring }: { active: number; expiring: Array<{
     <Shell to="/admin/contracts/client-contracts" accent="amber">
       <TileHeader accent="amber" label="Contracts" sub="Active client contracts" />
       <div className="relative mt-auto flex items-end justify-between gap-3">
-        <div className="font-display text-[46px] font-bold leading-none tabular-nums tracking-tight text-foreground">{display}</div>
+        <div className="font-display text-[30px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[46px]">{display}</div>
         <div className={`flex max-w-[55%] items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold ${alertTone}`}>
           <AlertTriangle className="h-3 w-3 shrink-0" />
           <span className="truncate leading-none" title={hasExpiring && soonest?.end_date ? `Soonest: ${soonest.end_date}` : alertText}>{alertText}</span>
