@@ -32,14 +32,14 @@ function Avatar({ src, name }: { src: string | null; name: string }) {
       <img
         src={src}
         alt=""
-        className="aspect-square h-9 w-9 shrink-0 rounded-full object-cover object-center ring-1 ring-border"
+        className="aspect-square h-8 w-8 shrink-0 rounded-full object-cover object-center ring-1 ring-border"
         loading="lazy"
       />
 
     );
   }
   return (
-    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent/15 text-[11px] font-bold text-accent ring-1 ring-inset ring-accent/20">
+    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent/15 text-[10px] font-bold text-accent ring-1 ring-inset ring-accent/20">
       {initials(name)}
     </span>
   );

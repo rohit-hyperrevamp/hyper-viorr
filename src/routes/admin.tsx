@@ -709,10 +709,8 @@ function AdminLayout() {
       )}>
         <Link to={dashboardHref} className="flex min-w-0 flex-1 items-center gap-2.5">
           <div className="relative shrink-0">
-            <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-white shadow-[0_4px_12px_-4px_rgba(0,0,0,0.15)] ring-1 ring-border/60 dark:bg-neutral-100">
-              <img src={brandLogo} alt="Radiant" className="h-7 w-7 object-contain" />
-            </div>
-            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-background" />
+            <img src={brandLogo} alt="Radiant" className="h-9 w-9 object-contain" />
+            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
           </div>
           <div className="min-w-0 leading-tight">
             <div className="truncate text-[15px] font-bold tracking-tight text-foreground">

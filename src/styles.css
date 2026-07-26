@@ -1042,21 +1042,24 @@ p, span, div, td, th, li, dd, dt, label, a, button {
 /* But numeric cells and .num should stay tight */
 .num, [data-col="amount"], [data-col="qty"] { overflow-wrap: normal; }
 
-/* Images — never stretch, always contain aspect (but skip inside circular
-   avatar frames so h-full/w-full utilities can fill them edge-to-edge). */
-img:not(.rounded-full):not(.h-full):not(.w-full),
-video:not(.h-full):not(.w-full) { max-width: 100%; height: auto; }
-.rounded-full > img:only-child,
-.rounded-full > a > img:only-child,
-.rounded-full > button > img:only-child,
-img.rounded-full {
-  height: 100% !important;
-  width: 100% !important;
+/* Images — never stretch, always contain aspect. Skip when a utility
+   explicitly sets a size, so h-9/w-9/h-full/w-full win normally. */
+img:not(.rounded-full):not([class*="h-"]):not([class*="w-"]),
+video:not([class*="h-"]):not([class*="w-"]) { max-width: 100%; height: auto; }
+
+/* Fill only when the image has NO explicit size class of its own —
+   i.e. its parent circular frame controls the dimensions. */
+.rounded-full > img:only-child:not([class*="h-"]):not([class*="w-"]),
+.rounded-full > a > img:only-child:not([class*="h-"]):not([class*="w-"]),
+.rounded-full > button > img:only-child:not([class*="h-"]):not([class*="w-"]) {
+  height: 100%;
+  width: 100%;
   object-fit: cover;
   object-position: center;
   display: block;
   max-width: none;
 }
+
 
 /* Radix Avatar: image must fill the fixed-size root */
 [data-avatar] img,
