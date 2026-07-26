@@ -32,9 +32,10 @@ function Avatar({ src, name }: { src: string | null; name: string }) {
       <img
         src={src}
         alt=""
-        className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-border"
+        className="aspect-square h-9 w-9 shrink-0 rounded-full object-cover object-center ring-1 ring-border"
         loading="lazy"
       />
+
     );
   }
   return (
