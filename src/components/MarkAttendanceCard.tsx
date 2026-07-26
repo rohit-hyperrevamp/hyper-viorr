@@ -117,7 +117,10 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
   const punchQ = useQuery({
     queryKey: ["self-attendance-today", candidateId],
     enabled: !!candidateId,
-    queryFn: () => fetchTodayPunch(candidateId!),
+    queryFn: () => {
+      if (!candidateId) return null;
+      return fetchTodayPunch(candidateId);
+    },
     refetchInterval: 60_000,
   });
 
