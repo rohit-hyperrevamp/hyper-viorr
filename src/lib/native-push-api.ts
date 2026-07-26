@@ -1,6 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const LOVABLE_NATIVE_API_ORIGIN = "https://radiant-guard-services.lovable.app";
+// Stable Lovable dev app URL: always serves the latest preview build and has
+// Lovable Cloud secrets available. The published Lovable URL may lag until the
+// user clicks Publish, while the Vercel/custom-domain native shell must be able
+// to bridge APNs calls immediately.
+const LOVABLE_NATIVE_API_ORIGIN = "https://project--dc741c55-be5a-40d9-b6e9-523fed099022-dev.lovable.app";
 const NATIVE_PUSH_API_PATH = "/api/public/native/push";
 
 export type NativePushRegistrationStatus = {
@@ -27,7 +31,7 @@ function nativePushApiUrl() {
   if (typeof window === "undefined") return `${LOVABLE_NATIVE_API_ORIGIN}${NATIVE_PUSH_API_PATH}`;
 
   const host = window.location.hostname;
-  if (host === "radiant-guard-services.lovable.app") {
+  if (host === "project--dc741c55-be5a-40d9-b6e9-523fed099022-dev.lovable.app") {
     return `${window.location.origin}${NATIVE_PUSH_API_PATH}`;
   }
 
