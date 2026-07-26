@@ -35,6 +35,7 @@ type Me = {
   status: string | null;
   unit_id: string | null;
   designation_id: string | null;
+  reports_to: string | null;
   date_of_birth: string | null;
   approved_at: string | null;
   created_at: string | null;
@@ -48,6 +49,19 @@ type Teammate = {
   date_of_birth: string | null;
   approved_at: string | null;
   created_at: string | null;
+  designation_id: string | null;
+  role_key: string | null;
+  unit_id: string | null;
+};
+
+type Manager = {
+  id: string;
+  full_name: string;
+  employee_code: string | null;
+  photo_url: string | null;
+  mobile: string | null;
+  email: string | null;
+  role_key: string | null;
   designation_id: string | null;
 };
 
@@ -92,7 +106,7 @@ function EmployeeDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code,photo_url,mobile,email,role_key,status,unit_id,designation_id,date_of_birth,approved_at,created_at")
+        .select("id,full_name,employee_code,photo_url,mobile,email,role_key,status,unit_id,designation_id,reports_to,date_of_birth,approved_at,created_at")
         .eq("mobile", phone)
         .maybeSingle();
       if (error) throw error;
@@ -179,20 +193,82 @@ function EmployeeDashboard() {
     queryKey: ["me-team", myUnitIds.join(","), me?.id],
     enabled: !!me?.id && myUnitIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Guards mapped via candidates.unit_id
+      const { data: direct, error } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code,photo_url,date_of_birth,approved_at,created_at,designation_id")
+        .select("id,full_name,employee_code,photo_url,date_of_birth,approved_at,created_at,designation_id,role_key,unit_id")
         .in("unit_id", myUnitIds)
         .in("status", ["active", "approved"])
         .neq("id", me!.id)
         .order("full_name");
       if (error) throw error;
-      return (data as unknown as Teammate[]) ?? [];
+      // Guards mapped via candidate_units (many-to-many)
+      const { data: cu } = await supabase
+        .from("candidate_units" as never)
+        .select("candidate_id")
+        .in("unit_id", myUnitIds);
+      const extraIds = Array.from(
+        new Set(((cu as unknown as Array<{ candidate_id: string }>) ?? []).map((r) => r.candidate_id).filter((id) => id && id !== me!.id)),
+      );
+      let extras: Teammate[] = [];
+      if (extraIds.length) {
+        const { data: ex } = await supabase
+          .from("candidates")
+          .select("id,full_name,employee_code,photo_url,date_of_birth,approved_at,created_at,designation_id,role_key,unit_id")
+          .in("id", extraIds)
+          .in("status", ["active", "approved"]);
+        extras = (ex as unknown as Teammate[]) ?? [];
+      }
+      const map = new Map<string, Teammate>();
+      for (const t of (direct as unknown as Teammate[]) ?? []) map.set(t.id, t);
+      for (const t of extras) if (!map.has(t.id)) map.set(t.id, t);
+      return Array.from(map.values()).sort((a, b) => a.full_name.localeCompare(b.full_name));
     },
   });
   const team = teamQ.data ?? [];
+  const guardTeam = useMemo(
+    () => team.filter((t) => t.role_key === "guard" || t.role_key === "security_guard"),
+    [team],
+  );
 
-  const desigIds = useMemo(() => Array.from(new Set(team.map((t) => t.designation_id).filter(Boolean))) as string[], [team]);
+  // Names of all units the employee is part of
+  const unitsListQ = useQuery({
+    queryKey: ["me-units-list", myUnitIds.join(",")],
+    enabled: myUnitIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("units")
+        .select("id,name,code")
+        .in("id", myUnitIds);
+      if (error) throw error;
+      return (data as unknown as Array<{ id: string; name: string; code: string | null }>) ?? [];
+    },
+  });
+  const myUnits = unitsListQ.data ?? [];
+
+  // Reporting manager (field officer)
+  const managerQ = useQuery({
+    queryKey: ["me-manager", me?.reports_to],
+    enabled: !!me?.reports_to,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("candidates")
+        .select("id,full_name,employee_code,photo_url,mobile,email,role_key,designation_id")
+        .eq("id", me!.reports_to!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as unknown as Manager) ?? null;
+    },
+  });
+  const manager = managerQ.data ?? null;
+
+
+  const desigIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const t of team) if (t.designation_id) ids.add(t.designation_id);
+    if (manager?.designation_id) ids.add(manager.designation_id);
+    return Array.from(ids);
+  }, [team, manager]);
   const desigNameQ = useQuery({
     queryKey: ["me-team-desig", desigIds.join(",")],
     enabled: desigIds.length > 0,
@@ -297,7 +373,17 @@ function EmployeeDashboard() {
                   <div><span className="font-medium text-foreground">Phone:</span> {me.mobile ?? "—"}</div>
                   <div><span className="font-medium text-foreground">Email:</span> {me.email || "—"}</div>
                   <div><span className="font-medium text-foreground">Designation:</span> {desig?.name ?? "—"}</div>
-                  <div><span className="font-medium text-foreground">Unit:</span> {unit?.name ?? "—"}</div>
+                  <div className="sm:col-span-2"><span className="font-medium text-foreground">Units:</span>{" "}
+                    {myUnits.length === 0 ? "—" : (
+                      <span className="inline-flex flex-wrap gap-1 align-middle">
+                        {myUnits.map((u) => (
+                          <span key={u.id} className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${ACCENT_CHIP.violet}`}>
+                            {u.name}{u.code ? ` · ${u.code}` : ""}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                  </div>
                   {age !== null && <div><span className="font-medium text-foreground">Age:</span> {age}</div>}
                   {tenureYears !== null && <div><span className="font-medium text-foreground">Tenure:</span> {tenureYears} yr</div>}
                 </div>
@@ -343,21 +429,62 @@ function EmployeeDashboard() {
                 <span className={`grid h-8 w-8 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP.violet}`}><Building2 className="h-3.5 w-3.5" /></span>
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Assignment</div>
-                  <div className="font-display text-[15px] font-bold leading-tight">Unit</div>
+                  <div className="font-display text-[15px] font-bold leading-tight">Units ({myUnits.length})</div>
                 </div>
               </div>
-              <div className="font-display text-lg font-bold">{unit?.name ?? "Not assigned"}</div>
-              {unit?.code && <div className="font-mono text-xs text-muted-foreground">{unit.code}</div>}
-              <div className="mt-3 flex gap-2">
-                <div className="flex-1 rounded-xl bg-secondary/60 px-3 py-2 text-center ring-1 ring-border">
-                  <div className="font-display text-lg font-bold tabular-nums">{team.length + 1}</div>
+              {myUnits.length === 0 ? (
+                <div className="text-sm text-muted-foreground">Not assigned</div>
+              ) : (
+                <ul className="space-y-1.5">
+                  {myUnits.map((u) => (
+                    <li key={u.id} className="flex items-center justify-between gap-2 rounded-lg bg-secondary/40 px-2.5 py-1.5 ring-1 ring-border">
+                      <span className="truncate text-sm font-semibold text-foreground">{u.name}</span>
+                      {u.code && <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{u.code}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="rounded-xl bg-secondary/60 px-3 py-2 text-center ring-1 ring-border">
+                  <div className="font-display text-lg font-bold tabular-nums">{guardTeam.length + 1}</div>
                   <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Team size</div>
                 </div>
-                <Link to="/admin/my-inventory" className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-center text-sm font-semibold hover:bg-secondary">
+                <Link to="/admin/my-inventory" className="flex items-center justify-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-center text-sm font-semibold hover:bg-secondary">
                   My Uniform <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
             </div>
+          </section>
+
+          {/* Reporting manager */}
+          <section className="rounded-[24px] border border-border/60 bg-card/70 p-5 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)]">
+            <div className="mb-3 flex items-center gap-2">
+              <span className={`grid h-8 w-8 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP.sky}`}><UserRound className="h-3.5 w-3.5" /></span>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Reports to</div>
+                <div className="font-display text-[15px] font-bold leading-tight">Reporting Manager</div>
+              </div>
+            </div>
+            {!manager ? (
+              <div className="text-sm text-muted-foreground">No reporting manager assigned yet.</div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/15 text-[13px] font-bold text-accent ring-1 ring-inset ring-accent/20">
+                  {manager.photo_url ? <img src={manager.photo_url} alt="" className="h-full w-full object-cover" /> : initials(manager.full_name)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold text-foreground">{manager.full_name}</div>
+                  <div className="truncate text-[11px] text-muted-foreground">
+                    {manager.designation_id ? desigMap.get(manager.designation_id) ?? "" : ""}
+                    {manager.role_key ? ` · ${manager.role_key.replace(/_/g, " ")}` : ""}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                    {manager.employee_code && <span className="font-mono">{manager.employee_code}</span>}
+                    {manager.mobile && <span>{manager.mobile}</span>}
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Team roster */}
@@ -366,15 +493,15 @@ function EmployeeDashboard() {
               <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP.indigo}`}><Users className="h-3.5 w-3.5" /></span>
               <div className="min-w-0 flex-1">
                 <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Your unit</div>
-                <div className="font-display text-[15px] font-bold text-foreground leading-tight">Teammates</div>
+                <div className="font-display text-[15px] font-bold text-foreground leading-tight">Fellow guards</div>
               </div>
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent/15 px-1.5 text-[10px] font-bold text-accent ring-1 ring-inset ring-accent/20">{team.length}</span>
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent/15 px-1.5 text-[10px] font-bold text-accent ring-1 ring-inset ring-accent/20">{guardTeam.length}</span>
             </header>
-            {team.length === 0 ? (
-              <div className="px-4 py-8 text-center text-xs text-muted-foreground">No teammates yet.</div>
+            {guardTeam.length === 0 ? (
+              <div className="px-4 py-8 text-center text-xs text-muted-foreground">No fellow guards in your unit yet.</div>
             ) : (
               <ul className="max-h-[320px] divide-y divide-border/60 overflow-y-auto">
-                {team.map((t) => (
+                {guardTeam.map((t) => (
                   <li key={t.id} className="flex items-center gap-3 px-4 py-2.5">
                     <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-accent/15 text-[11px] font-bold text-accent ring-1 ring-inset ring-accent/20">
                       {t.photo_url ? <img src={t.photo_url} alt="" className="h-full w-full object-cover" /> : initials(t.full_name)}
