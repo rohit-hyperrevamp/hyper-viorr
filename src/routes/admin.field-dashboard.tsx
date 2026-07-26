@@ -287,62 +287,72 @@ function FieldOfficerDashboard() {
 
   return (
     <DashboardShell rightExtras={<FoPeopleInsights />}>
-      {/* Profile hero card — avatar + identity + 3 stat bars */}
-      <section className="rounded-2xl border border-border/60 bg-card/95 p-4 shadow-sm sm:rounded-3xl sm:p-6">
-        <div className="flex items-start gap-3 sm:gap-5">
+      {/* Profile hero — modern gradient card with circular avatar */}
+      <section className="relative overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 text-white shadow-[0_20px_50px_-24px_rgba(15,23,42,0.55)] sm:p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-accent/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-emerald-400/15 blur-3xl" />
+
+        <div className="relative flex items-center gap-3 sm:gap-4">
           <div className="relative shrink-0">
-            {data?.mePhoto ? (
-              <img
-                src={data.mePhoto}
-                alt={data?.meName || "Profile"}
-                className="h-16 w-16 rounded-full object-cover shadow-sm ring-2 ring-border/60 sm:h-24 sm:w-24"
-              />
-            ) : (
-              <div className="grid h-16 w-16 place-items-center rounded-full bg-accent font-display text-base font-bold text-accent-foreground shadow-sm ring-2 ring-border/60 sm:h-24 sm:w-24 sm:text-2xl">
-                {initials(data?.meName || "FO")}
-              </div>
-            )}
-            <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-card text-emerald-500 shadow ring-1 ring-emerald-500/30 sm:h-7 sm:w-7">
-              <ShieldCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+            <div className="rounded-full bg-white/10 p-[3px] ring-1 ring-white/20 backdrop-blur">
+              {data?.mePhoto ? (
+                <img
+                  src={data.mePhoto}
+                  alt={data?.meName || "Profile"}
+                  className="!aspect-square h-16 w-16 !rounded-full object-cover sm:h-20 sm:w-20"
+                />
+              ) : (
+                <div className="grid !aspect-square h-16 w-16 place-items-center !rounded-full bg-accent font-display text-lg font-bold text-accent-foreground sm:h-20 sm:w-20">
+                  {initials(data?.meName || "FO")}
+                </div>
+              )}
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white shadow ring-2 ring-slate-900 sm:h-6 sm:w-6">
+              <ShieldCheck className="h-3 w-3" />
             </span>
           </div>
 
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <div className="break-words font-display text-base font-bold leading-tight tracking-tight text-foreground sm:text-2xl">
-                  {data?.meName || (isLoading ? "…" : "Welcome")}
-                </div>
-                <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground sm:text-sm">
-                  <span className="font-semibold text-foreground/80">Field Officer</span>
-                  {data?.meCode ? <span className="opacity-70"> · {data.meCode}</span> : null}
-                </div>
-              </div>
-              <Link
-                to="/admin/profile"
-                className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full border border-border/70 bg-card px-2 text-[10px] font-semibold text-foreground/80 shadow-sm hover:border-accent/40 hover:text-accent sm:h-9 sm:px-3 sm:text-xs"
-              >
-                Edit <ArrowUpRight className="h-3 w-3" />
-              </Link>
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/50">Field Officer</div>
+            <div className="mt-0.5 truncate font-display text-lg font-bold tracking-tight sm:text-2xl">
+              {data?.meName || (isLoading ? "…" : "Welcome")}
             </div>
-
-            <div className="space-y-1 text-[11px] leading-snug text-foreground/80 sm:text-sm">
-              {phone && (
-                <div className="flex items-start gap-2"><Phone className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" /><span className="break-all tabular-nums">+91 {phone}</span></div>
-              )}
-              {email && (
-                <div className="flex items-start gap-2"><Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" /><span className="break-all">{email}</span></div>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {data?.meCode && (
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/85 ring-1 ring-white/15">{data.meCode}</span>
               )}
               {primaryUnit && (
-                <div className="flex items-start gap-2"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" /><span className="break-words">{primaryUnit.name} · {primaryUnit.customer_name}</span></div>
+                <span className="max-w-[160px] truncate rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-200 ring-1 ring-emerald-300/25">
+                  {primaryUnit.name}
+                </span>
               )}
             </div>
           </div>
+
+          <Link
+            to="/admin/profile"
+            aria-label="Edit profile"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/20 backdrop-blur transition hover:bg-white/20"
+          >
+            <ArrowUpRight className="h-4 w-4" />
+          </Link>
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-1.5 sm:mt-4 sm:gap-3">
-          <StatBar label="Team" value={totalListings} />
-          <StatBar label="Present" value={attnPresent} />
-          <StatBar label="Items" value={totalItems} />
+
+        {(phone || email) && (
+          <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/75 sm:text-xs">
+            {phone && (
+              <span className="inline-flex items-center gap-1.5"><Phone className="h-3 w-3" /><span className="tabular-nums">+91 {phone}</span></span>
+            )}
+            {primaryUnit && (
+              <span className="inline-flex items-center gap-1.5"><MapPin className="h-3 w-3" /><span className="truncate">{primaryUnit.customer_name}</span></span>
+            )}
+          </div>
+        )}
+
+        <div className="relative mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+          <HeroStat label="Team" value={totalListings} tint="sky" />
+          <HeroStat label="Present" value={attnPresent} tint="emerald" />
+          <HeroStat label="Items" value={totalItems} tint="amber" />
         </div>
       </section>
 
