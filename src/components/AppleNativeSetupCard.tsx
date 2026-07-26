@@ -62,6 +62,11 @@ export function AppleNativeSetupCard({
     void refreshPushStatus();
   }, []);
 
+  useEffect(() => {
+    if (!phoneDigits) return;
+    void refreshPushStatus();
+  }, [phoneDigits]);
+
   async function refreshPushStatus() {
     try {
       const status = await getPushStatus();
@@ -82,7 +87,6 @@ export function AppleNativeSetupCard({
     const key = `${AUTO_PUSH_KEY_PREFIX}:${phoneDigits}`;
     try {
       if (window.localStorage.getItem(key) === "done") return;
-      window.localStorage.setItem(key, "done");
     } catch {
       /* continue best-effort */
     }
@@ -93,7 +97,18 @@ export function AppleNativeSetupCard({
         setPushStatus(result.message);
         void refreshPushStatus();
         if (result.tokenSaved) {
+          try {
+            window.localStorage.setItem(key, "done");
+          } catch {
+            /* noop */
+          }
           toast.success("This iPhone is registered for push notifications");
+        } else {
+          try {
+            window.localStorage.removeItem(key);
+          } catch {
+            /* noop */
+          }
         }
       })
       .catch((err) => {
