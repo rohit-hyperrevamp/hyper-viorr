@@ -1973,7 +1973,7 @@ function MusterRollPage() {
       )}
 
       {/* Muster Roll Sheet */}
-      <div id="form-xvi-print" className="rounded-xl border border-border/60 bg-white p-5 text-[11px] text-slate-900 shadow-sm print:rounded-none print:border-0 print:shadow-none sm:p-6">
+      <div id="form-xvi-print" className="rounded-xl border border-border/60 bg-white p-3 text-[11px] text-slate-900 shadow-sm print:rounded-none print:border-0 print:shadow-none sm:p-6">
 
         <div className="text-center">
           <div className="text-base font-bold">Form XVI</div>
@@ -1981,7 +1981,25 @@ function MusterRollPage() {
           <div className="mt-1 text-sm font-bold tracking-wide">MUSTER ROLL</div>
         </div>
 
-        <table className="mt-3 w-full border border-slate-400 text-[11px]">
+        {/* Mobile: stacked meta cards to prevent overflow */}
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:hidden">
+          <div className="rounded-md border border-slate-300 p-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Service Provider</div>
+            <div className="mt-1 font-bold break-words">{SERVICE_PROVIDER.name}</div>
+            <div className="text-slate-700 break-words">{SERVICE_PROVIDER.address}</div>
+          </div>
+          <div className="rounded-md border border-slate-300 p-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Principal Employer</div>
+            <div className="mt-1 font-bold break-words">{principalEmployer || "—"}</div>
+            {principalAddress && <div className="text-slate-700 break-words">{principalAddress}</div>}
+            <div className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Month</div>
+            <div className="font-semibold">{monthLabel}</div>
+            <div className="text-slate-700 break-words">Period: {periodLabel}</div>
+            <div className="text-[10px] text-slate-500 break-words">{windowLabel}</div>
+          </div>
+        </div>
+        {/* Tablet/desktop: original two-column table */}
+        <table className="mt-3 hidden w-full border border-slate-400 text-[11px] sm:table">
           <tbody>
             <tr>
               <td className="w-1/2 border border-slate-400 p-2 align-top">
@@ -2002,7 +2020,7 @@ function MusterRollPage() {
         </table>
 
         <div className="mt-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 sm:hidden">Swipe horizontally to view all days →</div>
-        <div className="mt-2 -mx-5 overflow-x-auto sm:mx-0">
+        <div className="mt-2 -mx-3 overflow-x-auto overscroll-x-contain rounded-md border border-slate-300 sm:mx-0 sm:rounded-none sm:border-0" style={{ WebkitOverflowScrolling: "touch" }}>
           <table className="w-full min-w-[900px] border-collapse border border-slate-400 text-center text-[10px]">
 
             <thead className="bg-slate-100">
