@@ -155,7 +155,7 @@ export async function sendNativePushForRecentNotifications(
   userIds: string[],
   payload: ApnsPayload,
 ): Promise<NativePushDeliveryResult> {
-  const recipients = uniqueUserIds(userIds);
+  const recipients = await resolveRelatedUserIdsForMany(uniqueUserIds(userIds));
   if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
 
   const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
