@@ -19,7 +19,15 @@ export const Route = createFileRoute("/admin/inventory/collections")({ component
 const MODULE = "Inventory Collections";
 const ENTITY = "inv_stock_movements";
 
-type Candidate = { id: string; full_name: string; employee_code: string | null; mobile: string | null; role_key: string; unit_id: string | null; reports_to: string | null };
+type OffboardingDetails = {
+  pending_collection_fo_id?: string | null;
+  collection_status?: "pending" | "completed" | null;
+  collection_requested_at?: string | null;
+  reason_text?: string;
+  date_of_offboarding?: string | null;
+};
+type Candidate = { id: string; full_name: string; employee_code: string | null; mobile: string | null; role_key: string; unit_id: string | null; reports_to: string | null; offboarding_details?: OffboardingDetails | null };
+
 type Unit = { id: string; code: string; name: string };
 type Item = { id: string; name: string; item_code: string; is_sized: boolean };
 type Balance = { location_type: string; location_id: string; item_id: string; size_value: string; qty: number };
