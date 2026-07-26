@@ -1028,9 +1028,12 @@ main {
   overflow-x: clip;
 }
 
-/* Keep long words / URLs / IDs from breaking layout */
+/* Keep long words / URLs / IDs from breaking layout — but break on word
+   boundaries by default so short strings like emails or phone numbers
+   don't stack character-per-line inside narrow cells. */
 p, span, div, td, th, li, dd, dt, label, a, button {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 /* But numeric cells and .num should stay tight */
 .num, [data-col="amount"], [data-col="qty"] { overflow-wrap: normal; }
