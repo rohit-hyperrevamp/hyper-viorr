@@ -698,7 +698,13 @@ function AdminLayout() {
       </aside>
 
       {/* Mobile top bar — native-app style, no hamburger (bottom nav has More) */}
-      <header data-app-header className={cn("sticky top-0 z-20 flex min-h-12 items-center justify-between gap-3 border-b border-border/30 bg-card/70 px-4 backdrop-blur-2xl backdrop-saturate-150 animate-slide-in-top safe-top safe-x", !nativeShell && "lg:hidden")}>
+      <header data-app-header className={cn(
+        "sticky top-0 z-20 flex min-h-12 items-center justify-between gap-3 px-4 animate-slide-in-top safe-top safe-x",
+        isFieldOfficer
+          ? "bg-white dark:bg-neutral-950 border-b border-border/40"
+          : "border-b border-border/30 bg-card/70 backdrop-blur-2xl backdrop-saturate-150",
+        !nativeShell && "lg:hidden",
+      )}>
         <Link to={dashboardHref} className="flex min-w-0 items-center gap-2">
           <BrandMark />
         </Link>
@@ -706,6 +712,7 @@ function AdminLayout() {
           <NotificationBell />
         </div>
       </header>
+
 
       {/* Mobile bottom-sheet drawer (slide-up) */}
       {mobileOpen && (
