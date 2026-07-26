@@ -104,9 +104,11 @@ import {
   QK_SCOPE_ASSIGNMENTS,
   SCOPE_TYPE_LABEL,
   useScopeAssignments,
+  useCandidateUnits,
   type ScopeAssignment,
   type ScopeType,
 } from "@/lib/deployment";
+
 import { useBranches, useCustomers, useStates } from "@/lib/admin-data";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
 
