@@ -367,6 +367,20 @@ function ProfilePage() {
     },
   });
 
+  useEffect(() => {
+    if (!profile?.id) return;
+    const ch = supabase
+      .channel(`profile-stock-${profile.id}`)
+      .on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: "inv_stock_movements", filter: `location_id=eq.${profile.id}` } as never,
+        () => { void stockBalanceQ.refetch(); },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, [profile?.id, stockBalanceQ]);
+
+
   const postingsQ = useQuery({
     queryKey: ["my-postings", profile?.id, profile?.reports_to],
     enabled: !!profile?.id,
