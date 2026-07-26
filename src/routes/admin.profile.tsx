@@ -805,13 +805,13 @@ function ProfilePage() {
 
 
       {/* Hero card */}
-      <div className="rounded-2xl border border-border bg-card p-6">
-        <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+        <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
           <div className="relative">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="block h-28 w-28 overflow-hidden rounded-2xl border border-border bg-secondary"
+              className="block h-24 w-24 overflow-hidden rounded-full border border-border bg-secondary sm:h-28 sm:w-28"
               title="Change photo"
             >
               {profile.photo_url ? (
@@ -831,7 +831,7 @@ function ProfilePage() {
                 <button
                   type="button"
                   disabled={uploadingPhoto}
-                  className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:border-accent hover:text-accent disabled:opacity-60"
+                  className="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:border-accent hover:text-accent disabled:opacity-60 sm:-bottom-2 sm:-right-2 sm:h-9 sm:w-9"
                   title="Change photo"
                 >
                   {uploadingPhoto ? (
@@ -867,9 +867,9 @@ function ProfilePage() {
             />
           </div>
 
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center justify-center gap-1.5 sm:justify-start sm:gap-2">
+              <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
                 {profile.full_name || "Unnamed"}
               </h1>
               <Badge variant="outline" className="capitalize">
@@ -879,12 +879,12 @@ function ProfilePage() {
                 <Badge className="bg-accent/15 text-accent">{lookups.role.name}</Badge>
               )}
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 break-words text-[13px] text-muted-foreground sm:text-sm">
               {lookups?.designation?.name || "—"}
               {lookups?.unit ? ` · ${lookups.unit.name}` : ""}
               {lookups?.unit?.city ? ` (${lookups.unit.city})` : ""}
             </p>
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-2 text-left sm:grid-cols-3 sm:gap-3">
               <InfoRow label="Employee Code" value={profile.employee_code || "—"} />
               <InfoRow
                 label="Role"
@@ -903,6 +903,7 @@ function ProfilePage() {
           </div>
         </div>
       </div>
+
 
       <Section title="My Posting & Reporting" icon={Building2}>
         {postingsQ.isLoading ? (
