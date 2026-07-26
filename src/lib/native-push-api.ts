@@ -60,10 +60,11 @@ async function callNativePushApi<T>(payload: Record<string, unknown>): Promise<T
   });
 
   const text = await response.text();
-  const body = text ? JSON.parse(text) as { error?: string; message?: string } & T : ({} as T);
+  const body = text ? JSON.parse(text) : {};
+  const errorBody = body as { error?: string; message?: string };
 
   if (!response.ok) {
-    throw new Error(body.error || body.message || `Apple push API failed (${response.status}).`);
+    throw new Error(errorBody.error || errorBody.message || `Apple push API failed (${response.status}).`);
   }
 
   return body as T;

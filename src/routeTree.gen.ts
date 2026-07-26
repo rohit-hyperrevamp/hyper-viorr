@@ -93,6 +93,7 @@ import { Route as AdminAttendanceUnitIdRouteImport } from './routes/admin.attend
 import { Route as AdminAssetsLoanManagerRouteImport } from './routes/admin.assets.loan-manager'
 import { Route as AdminAssetsInventoryRouteImport } from './routes/admin.assets.inventory'
 import { Route as AdminAssetsExpenseManagerRouteImport } from './routes/admin.assets.expense-manager'
+import { Route as ApiPublicNativePushRouteImport } from './routes/api/public/native/push'
 import { Route as ApiPublicHooksDailyPeoplePingsRouteImport } from './routes/api/public/hooks/daily-people-pings'
 import { Route as AdminCandidatesIdDetailsRouteImport } from './routes/admin.candidates.$id.details'
 
@@ -538,6 +539,11 @@ const AdminAssetsExpenseManagerRoute =
     path: '/expense-manager',
     getParentRoute: () => AdminAssetsRoute,
   } as any)
+const ApiPublicNativePushRoute = ApiPublicNativePushRouteImport.update({
+  id: '/api/public/native/push',
+  path: '/api/public/native/push',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksDailyPeoplePingsRoute =
   ApiPublicHooksDailyPeoplePingsRouteImport.update({
     id: '/api/public/hooks/daily-people-pings',
@@ -638,6 +644,7 @@ export interface FileRoutesByFullPath {
   '/admin/payroll/': typeof AdminPayrollIndexRoute
   '/admin/candidates/$id/details': typeof AdminCandidatesIdDetailsRoute
   '/api/public/hooks/daily-people-pings': typeof ApiPublicHooksDailyPeoplePingsRoute
+  '/api/public/native/push': typeof ApiPublicNativePushRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -723,6 +730,7 @@ export interface FileRoutesByTo {
   '/admin/payroll': typeof AdminPayrollIndexRoute
   '/admin/candidates/$id/details': typeof AdminCandidatesIdDetailsRoute
   '/api/public/hooks/daily-people-pings': typeof ApiPublicHooksDailyPeoplePingsRoute
+  '/api/public/native/push': typeof ApiPublicNativePushRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -812,6 +820,7 @@ export interface FileRoutesById {
   '/admin/payroll/': typeof AdminPayrollIndexRoute
   '/admin/candidates/$id/details': typeof AdminCandidatesIdDetailsRoute
   '/api/public/hooks/daily-people-pings': typeof ApiPublicHooksDailyPeoplePingsRoute
+  '/api/public/native/push': typeof ApiPublicNativePushRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -902,6 +911,7 @@ export interface FileRouteTypes {
     | '/admin/payroll/'
     | '/admin/candidates/$id/details'
     | '/api/public/hooks/daily-people-pings'
+    | '/api/public/native/push'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -987,6 +997,7 @@ export interface FileRouteTypes {
     | '/admin/payroll'
     | '/admin/candidates/$id/details'
     | '/api/public/hooks/daily-people-pings'
+    | '/api/public/native/push'
   id:
     | '__root__'
     | '/'
@@ -1075,6 +1086,7 @@ export interface FileRouteTypes {
     | '/admin/payroll/'
     | '/admin/candidates/$id/details'
     | '/api/public/hooks/daily-people-pings'
+    | '/api/public/native/push'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1083,6 +1095,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   WelcomeRoute: typeof WelcomeRoute
   ApiPublicHooksDailyPeoplePingsRoute: typeof ApiPublicHooksDailyPeoplePingsRoute
+  ApiPublicNativePushRoute: typeof ApiPublicNativePushRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1675,6 +1688,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAssetsExpenseManagerRouteImport
       parentRoute: typeof AdminAssetsRoute
     }
+    '/api/public/native/push': {
+      id: '/api/public/native/push'
+      path: '/api/public/native/push'
+      fullPath: '/api/public/native/push'
+      preLoaderRoute: typeof ApiPublicNativePushRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/daily-people-pings': {
       id: '/api/public/hooks/daily-people-pings'
       path: '/api/public/hooks/daily-people-pings'
@@ -1947,6 +1967,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   WelcomeRoute: WelcomeRoute,
   ApiPublicHooksDailyPeoplePingsRoute: ApiPublicHooksDailyPeoplePingsRoute,
+  ApiPublicNativePushRoute: ApiPublicNativePushRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
