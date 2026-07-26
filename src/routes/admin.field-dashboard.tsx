@@ -339,12 +339,12 @@ function FieldOfficerDashboard() {
               )}
             </div>
 
-            <div className="mt-2 grid grid-cols-3 gap-2 border-t border-border/40 pt-3 sm:gap-6 sm:pt-4">
-              <StatBar label="Team size" value={totalListings} bar="bg-gradient-to-r from-rose-300 to-rose-400" />
-              <StatBar label="Present today" value={attnPresent} bar="bg-gradient-to-r from-emerald-300 to-teal-400" />
-              <StatBar label="Items on team" value={totalItems} bar="bg-gradient-to-r from-lime-300 to-lime-400" />
-            </div>
           </div>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-5 sm:gap-3">
+          <StatBar label="Team size" value={totalListings} />
+          <StatBar label="Present today" value={attnPresent} />
+          <StatBar label="Items on team" value={totalItems} />
         </div>
       </section>
 
@@ -437,12 +437,11 @@ function FoPeopleInsights() {
 }
 
 
-function StatBar({ label, value, bar }: { label: string; value: number | string; bar: string }) {
+function StatBar({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 rounded-xl border border-border/60 bg-background/70 px-2.5 py-2 sm:rounded-2xl sm:px-4 sm:py-3">
       <div className="truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground sm:text-[10px] sm:tracking-[0.14em]">{label}</div>
-      <div className="mt-0.5 font-display text-lg font-bold tabular-nums tracking-tight text-foreground sm:mt-1 sm:text-2xl">{value}</div>
-      <div className={`mt-1 h-1 w-full rounded-full sm:mt-2 ${bar}`} />
+      <div className="mt-1 font-display text-lg font-bold tabular-nums tracking-tight text-foreground sm:text-2xl">{value}</div>
     </div>
   );
 }
@@ -479,7 +478,7 @@ function PastelTile({
 
 
   const inner = (
-    <div className={`relative flex h-full min-h-[94px] flex-col justify-between overflow-hidden rounded-2xl p-3 ring-1 ring-inset transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:rounded-[26px] sm:p-5 ${bg} ${ring}`}>
+    <div className={`relative flex h-full min-h-[86px] flex-col justify-between overflow-hidden rounded-2xl p-3 ring-1 ring-inset transition-transform hover:-translate-y-0.5 sm:min-h-[132px] sm:rounded-[26px] sm:p-5 ${bg} ${ring}`}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="text-[11px] font-semibold leading-tight text-foreground/80 sm:text-[13px]">{label}</div>
@@ -490,7 +489,7 @@ function PastelTile({
         </span>
       </div>
       <div className="mt-2 flex items-end justify-between gap-2 sm:gap-3">
-        <div className="font-display text-[26px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[44px]">
+        <div className="font-display text-[24px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[44px]">
           {value}
         </div>
         <div className="flex flex-col items-end gap-1 sm:gap-1.5">
