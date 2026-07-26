@@ -3267,7 +3267,7 @@ function CandidateWizard({
   onReject?: () => void;
   onRequestOffboard?: () => void;
 }) {
-  const isEmployeeMode = mode === "employee" && !editing;
+  const isEmployeeMode = mode === "employee" || (!!editing && (editing as any).billable === false);
   const qc = useQueryClient();
   const extractFn = useServerFn(extractAadhaar);
   const [form, setForm] = useState<CandidateForm>(emptyForm());
