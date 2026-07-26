@@ -5382,8 +5382,10 @@ function OffboardingDialog({
             <span className="font-medium text-foreground">
               {target.full_name || target.employee_code || "this employee"}
             </span>
-            . Once saved, the employee will be marked Inactive.
+            . If any inventory is still held, the selected Field Officer must confirm collection
+            before the employee is finally marked Inactive.
           </DialogDescription>
+
         </DialogHeader>
 
         <div className="space-y-6">
