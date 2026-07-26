@@ -617,6 +617,24 @@ function AdminLayout() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {isFieldOfficer && (
+            <div
+              className={cn(
+                "mt-2 flex w-full items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-2 py-1.5",
+                collapsed && "justify-center px-1.5",
+              )}
+            >
+              <NotificationBell />
+              {!collapsed && (
+                <span className="flex-1 truncate text-[12px] font-semibold text-foreground">
+                  Notifications
+                </span>
+              )}
+            </div>
+          )}
+
+
+
           <button
             type="button"
             onClick={toggleTheme}
@@ -730,18 +748,20 @@ function AdminLayout() {
       {/* Main */}
       <main className={cn("relative z-10 min-h-[calc(100dvh-3.5rem)] overflow-x-clip safe-x py-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:py-8 lg:pr-6 lg:pb-8", mainOffset)}>
         {/* Desktop top utility bar — global search + notifications */}
-        <div className="mb-4 hidden items-center gap-3 lg:flex animate-slide-in-top">
-          <div className="flex h-10 flex-1 items-center gap-2 rounded-full border border-border/60 bg-card/70 px-4 text-sm text-muted-foreground backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_10px_30px_-18px_rgba(15,23,42,0.18)]">
-            <svg className="h-4 w-4 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            <input
-              type="search"
-              placeholder="Search employees, units, invoices…"
-              className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
-            />
-            
+        {!isFieldOfficer && (
+          <div className="mb-4 hidden items-center gap-3 lg:flex animate-slide-in-top">
+            <div className="flex h-10 flex-1 items-center gap-2 rounded-full border border-border/60 bg-card/70 px-4 text-sm text-muted-foreground backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_10px_30px_-18px_rgba(15,23,42,0.18)]">
+              <svg className="h-4 w-4 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input
+                type="search"
+                placeholder="Search employees, units, invoices…"
+                className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
+              />
+            </div>
+            <NotificationBell />
           </div>
-          <NotificationBell />
-        </div>
+        )}
+
         <div className="mx-auto max-w-[1500px]">
           <div key={pathname} className="page-enter">
             {isReady && user && !permsLoading ? (
