@@ -1242,15 +1242,28 @@ nav[data-bottom-nav] {
   translate: none !important;
   contain: layout paint style;
   -webkit-overflow-scrolling: auto;
+  overflow: visible;
+}
+nav[data-bottom-nav]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -96px;
+  height: 96px;
+  background: inherit;
+  pointer-events: none;
 }
 @media (max-width: 1023px) {
+  html:has(nav[data-bottom-nav]),
   body:has(nav[data-bottom-nav]) {
     height: 100dvh;
+    background: var(--background);
     overflow: hidden !important;
     overscroll-behavior: none;
   }
   body:has(nav[data-bottom-nav]) #root {
     height: 100dvh;
+    background: var(--background);
     overflow: hidden !important;
   }
   [data-admin-scroll] {
@@ -1263,8 +1276,11 @@ nav[data-bottom-nav] {
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
 }
 nav[data-bottom-nav] > ul {
+  position: relative;
+  z-index: 1;
   padding-top: 0.375rem !important;
   padding-bottom: 0.25rem !important;
+  height: 62px !important;
   min-height: 52px;
 }
 nav[data-bottom-nav] li > * > div > span:first-child {
