@@ -50,6 +50,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { MobileBottomNav, type BottomNavItem } from "@/components/MobileBottomNav";
 import { useT } from "@/lib/i18n";
 import { NotificationBell } from "@/components/NotificationBell";
+import { AppleNativeSetupCard } from "@/components/AppleNativeSetupCard";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -475,6 +476,7 @@ function AdminLayout() {
   return (
     <TooltipProvider delayDuration={150} skipDelayDuration={100}>
     <div className="relative min-h-dvh">
+      <AppleNativeSetupCard autoStart nativeOnly className="hidden" />
       {/* Soft tinted canvas — clean glass backdrop, no grid */}
       <div className="pointer-events-none fixed inset-0 z-0 app-canvas" />
 
