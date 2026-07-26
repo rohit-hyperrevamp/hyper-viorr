@@ -1375,66 +1375,59 @@ function ProfilePage() {
           )}
         </Section>
 
-        <Section title="Assigned Assets" icon={Package}>
-          {issuedItemsQ.isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading issued items…</p>
-          ) : issuedItems.length === 0 && (lookups?.assets?.length ?? 0) === 0 ? (
+        <Section title="Stock Available" icon={Package}>
+          {stockBalanceQ.isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading stock…</p>
+          ) : stockItems.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No assets issued from inventory yet.
+              No stock currently assigned to you.
             </p>
           ) : (
-            <div className="space-y-3">
-              {issuedItems.length > 0 && (
-                <ul className="divide-y divide-border rounded-lg border border-border">
-                  {issuedItems.map((it) => (
-                    <li
-                      key={it.id}
-                      className="flex items-center justify-between gap-3 p-3 text-sm"
-                    >
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{it.item_name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {it.item_code}
-                          {it.size_value ? ` · Size ${it.size_value}` : ""}
-                          {it.issuance_number ? ` · ${it.issuance_number}` : ""}
-                          {it.issuance_date ? ` · ${it.issuance_date}` : ""}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant="secondary" className="capitalize">
-                          {it.condition || "new"}
-                        </Badge>
-                        <span className="text-xs font-semibold tabular-nums">
-                          × {it.qty}
-                        </span>
-                        <Badge
-                          variant={it.status === "completed" ? "default" : "outline"}
-                          className="capitalize"
-                        >
-                          {it.status}
-                        </Badge>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {(lookups?.assets?.length ?? 0) > 0 && (
-                <div>
-                  <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Other assigned assets
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-border bg-muted/40 p-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Total Qty
                   </div>
-                  <ul className="flex flex-wrap gap-2">
-                    {lookups!.assets.map((a) => (
-                      <li
-                        key={a.id}
-                        className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-semibold"
-                      >
-                        {a.name}
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="mt-1 text-2xl font-bold tabular-nums">
+                    {stockItems.reduce((s, it) => s + it.qty, 0)}
+                  </div>
                 </div>
-              )}
+                <div className="rounded-xl border border-border bg-muted/40 p-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    SKUs
+                  </div>
+                  <div className="mt-1 text-2xl font-bold tabular-nums">
+                    {stockItems.length}
+                  </div>
+                </div>
+              </div>
+              <ul className="divide-y divide-border rounded-lg border border-border">
+                {stockItems.map((it) => (
+                  <li
+                    key={`${it.item_id}-${it.size_value}`}
+                    className="flex items-center justify-between gap-3 p-3 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{it.item_name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {it.item_code}
+                        {it.size_value ? ` · Size ${it.size_value}` : ""}
+                        {it.unit ? ` · ${it.unit}` : ""}
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-sm font-semibold tabular-nums">
+                      × {it.qty}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/admin/inventory/stock"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+              >
+                View full stock →
+              </Link>
             </div>
           )}
         </Section>
