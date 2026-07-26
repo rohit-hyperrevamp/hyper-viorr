@@ -16,6 +16,30 @@ export type AttendanceUnitContext = {
 const FIELD_OFFICER_ROLE_KEYS = new Set(["field_officer", "field_officer"]);
 const SECURITY_GUARD_ROLE_KEYS = new Set(["guard", "security_guard"]);
 
+// Back-office / non-billable roles that must NEVER appear on a muster roll.
+const NON_BILLABLE_ROLE_KEYS = new Set([
+  "field_officer",
+  "branch_manager",
+  "hr",
+  "leadership",
+  "transport",
+  "inventory",
+  "admin",
+  "super_admin",
+  "user",
+  "accounts",
+  "operations",
+  "operations_manager",
+  "area_manager",
+  "regional_manager",
+]);
+
+export function isNonBillableRoleKey(roleKey: string | null | undefined) {
+  const k = (roleKey || "").toLowerCase().trim();
+  if (!k) return false;
+  return NON_BILLABLE_ROLE_KEYS.has(k);
+}
+
 const FIELD_OFFICER_KEYWORDS = ["field officer", "field-officer", "fieldofficer", "fo "];
 const SECURITY_GUARD_KEYWORDS = ["security guard", "guard", "security-guard", "sg ", "security_guard"];
 
