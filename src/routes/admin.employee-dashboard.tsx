@@ -373,7 +373,17 @@ function EmployeeDashboard() {
                   <div><span className="font-medium text-foreground">Phone:</span> {me.mobile ?? "—"}</div>
                   <div><span className="font-medium text-foreground">Email:</span> {me.email || "—"}</div>
                   <div><span className="font-medium text-foreground">Designation:</span> {desig?.name ?? "—"}</div>
-                  <div><span className="font-medium text-foreground">Unit:</span> {unit?.name ?? "—"}</div>
+                  <div className="sm:col-span-2"><span className="font-medium text-foreground">Units:</span>{" "}
+                    {myUnits.length === 0 ? "—" : (
+                      <span className="inline-flex flex-wrap gap-1 align-middle">
+                        {myUnits.map((u) => (
+                          <span key={u.id} className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${ACCENT_CHIP.violet}`}>
+                            {u.name}{u.code ? ` · ${u.code}` : ""}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                  </div>
                   {age !== null && <div><span className="font-medium text-foreground">Age:</span> {age}</div>}
                   {tenureYears !== null && <div><span className="font-medium text-foreground">Tenure:</span> {tenureYears} yr</div>}
                 </div>
