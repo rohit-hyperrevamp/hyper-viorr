@@ -723,7 +723,7 @@ function HeroStat({ label, value, tint }: { label: string; value: number | strin
         <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
         <span className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60">{label}</span>
       </div>
-      <div className="mt-1 font-display text-xl font-bold tabular-nums leading-none text-white sm:text-2xl">{value}</div>
+      <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-white sm:text-2xl">{value}</div>
     </div>
   );
 }
