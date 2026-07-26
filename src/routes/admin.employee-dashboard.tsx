@@ -11,8 +11,16 @@ import {
   PartyPopper,
   UserRound,
   Users,
-  ArrowRight, ArrowUpRight,
+  ArrowUpRight,
+  ShieldCheck,
+  Phone,
+  MapPin,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 
 import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
