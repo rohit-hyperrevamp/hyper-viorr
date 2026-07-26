@@ -3970,8 +3970,24 @@ function ResourceFormDialog({
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
               />
-            </Field>
           </div>
+
+          <Field label="Role">
+            <Select value={roleKey || "__none"} onValueChange={(v) => setRoleKey(v === "__none" ? "" : v)}>
+              <SelectTrigger className="h-10 rounded-lg">
+                <SelectValue placeholder="Map to a system role (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">— None —</SelectItem>
+                {rolesList.map((r) => (
+                  <SelectItem key={r.key} value={r.key}>
+                    {r.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
 
           <Field label="Payroll Days *">
             <Select value={payrollDayBaseId} onValueChange={setPayrollDayBaseId}>
