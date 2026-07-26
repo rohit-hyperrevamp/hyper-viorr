@@ -234,6 +234,7 @@ type BenefitItem = {
 type ContractResource = {
   id?: string;
   designationId: string;
+  roleKey?: string | null;
   serviceTypeId: string;
   quantity: number;
   components: ResourceComponent[];
