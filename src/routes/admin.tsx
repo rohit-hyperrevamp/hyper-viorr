@@ -776,7 +776,7 @@ function AdminLayout() {
                   { to: "/admin/employees", label: "Employees", icon: UserPlus },
                   { to: "/admin/attendance", label: "Attendance", icon: ClipboardList },
                   { to: "/admin/inventory/items", label: "Uniform", icon: Boxes },
-                  { to: "/admin/my-attendance", label: "My Attend.", icon: Clock },
+                  { to: "/admin/my-attendance", label: "My Attendance", icon: Clock },
                   { to: "/admin/profile", label: "Profile", icon: Users },
                 ];
                 return (
@@ -803,7 +803,7 @@ function AdminLayout() {
                             )}>
                               <Icon className="h-[18px] w-[18px]" />
                             </span>
-                            <span className="line-clamp-2 text-[11.5px] font-semibold leading-tight">{t.label}</span>
+                            <span className="line-clamp-3 text-[11px] font-semibold leading-tight">{t.label}</span>
                           </Link>
                         );
                       })}
@@ -861,7 +861,7 @@ function AdminLayout() {
                             )}>
                               <Icon className="h-[18px] w-[18px]" />
                             </span>
-                            <span className="line-clamp-2 text-[11.5px] font-semibold leading-tight">{t.label}</span>
+                            <span className="line-clamp-3 text-[11px] font-semibold leading-tight">{t.label}</span>
                           </Link>
                         );
                       })}
