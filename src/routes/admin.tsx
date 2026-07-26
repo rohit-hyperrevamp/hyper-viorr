@@ -688,7 +688,7 @@ function AdminLayout() {
 
       {/* Mobile bottom-sheet drawer (slide-up) */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in-0 duration-200"
             onClick={() => setMobileOpen(false)}
@@ -716,7 +716,7 @@ function AdminLayout() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-3">
+            <nav className="flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-[calc(1rem+env(safe-area-inset-bottom))]">
               {visibleGroups.map((g) => (
                 <MobileGroup key={g.key} group={g} isActive={isActive} isGroupActive={isGroupActive(g)} />
               ))}
@@ -754,7 +754,7 @@ function AdminLayout() {
       )}
 
       {/* Main */}
-      <main className={cn("relative z-10 min-h-[calc(100dvh-3.5rem)] overflow-x-clip safe-x py-3 pb-24 transition-[margin] duration-300 sm:px-6 sm:py-6 lg:py-8 lg:pr-6 lg:pb-8", mainOffset)}>
+      <main className={cn("relative z-10 min-h-[calc(100dvh-3.5rem)] overflow-x-clip safe-x py-3 !pb-[calc(88px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
         {/* Desktop top utility bar — global search + notifications */}
         {!isFieldOfficer && !nativeShell && (
           <div className="mb-4 hidden items-center gap-3 lg:flex animate-slide-in-top">
@@ -818,6 +818,7 @@ function AdminLayout() {
             active: isGroupActive(g),
           }));
         })();
+        if (mobileOpen) return null;
         return (
           <MobileBottomNav
             items={bottomItems}

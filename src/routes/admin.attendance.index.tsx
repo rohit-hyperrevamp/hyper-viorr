@@ -704,8 +704,7 @@ function AttendanceUnitsPage() {
               return (
                 <div
                   key={unit.id}
-                  className="group grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 px-3.5 py-3.5 transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-500/5 sm:px-5 sm:py-5 lg:grid lg:items-start lg:gap-5"
-                  style={{ gridTemplateColumns: "minmax(0,2.2fr) minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,2fr) 90px 150px 130px" }}
+                  className="group grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 px-3.5 py-3.5 transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-500/5 sm:px-5 sm:py-5 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_minmax(0,2fr)_90px_150px_130px] lg:items-start lg:gap-5"
                 >
                   {/* row contents below; on mobile they stack as flex column, on lg+ they fill grid columns */}
                   <div className="col-span-2 flex min-w-0 items-start gap-2.5 lg:col-auto lg:gap-3">

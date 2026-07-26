@@ -37,12 +37,13 @@ export function MobileBottomNav({
   return (
     <nav
       aria-label="Primary"
+      data-bottom-nav
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_32px_-20px_rgba(15,23,42,0.45)] backdrop-blur-xl",
+        "fixed inset-x-0 bottom-0 z-40 translate-y-0 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] shadow-none backdrop-blur-xl [transform:translate3d(0,0,0)]",
         !nativeShell && "lg:hidden",
       )}
     >
-      <ul className="mx-auto flex h-[58px] max-w-xl items-stretch justify-around gap-0 px-1 py-1">
+      <ul className="mx-auto flex h-[60px] max-w-xl items-stretch justify-around gap-0 px-1 py-1">
 
 
         {primary.map((it) => {
@@ -58,7 +59,7 @@ export function MobileBottomNav({
             >
               <span
                 className={cn(
-                  "grid h-7 w-7 place-items-center rounded-lg transition-colors",
+                  "grid h-7 w-7 shrink-0 place-items-center rounded-lg transition-colors",
                   it.active && "bg-accent/12",
                 )}
               >
@@ -106,7 +107,7 @@ export function MobileBottomNav({
               >
                 <span
                   className={cn(
-                    "grid h-7 w-7 place-items-center rounded-lg transition-colors",
+                    "grid h-7 w-7 shrink-0 place-items-center rounded-lg transition-colors",
                     moreActive && "bg-accent/12",
                   )}
                 >
