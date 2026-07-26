@@ -48,6 +48,9 @@ export const sendTestPushToMe = createServerFn({ method: "POST" })
     }
 
     const failed = results.filter((result) => !result.ok);
+    const failedDetail = failed[0]?.error
+      ? `APNs error: ${failed[0].error}`
+      : "No push notifications were sent.";
     return {
       sent,
       total: rows.length,
@@ -55,6 +58,6 @@ export const sendTestPushToMe = createServerFn({ method: "POST" })
       message:
         sent > 0
           ? `Sent ${sent} of ${rows.length} push notification${rows.length === 1 ? "" : "s"}.`
-          : failed[0]?.error || "No push notifications were sent.",
+          : failedDetail,
     };
   });
