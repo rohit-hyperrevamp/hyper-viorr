@@ -3750,6 +3750,7 @@ function CandidateWizard({
       if (error) throw error;
 
       const newId = (data as { id: string }).id;
+      createdCandidateId = newId;
       await syncCandidateUnits(newId);
       setInitialUnitIds([...form.unit_ids]);
       await logActivity({
