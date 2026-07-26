@@ -3204,6 +3204,7 @@ function ResourcesSection({
             );
             const dn = dById.get(r.designationId);
             const sn = sById.get(r.serviceTypeId);
+            const rn = r.roleKey ? roleByKey.get(r.roleKey) : null;
             return (
               <div
                 key={idx}
@@ -3218,6 +3219,11 @@ function ResourcesSection({
                       {dn?.code && (
                         <span className="font-mono text-[11px] text-muted-foreground">
                           {dn.code}
+                        </span>
+                      )}
+                      {rn && (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                          {rn.name}
                         </span>
                       )}
                       <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
