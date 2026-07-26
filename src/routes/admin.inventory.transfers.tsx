@@ -82,7 +82,22 @@ function TransfersPage() {
         .in("status", ["submitted"])
         .order("demand_date", { ascending: false });
       if (error) throw error;
-      return (data as unknown as Demand[]) ?? [];
+      const rows = (data as unknown as Demand[]) ?? [];
+      // Transfers are warehouse → branch only. FO-raised demands must be fulfilled
+      // as an Issuance (warehouse → field officer) so the FO can acknowledge as
+      // a delivery challan. Exclude any demand whose requester is a field officer.
+      const reqIds = Array.from(new Set(rows.map((r) => r.requester_candidate_id).filter(Boolean))) as string[];
+      if (!reqIds.length) return rows;
+      const { data: cands } = await supabase
+        .from("candidates" as never)
+        .select("id,role_key")
+        .in("id", reqIds);
+      const foSet = new Set(
+        ((cands as unknown as { id: string; role_key: string }[]) ?? [])
+          .filter((c) => c.role_key === "field_officer")
+          .map((c) => c.id),
+      );
+      return rows.filter((r) => !r.requester_candidate_id || !foSet.has(r.requester_candidate_id));
     },
   });
   // Resolve requester → branch for demands that don't carry branch_id directly
