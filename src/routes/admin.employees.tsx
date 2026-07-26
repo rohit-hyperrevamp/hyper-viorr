@@ -3337,8 +3337,26 @@ function CandidateWizard({
     } else {
       setInitialUnitIds([]);
       setForm(emptyForm());
+      setHomeBranchId(DEFAULT_HOME_BRANCH_ID);
     }
   }, [open, editing, isEmployeeMode]);
+
+  // Load existing Home Branch (employee_scope_assignments · scope_type='branch') for edit mode.
+  useEffect(() => {
+    if (!open || !editing) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("employee_scope_assignments" as never)
+        .select("scope_id")
+        .eq("candidate_id", editing.id)
+        .eq("scope_type", "branch")
+        .limit(1)
+        .maybeSingle();
+      if (error || !data) return;
+      const sid = (data as { scope_id?: string }).scope_id;
+      if (sid) setHomeBranchId(sid);
+    })();
+  }, [open, editing]);
 
   const set = <K extends keyof CandidateForm>(k: K, v: CandidateForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
