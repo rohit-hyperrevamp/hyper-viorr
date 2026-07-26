@@ -683,7 +683,8 @@
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
   .ios-table .cell-secondary {
     font-size: 11px;
