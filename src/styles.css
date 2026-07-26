@@ -1047,9 +1047,12 @@ img, video { max-width: 100%; height: auto; }
 
 /* Profile / avatar images: always fill the circular frame edge-to-edge.
    Use :where() so utility classes (h-9, w-9, etc.) on the image still win. */
-:where(img.rounded-full, .rounded-full > img:only-child) {
+:where(img.rounded-full, .rounded-full > img:only-child, .rounded-full > a > img:only-child, .rounded-full > button > img:only-child) {
+  height: 100%;
+  width: 100%;
   object-fit: cover;
   object-position: center;
+  display: block;
 }
 /* Radix Avatar: image must fill the fixed-size root */
 [data-avatar] img,
