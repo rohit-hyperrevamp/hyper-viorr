@@ -588,9 +588,9 @@ function AdminLayout() {
                   collapsed && "justify-center p-1.5",
                 )}
               >
-                <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary text-primary-foreground text-[11px] font-bold">
+                <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary text-primary-foreground text-[11px] font-bold">
                   {me.photoUrl ? (
-                    <img src={me.photoUrl} alt="" className="h-full w-full object-cover" />
+                    <img src={me.photoUrl} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
                   ) : (
                     me.initials
                   )}
@@ -731,10 +731,14 @@ function AdminLayout() {
           <Link
             to="/admin/profile"
             aria-label="Profile"
-            className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-accent/20 to-primary/20 text-foreground ring-1 ring-border/60 transition hover:ring-accent"
+            className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-accent/20 to-primary/20 text-foreground ring-1 ring-border/60 transition hover:ring-accent"
           >
             {me.photoUrl ? (
-              <img src={me.photoUrl} alt={me.fullName || "Profile"} className="h-full w-full object-cover" />
+              <img
+                src={me.photoUrl}
+                alt={me.fullName || "Profile"}
+                className="absolute inset-0 h-full w-full object-cover object-center"
+              />
             ) : (
               <span className="text-[12px] font-bold">{me.initials || "U"}</span>
             )}
