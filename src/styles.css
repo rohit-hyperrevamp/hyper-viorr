@@ -1229,12 +1229,35 @@ nav[data-bottom-nav] {
   position: fixed !important;
   inset-inline: 0 !important;
   bottom: 0 !important;
+  top: auto !important;
   z-index: 80 !important;
   border-top: 1px solid var(--border);
   background: var(--card);
   box-shadow: none;
   /* Reserve safe-area on the bar itself; do NOT let inner ul add its own pad. */
   padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  transform: none !important;
+  translate: none !important;
+  contain: layout paint style;
+  -webkit-overflow-scrolling: auto;
+}
+@media (max-width: 1023px) {
+  body:has(nav[data-bottom-nav]) {
+    height: 100dvh;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+  body:has(nav[data-bottom-nav]) #root {
+    height: 100dvh;
+    overflow: hidden !important;
+  }
+  [data-admin-scroll] {
+    height: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 [data-app-drawer-grid] {
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
