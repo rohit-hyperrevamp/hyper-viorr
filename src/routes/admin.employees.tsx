@@ -4225,8 +4225,8 @@ function CandidateWizard({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-y-auto rounded-none p-0 sm:h-auto sm:max-h-[92dvh] sm:w-[96vw] sm:max-w-4xl sm:overflow-hidden sm:rounded-lg">
-        <DialogHeader className="border-b border-border bg-secondary/30 px-4 py-3 sm:px-6 sm:py-4">
+      <DialogContent className="candidate-wizard-page flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-y-auto overscroll-contain rounded-none border-0 p-0 sm:h-auto sm:max-h-[92dvh] sm:w-[96vw] sm:max-w-4xl sm:overflow-hidden sm:rounded-lg sm:border">
+        <DialogHeader className="shrink-0 border-b border-border bg-secondary/30 px-4 py-3 pr-14 sm:px-6 sm:py-4 sm:pr-6">
           <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <UserPlus className="h-5 w-5 shrink-0" />
             <span className="truncate">{editing
@@ -4388,10 +4388,10 @@ function CandidateWizard({
           )}
         </div>
 
-        <div className="px-2.5 py-2.5 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:overscroll-contain">
+        <div className="shrink-0 px-2.5 py-2.5 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:overscroll-contain">
           {/* ----- Full form (single page) ----- */}
           {true && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Uploads strip */}
               <Section title={`Uploads — all required${uploadsComplete ? "" : " (incomplete)"}`}>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -5051,7 +5051,7 @@ function CandidateWizard({
           )}
         </div>
 
-        <DialogFooter className="flex-col gap-2 border-t border-border bg-card/95 px-3 py-3 pb-[calc(1rem+env(safe-area-inset-bottom)+5.5rem)] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-row sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border bg-card/95 px-3 py-3 pb-[calc(1rem+env(safe-area-inset-bottom)+5.5rem)] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-row sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
           <div className="flex flex-wrap items-center gap-2 sm:mr-auto">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="h-11 flex-1 sm:h-10 sm:flex-none">
               Cancel
