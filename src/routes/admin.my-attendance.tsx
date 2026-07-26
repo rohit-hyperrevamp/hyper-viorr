@@ -1,9 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Search } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Search, ExternalLink, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchMonthPunches, type SelfPunch } from "@/lib/self-attendance";
+import {
+  fetchMonthPunches,
+  distanceMeters,
+  formatDistance,
+  mapsUrl,
+  DEVIATION_THRESHOLD_M,
+  type SelfPunch,
+} from "@/lib/self-attendance";
+
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
