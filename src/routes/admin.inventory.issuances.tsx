@@ -147,10 +147,26 @@ function IssuancesPage() {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<Issuance | null>(null);
 
+  const myGuardIds = useMemo(
+    () => new Set(
+      isFieldOfficer && me
+        ? candidates.filter((c) => c.reports_to === me.id && (c.role_key === "guard" || c.role_key === "security_guard")).map((c) => c.id)
+        : [],
+    ),
+    [isFieldOfficer, me, candidates],
+  );
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = issuances;
-    if (scope.isScoped && scope.branchId) {
+    if (isFieldOfficer && me) {
+      list = list.filter((i) => {
+        const involvesMe = (i.source_type === "field_officer" && i.source_id === me.id)
+          || (i.destination_type === "field_officer" && i.destination_id === me.id);
+        const involvesMyGuard = (i.destination_type === "guard" || i.destination_type === "security_guard") && myGuardIds.has(i.destination_id);
+        return involvesMe || involvesMyGuard;
+      });
+    } else if (scope.isScoped && scope.branchId) {
       list = list.filter(
         (i) =>
           (i.source_type === "branch" && i.source_id === scope.branchId) ||
@@ -159,7 +175,7 @@ function IssuancesPage() {
     }
     if (!q) return list;
     return list.filter((i) => i.issuance_number.toLowerCase().includes(q));
-  }, [issuances, query, scope.isScoped, scope.branchId]);
+  }, [issuances, query, scope.isScoped, scope.branchId, isFieldOfficer, me, myGuardIds]);
 
 
   const invalidate = () => {
