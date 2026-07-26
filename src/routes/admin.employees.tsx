@@ -3287,12 +3287,14 @@ function CandidateWizard({
   const isEmployeeMode = mode === "employee" || (!!editing && (editing as any).billable === false);
   const qc = useQueryClient();
   const extractFn = useServerFn(extractAadhaar);
+  const { branches } = useBranches();
   const [form, setForm] = useState<CandidateForm>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
+  const [homeBranchId, setHomeBranchId] = useState<string>(DEFAULT_HOME_BRANCH_ID);
   const isEditingEmployeeProfile =
     !!editing && (editing.status === "approved" || editing.status === "active" || editing.status === "inactive");
 
