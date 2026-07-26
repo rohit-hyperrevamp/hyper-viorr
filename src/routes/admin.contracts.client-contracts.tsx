@@ -3399,6 +3399,7 @@ function ResourceFormDialog({
         {
           id: initial?.id,
           designationId,
+          roleKey: roleKey || null,
           serviceTypeId,
           quantity: Number.parseInt(quantity, 10) || 1,
           components,
@@ -3408,7 +3409,7 @@ function ResourceFormDialog({
           employerContributions,
         },
       ]),
-    [benefits, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, serviceTypeId],
+    [benefits, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, roleKey, serviceTypeId],
   );
   const resourceHasChanges = resourceBaselineSnapshot !== "" && currentResourceSnapshot !== resourceBaselineSnapshot;
 
