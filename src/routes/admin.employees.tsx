@@ -4673,7 +4673,7 @@ function CandidateWizard({
                       {form.references.map((ref, i) => (
                         <div
                           key={i}
-                          className="rounded-lg border border-border bg-secondary/30 p-3"
+                          className="rounded-lg border border-border bg-secondary/30 p-2.5 sm:p-3"
                         >
                           <div className="mb-2 flex items-center justify-between">
                             <span className="text-xs font-semibold text-muted-foreground">
