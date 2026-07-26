@@ -920,21 +920,26 @@ function AdminLayout() {
               active: isGroupActive(g),
             }));
           }
-          // Build up to 4 primary destinations in priority order, filtered by permissions.
+          // Build primary destinations in priority order, filtered by permissions.
+          // FO gets exactly 3 tiles (Dashboard, Attendance, Uniform); others get up to 4.
           const priorityKeys = isFieldOfficer
-            ? ["dashboard", "attendance", "employees", "inventory"]
+            ? ["dashboard", "attendance", "inventory"]
             : ["dashboard", "employees", "attendance", "payroll", "invoice", "inventory", "organizations"];
+          const cap = isFieldOfficer ? 3 : 4;
           const byKey = new Map(visibleGroups.map((g) => [g.key, g]));
           const picked: GroupItem[] = [];
           for (const k of priorityKeys) {
             const g = byKey.get(k);
-            if (g && picked.length < 4) picked.push(g);
+            if (g && picked.length < cap) picked.push(g);
           }
-          // Fallback: fill from remaining visibleGroups
-          for (const g of visibleGroups) {
-            if (picked.length >= 4) break;
-            if (!picked.find((p) => p.key === g.key)) picked.push(g);
+          // Fallback: fill from remaining visibleGroups (skipped for FO to keep exactly 3)
+          if (!isFieldOfficer) {
+            for (const g of visibleGroups) {
+              if (picked.length >= cap) break;
+              if (!picked.find((p) => p.key === g.key)) picked.push(g);
+            }
           }
+
           return picked.map((g) => ({
             key: g.key,
             label: g.label,
