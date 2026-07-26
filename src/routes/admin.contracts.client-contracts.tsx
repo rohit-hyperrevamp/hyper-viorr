@@ -1223,6 +1223,7 @@ async function persistResources(contractId: string, resources: ContractResource[
   const rows = normalizedResources.map((r, idx) => ({
     contract_id: contractId,
     designation_id: r.designationId || null,
+    role_key: r.roleKey || null,
     service_type_id: r.serviceTypeId || null,
     quantity: r.quantity,
     components: r.components,
