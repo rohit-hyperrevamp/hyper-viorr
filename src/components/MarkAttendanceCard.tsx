@@ -208,8 +208,7 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
         );
       })()}
 
-        </div>
-      </div>
+
 
       <div className="mt-3 sm:mt-4">
         {state === "idle" && (
