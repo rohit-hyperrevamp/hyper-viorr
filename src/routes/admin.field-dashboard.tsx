@@ -441,7 +441,7 @@ function StatBar({ label, value, bar }: { label: string; value: number | string;
 function PastelTile({
   palette, label, value, hint, delta, deltaSuffix, invertColor, icon: Icon, to,
 }: {
-  palette: "lime" | "teal" | "rose";
+  palette: "lime" | "teal" | "rose" | "amber";
   label: string; value: number | string; hint: string;
   delta: number; deltaSuffix: string; invertColor?: boolean;
   icon: React.ComponentType<{ className?: string }>; to?: string;
@@ -450,11 +450,13 @@ function PastelTile({
     lime: "bg-[color-mix(in_oklab,oklch(0.75_0.16_140)_18%,var(--card))]",
     teal: "bg-[color-mix(in_oklab,oklch(0.75_0.12_195)_18%,var(--card))]",
     rose: "bg-[color-mix(in_oklab,oklch(0.72_0.16_20)_18%,var(--card))]",
+    amber: "bg-[color-mix(in_oklab,oklch(0.82_0.14_75)_20%,var(--card))]",
   }[palette];
   const ring = {
     lime: "ring-[color-mix(in_oklab,oklch(0.75_0.16_140)_35%,transparent)]",
     teal: "ring-[color-mix(in_oklab,oklch(0.75_0.12_195)_35%,transparent)]",
     rose: "ring-[color-mix(in_oklab,oklch(0.72_0.16_20)_35%,transparent)]",
+    amber: "ring-[color-mix(in_oklab,oklch(0.82_0.14_75)_40%,transparent)]",
   }[palette];
 
   const positive = invertColor ? delta < 0 : delta > 0;
