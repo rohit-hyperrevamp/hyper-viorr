@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Fingerprint, LogIn, LogOut, MapPin, Loader2, Clock, CheckCircle2, AlertTriangle, ExternalLink } from "lucide-react";
+import { Fingerprint, LogIn, LogOut, MapPin, Loader2, Clock, CheckCircle2, AlertTriangle, ExternalLink, Battery, BatteryCharging, Wifi, Signal, Radio } from "lucide-react";
+
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
