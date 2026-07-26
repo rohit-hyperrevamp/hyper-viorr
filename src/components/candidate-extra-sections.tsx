@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,11 +46,24 @@ export function emptyNominee() {
   };
 }
 
+/**
+ * When a subsection is rendered inside an outer <Section> card that already
+ * shows a title, this context hides the inner SectionHeader to avoid the
+ * "title shown twice" mobile pattern.
+ */
+export const SectionHeaderContext = createContext<{ hideHeader?: boolean }>({});
+
 export function SectionHeader({ title, desc }: { title: string; desc?: string }) {
+  const { hideHeader } = useContext(SectionHeaderContext);
+  if (hideHeader) {
+    return desc ? (
+      <p className="mb-4 text-xs text-muted-foreground leading-relaxed">{desc}</p>
+    ) : null;
+  }
   return (
-    <div className="mb-6 border-b pb-3">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      {desc && <p className="text-xs text-muted-foreground">{desc}</p>}
+    <div className="mb-4 border-b pb-3">
+      <h2 className="text-base font-semibold sm:text-lg">{title}</h2>
+      {desc && <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{desc}</p>}
     </div>
   );
 }

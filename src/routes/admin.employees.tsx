@@ -8,6 +8,7 @@ import {
   OtherSection,
   ListSection,
   NomineeSection,
+  SectionHeaderContext,
 } from "@/components/candidate-extra-sections";
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -4224,7 +4225,7 @@ function CandidateWizard({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] w-[96vw] max-w-4xl overflow-y-auto p-0">
+      <DialogContent className="flex max-h-[92dvh] w-[96vw] max-w-4xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b border-border bg-secondary/30 px-4 py-3 sm:px-6 sm:py-4">
           <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <UserPlus className="h-5 w-5 shrink-0" />
@@ -4387,7 +4388,7 @@ function CandidateWizard({
           )}
         </div>
 
-        <div className="px-2.5 py-2.5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-2.5">
           {/* ----- Full form (single page) ----- */}
           {true && (
             <div className="space-y-6">
@@ -5050,9 +5051,9 @@ function CandidateWizard({
           )}
         </div>
 
-        <DialogFooter className="flex-col gap-2 border-t border-border bg-card px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
+        <DialogFooter className="sticky bottom-0 z-10 flex-col gap-2 border-t border-border bg-card/95 px-3 py-3 backdrop-blur-md pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:flex-row sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
           <div className="flex flex-wrap items-center gap-2 sm:mr-auto">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="h-11 flex-1 sm:h-10 sm:flex-none">
               Cancel
             </Button>
             {canReview && (
@@ -5060,7 +5061,7 @@ function CandidateWizard({
                 <Button
                   onClick={() => onApprove?.()}
                   disabled={isApproving || submitting || savingDraft || !!uploading || scanning}
-                  className="bg-emerald-600 text-white hover:bg-emerald-700"
+                  className="h-11 flex-1 bg-emerald-600 text-white hover:bg-emerald-700 sm:h-10 sm:flex-none"
                   title="Approve & assign Employee ID"
                 >
                   {isApproving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Check className="mr-1.5 h-4 w-4" />}
@@ -5070,7 +5071,7 @@ function CandidateWizard({
                   variant="outline"
                   onClick={() => onReject?.()}
                   disabled={submitting || savingDraft || !!uploading || scanning}
-                  className="border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-50 hover:text-rose-600 dark:border-rose-500/40 dark:bg-transparent dark:text-rose-300 dark:hover:bg-rose-500/10 dark:hover:text-rose-300"
+                  className="h-11 flex-1 border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-50 hover:text-rose-600 sm:h-10 sm:flex-none dark:border-rose-500/40 dark:bg-transparent dark:text-rose-300 dark:hover:bg-rose-500/10 dark:hover:text-rose-300"
                 >
                   <X className="mr-1.5 h-4 w-4" />
                   Reject
@@ -5083,6 +5084,7 @@ function CandidateWizard({
               variant="secondary"
               onClick={saveDraft}
               disabled={savingDraft || submitting || !!uploading || scanning}
+              className="h-11 w-full sm:h-10 sm:w-auto"
             >
               {savingDraft && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Save Draft
@@ -5095,7 +5097,7 @@ function CandidateWizard({
                   onClick={submit}
                   disabled={submitDisabled}
                   title={!isExistingEmployee && !profileComplete ? `Tip: complete all ${completionTotal} required fields (${completionPct}% done)` : undefined}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:h-10 sm:w-auto"
                 >
                   {submitting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                   {isExistingEmployee ? "Save Changes" : "Save & Send to Approval"}
@@ -5111,11 +5113,13 @@ function CandidateWizard({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-sm sm:p-5">
+      <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
         {title}
       </div>
-      {children}
+      <SectionHeaderContext.Provider value={{ hideHeader: true }}>
+        {children}
+      </SectionHeaderContext.Provider>
     </div>
   );
 }
