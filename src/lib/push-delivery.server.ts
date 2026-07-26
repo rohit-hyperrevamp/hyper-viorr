@@ -7,10 +7,6 @@ type TokenRow = {
   last_seen_at: string;
 };
 
-type CandidateUserRow = {
-  user_id: string | null;
-};
-
 export type NativePushDeliveryResult = {
   sent: number;
   total: number;
@@ -42,18 +38,14 @@ async function resolveRelatedUserIds(userId: string): Promise<string[]> {
 
     const { data: candidate } = await supabaseAdmin
       .from("candidates")
-      .select("mobile")
+      .select("id")
       .eq("mobile", mobile)
       .maybeSingle();
 
-    if (!candidate?.mobile) return Array.from(ids);
+    if (!candidate?.id) return Array.from(ids);
 
     const { data: users } = await supabaseAdmin.rpc("get_user_id_by_candidate", {
-      _candidate_id: (await supabaseAdmin
-        .from("candidates")
-        .select("id")
-        .eq("mobile", mobile)
-        .maybeSingle()).data?.id,
+      _candidate_id: candidate.id,
     });
 
     if (typeof users === "string") ids.add(users);
