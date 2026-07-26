@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  Clock,
   Download,
   Edit2,
   FileJson,
@@ -1891,8 +1892,16 @@ function EmployeesPage() {
       const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
       const code = mode === "employee" ? c.employee_code || "—" : c.candidate_code || "—";
       const isDisabled = mode === "employee" && !c.is_enabled;
+      const isPendingOffboarding =
+        c.offboarding_details?.collection_status === "pending" &&
+        !!c.offboarding_details?.pending_collection_fo_id;
+      const pendingFoName = c.offboarding_details?.pending_collection_fo_name;
       return (
-        <tr key={c.id} className={cn("group transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-500/5", isDisabled && "opacity-60")}>
+        <tr key={c.id} className={cn(
+          "group transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-500/5",
+          isDisabled && "opacity-60",
+          isPendingOffboarding && "bg-amber-500/[0.04] hover:bg-amber-500/[0.07]"
+        )}>
           <td className="px-2.5 py-2.5 align-top">
             <span className="inline-flex items-center whitespace-nowrap rounded-md bg-secondary px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wide tabular-nums text-muted-foreground">
               {code}
@@ -2071,6 +2080,15 @@ function EmployeesPage() {
             <div className="flex flex-col items-end gap-1.5">
               <div className="flex flex-nowrap items-center justify-end gap-2">
                 <StatusBadge status={c.status} />
+                {isPendingOffboarding && (
+                  <span
+                    className="inline-flex shrink-0 cursor-help items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"
+                    title={`Offboarding in progress — awaiting inventory collection${pendingFoName ? ` by ${pendingFoName}` : ""}. Employee stays active until the Field Officer confirms recovery.`}
+                  >
+                    <Clock className="h-3 w-3" />
+                    <span className="hidden sm:inline">Awaiting collection</span>
+                  </span>
+                )}
                 {mode === "employee" && columnsVisible.active && (
                   <Switch
                     className="2xl:hidden"
@@ -2118,6 +2136,14 @@ function EmployeesPage() {
                   </div>
                 );
               })()}
+              {isPendingOffboarding && (
+                <div
+                  className="max-w-[220px] truncate text-right text-[11px] text-amber-700 dark:text-amber-300"
+                  title={`Offboarding in progress — awaiting inventory collection${pendingFoName ? ` by ${pendingFoName}` : ""}. Employee stays active until the Field Officer confirms recovery.`}
+                >
+                  Offboarding in progress
+                </div>
+              )}
             </div>
           </td>
 
