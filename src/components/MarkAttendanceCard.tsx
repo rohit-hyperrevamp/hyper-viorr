@@ -13,9 +13,13 @@ import {
   distanceMeters,
   formatDistance,
   mapsUrl,
+  pushTelemetry,
+  readBattery,
+  readNetworkType,
   DEVIATION_THRESHOLD_M,
   type SelfPunch,
 } from "@/lib/self-attendance";
+
 import { isNativePlatform } from "@/lib/native";
 import { cn } from "@/lib/utils";
 
