@@ -4225,16 +4225,16 @@ function CandidateWizard({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[96vw] max-w-4xl overflow-y-auto p-0">
-        <DialogHeader className="border-b border-border bg-secondary/30 px-6 py-4">
-          <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            {editing
+        <DialogHeader className="border-b border-border bg-secondary/30 px-4 py-3 sm:px-6 sm:py-4">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <UserPlus className="h-5 w-5 shrink-0" />
+            <span className="truncate">{editing
               ? (editing.status === "approved" || editing.status === "active" || editing.status === "inactive")
                 ? "Edit Employee"
                 : "Edit Candidate"
-              : isEmployeeMode ? "Add Employee" : "Add Candidate"}
+              : isEmployeeMode ? "Add Employee" : "Add Candidate"}</span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             {isEmployeeMode
               ? "Non-billable internal hire. Billing unit is auto-set to Radiant; salary follows the Radiant contract for the chosen designation. Client unit mapping is optional."
               : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
@@ -4245,10 +4245,10 @@ function CandidateWizard({
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
                 <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Radiant Guards - Pune Office</Badge>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="grid gap-1.5">
                 <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Branch</label>
                 <Select value={homeBranchId} onValueChange={setHomeBranchId}>
-                  <SelectTrigger className="h-8 w-[240px] text-xs">
+                  <SelectTrigger className="h-10 w-full text-xs sm:w-[280px]">
                     <SelectValue placeholder="Select home branch" />
                   </SelectTrigger>
                   <SelectContent>
@@ -4266,6 +4266,7 @@ function CandidateWizard({
               </div>
             </div>
           )}
+
           {editing && (editing.status === "approved" || editing.status === "active" || editing.status === "inactive") && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StatusBadge status={form.status || editing.status} />
