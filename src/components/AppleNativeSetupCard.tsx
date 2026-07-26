@@ -76,6 +76,12 @@ export function AppleNativeSetupCard({
         setPushStatus(
           `This iPhone is registered for native notifications${status.count > 1 ? ` (${status.count} active tokens).` : "."}`,
         );
+      } else if (phoneDigits) {
+        try {
+          window.localStorage.removeItem(`${AUTO_PUSH_KEY_PREFIX}:${phoneDigits}`);
+        } catch {
+          /* noop */
+        }
       }
     } catch {
       /* registration status is best-effort */
@@ -86,7 +92,7 @@ export function AppleNativeSetupCard({
     if (!autoStart || !phoneDigits || !isNativePlatform()) return;
     const key = `${AUTO_PUSH_KEY_PREFIX}:${phoneDigits}`;
     try {
-      if (window.localStorage.getItem(key) === "done") return;
+      if (pushRegistered && window.localStorage.getItem(key) === "done") return;
     } catch {
       /* continue best-effort */
     }
@@ -116,7 +122,7 @@ export function AppleNativeSetupCard({
         setPushStatus(message);
       })
       .finally(() => setPushLoading(false));
-  }, [autoStart, phoneDigits]);
+  }, [autoStart, phoneDigits, pushRegistered]);
 
   async function refreshBiometricStatus() {
     setNativeSnapshot(getNativeRuntimeSnapshot());
