@@ -3309,16 +3309,21 @@ function CandidateWizard({
   // Restrict the Designation dropdown to designations present in the contracts
   // of the selected units. Field officer or not — a unit's contract resources
   // define the valid designations for that unit.
-  const selectedUnitIdsKey = form.unit_ids.slice().sort().join(",");
+  const desigLookupUnitIds = useMemo(() => {
+    const ids = new Set(form.unit_ids);
+    if (isEmployeeMode) ids.add(RADIANT_BILLING_UNIT_ID);
+    return Array.from(ids);
+  }, [form.unit_ids, isEmployeeMode]);
+  const selectedUnitIdsKey = desigLookupUnitIds.slice().sort().join(",");
   const contractDesigQuery = useQuery({
     queryKey: ["wizard-contract-designations", selectedUnitIdsKey],
-    enabled: form.unit_ids.length > 0,
+    enabled: desigLookupUnitIds.length > 0,
     staleTime: 30_000,
     queryFn: async (): Promise<string[]> => {
       const { data: contracts, error: cErr } = await supabase
         .from("client_contracts" as never)
         .select("id,unit_id,status")
-        .in("unit_id", form.unit_ids)
+        .in("unit_id", desigLookupUnitIds)
         .eq("status", "active");
       if (cErr) throw cErr;
       const contractIds = ((contracts ?? []) as { id: string }[]).map((c) => c.id);
@@ -3342,11 +3347,11 @@ function CandidateWizard({
   const filteredDesignations = useMemo(() => {
     let base = designations;
     if (isEmployeeMode) base = base.filter((d) => d.billable === false);
-    if (form.unit_ids.length === 0) return base;
+    if (desigLookupUnitIds.length === 0) return base;
     if (contractDesigQuery.isLoading) return base;
     const allow = new Set(allowedDesignationIds);
     return base.filter((d) => allow.has(d.id));
-  }, [designations, form.unit_ids.length, contractDesigQuery.isLoading, allowedDesignationIds, isEmployeeMode]);
+  }, [designations, desigLookupUnitIds.length, contractDesigQuery.isLoading, allowedDesignationIds, isEmployeeMode]);
 
   // If the currently selected designation is no longer allowed by the units'
   // contracts, clear it so the user picks a valid one.
