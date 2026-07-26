@@ -25,6 +25,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
+import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
+
 
 export const Route = createFileRoute("/admin/field-dashboard")({
   component: FieldOfficerDashboard,
@@ -97,7 +99,7 @@ function FieldOfficerDashboard() {
       const mePhoto = (me as { photo_url?: string } | null)?.photo_url ?? "";
 
       const empty = {
-        meName, meCode, mePhoto,
+        meId, meName, meCode, mePhoto,
         units: [] as UnitNode[],
         guardsTotal: 0, joinedThisWeek: 0, joinedLastWeek: 0,
         attendanceRateToday: 0, attendanceRateYesterday: 0,
@@ -105,6 +107,7 @@ function FieldOfficerDashboard() {
         openDemandsTotal: 0, inventoryItemsTotal: 0,
         myStockQty: 0, myStockSkus: 0,
       };
+
 
       if (!meId) return empty;
 
@@ -260,11 +263,12 @@ function FieldOfficerDashboard() {
       const openDemandsTotal = units.reduce((s, u) => s + u.open_demands, 0);
       const inventoryItemsTotal = units.reduce((s, u) => s + u.inventory_items, 0);
       return {
-        meName, meCode, mePhoto, units, guardsTotal, joinedThisWeek, joinedLastWeek,
+        meId, meName, meCode, mePhoto, units, guardsTotal, joinedThisWeek, joinedLastWeek,
         attendanceRateToday, attendanceRateYesterday, pendingOnboardingTotal,
         pendingOnboardingLastWeek, openDemandsTotal, inventoryItemsTotal,
         myStockQty, myStockSkus,
       };
+
 
     },
   });
@@ -347,6 +351,10 @@ function FieldOfficerDashboard() {
           <StatBar label="Items on team" value={totalItems} />
         </div>
       </section>
+
+      <MarkAttendanceCard candidateId={data?.meId ?? null} />
+
+
 
       {/* Pastel summary tiles — "My Summary" */}
       <section>

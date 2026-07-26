@@ -49,6 +49,11 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to sign in to Radiant Guard quickly and securely.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Radiant Guard captures your live GPS location when you check in or check out for attendance.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Radiant Guard captures your live GPS location when you check in or check out for attendance.</string>
+
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

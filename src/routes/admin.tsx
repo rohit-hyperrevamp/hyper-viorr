@@ -15,6 +15,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ClipboardList,
+  Clock,
+
   Wallet,
   FileText,
   Files,
@@ -299,11 +301,13 @@ function AdminLayout() {
         pathname === "/admin/employee-dashboard" ||
         pathname === "/admin/my-inventory" ||
         pathname === "/admin/profile" ||
+        pathname === "/admin/my-attendance" ||
         pathname === "/admin/notifications" ||
         pathname.startsWith("/admin/my-inventory/") ||
         pathname.startsWith("/admin/notifications/");
       if (!allowed) navigate({ to: "/admin/employee-dashboard", replace: true });
       return;
+
     }
     // Field officers must never land on the Inventory Command Center hub.
     if (roleKey === "field_officer" && !isSuperAdmin) {
@@ -439,8 +443,10 @@ function AdminLayout() {
     { key: "dashboard", label: "My Dashboard", icon: LayoutGrid, to: "/admin/employee-dashboard", activePrefixes: ["/admin/employee-dashboard"] },
     { key: "my-inventory", label: "My Uniform", icon: Boxes, to: "/admin/my-inventory", activePrefixes: ["/admin/my-inventory"] },
     { key: "notifications", label: "Notifications", icon: Bell, to: "/admin/notifications", activePrefixes: ["/admin/notifications"] },
+    { key: "my-attendance", label: "My Attendance", icon: Clock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
     { key: "profile", label: "My Profile", icon: Users, to: "/admin/profile", activePrefixes: ["/admin/profile"] },
   ], []);
+
   const isFieldOfficer = !isSuperAdmin && roleKey === "field_officer";
   const visibleGroups = (() => {
     if (isGuard) return guardGroups;
@@ -614,6 +620,12 @@ function AdminLayout() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/admin/my-attendance" className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" /> My Attendance
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem asChild>
                 <Link to="/admin/notifications" className="flex items-center gap-2">
                   <Bell className="h-4 w-4" /> Notifications
                 </Link>
@@ -727,6 +739,13 @@ function AdminLayout() {
               >
                 <Users className="h-4 w-4 shrink-0" /> My Profile
               </Link>
+              <Link
+                to="/admin/my-attendance"
+                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
+              >
+                <Clock className="h-4 w-4 shrink-0" /> My Attendance
+              </Link>
+
               <Link
                 to="/admin/notifications"
                 className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
