@@ -27,6 +27,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
+import { MyLiveStatusCard } from "@/components/MyLiveStatusCard";
 import { cn } from "@/lib/utils";
 
 
@@ -360,6 +361,9 @@ function FieldOfficerDashboard() {
 
 
       <MarkAttendanceCard candidateId={data?.meId ?? null} />
+
+      <MyLiveStatusCard />
+
 
 
 
