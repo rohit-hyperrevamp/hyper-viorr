@@ -49,53 +49,63 @@ export function MobileBottomNav({
         !nativeShell && "lg:hidden",
       )}
     >
-      <ul className="mx-auto flex h-[58px] w-full items-stretch justify-around gap-0 px-2 pt-1.5">
+      <ul className="mx-auto flex h-[62px] w-full items-stretch justify-around gap-0 px-2 pt-1.5">
         {primary.map((it) => {
           const Icon = it.icon;
           const inner = (
             <div
               className={cn(
-                "relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 pt-1.5 pb-1 transition-colors",
-                it.active ? "text-accent" : "text-muted-foreground hover:text-foreground",
+                "relative mx-auto flex min-w-0 max-w-[72px] flex-col items-center justify-center gap-1 rounded-2xl px-2 pt-1 pb-1 transition-colors",
               )}
             >
-              {it.active && (
-                <span className="absolute top-0 left-1/2 h-[3px] w-6 -translate-x-1/2 rounded-full bg-accent" />
-              )}
-              <Icon className={cn("h-[19px] w-[19px] shrink-0 transition-transform", it.active && "scale-105")} strokeWidth={it.active ? 2.4 : 2} />
+              <span
+                className={cn(
+                  "grid h-9 w-9 place-items-center rounded-xl transition-colors",
+                  it.active
+                    ? "bg-accent text-accent-foreground shadow-sm"
+                    : "bg-transparent text-foreground/70",
+                )}
+              >
+                <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={it.active ? 2.4 : 2} />
+              </span>
               <span
                 className={cn(
                   "max-w-full truncate text-[10px] leading-none tracking-tight",
-                  it.active ? "font-bold text-accent" : "font-semibold text-foreground/70",
+                  it.active ? "font-bold text-foreground" : "font-semibold text-foreground/70",
                 )}
               >
                 {it.label}
               </span>
             </div>
           );
+          const tapClass = "block w-full appearance-none select-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] outline-none focus-visible:outline-none active:opacity-90";
           return (
             <li key={it.key} className="flex-1">
               {it.to ? (
-                <Link to={it.to} className="block">{inner}</Link>
+                <Link to={it.to} className={tapClass}>{inner}</Link>
               ) : (
-                <button type="button" onClick={it.onClick} className="block w-full">{inner}</button>
+                <button type="button" onClick={it.onClick} className={tapClass}>{inner}</button>
               )}
             </li>
           );
         })}
         <li className="flex-1">
-          <button type="button" onClick={onMore} className="block w-full" aria-label="More">
-            <div
-              className={cn(
-                "relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 pt-1.5 pb-1 transition-colors",
-                moreActive ? "text-accent" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {moreActive && (
-                <span className="absolute top-0 left-1/2 h-[3px] w-6 -translate-x-1/2 rounded-full bg-accent" />
-              )}
-              <MoreHorizontal className="h-[19px] w-[19px] shrink-0" strokeWidth={moreActive ? 2.4 : 2} />
-              <span className={cn("text-[10px] leading-none tracking-tight", moreActive ? "font-bold text-accent" : "font-semibold text-foreground/70")}>
+          <button
+            type="button"
+            onClick={onMore}
+            aria-label="More"
+            className="block w-full appearance-none select-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] outline-none focus-visible:outline-none active:opacity-90"
+          >
+            <div className="relative mx-auto flex min-w-0 max-w-[72px] flex-col items-center justify-center gap-1 rounded-2xl px-2 pt-1 pb-1 transition-colors">
+              <span
+                className={cn(
+                  "grid h-9 w-9 place-items-center rounded-xl transition-colors",
+                  moreActive ? "bg-accent text-accent-foreground shadow-sm" : "bg-transparent text-foreground/70",
+                )}
+              >
+                <MoreHorizontal className="h-[18px] w-[18px] shrink-0" strokeWidth={moreActive ? 2.4 : 2} />
+              </span>
+              <span className={cn("text-[10px] leading-none tracking-tight", moreActive ? "font-bold text-foreground" : "font-semibold text-foreground/70")}>
                 More
               </span>
             </div>
