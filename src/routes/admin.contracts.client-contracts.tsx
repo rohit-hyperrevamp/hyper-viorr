@@ -259,6 +259,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
   return {
     id: resource.id,
     designationId: resource.designationId,
+    roleKey: resource.roleKey ?? null,
     serviceTypeId: resource.serviceTypeId,
     quantity: Number(resource.quantity) || 1,
     components: (resource.components ?? []).map((c) => ({
