@@ -24,6 +24,13 @@ export type NativePushDeliveryResult = {
   message?: string;
 };
 
+type RecentNativePushInput = {
+  title: string;
+  message: string;
+  link?: string;
+  notificationIds?: string[];
+};
+
 function nativePushApiUrls() {
   const urls: string[] = [];
   if (typeof window !== "undefined") {
@@ -101,29 +108,6 @@ async function callNativePushApi<T>(payload: Record<string, unknown>): Promise<T
   throw new Error(lastError?.message || "Apple push bridge could not be reached.");
 }
 
-async function queueNativePushApi(payload: Record<string, unknown>): Promise<boolean> {
-  if (typeof window === "undefined" || typeof navigator === "undefined" || !("sendBeacon" in navigator)) {
-    return false;
-  }
-
-  try {
-    const bodyText = JSON.stringify({ ...payload, accessToken: await accessToken() });
-    const url = `${window.location.origin}${NATIVE_PUSH_API_PATH}`;
-    const blob = new Blob([bodyText], { type: "text/plain;charset=UTF-8" });
-    const queued = navigator.sendBeacon(url, blob);
-    logNativeEvent("push", queued ? "queued native push bridge beacon" : "native push bridge beacon rejected", {
-      url,
-      action: String(payload.action ?? ""),
-    });
-    return queued;
-  } catch (err) {
-    logNativeEvent("push", "native push bridge beacon failed", {
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return false;
-  }
-}
-
 export function getNativePushRegistrationStatus() {
   return callNativePushApi<NativePushRegistrationStatus>({ action: "status" });
 }
@@ -142,7 +126,7 @@ export function sendNativeTestPush(message?: string) {
 
 export function sendRecentNativePush(
   userIds: string[],
-  input: { title: string; message: string; link?: string },
+  input: RecentNativePushInput,
 ) {
   return callNativePushApi<NativePushDeliveryResult>({
     action: "sendRecent",
@@ -150,22 +134,20 @@ export function sendRecentNativePush(
     title: input.title,
     message: input.message,
     link: input.link ?? "",
+    notificationIds: input.notificationIds ?? [],
   });
 }
 
 export async function queueRecentNativePush(
   userIds: string[],
-  input: { title: string; message: string; link?: string },
+  input: RecentNativePushInput,
 ) {
-  const payload = {
+  await callNativePushApi<NativePushDeliveryResult>({
     action: "sendRecent",
     userIds,
     title: input.title,
     message: input.message,
     link: input.link ?? "",
-  };
-
-  const queued = await queueNativePushApi(payload);
-  if (queued) return;
-  await callNativePushApi<NativePushDeliveryResult>(payload);
+    notificationIds: input.notificationIds ?? [],
+  });
 }

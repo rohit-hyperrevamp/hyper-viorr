@@ -70,16 +70,16 @@ export async function createNotification(input: {
     entity_id: input.entityId ?? "",
   } as never);
   if (error) throw error;
-  deliverNativePush([input.userId], input);
+  await deliverNativePush([input.userId], input);
 }
 
-function deliverNativePush(
+async function deliverNativePush(
   userIds: string[],
   input: { title: string; message: string; link?: string },
 ) {
   const recipients = Array.from(new Set(userIds.filter(Boolean)));
   if (recipients.length === 0) return;
-  void queueRecentNativePush(recipients, input).catch((error) => {
+  await queueRecentNativePush(recipients, input).catch((error) => {
     console.warn("native push delivery failed", error);
   });
 }
@@ -122,7 +122,7 @@ export async function notifyAdmins(input: {
   // Single batched push call — previously we fired one bridge fetch per admin
   // (via createNotification), and a post-submit navigation cancelled most of
   // them before they reached the bridge. Batching + keepalive fixes that.
-  deliverNativePush(ids, input);
+  await deliverNativePush(ids, input);
 }
 
 export async function markNotificationRead(id: string) {
@@ -195,7 +195,7 @@ export async function notifyApprovers(input: {
     console.error("notifyApprovers insert error", error);
     return 0;
   }
-  deliverNativePush(recipients, input);
+  await deliverNativePush(recipients, input);
   return recipients.length;
 }
 
@@ -248,7 +248,7 @@ export async function notifyOnboardingApprovers(input: {
     console.error("notifyOnboardingApprovers insert error", error);
     return 0;
   }
-  deliverNativePush(recipients, input);
+  await deliverNativePush(recipients, input);
   return recipients.length;
 }
 
