@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { sendRecentNativePush } from "./native-push-api";
+import { queueRecentNativePush } from "./native-push-api";
 
 export type Notification = {
   id: string;
@@ -79,7 +79,7 @@ function deliverNativePush(
 ) {
   const recipients = Array.from(new Set(userIds.filter(Boolean)));
   if (recipients.length === 0) return;
-  void sendRecentNativePush(recipients, input).catch((error) => {
+  void queueRecentNativePush(recipients, input).catch((error) => {
     console.warn("native push delivery failed", error);
   });
 }
