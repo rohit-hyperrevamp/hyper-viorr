@@ -4388,7 +4388,7 @@ function CandidateWizard({
           )}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-2.5">
+        <div className="px-2.5 py-2.5 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:overscroll-contain">
           {/* ----- Full form (single page) ----- */}
           {true && (
             <div className="space-y-6">
