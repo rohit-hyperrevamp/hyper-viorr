@@ -333,12 +333,28 @@ function CollectionsPanel({ me }: { me: Candidate }) {
         <StatTile icon={Inbox} label="Total items at guards" value={balances.reduce((s, b) => s + Number(b.qty || 0), 0)} accent="bg-amber-500" />
       </div>
 
+      {pendingOffboardCount > 0 && (
+        <div className="mb-4 flex items-center gap-3 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 shadow-sm">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-500/20">
+            <PackageCheck className="h-4 w-4" />
+          </span>
+          <div className="flex-1">
+            <div className="font-semibold">Offboarding collection pending</div>
+            <div className="text-[12px] text-rose-700/80">
+              {pendingOffboardCount} guard{pendingOffboardCount === 1 ? "" : "s"} awaiting your inventory recovery.
+              Their offboarding will complete only after you confirm collection.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search guard name, code or mobile…" className="h-10 rounded-lg pl-9" />
         </div>
       </div>
+
 
       {guardsLoading ? (
         <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">Loading…</div>
