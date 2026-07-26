@@ -1226,11 +1226,18 @@ input, textarea, [contenteditable], p, span, td, li, h1, h2, h3, h4 {
    ========================================================================= */
 nav[data-bottom-nav] {
   /* Solid bar, flush to edge — no floating look, no upward shadow. */
+  position: fixed !important;
+  inset-inline: 0 !important;
+  bottom: 0 !important;
+  z-index: 80 !important;
   border-top: 1px solid var(--border);
   background: var(--card);
   box-shadow: none;
   /* Reserve safe-area on the bar itself; do NOT let inner ul add its own pad. */
   padding-bottom: env(safe-area-inset-bottom);
+}
+[data-app-drawer-grid] {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
 }
 nav[data-bottom-nav] > ul {
   padding-top: 0.375rem !important;
