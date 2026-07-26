@@ -2001,8 +2001,10 @@ function MusterRollPage() {
           </tbody>
         </table>
 
-        <div className="mt-3 -mx-2 overflow-x-auto sm:mx-0">
+        <div className="mt-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 sm:hidden">Swipe horizontally to view all days →</div>
+        <div className="mt-2 -mx-5 overflow-x-auto sm:mx-0">
           <table className="w-full min-w-[900px] border-collapse border border-slate-400 text-center text-[10px]">
+
             <thead className="bg-slate-100">
               <tr>
                 <th className="border border-slate-400 p-1 align-middle">Sl.<br />No.</th>
