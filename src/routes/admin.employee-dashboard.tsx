@@ -360,7 +360,7 @@ function EmployeeDashboard() {
           {/* Profile card — matches admin card aesthetic */}
           <section className="overflow-hidden rounded-[24px] border border-border/60 bg-card/70 p-5 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)]">
             <div className="flex items-start gap-4">
-              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-secondary text-lg font-semibold ring-1 ring-border">
+              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full bg-secondary text-lg font-semibold ring-1 ring-border">
                 {me.photo_url ? <img src={me.photo_url} alt="" className="h-full w-full object-cover" /> : initials(me.full_name)}
               </div>
               <div className="min-w-0 flex-1">
