@@ -22,7 +22,7 @@ export const sendTestPushToMe = createServerFn({ method: "POST" })
       body: data.message || "Test push notification",
     });
     const failedDetail = result.failures[0]?.error
-      ? `APNs error: ${failed[0].error}`
+      ? `APNs error: ${result.failures[0].error}`
       : "No push notifications were sent.";
     return {
       sent: result.sent,
