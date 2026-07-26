@@ -1549,7 +1549,7 @@ function MusterRollPage() {
   };
 
   return (
-    <div className="space-y-4 p-4 sm:p-6">
+    <div className="space-y-4 px-3 py-4 sm:px-6 sm:py-6">
       <style>{`
         @media print {
           @page { size: A4 landscape; margin: 8mm; }
@@ -1567,16 +1567,16 @@ function MusterRollPage() {
         }
       `}</style>
       <div className="rounded-2xl border border-border/60 bg-card/95 p-3 shadow-sm backdrop-blur-xl sm:p-4 print:hidden">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Link
             to="/admin/attendance"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
-            <ChevronLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back to units</span><span className="sm:hidden">Back</span>
+            <ChevronLeft className="h-4 w-4" /> Back
           </Link>
           <div className="flex items-center gap-2">
             <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
-              <SelectTrigger className="h-9 w-[128px] rounded-xl text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 w-[110px] rounded-xl text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {MONTH_NAMES.map((m, i) => {
                   if (contractStartDate) {
@@ -1589,7 +1589,7 @@ function MusterRollPage() {
               </SelectContent>
             </Select>
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="h-9 w-[92px] rounded-xl text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 w-[86px] rounded-xl text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {[year - 2, year - 1, year, year + 1].map((y) => {
                   if (contractStartDate) {
@@ -1604,22 +1604,22 @@ function MusterRollPage() {
           </div>
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2">
           <Button
-            size="sm"
             onClick={() => { setUploadOpen(true); }}
             disabled={!editable}
             title={editable ? "Upload an attendance sheet image to auto-fill" : "Sheet locked"}
-            className="h-10 flex-1 rounded-xl font-semibold shadow-sm"
+            className="h-11 min-w-0 rounded-xl px-4 text-sm font-semibold shadow-sm"
           >
-            <Upload className="mr-1.5 h-4 w-4" /> Upload Attendance
+            <Upload className="mr-2 h-4 w-4 shrink-0" />
+            <span className="truncate">Upload Attendance</span>
           </Button>
           <Button
             variant="outline"
             size="icon"
             onClick={() => window.print()}
             title="Print"
-            className="h-10 w-10 shrink-0 rounded-xl"
+            className="h-11 w-11 shrink-0 rounded-xl"
           >
             <Printer className="h-4 w-4" />
           </Button>
@@ -1628,7 +1628,7 @@ function MusterRollPage() {
             size="icon"
             disabled
             title="Export (coming soon)"
-            className="h-10 w-10 shrink-0 rounded-xl"
+            className="h-11 w-11 shrink-0 rounded-xl"
           >
             <Download className="h-4 w-4" />
           </Button>
@@ -1638,12 +1638,13 @@ function MusterRollPage() {
             onClick={handleClearAll}
             disabled={!editable || clearingAll}
             title={editable ? "Delete every attendance entry on this sheet" : "Sheet locked"}
-            className="h-10 w-10 shrink-0 rounded-xl text-destructive hover:text-destructive"
+            className="h-11 w-11 shrink-0 rounded-xl text-destructive hover:text-destructive"
           >
             {clearingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           </Button>
         </div>
       </div>
+
 
       {/* Upload Attendance dialog */}
       <Dialog open={uploadOpen} onOpenChange={(o) => { setUploadOpen(o); if (!o) { setUploadFile(null); setUploadPreview(null); setUploadKind(null); setOcrSummary(null); setUploadReadyToContinue(false); } }}>
@@ -2000,8 +2001,10 @@ function MusterRollPage() {
           </tbody>
         </table>
 
-        <div className="mt-3 -mx-2 overflow-x-auto sm:mx-0">
+        <div className="mt-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 sm:hidden">Swipe horizontally to view all days →</div>
+        <div className="mt-2 -mx-5 overflow-x-auto sm:mx-0">
           <table className="w-full min-w-[900px] border-collapse border border-slate-400 text-center text-[10px]">
+
             <thead className="bg-slate-100">
               <tr>
                 <th className="border border-slate-400 p-1 align-middle">Sl.<br />No.</th>
