@@ -35,6 +35,7 @@ type Me = {
   status: string | null;
   unit_id: string | null;
   designation_id: string | null;
+  reports_to: string | null;
   date_of_birth: string | null;
   approved_at: string | null;
   created_at: string | null;
@@ -48,6 +49,19 @@ type Teammate = {
   date_of_birth: string | null;
   approved_at: string | null;
   created_at: string | null;
+  designation_id: string | null;
+  role_key: string | null;
+  unit_id: string | null;
+};
+
+type Manager = {
+  id: string;
+  full_name: string;
+  employee_code: string | null;
+  photo_url: string | null;
+  mobile: string | null;
+  email: string | null;
+  role_key: string | null;
   designation_id: string | null;
 };
 
