@@ -89,12 +89,14 @@ function FieldOfficerDashboard() {
     queryFn: async () => {
       const { data: me } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code,designation_id")
+        .select("id,full_name,employee_code,designation_id,photo_url")
         .eq("mobile", phone)
         .maybeSingle();
       const meId = (me as { id?: string } | null)?.id ?? null;
       const meName = (me as { full_name?: string } | null)?.full_name ?? "";
       const meCode = (me as { employee_code?: string } | null)?.employee_code ?? "";
+      const mePhoto = (me as { photo_url?: string } | null)?.photo_url ?? "";
+
       const empty = {
         meName, meCode,
         units: [] as UnitNode[],
