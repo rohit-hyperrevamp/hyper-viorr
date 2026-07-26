@@ -5255,20 +5255,21 @@ function OffboardingDialog({
     },
   });
 
-  // Fetch warehouses for return destination selection
-  const warehousesQ = useQuery({
-    queryKey: ["offboard-warehouses"],
+  // Fetch active Field Officers — the offboarding collection MUST be received by an FO
+  const fieldOfficersQ = useQuery({
+    queryKey: ["offboard-field-officers"],
     enabled: !!target?.id,
     staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("inv_warehouses" as never)
-        .select("id,name,is_default,enabled")
-        .eq("enabled", true)
-        .order("is_default", { ascending: false })
-        .order("name", { ascending: true });
+        .from("candidates" as never)
+        .select("id,full_name,employee_code,role_key,is_enabled,status")
+        .eq("role_key", "field_officer")
+        .eq("is_enabled", true)
+        .eq("status", "active")
+        .order("full_name", { ascending: true });
       if (error) throw error;
-      return ((data as unknown) as Array<{ id: string; name: string; is_default: boolean }>) ?? [];
+      return ((data as unknown) as Array<{ id: string; full_name: string; employee_code: string }>) ?? [];
     },
   });
 
@@ -5294,58 +5295,57 @@ function OffboardingDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.id]);
 
-  // Build default destination + inv return rows once balances/warehouses load
+  // Build default destination (Field Officer) + inv return rows once data loads
   useEffect(() => {
     if (!target) return;
     const bal = balancesQ.data ?? [];
     if (bal.length === 0) {
       setInvReturns([]);
-    } else {
-      // Default destination: FO → own field_officer bucket; else default warehouse if available
-      let destType: LocationType = "warehouse";
-      let destId = "";
-      let destLabel = "";
-      if (isFieldOfficer && currentUserCandidateId) {
-        destType = "field_officer";
-        destId = currentUserCandidateId;
-        destLabel = "My inventory (field officer)";
-      } else {
-        const wh = warehousesQ.data ?? [];
-        const def = wh.find((w) => w.is_default) ?? wh[0];
-        if (def) { destId = def.id; destLabel = `Warehouse · ${def.name}`; }
-      }
-      const key = destId ? `${destType}:${destId}` : "";
-      setReturnDestKey(key);
-      setInvReturns(
-        bal.map((b) => ({
-          item_id: b.item_id,
-          item_name: b.inv_items?.name ?? "Item",
-          size_value: b.size_value ?? "",
-          unit: b.inv_items?.unit ?? "pcs",
-          on_hand: Number(b.qty ?? 0),
-          qty_returned: Number(b.qty ?? 0),
-          destination_type: destType,
-          destination_id: destId,
-          destination_label: destLabel,
-          remarks: "",
-        })),
-      );
+      return;
     }
+    const fos = fieldOfficersQ.data ?? [];
+    // Prefer the guard's reports_to (their FO); else the current-user FO; else the first FO in list.
+    let foId = "";
+    let foLabel = "";
+    const reports = target.reports_to ?? null;
+    const preferred =
+      (reports && fos.find((f) => f.id === reports)) ||
+      (isFieldOfficer && currentUserCandidateId && fos.find((f) => f.id === currentUserCandidateId)) ||
+      fos[0];
+    if (preferred) {
+      foId = preferred.id;
+      foLabel = `Field Officer · ${preferred.full_name}${preferred.employee_code ? " · " + preferred.employee_code : ""}`;
+    }
+    const key = foId ? `field_officer:${foId}` : "";
+    setReturnDestKey(key);
+    setInvReturns(
+      bal.map((b) => ({
+        item_id: b.item_id,
+        item_name: b.inv_items?.name ?? "Item",
+        size_value: b.size_value ?? "",
+        unit: b.inv_items?.unit ?? "pcs",
+        on_hand: Number(b.qty ?? 0),
+        qty_returned: Number(b.qty ?? 0),
+        destination_type: "field_officer" as LocationType,
+        destination_id: foId,
+        destination_label: foLabel,
+        remarks: "",
+      })),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target?.id, balancesQ.data, warehousesQ.data]);
+  }, [target?.id, balancesQ.data, fieldOfficersQ.data]);
 
   // Propagate destination change to all rows
   useEffect(() => {
     if (!returnDestKey) return;
     const [type, id] = returnDestKey.split(":") as [LocationType, string];
-    let label = "";
-    if (type === "field_officer") label = "My inventory (field officer)";
-    else if (type === "warehouse") {
-      const w = (warehousesQ.data ?? []).find((x) => x.id === id);
-      label = w ? `Warehouse · ${w.name}` : "Warehouse";
-    } else if (type === "scrap") label = "Scrap / Write-off";
+    const fo = (fieldOfficersQ.data ?? []).find((f) => f.id === id);
+    const label = fo
+      ? `Field Officer · ${fo.full_name}${fo.employee_code ? " · " + fo.employee_code : ""}`
+      : "Field Officer";
     setInvReturns((rows) => rows.map((r) => ({ ...r, destination_type: type, destination_id: id, destination_label: label })));
-  }, [returnDestKey, warehousesQ.data]);
+  }, [returnDestKey, fieldOfficersQ.data]);
+
 
   const selectedReason = reasons.find((r) => r.id === reasonId);
   const isAbsconding = !!selectedReason && ABSCONDING_NAMES.has(selectedReason.name.trim().toLowerCase());
