@@ -26,7 +26,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
-import { useCurrentPermissions } from "@/lib/rbac";
+import { useCurrentPermissions, fetchRoles, type RoleRow } from "@/lib/rbac";
 import { notifyApprovers } from "@/lib/notifications";
 import { csvDate, downloadCsv } from "@/lib/csv-export";
 import {
@@ -234,6 +234,7 @@ type BenefitItem = {
 type ContractResource = {
   id?: string;
   designationId: string;
+  roleKey?: string | null;
   serviceTypeId: string;
   quantity: number;
   components: ResourceComponent[];
@@ -258,6 +259,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
   return {
     id: resource.id,
     designationId: resource.designationId,
+    roleKey: resource.roleKey ?? null,
     serviceTypeId: resource.serviceTypeId,
     quantity: Number(resource.quantity) || 1,
     components: (resource.components ?? []).map((c) => ({
@@ -817,6 +819,15 @@ function useDesignations() {
   return data;
 }
 
+function useRolesList() {
+  const { data = [] } = useQuery({
+    queryKey: ["admin", "roles-list"],
+    queryFn: async (): Promise<RoleRow[]> => fetchRoles(),
+  });
+  return data;
+}
+
+
 function useAllowanceTypes() {
   const { data = [] } = useQuery({
     queryKey: QK_ALW,
@@ -868,7 +879,7 @@ function useContractResources(contractId: string | null) {
       const { data, error } = await supabase
         .from("contract_resources" as never)
         .select(
-          "id,designation_id,service_type_id,quantity,components,sort_order,payroll_day_base_id,benefits,deductions,employer_contributions",
+          "id,designation_id,role_key,service_type_id,quantity,components,sort_order,payroll_day_base_id,benefits,deductions,employer_contributions",
         )
         .eq("contract_id", contractId)
         .order("sort_order");
@@ -876,6 +887,7 @@ function useContractResources(contractId: string | null) {
       return (data as unknown as Record<string, unknown>[]).map((r) => ({
         id: String(r.id),
         designationId: r.designation_id ? String(r.designation_id) : "",
+        roleKey: r.role_key ? String(r.role_key) : null,
         serviceTypeId: r.service_type_id ? String(r.service_type_id) : "",
         quantity: Number(r.quantity ?? 1),
         components: Array.isArray(r.components)
@@ -1220,6 +1232,7 @@ async function persistResources(contractId: string, resources: ContractResource[
   const rows = normalizedResources.map((r, idx) => ({
     contract_id: contractId,
     designation_id: r.designationId || null,
+    role_key: r.roleKey || null,
     service_type_id: r.serviceTypeId || null,
     quantity: r.quantity,
     components: r.components,
@@ -3156,6 +3169,7 @@ function ResourcesSection({
 }) {
   const designations = useDesignations();
   const serviceTypes = useServiceTypes();
+  const rolesList = useRolesList();
   const dById = useMemo(
     () => new Map(designations.map((d) => [d.id, d])),
     [designations],
@@ -3163,6 +3177,10 @@ function ResourcesSection({
   const sById = useMemo(
     () => new Map(serviceTypes.map((s) => [s.id, s])),
     [serviceTypes],
+  );
+  const roleByKey = useMemo(
+    () => new Map(rolesList.map((r) => [r.key, r])),
+    [rolesList],
   );
 
   return (
@@ -3186,6 +3204,7 @@ function ResourcesSection({
             );
             const dn = dById.get(r.designationId);
             const sn = sById.get(r.serviceTypeId);
+            const rn = r.roleKey ? roleByKey.get(r.roleKey) : null;
             return (
               <div
                 key={idx}
@@ -3200,6 +3219,11 @@ function ResourcesSection({
                       {dn?.code && (
                         <span className="font-mono text-[11px] text-muted-foreground">
                           {dn.code}
+                        </span>
+                      )}
+                      {rn && (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                          {rn.name}
                         </span>
                       )}
                       <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -3294,8 +3318,10 @@ function ResourceFormDialog({
   const allowanceTypes = useAllowanceTypes();
   const payrollDayBases = usePayrollDayBases();
   const costComponents = useCostComponentOptions();
+  const rolesList = useRolesList();
 
   const [designationId, setDesignationId] = useState("");
+  const [roleKey, setRoleKey] = useState<string>("");
   const [serviceTypeId, setServiceTypeId] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [components, setComponents] = useState<ResourceComponent[]>([]);
@@ -3339,6 +3365,7 @@ function ResourceFormDialog({
       const nextDeductions = (initial.deductions ?? []).map(cloneBenefitItem);
       const nextEmployerContributions = (initial.employerContributions ?? []).map(cloneBenefitItem);
       setDesignationId(initial.designationId);
+      setRoleKey(initial.roleKey ?? "");
       setServiceTypeId(initial.serviceTypeId);
       setQuantity(String(initial.quantity));
       setComponents(nextComponents);
@@ -3363,6 +3390,7 @@ function ResourceFormDialog({
           fixedDutyDivisor: a.fixedDutyDivisor ?? "base_days",
         }));
       setDesignationId("");
+      setRoleKey("");
       setServiceTypeId("");
       setQuantity("1");
       // Pre-load defaults from allowance types
@@ -3382,6 +3410,7 @@ function ResourceFormDialog({
         {
           id: initial?.id,
           designationId,
+          roleKey: roleKey || null,
           serviceTypeId,
           quantity: Number.parseInt(quantity, 10) || 1,
           components,
@@ -3391,7 +3420,7 @@ function ResourceFormDialog({
           employerContributions,
         },
       ]),
-    [benefits, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, serviceTypeId],
+    [benefits, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, roleKey, serviceTypeId],
   );
   const resourceHasChanges = resourceBaselineSnapshot !== "" && currentResourceSnapshot !== resourceBaselineSnapshot;
 
@@ -3795,6 +3824,7 @@ function ResourceFormDialog({
     onSubmit({
       id: initial?.id,
       designationId,
+      roleKey: roleKey || null,
       serviceTypeId,
       quantity: q,
       components,
@@ -3953,6 +3983,24 @@ function ResourceFormDialog({
               />
             </Field>
           </div>
+
+
+          <Field label="Role">
+            <Select value={roleKey || "__none"} onValueChange={(v) => setRoleKey(v === "__none" ? "" : v)}>
+              <SelectTrigger className="h-10 rounded-lg">
+                <SelectValue placeholder="Map to a system role (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">— None —</SelectItem>
+                {rolesList.map((r) => (
+                  <SelectItem key={r.key} value={r.key}>
+                    {r.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
 
           <Field label="Payroll Days *">
             <Select value={payrollDayBaseId} onValueChange={setPayrollDayBaseId}>
