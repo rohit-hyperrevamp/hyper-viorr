@@ -26,7 +26,6 @@ import {
   Wallet,
   Building2,
   X,
-  X,
   LogOut,
   Sun,
   Moon,
