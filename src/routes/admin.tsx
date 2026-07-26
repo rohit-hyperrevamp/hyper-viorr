@@ -740,6 +740,13 @@ function AdminLayout() {
                 <Users className="h-4 w-4 shrink-0" /> My Profile
               </Link>
               <Link
+                to="/admin/my-attendance"
+                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
+              >
+                <Clock className="h-4 w-4 shrink-0" /> My Attendance
+              </Link>
+
+              <Link
                 to="/admin/notifications"
                 className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/60"
               >
