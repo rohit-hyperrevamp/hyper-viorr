@@ -5051,7 +5051,7 @@ function CandidateWizard({
           )}
         </div>
 
-        <DialogFooter className="sticky bottom-0 z-10 flex-col gap-2 border-t border-border bg-card/95 px-3 py-3 backdrop-blur-md pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:flex-row sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
+        <DialogFooter className="flex-col gap-2 border-t border-border bg-card/95 px-3 py-3 pb-[calc(1rem+env(safe-area-inset-bottom)+5.5rem)] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-row sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
           <div className="flex flex-wrap items-center gap-2 sm:mr-auto">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="h-11 flex-1 sm:h-10 sm:flex-none">
               Cancel
