@@ -3685,6 +3685,7 @@ function CandidateWizard({
 
   const persist = async (status: string, successMsg: string) => {
     const payload = buildPayload(status);
+    let createdCandidateId: string | null = null;
     if (editing) {
       const wasRejected = editing.status === "rejected";
       const isResubmit = wasRejected && status === "pending";
