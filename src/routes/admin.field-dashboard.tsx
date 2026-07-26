@@ -352,6 +352,10 @@ function FieldOfficerDashboard() {
         </div>
       </section>
 
+      <MarkAttendanceCard candidateId={data?.meId ?? null} />
+
+
+
       {/* Pastel summary tiles — "My Summary" */}
       <section>
         <div className="mb-2 flex items-end justify-between sm:mb-3">
