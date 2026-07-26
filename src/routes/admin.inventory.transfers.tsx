@@ -94,15 +94,37 @@ function TransfersPage() {
     queryKey: ["inv", "demand-requester-branches", requesterIds],
     enabled: requesterIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const m = new Map<string, string>();
+      const { data: scopes, error } = await supabase
         .from("employee_scope_assignments" as never)
         .select("candidate_id,scope_id,scope_type")
         .eq("scope_type", "branch")
         .in("candidate_id", requesterIds);
       if (error) throw error;
-      const m = new Map<string, string>();
-      for (const r of (data as unknown as { candidate_id: string; scope_id: string }[]) ?? []) {
+      for (const r of (scopes as unknown as { candidate_id: string; scope_id: string }[]) ?? []) {
         if (!m.has(r.candidate_id)) m.set(r.candidate_id, r.scope_id);
+      }
+      // Fallback for field officers mapped via candidate_units → units.branch_id
+      const missing = requesterIds.filter((id) => !m.has(id));
+      if (missing.length) {
+        const { data: cu } = await supabase
+          .from("candidate_units" as never)
+          .select("candidate_id,unit_id")
+          .in("candidate_id", missing);
+        const rows = (cu as unknown as { candidate_id: string; unit_id: string }[]) ?? [];
+        const unitIds = Array.from(new Set(rows.map((r) => r.unit_id).filter(Boolean)));
+        if (unitIds.length) {
+          const { data: us } = await supabase
+            .from("units" as never)
+            .select("id,branch_id")
+            .in("id", unitIds);
+          const uMap = new Map(((us as unknown as { id: string; branch_id: string | null }[]) ?? []).map((u) => [u.id, u.branch_id]));
+          for (const r of rows) {
+            if (m.has(r.candidate_id)) continue;
+            const b = uMap.get(r.unit_id);
+            if (b) m.set(r.candidate_id, b);
+          }
+        }
       }
       return m;
     },
