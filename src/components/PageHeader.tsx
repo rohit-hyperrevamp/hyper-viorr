@@ -27,7 +27,7 @@ export function PageHeader({
 }) {
   return (
     <div className={cn("relative mb-3 sm:mb-5", className)}>
-      <nav aria-label="Breadcrumb" className="mb-2">
+      <nav aria-label="Breadcrumb" className="mb-2 hidden sm:block">
         <ol className="flex flex-wrap items-center gap-1 text-[11px] font-medium text-muted-foreground">
           <li>
             <Link

@@ -16,7 +16,7 @@ import {
 } from "@/lib/biometric";
 import { markNativeAppSessionUnlocked } from "@/lib/native-app-lock";
 import logo from "@/assets/radiant-logo-v2.png";
-import loginBg from "@/assets/login-bg.jpg.asset.json";
+import loginBg from "@/assets/login-bg.jpg";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -174,7 +174,7 @@ function LoginPage() {
   return (
     <div
       className="relative min-h-dvh w-full overflow-x-clip bg-slate-950 bg-cover bg-center bg-no-repeat text-foreground"
-      style={{ backgroundImage: `url(${loginBg.url})` }}
+      style={{ backgroundImage: `url(${loginBg})` }}
     >
       {/* Subtle dark scrim for text legibility */}
       <div
