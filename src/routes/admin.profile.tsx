@@ -851,6 +851,8 @@ function ProfilePage() {
 
       {appleNativeCard}
 
+      {preferencesCard}
+
 
       {/* Hero card */}
       <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
