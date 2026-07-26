@@ -609,7 +609,7 @@ export function ListSection({
   );
 }
 
-export function IdentificationSection({ form, set, setSection }: { form: any; set: SetField; setSection: SetSection }) {
+export function IdentificationSection({ form, set, setSection, hideWeapon = false }: { form: any; set: SetField; setSection: SetSection; hideWeapon?: boolean }) {
   const proofs: any[] = Array.isArray(form.identification_proofs) ? form.identification_proofs : [];
   const weapon = form.other_info?.weapon_license ?? { has_weapon: false, uan: "", number: "", valid_until: "", valid_area: "" };
   const uploaded = [
@@ -620,7 +620,7 @@ export function IdentificationSection({ form, set, setSection }: { form: any; se
   ];
   return (
     <div>
-      <SectionHeader title="Identification Proofs" desc="Uploaded documents, additional proofs and weapon license" />
+      <SectionHeader title="Identification Proofs" desc={hideWeapon ? "Uploaded documents and additional proofs" : "Uploaded documents, additional proofs and weapon license"} />
       <h3 className="mb-3 text-sm font-medium">Uploaded Documents</h3>
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {uploaded.map((u) => (
