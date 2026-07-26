@@ -684,6 +684,7 @@ export function IdentificationSection({ form, set, setSection, hideWeapon = fals
           ))}
         </div>
       )}
+      {!hideWeapon && (
       <div className="mt-8">
         <h3 className="mb-3 text-sm font-medium">Weapon License</h3>
         <div className="mb-3 flex items-center gap-3 rounded-md border p-3">
@@ -702,6 +703,7 @@ export function IdentificationSection({ form, set, setSection, hideWeapon = fals
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
