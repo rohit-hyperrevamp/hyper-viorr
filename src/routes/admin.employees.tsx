@@ -2080,6 +2080,15 @@ function EmployeesPage() {
             <div className="flex flex-col items-end gap-1.5">
               <div className="flex flex-nowrap items-center justify-end gap-2">
                 <StatusBadge status={c.status} />
+                {isPendingOffboarding && (
+                  <span
+                    className="inline-flex shrink-0 cursor-help items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"
+                    title={`Offboarding in progress — awaiting inventory collection${pendingFoName ? ` by ${pendingFoName}` : ""}. Employee stays active until the Field Officer confirms recovery.`}
+                  >
+                    <Clock className="h-3 w-3" />
+                    Awaiting collection
+                  </span>
+                )}
                 {mode === "employee" && columnsVisible.active && (
                   <Switch
                     className="2xl:hidden"
@@ -2127,6 +2136,14 @@ function EmployeesPage() {
                   </div>
                 );
               })()}
+              {isPendingOffboarding && (
+                <div
+                  className="max-w-[220px] truncate text-right text-[11px] text-amber-700 dark:text-amber-300"
+                  title={`Offboarding in progress — awaiting inventory collection${pendingFoName ? ` by ${pendingFoName}` : ""}. Employee stays active until the Field Officer confirms recovery.`}
+                >
+                  Offboarding in progress
+                </div>
+              )}
             </div>
           </td>
 
