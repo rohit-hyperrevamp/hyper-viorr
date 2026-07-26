@@ -21,6 +21,7 @@ import {
 
 
 import { DashboardShell } from "@/components/LiveFeed";
+import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
@@ -444,6 +445,7 @@ function FoPeopleInsights() {
   const { isLoading, birthdays, anniversaries } = usePeopleInsights();
   return (
     <div className="flex flex-col gap-4">
+      <LiveFieldOfficersCard />
       <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
       <PeopleInsightsCard kind="anniversaries" items={anniversaries} isLoading={isLoading} />
     </div>
