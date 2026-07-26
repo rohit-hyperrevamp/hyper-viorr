@@ -527,21 +527,37 @@ function useResetOnOpen(open: boolean, reset: () => void) {
 
 function DemandSelect({ demands, demandId, demandLabel, onChange }: { demands: Demand[]; demandId: string; demandLabel: (d: Demand) => string; onChange: (v: string) => void }) {
   const { data: summaries = new Map<string, string>() } = useDocItemSummaries("inv_demand_lines", demands.map((d) => d.id));
+  const requesterMap = useDemandRequesters(demands.map((d) => d.id));
+
+  const renderRow = (d: Demand) => {
+    const s = summaries.get(d.id);
+    const r = requesterMap.get(d.id);
+    const dest = demandLabel(d);
+    const requester = r && r.requesterName !== "—"
+      ? `${r.requesterName}${r.requesterRole ? ` · ${r.requesterRole}` : ""}${r.requesterCode ? ` (${r.requesterCode})` : ""}`
+      : null;
+    return (
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <span className="text-sm font-semibold">
+          <span className="font-mono">{d.demand_number}</span>
+          {dest && dest !== "—" ? <span className="text-muted-foreground font-normal"> → {dest}</span> : null}
+        </span>
+        {requester && <span className="text-[11px] text-muted-foreground truncate">Requested by {requester}</span>}
+        {s && <span className="text-[11px] text-muted-foreground truncate">{s}</span>}
+      </div>
+    );
+  };
+
+  const selected = demands.find((d) => d.id === demandId);
   return (
     <Select value={demandId} onValueChange={onChange} disabled={!demands.length}>
-      <SelectTrigger><SelectValue placeholder={demands.length ? "Pick a submitted branch demand" : "No branch demands awaiting transfer"} /></SelectTrigger>
+      <SelectTrigger className="h-auto min-h-11 py-2 items-start">
+        {selected ? renderRow(selected) : <SelectValue placeholder={demands.length ? "Pick a submitted branch demand" : "No branch demands awaiting transfer"} />}
+      </SelectTrigger>
       <SelectContent>
-        {demands.map((d) => {
-          const s = summaries.get(d.id);
-          return (
-            <SelectItem key={d.id} value={d.id}>
-              <div className="flex flex-col gap-0.5">
-                <span className="font-mono text-xs">{d.demand_number} → {demandLabel(d)}</span>
-                {s && <span className="text-[11px] text-muted-foreground">{s}</span>}
-              </div>
-            </SelectItem>
-          );
-        })}
+        {demands.map((d) => (
+          <SelectItem key={d.id} value={d.id} className="py-2">{renderRow(d)}</SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );
