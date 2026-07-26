@@ -178,14 +178,14 @@ export function NotificationBell() {
       <>
         {trigger}
         {mobileOpen && (
-          <div className="fixed inset-0 z-50 sm:hidden" role="dialog" aria-modal="true" aria-label="Notifications">
+          <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="Notifications">
             <button
               type="button"
               aria-label="Close notifications"
               className="absolute inset-0 bg-foreground/35 backdrop-blur-sm"
               onClick={() => setMobileOpen(false)}
             />
-            <div className="absolute inset-x-0 bottom-0 max-h-[82dvh] overflow-hidden rounded-t-2xl border border-border bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-24px_70px_-28px_rgba(15,23,42,0.55)]">
+            <div className="absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-2xl border border-border bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-24px_70px_-28px_rgba(15,23,42,0.55)]">
               <div className="flex justify-center py-2">
                 <span className="h-1 w-10 rounded-full bg-muted-foreground/30" />
               </div>

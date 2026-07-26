@@ -818,6 +818,7 @@ function AdminLayout() {
             active: isGroupActive(g),
           }));
         })();
+        if (mobileOpen) return null;
         return (
           <MobileBottomNav
             items={bottomItems}
