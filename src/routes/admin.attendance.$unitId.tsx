@@ -1982,8 +1982,8 @@ function MusterRollPage() {
           </tbody>
         </table>
 
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full border-collapse border border-slate-400 text-center text-[10px]">
+        <div className="mt-3 -mx-2 overflow-x-auto sm:mx-0">
+          <table className="w-full min-w-[900px] border-collapse border border-slate-400 text-center text-[10px]">
             <thead className="bg-slate-100">
               <tr>
                 <th className="border border-slate-400 p-1 align-middle">Sl.<br />No.</th>
