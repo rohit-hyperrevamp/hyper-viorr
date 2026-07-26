@@ -163,7 +163,8 @@ function AttendanceUnitsPage() {
         supabase.from("units").select("id, code, name, location, branch_id, customer_id, billing_state, reporting_officers").in("id", unitIds),
         supabase
           .from("candidates")
-          .select("id, full_name, designation_id, role_key, unit_id")
+          .select("id, full_name, designation_id, role_key, unit_id, non_billable")
+          .eq("non_billable", false)
           .in("unit_id", unitIds)
           .eq("is_enabled", true)
           .in("status", [...ACTIVE_EMPLOYEE_STATUSES]),
