@@ -29,6 +29,8 @@ import { usePeopleInsights } from "@/lib/people-insights";
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { MyLiveStatusCard } from "@/components/MyLiveStatusCard";
 import { cn } from "@/lib/utils";
+import { ListSkeleton } from "@/components/Skeletons";
+
 
 
 export const Route = createFileRoute("/admin/field-dashboard")({
