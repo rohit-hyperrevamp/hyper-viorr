@@ -193,18 +193,75 @@ function EmployeeDashboard() {
     queryKey: ["me-team", myUnitIds.join(","), me?.id],
     enabled: !!me?.id && myUnitIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Guards mapped via candidates.unit_id
+      const { data: direct, error } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code,photo_url,date_of_birth,approved_at,created_at,designation_id")
+        .select("id,full_name,employee_code,photo_url,date_of_birth,approved_at,created_at,designation_id,role_key,unit_id")
         .in("unit_id", myUnitIds)
         .in("status", ["active", "approved"])
         .neq("id", me!.id)
         .order("full_name");
       if (error) throw error;
-      return (data as unknown as Teammate[]) ?? [];
+      // Guards mapped via candidate_units (many-to-many)
+      const { data: cu } = await supabase
+        .from("candidate_units" as never)
+        .select("candidate_id")
+        .in("unit_id", myUnitIds);
+      const extraIds = Array.from(
+        new Set(((cu as unknown as Array<{ candidate_id: string }>) ?? []).map((r) => r.candidate_id).filter((id) => id && id !== me!.id)),
+      );
+      let extras: Teammate[] = [];
+      if (extraIds.length) {
+        const { data: ex } = await supabase
+          .from("candidates")
+          .select("id,full_name,employee_code,photo_url,date_of_birth,approved_at,created_at,designation_id,role_key,unit_id")
+          .in("id", extraIds)
+          .in("status", ["active", "approved"]);
+        extras = (ex as unknown as Teammate[]) ?? [];
+      }
+      const map = new Map<string, Teammate>();
+      for (const t of (direct as unknown as Teammate[]) ?? []) map.set(t.id, t);
+      for (const t of extras) if (!map.has(t.id)) map.set(t.id, t);
+      return Array.from(map.values()).sort((a, b) => a.full_name.localeCompare(b.full_name));
     },
   });
   const team = teamQ.data ?? [];
+  const guardTeam = useMemo(
+    () => team.filter((t) => t.role_key === "guard" || t.role_key === "security_guard"),
+    [team],
+  );
+
+  // Names of all units the employee is part of
+  const unitsListQ = useQuery({
+    queryKey: ["me-units-list", myUnitIds.join(",")],
+    enabled: myUnitIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("units")
+        .select("id,name,code")
+        .in("id", myUnitIds);
+      if (error) throw error;
+      return (data as unknown as Array<{ id: string; name: string; code: string | null }>) ?? [];
+    },
+  });
+  const myUnits = unitsListQ.data ?? [];
+
+  // Reporting manager (field officer)
+  const managerQ = useQuery({
+    queryKey: ["me-manager", me?.reports_to],
+    enabled: !!me?.reports_to,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("candidates")
+        .select("id,full_name,employee_code,photo_url,mobile,email,role_key,designation_id")
+        .eq("id", me!.reports_to!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as unknown as Manager) ?? null;
+    },
+  });
+  const manager = managerQ.data ?? null;
+
 
   const desigIds = useMemo(() => Array.from(new Set(team.map((t) => t.designation_id).filter(Boolean))) as string[], [team]);
   const desigNameQ = useQuery({
