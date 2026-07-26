@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { classifyAttendanceEmployee, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
+import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { cn } from "@/lib/utils";
 import { useCurrentPermissions } from "@/lib/rbac";
@@ -218,7 +218,7 @@ function MusterRollPage() {
   const { data: employees, isLoading, error: rosterError } = useQuery({
     queryKey: ["attendance-roster-v5", unitId],
     queryFn: async () => {
-      const rosterSelect = "id, employee_code, full_name, designation_id, preferred_joining_date, date_of_birth, is_enabled, status, role_key";
+      const rosterSelect = "id, employee_code, full_name, designation_id, preferred_joining_date, date_of_birth, is_enabled, status, role_key, non_billable";
 
       const { data: prim, error: primError } = await supabase
         .from("candidates")
@@ -280,7 +280,7 @@ function MusterRollPage() {
       const dMap = new Map((desigs ?? []).map((d) => [d.id, d.name]));
 
       const mappedEmployees = dedup
-        .filter((c) => (c.role_key ?? "") !== "field_officer")
+        .filter((c) => !isNonBillableRoleKey(c.role_key) && (c as { non_billable?: boolean }).non_billable !== true)
         .map((c) => ({
           id: c.id,
           employee_code: c.employee_code || "",

@@ -53,7 +53,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { classifyAttendanceEmployee, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
+import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
 import { supabase } from "@/integrations/supabase/client";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 
@@ -163,7 +163,8 @@ function AttendanceUnitsPage() {
         supabase.from("units").select("id, code, name, location, branch_id, customer_id, billing_state, reporting_officers").in("id", unitIds),
         supabase
           .from("candidates")
-          .select("id, full_name, designation_id, role_key, unit_id")
+          .select("id, full_name, designation_id, role_key, unit_id, non_billable")
+          .eq("non_billable", false)
           .in("unit_id", unitIds)
           .eq("is_enabled", true)
           .in("status", [...ACTIVE_EMPLOYEE_STATUSES]),
@@ -210,7 +211,8 @@ function AttendanceUnitsPage() {
       if (secondaryCandidateIds.length > 0) {
         const { data: linkedRows, error: linkedError } = await supabase
           .from("candidates")
-          .select("id, full_name, designation_id, role_key")
+          .select("id, full_name, designation_id, role_key, non_billable")
+          .eq("non_billable", false)
           .in("id", secondaryCandidateIds)
           .eq("is_enabled", true)
           .in("status", [...ACTIVE_EMPLOYEE_STATUSES]);
@@ -297,7 +299,7 @@ function AttendanceUnitsPage() {
           const employees = a ? Array.from(a.employees.entries()) : [];
           const sgs: EmployeeRef[] = [];
           for (const [id, info] of employees) {
-            if ((info.roleKey ?? "") === "field_officer") continue;
+            if (isNonBillableRoleKey(info.roleKey)) continue;
             sgs.push({ id, name: info.name });
           }
 
