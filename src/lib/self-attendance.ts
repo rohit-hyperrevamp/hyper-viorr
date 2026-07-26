@@ -156,3 +156,35 @@ export async function fetchMonthPunches(
   if (error) throw error;
   return (data ?? []) as SelfPunch[];
 }
+
+/** Distance in metres between two lat/lng points (Haversine). */
+export function distanceMeters(
+  a: { lat: number; lng: number } | null | undefined,
+  b: { lat: number; lng: number } | null | undefined,
+): number | null {
+  if (!a || !b || a.lat == null || a.lng == null || b.lat == null || b.lng == null) return null;
+  const R = 6_371_000; // metres
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s)));
+}
+
+export function formatDistance(m: number | null): string {
+  if (m == null) return "—";
+  if (m < 1000) return `${m} m`;
+  return `${(m / 1000).toFixed(m < 10_000 ? 2 : 1)} km`;
+}
+
+/** Google Maps URL for a coordinate, opens with a pin. */
+export function mapsUrl(lat: number | null | undefined, lng: number | null | undefined): string | null {
+  if (lat == null || lng == null) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+}
+
+/** Deviation threshold in metres — anything above this is flagged. */
+export const DEVIATION_THRESHOLD_M = 150;
+
