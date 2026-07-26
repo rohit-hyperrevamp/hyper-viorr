@@ -310,22 +310,49 @@ function StockPage() {
     );
   }
 
+  const isFO = role.isFieldOfficer;
+
+  // For FO: force the type filter to their own stock + their guards, and hide
+  // the top-level warehouse/branch/other-FO KPIs. Everyone else sees the full
+  // command-center KPI band.
+  useEffect(() => {
+    if (isFO && holderType !== "field_officer" && holderType !== "security_guard") {
+      setHolderType("field_officer");
+      setHolderId("all");
+    }
+  }, [isFO, holderType]);
+
   return (
     <div>
-      <PageHeader title="Stock Report" description="Live balances across warehouses, branches, field officers and guards." crumbs={[{ label: "Uniform Manager", to: "/admin/inventory" }, { label: "Stock" }]} />
+      <PageHeader
+        title={isFO ? "My Stock" : "Stock Report"}
+        description={isFO ? "Live balances for you and your guards." : "Live balances across warehouses, branches, field officers and guards."}
+        crumbs={[{ label: "Uniform Manager", to: "/admin/inventory" }, { label: isFO ? "My Stock" : "Stock" }]}
+      />
 
       {/* KPI band */}
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-        <KpiCard icon={<Layers className="h-4 w-4" />} label="All locations" value={counts.all} active={holderType === "all"} onClick={() => { setHolderType("all"); setHolderId("all"); }} />
-        <KpiCard icon={<Warehouse className="h-4 w-4" />} label="Warehouses" value={counts.warehouse} active={holderType === "warehouse"} onClick={() => { setHolderType("warehouse"); setHolderId("all"); }} />
-        <KpiCard icon={<Building2 className="h-4 w-4" />} label="Branches" value={counts.branch} active={holderType === "branch"} onClick={() => { setHolderType("branch"); setHolderId("all"); }} />
-        <KpiCard icon={<UserCog className="h-4 w-4" />} label="Field Officers" value={counts.field_officer} active={holderType === "field_officer"} onClick={() => { setHolderType("field_officer"); setHolderId("all"); }} />
-        <KpiCard icon={<Shield className="h-4 w-4" />} label="Security Guards" value={counts.security_guard} active={holderType === "security_guard"} onClick={() => { setHolderType("security_guard"); setHolderId("all"); }} />
-        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-amber-700"><AlertTriangle className="h-3.5 w-3.5" />Under stock</div>
-          <div className="mt-1 font-display text-2xl font-bold tabular-nums text-amber-700">{lowCountGlobal.toLocaleString("en-IN")}</div>
+      {!isFO ? (
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <KpiCard icon={<Layers className="h-4 w-4" />} label="All locations" value={counts.all} active={holderType === "all"} onClick={() => { setHolderType("all"); setHolderId("all"); }} />
+          <KpiCard icon={<Warehouse className="h-4 w-4" />} label="Warehouses" value={counts.warehouse} active={holderType === "warehouse"} onClick={() => { setHolderType("warehouse"); setHolderId("all"); }} />
+          <KpiCard icon={<Building2 className="h-4 w-4" />} label="Branches" value={counts.branch} active={holderType === "branch"} onClick={() => { setHolderType("branch"); setHolderId("all"); }} />
+          <KpiCard icon={<UserCog className="h-4 w-4" />} label="Field Officers" value={counts.field_officer} active={holderType === "field_officer"} onClick={() => { setHolderType("field_officer"); setHolderId("all"); }} />
+          <KpiCard icon={<Shield className="h-4 w-4" />} label="Security Guards" value={counts.security_guard} active={holderType === "security_guard"} onClick={() => { setHolderType("security_guard"); setHolderId("all"); }} />
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-amber-700"><AlertTriangle className="h-3.5 w-3.5" />Under stock</div>
+            <div className="mt-1 font-display text-2xl font-bold tabular-nums text-amber-700">{lowCountGlobal.toLocaleString("en-IN")}</div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <KpiCard icon={<UserCog className="h-4 w-4" />} label="My stock" value={1} active={holderType === "field_officer"} onClick={() => { setHolderType("field_officer"); setHolderId("all"); }} />
+          <KpiCard icon={<Shield className="h-4 w-4" />} label="My guards" value={(visibleHolderIds && holderType === "security_guard" ? visibleHolderIds.size : candidates.filter((c) => (c.role_key === "guard" || c.role_key === "security_guard") && c.reports_to === role.candidateId).length)} active={holderType === "security_guard"} onClick={() => { setHolderType("security_guard"); setHolderId("all"); }} />
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-amber-700"><AlertTriangle className="h-3.5 w-3.5" />Under stock</div>
+            <div className="mt-1 font-display text-2xl font-bold tabular-nums text-amber-700">{rows.filter((r) => r.low).length.toLocaleString("en-IN")}</div>
+          </div>
+        </div>
+      )}
 
       {/* Controls */}
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -333,11 +360,11 @@ function StockPage() {
           <Select value={holderType} onValueChange={(v) => { setHolderType(v as HolderType); setHolderId("all"); }}>
             <SelectTrigger className="h-10 w-48 rounded-lg"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All locations</SelectItem>
-              <SelectItem value="warehouse">Warehouses</SelectItem>
-              <SelectItem value="branch">Branches</SelectItem>
-              <SelectItem value="field_officer">Field Officers</SelectItem>
-              <SelectItem value="security_guard">Security Guards</SelectItem>
+              {!isFO && <SelectItem value="all">All locations</SelectItem>}
+              {!isFO && <SelectItem value="warehouse">Warehouses</SelectItem>}
+              {!isFO && <SelectItem value="branch">Branches</SelectItem>}
+              <SelectItem value="field_officer">{isFO ? "My stock" : "Field Officers"}</SelectItem>
+              <SelectItem value="security_guard">{isFO ? "My guards" : "Security Guards"}</SelectItem>
             </SelectContent>
           </Select>
           {holderType !== "all" && (
