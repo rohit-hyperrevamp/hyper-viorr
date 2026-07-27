@@ -417,10 +417,7 @@ function SummaryTile({ label, value, tone }: { label: string; value: string; ton
   return (
     <div className={`rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-sm ring-1 ${t.ring}`}>
       <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{label}</div>
-      <div className="mt-1 flex items-baseline gap-2">
-        <IndianRupee className={`h-3.5 w-3.5 ${t.text}`} />
-        <div className={`text-[22px] font-semibold leading-none text-foreground`}>{value}</div>
-      </div>
+      <div className={`mt-1 text-[22px] font-semibold leading-none text-foreground`}>{value}</div>
     </div>
   );
 }
