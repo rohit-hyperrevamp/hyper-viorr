@@ -33,12 +33,14 @@ import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
+import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 
 function PeopleInsightsSection() {
   const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights();
   return (
     <div className="flex flex-col gap-4">
       <LiveFieldOfficersCard />
+      <AdminVisitProgressCard />
       <AdminFieldOfficerUnitsCard />
       <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
       <PeopleInsightsCard kind="anniversaries" items={anniversaries} isLoading={isLoading} />
