@@ -800,6 +800,7 @@ function AdminLayout() {
                   { to: "/admin/field-dashboard", label: "Dashboard", icon: LayoutDashboard },
                   { to: "/admin/employees", label: "Employees", icon: UserPlus },
                   { to: "/admin/attendance", label: "Attendance", icon: ClipboardList },
+                  { to: "/admin/field-sense", label: "Field Sense", icon: Radio },
                   { to: "/admin/inventory/items", label: "Uniform", icon: Boxes },
                   { to: "/admin/my-attendance", label: "My Attendance", icon: Clock },
                 ];
