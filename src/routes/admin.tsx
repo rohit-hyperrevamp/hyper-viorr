@@ -163,7 +163,7 @@ const payrollChildren: LeafItem[] = [
 
 const fieldSenseChildren: LeafItem[] = [
   { to: "/admin/field-sense", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/field-sense/team", label: "My Team", icon: Users },
+  { to: "/admin/field-sense/team", label: "Day Patrol", icon: Users },
   { to: "/admin/field-sense/expenses", label: "Expense Manager", icon: Wallet },
 ];
 
