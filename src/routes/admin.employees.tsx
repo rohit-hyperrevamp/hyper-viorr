@@ -4467,11 +4467,38 @@ function CandidateWizard({
                     <Input value={form.full_name} onChange={(e) => set("full_name", e.target.value)} />
                   </Field>
                   <Field label="Date of Birth">
-                    <Input
-                      type="date"
-                      value={form.date_of_birth ?? ""}
-                      onChange={(e) => set("date_of_birth", e.target.value || null)}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !form.date_of_birth && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {form.date_of_birth
+                            ? formatDateFns(parseISO(form.date_of_birth), "dd MMM yyyy")
+                            : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 z-[210]" align="start">
+                        <Calendar
+                          mode="single"
+                          captionLayout="dropdown"
+                          selected={form.date_of_birth ? parseISO(form.date_of_birth) : undefined}
+                          defaultMonth={form.date_of_birth ? parseISO(form.date_of_birth) : new Date(2000, 0, 1)}
+                          startMonth={new Date(1940, 0)}
+                          endMonth={new Date()}
+                          disabled={{ after: new Date() }}
+                          onSelect={(d) =>
+                            set("date_of_birth", d ? formatDateFns(d, "yyyy-MM-dd") : null)
+                          }
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </Field>
                   <Field label="Gender">
                     <Select value={form.gender || undefined} onValueChange={(v) => set("gender", v)}>
