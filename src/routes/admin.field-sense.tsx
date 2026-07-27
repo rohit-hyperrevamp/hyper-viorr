@@ -102,7 +102,7 @@ function FieldSensePage() {
         .eq("punch_date", today())
         .not("check_in_at", "is", null)
         .is("check_out_at", null)
-        .in("candidate.role_key", ["field_officer", "guard", "security_guard"])
+        .eq("candidate.role_key", "field_officer")
         .order("last_seen_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return (data ?? []) as unknown as LivePunch[];
@@ -113,19 +113,12 @@ function FieldSensePage() {
     queryKey: ["field-sense-totals"],
     staleTime: 60_000,
     queryFn: async () => {
-      const [fo, sg] = await Promise.all([
-        supabase
-          .from("candidates" as never)
-          .select("id", { count: "exact", head: true })
-          .eq("role_key", "field_officer")
-          .in("status", ["approved", "active"]),
-        supabase
-          .from("candidates" as never)
-          .select("id", { count: "exact", head: true })
-          .in("role_key", ["guard", "security_guard"])
-          .in("status", ["approved", "active"]),
-      ]);
-      return { fo: fo.count ?? 0, sg: sg.count ?? 0 };
+      const fo = await supabase
+        .from("candidates" as never)
+        .select("id", { count: "exact", head: true })
+        .eq("role_key", "field_officer")
+        .in("status", ["approved", "active"]);
+      return { fo: fo.count ?? 0 };
     },
   });
 
