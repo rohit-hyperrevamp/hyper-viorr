@@ -280,19 +280,27 @@ function MusterRollPage() {
       const dMap = new Map((desigs ?? []).map((d) => [d.id, d.name]));
 
       const mappedEmployees = dedup
-        .filter((c) => !isNonBillableRoleKey(c.role_key) && (c as { non_billable?: boolean }).non_billable !== true)
-        .map((c) => ({
-          id: c.id,
-          employee_code: c.employee_code || "",
-          full_name: c.full_name || "",
-          designation_id: c.designation_id as string | null,
-          designation: (c.designation_id && dMap.get(c.designation_id)) || "",
-          employee_type: classifyAttendanceEmployee(c.role_key, (c.designation_id && dMap.get(c.designation_id)) || ""),
-          doj: c.preferred_joining_date || "",
-        }))
-        .sort((a, b) =>
-          (a.employee_code || a.full_name).localeCompare(b.employee_code || b.full_name),
-        );
+        .map((c) => {
+          const isNonBillable =
+            isNonBillableRoleKey(c.role_key) ||
+            (c as { non_billable?: boolean }).non_billable === true;
+          return {
+            id: c.id,
+            employee_code: c.employee_code || "",
+            full_name: c.full_name || "",
+            designation_id: c.designation_id as string | null,
+            designation: (c.designation_id && dMap.get(c.designation_id)) || "",
+            employee_type: classifyAttendanceEmployee(c.role_key, (c.designation_id && dMap.get(c.designation_id)) || ""),
+            doj: c.preferred_joining_date || "",
+            is_non_billable: isNonBillable,
+            role_key: (c.role_key || "").toLowerCase(),
+          };
+        })
+        .sort((a, b) => {
+          // Billable guards first, non-billable (FOs etc) after
+          if (a.is_non_billable !== b.is_non_billable) return a.is_non_billable ? 1 : -1;
+          return (a.employee_code || a.full_name).localeCompare(b.employee_code || b.full_name);
+        });
 
 
       return mappedEmployees;
