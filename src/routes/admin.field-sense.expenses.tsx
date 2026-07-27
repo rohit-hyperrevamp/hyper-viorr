@@ -105,7 +105,6 @@ function ExpenseManagerPage() {
   );
 
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [dayModal, setDayModal] = useState<{ candidateId: string; foName: string; day: string } | null>(null);
 
   const dataQ = useQuery({
     queryKey: ["expense-manager", resolved.start, resolved.end],
