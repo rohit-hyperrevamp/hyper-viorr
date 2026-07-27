@@ -558,35 +558,73 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
         )}
       </div>
 
-      {/* Map view toggle + map */}
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
-        <div className="flex items-center justify-between border-b border-border/50 px-3 py-2">
-          <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Live map</div>
-          <div className="inline-flex rounded-lg border border-border/60 bg-background p-0.5 text-[11px] font-semibold">
-            <button
-              type="button"
-              onClick={() => setMapKind("street")}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2 py-1",
-                mapKind === "street" ? "bg-foreground text-background" : "text-muted-foreground",
-              )}
-            >
-              <MapIcon className="h-3 w-3" /> Map
-            </button>
-            <button
-              type="button"
-              onClick={() => setMapKind("satellite")}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2 py-1",
-                mapKind === "satellite" ? "bg-foreground text-background" : "text-muted-foreground",
-              )}
-            >
-              <Satellite className="h-3 w-3" /> Satellite
-            </button>
+      {/* Map + Timeline side-by-side (stacks on mobile) */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr,340px]">
+        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-border/50 px-3 py-2">
+            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Live map</div>
+            <div className="inline-flex rounded-lg border border-border/60 bg-background p-0.5 text-[11px] font-semibold">
+              <button
+                type="button"
+                onClick={() => setMapKind("street")}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-1",
+                  mapKind === "street" ? "bg-foreground text-background" : "text-muted-foreground",
+                )}
+              >
+                <MapIcon className="h-3 w-3" /> Map
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapKind("satellite")}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-1",
+                  mapKind === "satellite" ? "bg-foreground text-background" : "text-muted-foreground",
+                )}
+              >
+                <Satellite className="h-3 w-3" /> Satellite
+              </button>
+            </div>
+          </div>
+          <div ref={mapEl} style={{ height: "480px", width: "100%" }} />
+          {/* KPI strip under the map */}
+          <div className="grid grid-cols-3 divide-x divide-border/50 border-t border-border/50 bg-background/40 text-center">
+            <div className="px-2 py-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Visits</div>
+              <div className="text-sm font-bold text-foreground">{completedCount}{openVisit ? ` +1` : ""}</div>
+            </div>
+            <div className="px-2 py-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Distance</div>
+              <div className="text-sm font-bold text-foreground">{totalKmToday.toFixed(2)} km</div>
+            </div>
+            <div className="px-2 py-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">On duty</div>
+              <div className="text-sm font-bold text-foreground">
+                {isOnDuty || punchQ.data?.check_out_at
+                  ? `${Math.floor(totalMinutesOnDuty / 60)}h ${totalMinutesOnDuty % 60}m`
+                  : "—"}
+              </div>
+            </div>
           </div>
         </div>
-        <div ref={mapEl} style={{ height: "440px", width: "100%" }} />
+
+        {/* Timeline column */}
+        <FieldSenseTimeline
+          punchInAt={punchQ.data?.check_in_at ?? null}
+          punchOutAt={punchQ.data?.check_out_at ?? null}
+          visits={visits}
+          units={units}
+          openVisit={openVisit}
+          openVisitUnit={openVisitUnit}
+          distanceToDest={distanceToDest}
+          totalKmToday={totalKmToday}
+          isOnDuty={isOnDuty}
+          onCompleteVisit={() => setCheckOutOpen(true)}
+          onCheckOutDuty={() => attendanceOutMut.mutate()}
+          checkingOutDuty={attendanceOutMut.isPending}
+        />
       </div>
+
 
       {/* Distances strip */}
       {distances.length > 0 && (
