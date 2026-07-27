@@ -195,6 +195,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
   const routeLineRef = useRef<any>(null);
   const destMarkerRef = useRef<any>(null);
   const [mapReady, setMapReady] = useState(false);
+  const lastRouteFitKeyRef = useRef("");
 
   // Data
   const unitsQ = useQuery({
@@ -477,6 +478,15 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
       opacity: 0.88,
     }).addTo(map);
     trackLineRef.current.bringToFront();
+    const fitKey = routeCoords.map((point) => `${point.kind}:${point.lat.toFixed(5)},${point.lng.toFixed(5)}`).join("|");
+    if (fitKey && fitKey !== lastRouteFitKeyRef.current) {
+      lastRouteFitKeyRef.current = fitKey;
+      try {
+        map.fitBounds(L.latLngBounds(coords).pad(0.26), { maxZoom: 16, animate: true });
+      } catch {
+        /* noop */
+      }
+    }
   }, [routeCoords, mapReady]);
 
   // Active-visit route: check-in origin → current position → destination unit.
@@ -515,8 +525,8 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     const destIcon = L.divIcon({ className: "fo-fs-dest-pin", html: destHtml, iconSize: [30, 30], iconAnchor: [15, 15] });
     destMarkerRef.current = L.marker(dest, { icon: destIcon, zIndexOffset: 900 }).addTo(map);
     destMarkerRef.current.bindPopup(`Destination: ${openVisitUnit.unit_name}`);
-    // Fit route bounds
-    try { map.fitBounds(L.latLngBounds(coords).pad(0.3), { maxZoom: 16, animate: true }); } catch { /* noop */ }
+    // Full route fitting is handled by the main route polyline so the entire
+    // day path remains visible, not only the active destination segment.
   }, [openVisit, openVisitUnit, snappedPosition, routeCoords, mapReady]);
 
   // Auto-fit map bounds once when we have data
