@@ -190,7 +190,9 @@ async function loadFoUnits(candidateId: string): Promise<FoUnit[]> {
   return list;
 }
 
-export function FieldOfficerFieldSense({ candidateId }: { candidateId: string }) {
+export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId: string; viewDate?: string }) {
+  const effectiveDate = viewDate ?? todayPunchDate();
+  const isHistorical = !!viewDate && viewDate !== todayPunchDate();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as {
