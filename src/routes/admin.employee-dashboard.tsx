@@ -248,13 +248,19 @@ function EmployeeDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("units")
-        .select("id,name,code")
+        .select("id,name,code,latitude,longitude")
         .in("id", myUnitIds);
       if (error) throw error;
-      return (data as unknown as Array<{ id: string; name: string; code: string | null }>) ?? [];
+      return (data as unknown as Array<{ id: string; name: string; code: string | null; latitude: number | null; longitude: number | null }>) ?? [];
     },
   });
   const myUnits = unitsListQ.data ?? [];
+  const isGuard = me?.role_key === "guard" || me?.role_key === "security_guard";
+  const allowedUnits = useMemo(
+    () => myUnits.map((u) => ({ id: u.id, name: u.name, latitude: u.latitude, longitude: u.longitude })),
+    [myUnits],
+  );
+
 
   // Reporting manager (field officer)
   const managerQ = useQuery({
