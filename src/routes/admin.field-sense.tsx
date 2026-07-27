@@ -163,13 +163,14 @@ function AdminFieldSense() {
         zoomControl: true,
         attributionControl: true,
       });
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      tileRef.current = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap",
         maxZoom: 19,
       }).addTo(map);
       mapRef.current = map;
       setReady(true);
     })();
+
     return () => {
       cancelled = true;
       if (mapRef.current) {
