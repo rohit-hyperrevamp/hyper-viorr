@@ -194,6 +194,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
   const trackLineRef = useRef<any>(null);
   const routeLineRef = useRef<any>(null);
   const destMarkerRef = useRef<any>(null);
+  const waypointMarkersRef = useRef<any[]>([]);
   const [mapReady, setMapReady] = useState(false);
   const lastRouteFitKeyRef = useRef("");
 
