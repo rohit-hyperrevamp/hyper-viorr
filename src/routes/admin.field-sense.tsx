@@ -253,6 +253,12 @@ function FieldSensePage() {
 
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>
 
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatTile label="Field Officers" total={totalFo} live={liveFoCount} tone="sky" />
+        <StatTile label="Security Guards" total={totalSg} live={liveSgCount} tone="emerald" />
+        <StatTile label="Live on Duty" total={totalFo + totalSg} live={liveFoCount + liveSgCount} tone="violet" />
+        <StatTile label="With GPS Ping" total={(q.data ?? []).length} live={rows.length} tone="amber" />
+
       <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
         <div ref={mapEl} style={{ height: "min(72vh, 720px)", width: "100%" }} />
         {q.isLoading && (
