@@ -4907,6 +4907,10 @@ export type Database = {
         Returns: boolean
       }
       current_user_can_submit_onboarding: { Args: never; Returns: boolean }
+      current_user_can_view_self_attendance: {
+        Args: { _candidate_id: string; _unit_id?: string }
+        Returns: boolean
+      }
       current_user_candidate_id: { Args: never; Returns: string }
       current_user_has_branch_scope: { Args: never; Returns: boolean }
       current_user_has_permission: {
