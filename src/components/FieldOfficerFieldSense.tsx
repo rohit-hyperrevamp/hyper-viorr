@@ -57,6 +57,7 @@ import {
   type FieldVisit,
   type RangePreset,
 } from "@/lib/field-visits";
+import { FieldSenseRangeFilter } from "@/components/FieldSenseRangeFilter";
 import {
   acknowledgeFieldVisitRequest,
   completeFieldVisitRequestForUnit,
