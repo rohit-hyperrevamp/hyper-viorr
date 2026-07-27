@@ -134,12 +134,15 @@ export async function fetchVisitsInRange(
   return (data ?? []) as unknown as FieldVisit[];
 }
 
-export async function fetchTodayVisits(candidateId: string): Promise<FieldVisit[]> {
+export async function fetchTodayVisits(
+  candidateId: string,
+  date?: string,
+): Promise<FieldVisit[]> {
   const { data, error } = await supabase
     .from("field_visits" as never)
     .select("*")
     .eq("candidate_id", candidateId)
-    .eq("visit_date", today())
+    .eq("visit_date", date ?? today())
     .order("visit_seq", { ascending: true });
   if (error) throw error;
   return (data ?? []) as unknown as FieldVisit[];
