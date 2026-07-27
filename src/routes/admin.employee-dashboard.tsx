@@ -462,6 +462,14 @@ function EmployeeDashboard() {
           </section>
 
 
+          {isGuard && (
+            <MarkAttendanceCard
+              candidateId={me.id}
+              allowedUnits={allowedUnits}
+              proximityThresholdM={300}
+            />
+          )}
+
           {/* Duty & unit */}
           <section className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-[24px] border border-border/60 bg-card/70 p-5 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)]">
