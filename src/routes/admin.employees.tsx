@@ -4936,17 +4936,16 @@ function CandidateWizard({
               <Section title="Assignment">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Application Date">
-                    <Input
-                      type="date"
+                    <DatePickerInput
                       value={form.application_date}
-                      onChange={(e) => set("application_date", e.target.value)}
+                      onChange={(v) => set("application_date", v ?? "")}
                     />
                   </Field>
                   <Field label="Preferred Joining Date">
-                    <Input
-                      type="date"
+                    <DatePickerInput
                       value={form.preferred_joining_date ?? ""}
-                      onChange={(e) => set("preferred_joining_date", e.target.value || null)}
+                      onChange={(v) => set("preferred_joining_date", v)}
+                      startYear={2000}
                     />
                   </Field>
                   <div className="sm:col-span-2">
