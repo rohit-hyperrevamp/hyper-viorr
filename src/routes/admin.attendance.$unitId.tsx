@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import { getAttendanceCodeForWorkedHours } from "@/lib/self-attendance";
 import { cn } from "@/lib/utils";
 import { useCurrentPermissions } from "@/lib/rbac";
 
@@ -734,7 +735,7 @@ function MusterRollPage() {
       const hours = Math.max(0, mins / 60);
       const otHours = Math.max(0, hours - 8);
       const otDays = roundHalf(otHours / 8);
-      const code = hours >= 8 ? "P" : hours >= 4 ? "HD" : "A";
+      const code = getAttendanceCodeForWorkedHours(hours);
       rows.push({
         candidate_id: p.candidate_id,
         designation_id: desigByCand.get(p.candidate_id) ?? null,

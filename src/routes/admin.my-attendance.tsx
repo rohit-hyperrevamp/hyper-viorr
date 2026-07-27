@@ -5,6 +5,7 @@ import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Search, ExternalLin
 import { supabase } from "@/integrations/supabase/client";
 import {
   fetchMonthPunches,
+  getAttendanceCodeForWorkedHours,
   distanceMeters,
   formatDistance,
   mapsUrl,
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/admin/my-attendance")({
   component: MyAttendancePage,
 });
 
-type CodeRow = { code: string; label: string; color: string | null; counts_as_present: boolean; is_leave: boolean };
+type CodeRow = { code: string; label: string; color: string | null; counts_as_present: boolean; is_paid: boolean; is_leave: boolean; day_value: number | string | null };
 type EntryRow = { entry_date: string; code: string; ot_hours: number | string | null };
 
 function ym(d: Date) {
@@ -47,6 +48,26 @@ function duration(a: string | null, b: string | null) {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return h ? `${h}h ${m}m` : `${m}m`;
+}
+
+function workedHoursFromPunch(punch: SelfPunch | undefined): number | null {
+  if (!punch?.check_in_at || !punch.check_out_at) return null;
+  const mins = (new Date(punch.check_out_at).getTime() - new Date(punch.check_in_at).getTime()) / 60000;
+  if (!Number.isFinite(mins)) return null;
+  return Math.max(0, mins / 60);
+}
+
+function punchAttendanceCode(punch: SelfPunch | undefined, date: string, todayIso: string): "P" | "HD" | "A" | null {
+  if (!punch?.check_in_at) return null;
+  if (!punch.check_out_at) return date < todayIso ? "A" : null;
+  const hours = workedHoursFromPunch(punch);
+  return hours == null ? null : getAttendanceCodeForWorkedHours(hours);
+}
+
+function attendanceDayValue(code: CodeRow | undefined) {
+  if (!code) return 0;
+  const value = code.day_value == null || Number.isNaN(Number(code.day_value)) ? 1 : Number(code.day_value);
+  return Math.max(0, value);
 }
 
 function MyAttendancePage() {
@@ -88,7 +109,7 @@ function MyAttendancePage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("attendance_codes" as never)
-        .select("code,label,color,counts_as_present,is_leave");
+        .select("code,label,color,counts_as_present,is_paid,is_leave,day_value");
       return (data ?? []) as CodeRow[];
     },
   });
@@ -177,12 +198,15 @@ function MyAttendancePage() {
 
   const totals = useMemo(() => {
     let present = 0, absent = 0, leave = 0;
+    const todayIso = iso(new Date());
     for (const d of days) {
       if (d.isFuture) continue;
       const rec = byDay.get(d.date);
-      const code = rec?.entry?.code ? codeMap.get(rec.entry.code) : undefined;
-      if (rec?.punch?.check_in_at || code?.counts_as_present) present += 1;
-      else if (code?.is_leave) leave += 1;
+      const punchCode = punchAttendanceCode(rec?.punch, d.date, todayIso);
+      if (rec?.punch?.check_in_at && !rec.punch.check_out_at && !punchCode) continue;
+      const code = punchCode ? codeMap.get(punchCode) : rec?.entry?.code ? codeMap.get(rec.entry.code) : undefined;
+      if (code?.counts_as_present || code?.is_paid) present += attendanceDayValue(code);
+      else if (code?.is_leave) leave += attendanceDayValue(code);
       else absent += 1;
     }
     return { present, absent, leave };
@@ -253,12 +277,17 @@ function MyAttendancePage() {
         {filteredDays.map((d) => {
           const rec = byDay.get(d.date);
           const p = rec?.punch;
-          const code = rec?.entry?.code ? codeMap.get(rec.entry.code) : undefined;
+          const todayIso = iso(new Date());
+          const punchCode = punchAttendanceCode(p, d.date, todayIso);
+          const code = punchCode ? codeMap.get(punchCode) : rec?.entry?.code ? codeMap.get(rec.entry.code) : undefined;
+          const punchDuration = p?.check_in_at && p.check_out_at ? duration(p.check_in_at, p.check_out_at) : null;
           type Tone = "emerald" | "rose" | "amber" | "sky" | "muted";
           const badge: { label: string; tone: Tone } = p?.check_in_at
-            ? { label: p.check_out_at ? `Present · ${duration(p.check_in_at, p.check_out_at)}` : "On duty", tone: p.check_out_at ? "emerald" : "amber" }
+            ? p.check_out_at && code
+              ? { label: `${code.label || code.code}${punchDuration ? ` · ${punchDuration}` : ""}`, tone: code.counts_as_present ? "emerald" : code.is_paid ? "amber" : "rose" }
+              : { label: "On duty", tone: "amber" }
             : code
-            ? { label: `${code.label || code.code}`, tone: code.is_leave ? "sky" : code.counts_as_present ? "emerald" : "rose" }
+            ? { label: `${code.label || code.code}`, tone: code.is_leave ? "sky" : code.counts_as_present ? "emerald" : code.is_paid ? "amber" : "rose" }
             : d.isFuture
             ? { label: "—", tone: "muted" }
             : { label: "Absent", tone: "rose" };
