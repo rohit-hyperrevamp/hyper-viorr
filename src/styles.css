@@ -1356,7 +1356,6 @@ nav[data-bottom-nav]::after {
     overflow: hidden !important;
   }
   [data-admin-scroll] {
-    height: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
