@@ -1479,3 +1479,226 @@ function TimelineRow(props: {
   );
 }
 
+type RangeInsightsProps = {
+  units: FoUnit[];
+  visits: FieldVisit[];
+  loading: boolean;
+  rangeInfo: { start: string; end: string; label: string; preset: RangePreset };
+  highlight?: "most" | "least" | "unvisited";
+  onChangePreset: (preset: RangePreset) => void;
+  onChangeCustom: (start: string, end: string) => void;
+  onClearHighlight: () => void;
+};
+
+function RangeInsightsPanel({
+  units,
+  visits,
+  loading,
+  rangeInfo,
+  highlight,
+  onChangePreset,
+  onChangeCustom,
+  onClearHighlight,
+}: RangeInsightsProps) {
+  const completed = visits.filter((v) => v.check_out_at);
+  const totalVisits = completed.length;
+  const rated = completed.filter((v) => v.customer_rating != null);
+  const avgRating = rated.length
+    ? rated.reduce((s, v) => s + (v.customer_rating ?? 0), 0) / rated.length
+    : 0;
+
+  const perUnit = new Map<string, number>();
+  for (const v of completed) perUnit.set(v.unit_id, (perUnit.get(v.unit_id) ?? 0) + 1);
+  const withCount = units.map((u) => ({ u, count: perUnit.get(u.unit_id) ?? 0 }));
+  const visited = withCount.filter((r) => r.count > 0);
+  const mostVisited = visited.length ? [...visited].sort((a, b) => b.count - a.count)[0] : null;
+  const leastVisited = visited.length
+    ? [...visited].sort((a, b) => a.count - b.count)[0]
+    : null;
+  const unvisited = withCount.filter((r) => r.count === 0);
+
+  const highlightUnitIds = new Set<string>();
+  if (highlight === "most" && mostVisited) highlightUnitIds.add(mostVisited.u.unit_id);
+  else if (highlight === "least" && leastVisited) highlightUnitIds.add(leastVisited.u.unit_id);
+  else if (highlight === "unvisited") for (const r of unvisited) highlightUnitIds.add(r.u.unit_id);
+
+  const displayed =
+    highlight === "unvisited"
+      ? []
+      : highlight && highlightUnitIds.size
+      ? completed.filter((v) => highlightUnitIds.has(v.unit_id))
+      : completed;
+
+  const highlightLabel =
+    highlight === "most"
+      ? "Most visited"
+      : highlight === "least"
+      ? "Least visited"
+      : highlight === "unvisited"
+      ? "Not visited"
+      : null;
+
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+      {/* Range filter bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Range</div>
+        <div className="flex flex-wrap gap-1">
+          {RANGE_PRESETS.map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => onChangePreset(p.value)}
+              className={cn(
+                "rounded-full px-2.5 py-1 text-[11px] font-semibold transition",
+                rangeInfo.preset === p.value
+                  ? "bg-foreground text-background"
+                  : "bg-secondary text-muted-foreground hover:bg-secondary/70",
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {rangeInfo.preset === "custom" && (
+          <div className="flex items-center gap-1.5">
+            <input
+              type="date"
+              value={rangeInfo.start}
+              onChange={(e) => onChangeCustom(e.target.value, rangeInfo.end)}
+              className="rounded-md border border-border/60 bg-background px-2 py-1 text-[11px]"
+            />
+            <span className="text-[11px] text-muted-foreground">to</span>
+            <input
+              type="date"
+              value={rangeInfo.end}
+              onChange={(e) => onChangeCustom(rangeInfo.start, e.target.value)}
+              className="rounded-md border border-border/60 bg-background px-2 py-1 text-[11px]"
+            />
+          </div>
+        )}
+        <div className="ml-auto text-[11px] text-muted-foreground">
+          {rangeInfo.start === rangeInfo.end ? rangeInfo.start : `${rangeInfo.start} → ${rangeInfo.end}`}
+        </div>
+      </div>
+
+      {/* Aggregate insights */}
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="rounded-xl border border-border/50 bg-background/60 p-2.5">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Visits</div>
+          <div className="mt-0.5 font-display text-xl font-bold tabular-nums">{totalVisits}</div>
+        </div>
+        <div className="rounded-xl border border-border/50 bg-background/60 p-2.5">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Avg rating</div>
+          <div className="mt-0.5 inline-flex items-baseline gap-1 font-display text-xl font-bold tabular-nums">
+            {rated.length ? avgRating.toFixed(1) : "—"}
+            {rated.length ? <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> : null}
+          </div>
+          <div className="text-[10px] text-muted-foreground">{rated.length} rated</div>
+        </div>
+        <div className="rounded-xl border border-border/50 bg-background/60 p-2.5">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Most visited</div>
+          <div className="mt-0.5 truncate text-[13px] font-semibold">
+            {mostVisited ? mostVisited.u.customer_name ?? mostVisited.u.unit_name : "—"}
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            {mostVisited ? `${mostVisited.count} visit${mostVisited.count === 1 ? "" : "s"}` : "no visits"}
+          </div>
+        </div>
+        <div className="rounded-xl border border-border/50 bg-background/60 p-2.5">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Not visited</div>
+          <div className="mt-0.5 font-display text-xl font-bold tabular-nums">{unvisited.length}</div>
+          <div className="text-[10px] text-muted-foreground">of {units.length} units</div>
+        </div>
+      </div>
+
+      {/* Highlight callout */}
+      {highlightLabel && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-amber-300/60 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+          <span>Filter: {highlightLabel} · {rangeInfo.label.toLowerCase()}</span>
+          <button
+            type="button"
+            onClick={onClearHighlight}
+            className="ml-auto rounded-md bg-amber-900/10 px-2 py-0.5 text-[10px] text-amber-900 hover:bg-amber-900/20 dark:bg-amber-200/10 dark:text-amber-100"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      {/* Visit list / unvisited list */}
+      <div className="mt-3">
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+          {highlight === "unvisited"
+            ? `Units not visited in ${rangeInfo.label.toLowerCase()} (${unvisited.length})`
+            : `Visits — ${rangeInfo.label} (${displayed.length})`}
+        </div>
+        {loading ? (
+          <div className="py-4 text-center text-[11px] italic text-muted-foreground">Loading…</div>
+        ) : highlight === "unvisited" ? (
+          unvisited.length === 0 ? (
+            <div className="py-4 text-center text-[11px] italic text-muted-foreground">
+              All units visited in this range. 🎉
+            </div>
+          ) : (
+            <ul className="space-y-1.5">
+              {unvisited.map(({ u }) => (
+                <li key={u.unit_id} className="rounded-lg border border-border/50 bg-background/60 px-3 py-2">
+                  <div className="truncate text-[13px] font-semibold">{u.unit_name}</div>
+                  <div className="truncate text-[11px] text-muted-foreground">{u.customer_name ?? "—"}</div>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : displayed.length === 0 ? (
+          <div className="py-4 text-center text-[11px] italic text-muted-foreground">
+            No visits in this range.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {displayed.map((v) => {
+              const unit = units.find((u) => u.unit_id === v.unit_id);
+              return (
+                <li key={v.id} className="rounded-xl border border-border/50 bg-background/60 p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-foreground">
+                        {unit?.unit_name ?? "Unit"}
+                        <span className="ml-1 text-[10px] font-medium text-muted-foreground">
+                          {unit?.customer_name ?? ""}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {v.visit_date} · In {whenAgo(v.check_in_at)}
+                        {v.check_out_at ? ` · Out ${whenAgo(v.check_out_at)}` : " · in progress"}
+                      </div>
+                    </div>
+                    {v.customer_rating != null && (
+                      <div className="inline-flex items-center gap-0.5 text-amber-500">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={cn(
+                              "h-3.5 w-3.5",
+                              i < (v.customer_rating ?? 0) ? "fill-amber-400" : "opacity-30",
+                            )}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {v.visit_notes && (
+                    <div className="mt-1.5 rounded-md bg-muted/40 p-2 text-[11px] italic text-muted-foreground">
+                      "{v.visit_notes}"
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
