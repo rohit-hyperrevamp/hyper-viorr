@@ -55,7 +55,7 @@ type FoUnit = {
   longitude: number | null;
 };
 
-const TRACK_INTERVAL_MS = 45_000;
+const TRACK_INTERVAL_MS = 15_000;
 const NEAREST_MAX_METERS = 500;
 
 function whenAgo(iso: string | null): string {
