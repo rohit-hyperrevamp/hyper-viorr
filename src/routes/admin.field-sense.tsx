@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Battery, BatteryCharging, Radio, Signal, Wifi } from "lucide-react";
+import { Battery, BatteryCharging, Building2, ChevronDown, MapPin, Radio, Shield, Signal, UserCog, Wifi } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 
@@ -253,17 +253,14 @@ function FieldSensePage() {
 
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatTile label="Field Officers" total={totalFo} live={liveFoCount} tone="sky" />
         <StatTile label="Security Guards" total={totalSg} live={liveSgCount} tone="emerald" />
-        <StatTile label="Live on Duty" total={totalFo + totalSg} live={liveFoCount + liveSgCount} tone="violet" />
         <StatTile label="With GPS Ping" total={(q.data ?? []).length} live={rows.length} tone="amber" />
       </section>
 
-
-
       <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
-        <div ref={mapEl} style={{ height: "min(72vh, 720px)", width: "100%" }} />
+        <div ref={mapEl} style={{ height: "520px", width: "100%" }} />
         {q.isLoading && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/40 text-xs font-semibold text-muted-foreground">
             Loading live field officers & guards…
@@ -276,40 +273,234 @@ function FieldSensePage() {
         )}
       </section>
 
-      {rows.length > 0 && (
-        <section className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">On duty now</div>
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {rows.map((r) => {
-              const bat = r.battery_pct;
-              const net = r.network_type;
-              const NetIcon = net === "WiFi" ? Wifi : net === "5G" || net === "4G" ? Signal : Radio;
-              return (
-                <li
-                  key={r.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/60 px-3 py-2"
+      <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <OnDutyColumn
+          title="On duty — Field Officers"
+          icon={<UserCog className="h-3.5 w-3.5" />}
+          tone="sky"
+          rows={rows.filter((r) => r.candidate?.role_key === "field_officer")}
+        />
+        <OnDutyColumn
+          title="On duty — Security Guards"
+          icon={<Shield className="h-3.5 w-3.5" />}
+          tone="emerald"
+          rows={rows.filter((r) => r.candidate?.role_key === "guard" || r.candidate?.role_key === "security_guard")}
+        />
+      </section>
+
+      <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <DeploymentBreakdown role="field_officer" title="Units & Organizations by Field Officer" tone="sky" />
+        <DeploymentBreakdown role="guard" title="Units & Organizations by Guard" tone="emerald" />
+      </section>
+    </div>
+  );
+}
+
+function OnDutyColumn({
+  title,
+  icon,
+  tone,
+  rows,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  tone: "sky" | "emerald";
+  rows: LivePunch[];
+}) {
+  const accent = tone === "sky" ? "text-sky-700 dark:text-sky-300" : "text-emerald-700 dark:text-emerald-300";
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+      <div className={`mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.22em] ${accent}`}>
+        {icon}
+        {title} <span className="text-muted-foreground">({rows.length})</span>
+      </div>
+      {rows.length === 0 ? (
+        <div className="py-4 text-center text-[11px] italic text-muted-foreground">No one on duty right now.</div>
+      ) : (
+        <ul className="space-y-2">
+          {rows.map((r) => {
+            const bat = r.battery_pct;
+            const net = r.network_type;
+            const NetIcon = net === "WiFi" ? Wifi : net === "5G" || net === "4G" ? Signal : Radio;
+            return (
+              <li
+                key={r.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/60 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-foreground">
+                    {r.candidate?.full_name ?? "—"}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">{seenLabel(r.last_seen_at)}</div>
+                </div>
+                <div className="flex items-center gap-3 text-[11px] font-bold">
+                  <span style={{ color: batteryTone(bat) }} className="inline-flex items-center gap-1">
+                    {r.battery_charging ? <BatteryCharging className="h-3.5 w-3.5" /> : <Battery className="h-3.5 w-3.5" />}
+                    {bat == null ? "n/a" : `${bat}%`}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-foreground">
+                    <NetIcon className="h-3.5 w-3.5" />
+                    {net ?? "n/a"}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+type DeploymentPerson = {
+  id: string;
+  full_name: string;
+  employee_code: string | null;
+  units: Array<{ unit_id: string; unit_name: string; unit_code: string | null; customer_name: string | null; branch_name: string | null }>;
+};
+
+function DeploymentBreakdown({
+  role,
+  title,
+  tone,
+}: {
+  role: "field_officer" | "guard";
+  title: string;
+  tone: "sky" | "emerald";
+}) {
+  const accent = tone === "sky" ? "text-sky-700 dark:text-sky-300" : "text-emerald-700 dark:text-emerald-300";
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const q = useQuery({
+    queryKey: ["field-sense-deployment", role],
+    staleTime: 60_000,
+    queryFn: async (): Promise<DeploymentPerson[]> => {
+      const roleFilter = role === "guard" ? ["guard", "security_guard"] : ["field_officer"];
+      const [candRes, unitsRes, custRes, branchRes, esaRes, cuRes] = await Promise.all([
+        supabase
+          .from("candidates" as never)
+          .select("id,full_name,employee_code,role_key,unit_id,status")
+          .in("role_key", roleFilter)
+          .in("status", ["approved", "active"]),
+        supabase.from("units" as never).select("id,name,code,customer_id,branch_id"),
+        supabase.from("customers" as never).select("id,name"),
+        supabase.from("branches" as never).select("id,name"),
+        supabase
+          .from("employee_scope_assignments" as never)
+          .select("candidate_id,scope_type,scope_id"),
+        supabase.from("candidate_units" as never).select("candidate_id,unit_id"),
+      ]);
+      if (candRes.error) throw candRes.error;
+
+      const units = ((unitsRes.data ?? []) as unknown) as Array<{ id: string; name: string; code: string | null; customer_id: string | null; branch_id: string | null }>;
+      const custMap = new Map(((custRes.data ?? []) as unknown as Array<{ id: string; name: string }>).map((c) => [c.id, c.name]));
+      const branchMap = new Map(((branchRes.data ?? []) as unknown as Array<{ id: string; name: string }>).map((b) => [b.id, b.name]));
+      const unitById = new Map(units.map((u) => [u.id, u]));
+      const esa = ((esaRes.data ?? []) as unknown) as Array<{ candidate_id: string; scope_type: string; scope_id: string }>;
+      const cu = ((cuRes.data ?? []) as unknown) as Array<{ candidate_id: string; unit_id: string }>;
+      const cands = ((candRes.data ?? []) as unknown) as Array<{ id: string; full_name: string; employee_code: string | null; unit_id: string | null }>;
+
+      const out: DeploymentPerson[] = cands.map((c) => {
+        const unitIds = new Set<string>();
+        if (c.unit_id) unitIds.add(c.unit_id);
+        for (const row of cu) if (row.candidate_id === c.id) unitIds.add(row.unit_id);
+        // FO scope expansion via branch/customer
+        if (role === "field_officer") {
+          const mine = esa.filter((s) => s.candidate_id === c.id);
+          const branchIds = new Set(mine.filter((s) => s.scope_type === "branch").map((s) => s.scope_id));
+          const customerIds = new Set(mine.filter((s) => s.scope_type === "customer").map((s) => s.scope_id));
+          for (const s of mine) if (s.scope_type === "unit") unitIds.add(s.scope_id);
+          if (branchIds.size || customerIds.size) {
+            for (const u of units) {
+              if (u.branch_id && branchIds.has(u.branch_id)) unitIds.add(u.id);
+              if (u.customer_id && customerIds.has(u.customer_id)) unitIds.add(u.id);
+            }
+          }
+        } else {
+          for (const s of esa.filter((x) => x.candidate_id === c.id && x.scope_type === "unit")) {
+            unitIds.add(s.scope_id);
+          }
+        }
+        const unitList = Array.from(unitIds)
+          .map((uid) => {
+            const u = unitById.get(uid);
+            if (!u) return null;
+            return {
+              unit_id: uid,
+              unit_name: u.name,
+              unit_code: u.code,
+              customer_name: u.customer_id ? custMap.get(u.customer_id) ?? null : null,
+              branch_name: u.branch_id ? branchMap.get(u.branch_id) ?? null : null,
+            };
+          })
+          .filter(Boolean) as DeploymentPerson["units"];
+        unitList.sort((a, b) => a.unit_name.localeCompare(b.unit_name));
+        return { id: c.id, full_name: c.full_name, employee_code: c.employee_code, units: unitList };
+      });
+      out.sort((a, b) => a.full_name.localeCompare(b.full_name));
+      return out;
+    },
+  });
+
+  const people = q.data ?? [];
+
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+      <div className={`mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.22em] ${accent}`}>
+        <Building2 className="h-3.5 w-3.5" />
+        {title} <span className="text-muted-foreground">({people.length})</span>
+      </div>
+      {q.isLoading ? (
+        <div className="py-4 text-center text-[11px] italic text-muted-foreground">Loading…</div>
+      ) : people.length === 0 ? (
+        <div className="py-4 text-center text-[11px] italic text-muted-foreground">No one mapped yet.</div>
+      ) : (
+        <ul className="space-y-1.5">
+          {people.map((p) => {
+            const open = openId === p.id;
+            return (
+              <li key={p.id} className="rounded-xl border border-border/50 bg-background/60">
+                <button
+                  type="button"
+                  onClick={() => setOpenId(open ? null : p.id)}
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
                 >
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-foreground">
-                      {r.candidate?.full_name ?? "Field officer"}
+                    <div className="truncate text-sm font-semibold text-foreground">{p.full_name}</div>
+                    <div className="font-mono text-[10px] text-muted-foreground">
+                      {p.employee_code ?? "—"} · {p.units.length} unit{p.units.length === 1 ? "" : "s"}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">{seenLabel(r.last_seen_at)}</div>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] font-bold">
-                    <span style={{ color: batteryTone(bat) }} className="inline-flex items-center gap-1">
-                      {r.battery_charging ? <BatteryCharging className="h-3.5 w-3.5" /> : <Battery className="h-3.5 w-3.5" />}
-                      {bat == null ? "n/a" : `${bat}%`}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-foreground">
-                      <NetIcon className="h-3.5 w-3.5" />
-                      {net ?? "n/a"}
-                    </span>
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+                </button>
+                {open && (
+                  <div className="border-t border-border/50 px-3 py-2">
+                    {p.units.length === 0 ? (
+                      <div className="text-[11px] italic text-muted-foreground">No units mapped.</div>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {p.units.map((u) => (
+                          <li key={u.unit_id} className="flex items-start gap-2 text-[11px]">
+                            <MapPin className="mt-0.5 h-3 w-3 flex-none text-muted-foreground" />
+                            <div className="min-w-0">
+                              <div className="truncate font-semibold text-foreground">
+                                {u.unit_name}
+                                {u.unit_code && <span className="ml-1 font-mono text-[10px] text-muted-foreground">({u.unit_code})</span>}
+                              </div>
+                              <div className="truncate text-muted-foreground">
+                                {u.customer_name ?? "—"}{u.branch_name ? ` · ${u.branch_name}` : ""}
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
