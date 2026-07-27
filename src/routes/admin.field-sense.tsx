@@ -314,3 +314,31 @@ function FieldSensePage() {
     </div>
   );
 }
+
+const TILE_TONES: Record<string, { ring: string; dot: string; live: string; total: string }> = {
+  sky: { ring: "ring-sky-200/70", dot: "bg-sky-500", live: "text-sky-700 dark:text-sky-300", total: "text-slate-900 dark:text-slate-100" },
+  emerald: { ring: "ring-emerald-200/70", dot: "bg-emerald-500", live: "text-emerald-700 dark:text-emerald-300", total: "text-slate-900 dark:text-slate-100" },
+  violet: { ring: "ring-violet-200/70", dot: "bg-violet-500", live: "text-violet-700 dark:text-violet-300", total: "text-slate-900 dark:text-slate-100" },
+  amber: { ring: "ring-amber-200/70", dot: "bg-amber-500", live: "text-amber-700 dark:text-amber-300", total: "text-slate-900 dark:text-slate-100" },
+};
+
+function StatTile({ label, total, live, tone }: { label: string; total: number; live: number; tone: keyof typeof TILE_TONES }) {
+  const t = TILE_TONES[tone];
+  return (
+    <div className={`rounded-2xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ${t.ring}`}>
+      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <div className={`text-[22px] font-semibold leading-none ${t.total}`}>{total.toLocaleString()}</div>
+        <div className="text-[10px] font-semibold uppercase text-muted-foreground">total</div>
+      </div>
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <span className={`relative flex h-1.5 w-1.5`}>
+          <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${t.dot} opacity-60`} />
+          <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${t.dot}`} />
+        </span>
+        <span className={`text-[11px] font-bold ${t.live}`}>{live.toLocaleString()} live now</span>
+      </div>
+    </div>
+  );
+}
+
