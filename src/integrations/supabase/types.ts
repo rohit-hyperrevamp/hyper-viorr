@@ -4894,6 +4894,10 @@ export type Database = {
       current_user_branch_scope_ids: { Args: never; Returns: string[] }
       current_user_can_approve_onboarding: { Args: never; Returns: boolean }
       current_user_can_edit_organizations: { Args: never; Returns: boolean }
+      current_user_can_manage_attendance_unit: {
+        Args: { _unit_id: string }
+        Returns: boolean
+      }
       current_user_can_manage_unit_scope_assignment: {
         Args: { _unit_id: string }
         Returns: boolean
