@@ -329,7 +329,7 @@ type DeploymentPerson = {
   id: string;
   full_name: string;
   employee_code: string | null;
-  units: Array<{ unit_id: string; unit_name: string; unit_code: string | null; customer_name: string | null; branch_name: string | null }>;
+  units: Array<{ unit_id: string; unit_name: string; unit_code: string | null; customer_name: string | null; branch_name: string | null; latitude: number | null; longitude: number | null }>;
 };
 
 function DeploymentBreakdown({
