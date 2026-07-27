@@ -259,6 +259,7 @@ export function ContractApprovalDialog({
           </Button>
           <Button
             type="button"
+            data-force-enabled={isApprove ? "true" : undefined}
             disabled={saving || (!isApprove && reason.trim().length < 10)}
             onClick={isApprove ? handleApprove : handleReject}
             className={
