@@ -185,6 +185,36 @@ async function loadFoUnits(candidateId: string): Promise<FoUnit[]> {
 
 export function FieldOfficerFieldSense({ candidateId }: { candidateId: string }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const search = useSearch({ strict: false }) as {
+    range?: string;
+    start?: string;
+    end?: string;
+    highlight?: string;
+  };
+  const presetInput = (search.range as RangePreset | undefined) ?? "today";
+  const validPreset: RangePreset = (
+    ["today", "yesterday", "this_week", "this_month", "last_month", "last_quarter", "custom"] as RangePreset[]
+  ).includes(presetInput) ? presetInput : "today";
+  const rangeInfo = useMemo(
+    () => resolveRange(validPreset, search.start ?? null, search.end ?? null),
+    [validPreset, search.start, search.end],
+  );
+  const highlight = (search.highlight as "most" | "least" | "unvisited" | undefined) ?? undefined;
+  const setRange = (preset: RangePreset, extra?: { start?: string; end?: string; highlight?: string | null }) => {
+    void navigate({
+      to: "/admin/field-sense",
+      search: (prev: Record<string, unknown>) => ({
+        ...prev,
+        range: preset,
+        start: preset === "custom" ? extra?.start ?? (prev.start as string | undefined) : undefined,
+        end: preset === "custom" ? extra?.end ?? (prev.end as string | undefined) : undefined,
+        highlight: extra?.highlight === null ? undefined : extra?.highlight ?? (prev.highlight as string | undefined),
+      }),
+      replace: true,
+    });
+  };
+
   const [mapKind, setMapKind] = useState<"street" | "satellite">("street");
   const [pos, setPos] = useState<Geo | null>(null);
   const [posError, setPosError] = useState<string | null>(null);
