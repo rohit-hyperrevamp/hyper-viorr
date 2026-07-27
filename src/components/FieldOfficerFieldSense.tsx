@@ -743,7 +743,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
       <RequestedVisitsPanel
         requests={requestsQ.data ?? []}
         units={units}
-        onAcknowledge={async (id) => {
+        onAcknowledge={async (id: string) => {
           try {
             await acknowledgeFieldVisitRequest(id);
             toast.success("Acknowledged");
@@ -752,8 +752,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
             toast.error((e as Error).message ?? "Failed");
           }
         }}
-        onStartVisit={(unitId) => {
-          // Preselect the unit and open the check-in dialog
+        onStartVisit={(unitId: string) => {
           setPreselectUnitId(unitId);
           setCheckInOpen(true);
         }}
