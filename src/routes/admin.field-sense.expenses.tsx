@@ -225,8 +225,11 @@ function ExpenseManagerPage() {
       const dayRows = new Map<string, DayBreak[]>();
       for (const k of allKeys) {
         const [cand, day] = k.split("|");
-        const stored = storedKmMap.get(k) ?? 0;
-        const km = stored > 0 ? stored : Math.max(rawKmMap.get(k) ?? 0, wpKmMap.get(k) ?? 0);
+        const km = Math.max(
+          storedKmMap.get(k) ?? 0,
+          rawKmMap.get(k) ?? 0,
+          wpKmMap.get(k) ?? 0,
+        );
         const arr = dayRows.get(cand) ?? [];
         arr.push({ day, km: Number(km.toFixed(2)), visits: visitsPerDay.get(k) ?? 0 });
         dayRows.set(cand, arr);
