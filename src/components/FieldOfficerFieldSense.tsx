@@ -1020,6 +1020,7 @@ function CheckInDialog({
   pos,
   nextSeq,
   prevPoint,
+  preselectUnitId,
   onClose,
   onDone,
 }: {
@@ -1028,11 +1029,14 @@ function CheckInDialog({
   pos: Geo | null;
   nextSeq: number;
   prevPoint: { lat: number | null; lng: number | null } | null;
+  preselectUnitId?: string | null;
   onClose: () => void;
   onDone: () => void;
 }) {
   const nearest = useMemo(() => (pos ? findNearestUnit(units, pos, NEAREST_MAX_METERS) : null), [pos, units]);
-  const [selectedId, setSelectedId] = useState<string>(nearest?.unit.unit_id ?? units[0]?.unit_id ?? "");
+  const [selectedId, setSelectedId] = useState<string>(
+    preselectUnitId ?? nearest?.unit.unit_id ?? units[0]?.unit_id ?? "",
+  );
 
   const mutation = useMutation({
     mutationFn: async () => {
