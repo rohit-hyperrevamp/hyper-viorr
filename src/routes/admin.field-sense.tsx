@@ -309,6 +309,25 @@ function AdminFieldSense() {
       </section>
 
       <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b border-border/50 px-3 py-2">
+          <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Live map</div>
+          <div className="inline-flex rounded-lg border border-border/60 bg-background p-0.5 text-[11px] font-semibold">
+            <button
+              type="button"
+              onClick={() => setMapKind("street")}
+              className={mapKind === "street" ? "rounded-md bg-foreground px-2 py-1 text-background" : "rounded-md px-2 py-1 text-muted-foreground"}
+            >
+              Map
+            </button>
+            <button
+              type="button"
+              onClick={() => setMapKind("satellite")}
+              className={mapKind === "satellite" ? "rounded-md bg-foreground px-2 py-1 text-background" : "rounded-md px-2 py-1 text-muted-foreground"}
+            >
+              Satellite
+            </button>
+          </div>
+        </div>
         <div ref={mapEl} style={{ height: "520px", width: "100%" }} />
         {q.isLoading && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/40 text-xs font-semibold text-muted-foreground">
@@ -316,11 +335,12 @@ function AdminFieldSense() {
           </div>
         )}
         {!q.isLoading && rows.length === 0 && (
-          <div className="pointer-events-none absolute inset-x-0 top-4 mx-auto w-fit rounded-full bg-background/90 px-4 py-2 text-xs font-semibold text-muted-foreground shadow ring-1 ring-border/60">
+          <div className="pointer-events-none absolute inset-x-0 top-16 mx-auto w-fit rounded-full bg-background/90 px-4 py-2 text-xs font-semibold text-muted-foreground shadow ring-1 ring-border/60">
             No field officer is currently checked in with a GPS ping.
           </div>
         )}
       </section>
+
 
       <OnDutyColumn
         title="On duty — Field Officers"
