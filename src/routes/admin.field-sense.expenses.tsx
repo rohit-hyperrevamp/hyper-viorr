@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, IndianRupee, MapPin, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -55,6 +55,7 @@ type FoRow = { id: string; full_name: string; employee_code: string | null };
 type PunchRow = {
   candidate_id: string;
   punch_date: string;
+  distance_km: number | string | null;
   check_in_at: string | null;
   check_in_lat: number | string | null;
   check_in_lng: number | string | null;
@@ -105,6 +106,27 @@ function ExpenseManagerPage() {
   );
 
   const [expanded, setExpanded] = useState<string | null>(null);
+  const qc = useQueryClient();
+
+  // Live updates: refetch when FO app writes a new distance / punch / visit.
+  useEffect(() => {
+    const ch = supabase
+      .channel("expense-manager-live")
+      .on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: "self_attendance_punches" } as never,
+        () => qc.invalidateQueries({ queryKey: ["expense-manager"] }),
+      )
+      .on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: "field_visits" } as never,
+        () => qc.invalidateQueries({ queryKey: ["expense-manager"] }),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [qc]);
 
   const dataQ = useQuery({
     queryKey: ["expense-manager", resolved.start, resolved.end],
@@ -118,7 +140,7 @@ function ExpenseManagerPage() {
           .in("status", ["approved", "active"]),
         supabase
           .from("self_attendance_punches" as never)
-          .select("candidate_id, punch_date, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng")
+          .select("candidate_id, punch_date, distance_km, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng")
           .gte("punch_date", resolved.start)
           .lte("punch_date", resolved.end),
         supabase
@@ -191,11 +213,20 @@ function ExpenseManagerPage() {
         visitsPerDay.set(k, (visitsPerDay.get(k) ?? 0) + 1);
       }
 
-      const allKeys = new Set<string>([...rawKmMap.keys(), ...wpKmMap.keys(), ...visitsPerDay.keys()]);
+      // Stored road-snapped km per candidate|day (from FO app — source of truth)
+      const storedKmMap = new Map<string, number>();
+      for (const pu of punches) {
+        const v = Number(pu.distance_km);
+        if (!Number.isFinite(v) || v <= 0) continue;
+        storedKmMap.set(`${pu.candidate_id}|${pu.punch_date}`, v);
+      }
+
+      const allKeys = new Set<string>([...storedKmMap.keys(), ...rawKmMap.keys(), ...wpKmMap.keys(), ...visitsPerDay.keys()]);
       const dayRows = new Map<string, DayBreak[]>();
       for (const k of allKeys) {
         const [cand, day] = k.split("|");
-        const km = Math.max(rawKmMap.get(k) ?? 0, wpKmMap.get(k) ?? 0);
+        const stored = storedKmMap.get(k) ?? 0;
+        const km = stored > 0 ? stored : Math.max(rawKmMap.get(k) ?? 0, wpKmMap.get(k) ?? 0);
         const arr = dayRows.get(cand) ?? [];
         arr.push({ day, km: Number(km.toFixed(2)), visits: visitsPerDay.get(k) ?? 0 });
         dayRows.set(cand, arr);

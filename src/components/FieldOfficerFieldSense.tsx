@@ -695,6 +695,26 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     return sum / 1000;
   }, [routeCoords, roadRoute, roadRouteKey]);
 
+  // Persist the road-snapped daily distance to the punch row so admin
+  // dashboards read the exact same number the FO sees. Skip for historical views.
+  const lastPersistedKmRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (isHistorical) return;
+    const punchId = punchQ.data?.id;
+    if (!punchId) return;
+    if (!Number.isFinite(totalKmToday)) return;
+    const rounded = Number(totalKmToday.toFixed(3));
+    if (lastPersistedKmRef.current !== null && Math.abs(lastPersistedKmRef.current - rounded) < 0.01) return;
+    lastPersistedKmRef.current = rounded;
+    const timer = setTimeout(() => {
+      void supabase
+        .from("self_attendance_punches" as never)
+        .update({ distance_km: rounded } as never)
+        .eq("id", punchId);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [totalKmToday, punchQ.data?.id, isHistorical]);
+
   // Check-in / Check-out dialogs
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [preselectUnitId, setPreselectUnitId] = useState<string | null>(null);

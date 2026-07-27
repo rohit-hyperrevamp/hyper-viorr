@@ -433,7 +433,7 @@ function FieldSenseLeaderboards() {
         supabase.from("customers" as never).select("id, name"),
         supabase
           .from("self_attendance_punches" as never)
-          .select("candidate_id, punch_date, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng")
+          .select("candidate_id, punch_date, distance_km, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng")
           .gte("punch_date", resolved.start)
           .lte("punch_date", resolved.end),
       ]);
@@ -464,6 +464,7 @@ function FieldSenseLeaderboards() {
       const punches = ((punchesRes.data ?? []) as unknown) as Array<{
         candidate_id: string;
         punch_date: string;
+        distance_km: number | string | null;
         check_in_at: string | null;
         check_in_lat: number | string | null;
         check_in_lng: number | string | null;
@@ -541,10 +542,21 @@ function FieldSenseLeaderboards() {
         wpKmByCand.set(cand, (wpKmByCand.get(cand) ?? 0) + (m * ROAD_FACTOR) / 1000);
       }
 
+      // 3) Stored road-snapped distance from FO app (source of truth)
+      const storedKmByCand = new Map<string, number>();
+      for (const pu of punches) {
+        const v = Number(pu.distance_km);
+        if (!Number.isFinite(v) || v <= 0) continue;
+        storedKmByCand.set(pu.candidate_id, (storedKmByCand.get(pu.candidate_id) ?? 0) + v);
+      }
+
       const foStats: FoStats[] = fos.map((f) => {
         const v = visitByCand.get(f.id);
         const ratings = v?.ratings ?? [];
-        const km = Math.max(rawKmByCand.get(f.id) ?? 0, wpKmByCand.get(f.id) ?? 0);
+        const stored = storedKmByCand.get(f.id) ?? 0;
+        const km = stored > 0
+          ? stored
+          : Math.max(rawKmByCand.get(f.id) ?? 0, wpKmByCand.get(f.id) ?? 0);
         return {
           candidate_id: f.id,
           full_name: f.full_name,

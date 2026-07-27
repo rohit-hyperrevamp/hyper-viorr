@@ -4146,6 +4146,7 @@ export type Database = {
           check_out_lat: number | null
           check_out_lng: number | null
           created_at: string
+          distance_km: number | null
           id: string
           last_accuracy: number | null
           last_lat: number | null
@@ -4171,6 +4172,7 @@ export type Database = {
           check_out_lat?: number | null
           check_out_lng?: number | null
           created_at?: string
+          distance_km?: number | null
           id?: string
           last_accuracy?: number | null
           last_lat?: number | null
@@ -4196,6 +4198,7 @@ export type Database = {
           check_out_lat?: number | null
           check_out_lng?: number | null
           created_at?: string
+          distance_km?: number | null
           id?: string
           last_accuracy?: number | null
           last_lat?: number | null
