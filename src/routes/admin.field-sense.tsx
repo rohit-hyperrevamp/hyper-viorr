@@ -277,6 +277,22 @@ function AdminFieldSense() {
     }
   }, [rows, ready]);
 
+  // Switch tile layer between street/satellite
+  useEffect(() => {
+    if (!ready || !mapRef.current || !LRef.current) return;
+    const L = LRef.current;
+    const map = mapRef.current;
+    if (tileRef.current) map.removeLayer(tileRef.current);
+    tileRef.current = (mapKind === "street"
+      ? L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap", maxZoom: 19 })
+      : L.tileLayer(
+          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+          { attribution: "© Esri, Maxar, Earthstar Geographics", maxZoom: 19 },
+        )
+    ).addTo(map);
+  }, [mapKind, ready]);
+
+
   return (
     <div className="space-y-4">
       <PageHeader
