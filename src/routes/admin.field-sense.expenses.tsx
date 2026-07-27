@@ -118,7 +118,7 @@ function ExpenseManagerPage() {
           .in("status", ["approved", "active"]),
         supabase
           .from("self_attendance_punches" as never)
-          .select("candidate_id, punch_date, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng")
+          .select("candidate_id, punch_date, distance_km, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng")
           .gte("punch_date", resolved.start)
           .lte("punch_date", resolved.end),
         supabase
