@@ -55,7 +55,7 @@ type FoUnit = {
   longitude: number | null;
 };
 
-const TRACK_INTERVAL_MS = 45_000;
+const TRACK_INTERVAL_MS = 15_000;
 const NEAREST_MAX_METERS = 500;
 
 function whenAgo(iso: string | null): string {
@@ -193,7 +193,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
   const trackQ = useQuery({
     queryKey: ["fo-fs-track", candidateId, todayPunchDate()],
     queryFn: () => fetchTodayTrackPoints(candidateId),
-    refetchInterval: 45_000,
+    refetchInterval: 15_000,
   });
 
   const units = unitsQ.data ?? [];
@@ -347,7 +347,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     }
   }, [pos, mapReady]);
 
-  // Sync track polyline
+  // Sync track polyline — include current live position as last point for real-time feel
   const track = trackQ.data ?? [];
   useEffect(() => {
     if (!mapReady || !mapRef.current || !LRef.current) return;
@@ -357,15 +357,16 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
       map.removeLayer(trackLineRef.current);
       trackLineRef.current = null;
     }
-    if (track.length < 2) return;
     const coords: Array<[number, number]> = track.map((t) => [Number(t.lat), Number(t.lng)]);
+    if (pos) coords.push([pos.lat, pos.lng]);
+    if (coords.length < 2) return;
     trackLineRef.current = L.polyline(coords, {
       color: "#2563eb",
       weight: 4,
-      opacity: 0.65,
+      opacity: 0.75,
       dashArray: "4 6",
     }).addTo(map);
-  }, [track, mapReady]);
+  }, [track, pos, mapReady]);
 
   // Auto-fit map bounds once when we have data
   const didFitRef = useRef(false);
@@ -908,7 +909,7 @@ function CheckOutDialog({
               ref={fileRef}
               type="file"
               accept="image/*"
-              capture="user"
+              capture="environment"
               onChange={handleFile}
               className="hidden"
             />
