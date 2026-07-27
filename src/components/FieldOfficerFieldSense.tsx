@@ -738,6 +738,26 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
         </div>
       )}
 
+      {/* Emergency / admin-requested visits */}
+      <RequestedVisitsPanel
+        requests={requestsQ.data ?? []}
+        units={units}
+        onAcknowledge={async (id) => {
+          try {
+            await acknowledgeFieldVisitRequest(id);
+            toast.success("Acknowledged");
+            void qc.invalidateQueries({ queryKey: ["fo-fs-requests", candidateId] });
+          } catch (e) {
+            toast.error((e as Error).message ?? "Failed");
+          }
+        }}
+        onStartVisit={(unitId) => {
+          // Preselect the unit and open the check-in dialog
+          setPreselectUnitId(unitId);
+          setCheckInOpen(true);
+        }}
+      />
+
       {/* Primary CTA */}
       <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
