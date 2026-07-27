@@ -485,36 +485,24 @@ function FieldSenseLeaderboards() {
         };
       });
 
-      // Unit / customer aggregates
+      // Unit aggregates — include ALL units so zero-visit units surface in "Least visited"
       const unitCount = new Map<string, number>();
-      const custCount = new Map<string, number>();
       for (const v of visits) {
         unitCount.set(v.unit_id, (unitCount.get(v.unit_id) ?? 0) + 1);
-        const u = unitById.get(v.unit_id);
-        if (u?.customer_id) custCount.set(u.customer_id, (custCount.get(u.customer_id) ?? 0) + 1);
       }
-      const unitStats: UnitStats[] = Array.from(unitCount.entries()).map(([uid, n]) => {
-        const u = unitById.get(uid);
-        return {
-          unit_id: uid,
-          unit_name: u?.name ?? "—",
-          customer_name: u?.customer_id ? custById.get(u.customer_id) ?? null : null,
-          visits: n,
-        };
-      });
-      const customerStats: CustomerStats[] = Array.from(custCount.entries()).map(([cid, n]) => ({
-        customer_id: cid,
-        customer_name: custById.get(cid) ?? "—",
-        visits: n,
+      const unitStats: UnitStats[] = units.map((u) => ({
+        unit_id: u.id,
+        unit_name: u.name ?? "—",
+        customer_name: u.customer_id ? custById.get(u.customer_id) ?? null : null,
+        visits: unitCount.get(u.id) ?? 0,
       }));
 
-      return { foStats, unitStats, customerStats };
+      return { foStats, unitStats };
     },
   });
 
   const foStats = dataQ.data?.foStats ?? [];
   const unitStats = dataQ.data?.unitStats ?? [];
-  const custStats = dataQ.data?.customerStats ?? [];
 
   const foByVisitsDesc = [...foStats].sort((a, b) => b.visits - a.visits || a.full_name.localeCompare(b.full_name));
   const foByVisitsAsc = [...foStats].sort((a, b) => a.visits - b.visits || a.full_name.localeCompare(b.full_name));
