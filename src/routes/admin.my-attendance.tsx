@@ -205,7 +205,12 @@ function MyAttendancePage() {
         crumbs={[{ label: "Home", to: "/" }, { label: "My Attendance" }]}
       />
 
-      <MarkAttendanceCard candidateId={me.candidate_id} />
+      <MarkAttendanceCard
+        candidateId={me.candidate_id}
+        allowedUnits={isGuard ? (guardUnitsQ.data ?? []) : undefined}
+        proximityThresholdM={300}
+      />
+
 
       {/* Month picker + totals */}
       <section className="rounded-3xl border border-border/60 bg-card/95 p-4 shadow-sm backdrop-blur-xl sm:p-5">
