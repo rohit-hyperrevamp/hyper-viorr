@@ -102,10 +102,30 @@ function FieldSensePage() {
         .eq("punch_date", today())
         .not("check_in_at", "is", null)
         .is("check_out_at", null)
-        .eq("candidate.role_key", "field_officer")
+        .in("candidate.role_key", ["field_officer", "guard", "security_guard"])
         .order("last_seen_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return (data ?? []) as unknown as LivePunch[];
+    },
+  });
+
+  const totalsQ = useQuery({
+    queryKey: ["field-sense-totals"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const [fo, sg] = await Promise.all([
+        supabase
+          .from("candidates" as never)
+          .select("id", { count: "exact", head: true })
+          .eq("role_key", "field_officer")
+          .in("status", ["approved", "active"]),
+        supabase
+          .from("candidates" as never)
+          .select("id", { count: "exact", head: true })
+          .in("role_key", ["guard", "security_guard"])
+          .in("status", ["approved", "active"]),
+      ]);
+      return { fo: fo.count ?? 0, sg: sg.count ?? 0 };
     },
   });
 
@@ -155,6 +175,17 @@ function FieldSensePage() {
   }, [qc]);
 
   const rows = useMemo(() => (q.data ?? []).filter((r) => r.last_lat != null && r.last_lng != null), [q.data]);
+
+  const liveFoCount = useMemo(
+    () => rows.filter((r) => r.candidate?.role_key === "field_officer").length,
+    [rows],
+  );
+  const liveSgCount = useMemo(
+    () => rows.filter((r) => r.candidate?.role_key === "guard" || r.candidate?.role_key === "security_guard").length,
+    [rows],
+  );
+  const totalFo = totalsQ.data?.fo ?? 0;
+  const totalSg = totalsQ.data?.sg ?? 0;
 
   // Sync markers
   useEffect(() => {
@@ -222,16 +253,25 @@ function FieldSensePage() {
 
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>
 
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatTile label="Field Officers" total={totalFo} live={liveFoCount} tone="sky" />
+        <StatTile label="Security Guards" total={totalSg} live={liveSgCount} tone="emerald" />
+        <StatTile label="Live on Duty" total={totalFo + totalSg} live={liveFoCount + liveSgCount} tone="violet" />
+        <StatTile label="With GPS Ping" total={(q.data ?? []).length} live={rows.length} tone="amber" />
+      </section>
+
+
+
       <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
         <div ref={mapEl} style={{ height: "min(72vh, 720px)", width: "100%" }} />
         {q.isLoading && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/40 text-xs font-semibold text-muted-foreground">
-            Loading live field officers…
+            Loading live field officers & guards…
           </div>
         )}
         {!q.isLoading && rows.length === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-4 mx-auto w-fit rounded-full bg-background/90 px-4 py-2 text-xs font-semibold text-muted-foreground shadow ring-1 ring-border/60">
-            No field officers are currently checked in with a GPS ping.
+            No one is currently checked in with a GPS ping.
           </div>
         )}
       </section>
@@ -274,3 +314,31 @@ function FieldSensePage() {
     </div>
   );
 }
+
+const TILE_TONES: Record<string, { ring: string; dot: string; live: string; total: string }> = {
+  sky: { ring: "ring-sky-200/70", dot: "bg-sky-500", live: "text-sky-700 dark:text-sky-300", total: "text-slate-900 dark:text-slate-100" },
+  emerald: { ring: "ring-emerald-200/70", dot: "bg-emerald-500", live: "text-emerald-700 dark:text-emerald-300", total: "text-slate-900 dark:text-slate-100" },
+  violet: { ring: "ring-violet-200/70", dot: "bg-violet-500", live: "text-violet-700 dark:text-violet-300", total: "text-slate-900 dark:text-slate-100" },
+  amber: { ring: "ring-amber-200/70", dot: "bg-amber-500", live: "text-amber-700 dark:text-amber-300", total: "text-slate-900 dark:text-slate-100" },
+};
+
+function StatTile({ label, total, live, tone }: { label: string; total: number; live: number; tone: keyof typeof TILE_TONES }) {
+  const t = TILE_TONES[tone];
+  return (
+    <div className={`rounded-2xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ${t.ring}`}>
+      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <div className={`text-[22px] font-semibold leading-none ${t.total}`}>{total.toLocaleString()}</div>
+        <div className="text-[10px] font-semibold uppercase text-muted-foreground">total</div>
+      </div>
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <span className={`relative flex h-1.5 w-1.5`}>
+          <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${t.dot} opacity-60`} />
+          <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${t.dot}`} />
+        </span>
+        <span className={`text-[11px] font-bold ${t.live}`}>{live.toLocaleString()} live now</span>
+      </div>
+    </div>
+  );
+}
+
