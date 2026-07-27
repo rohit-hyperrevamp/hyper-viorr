@@ -111,9 +111,25 @@ function elapsed(from: string | null, to?: string | null) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-export function MarkAttendanceCard({ candidateId, compact }: { candidateId: string | null; compact?: boolean }) {
+export type AllowedUnit = { id: string; name: string; latitude: number | null; longitude: number | null };
+
+export function MarkAttendanceCard({
+  candidateId,
+  compact,
+  allowedUnits,
+  proximityThresholdM = 300,
+}: {
+  candidateId: string | null;
+  compact?: boolean;
+  /** If provided, check-in is gated: user must be within `proximityThresholdM` of one of these units. */
+  allowedUnits?: AllowedUnit[];
+  proximityThresholdM?: number;
+}) {
   const qc = useQueryClient();
   const [busy, setBusy] = useState<"in" | "out" | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [nearby, setNearby] = useState<Array<{ unit: AllowedUnit; distance: number }>>([]);
+  const [pendingGeo, setPendingGeo] = useState<{ geo: import("@/lib/self-attendance").Geo; face: boolean } | null>(null);
 
   const punchQ = useQuery({
     queryKey: ["self-attendance-today", candidateId],
@@ -132,6 +148,24 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
     ? "done"
     : "in";
 
+  const gated = Array.isArray(allowedUnits);
+
+  const performCheckIn = async (unitId: string | null, geo: import("@/lib/self-attendance").Geo, face: boolean) => {
+    if (!candidateId) throw new Error("Profile not ready.");
+    const [row, battery, network] = await Promise.allSettled([
+      checkIn(candidateId, geo, face, unitId),
+      readBattery(),
+      readNetworkType(),
+    ]);
+    if (row.status !== "fulfilled") throw row.reason;
+    await pushTelemetry(row.value.id, {
+      geo,
+      battery: battery.status === "fulfilled" ? battery.value : null,
+      network: network.status === "fulfilled" ? network.value : null,
+    });
+    return row.value;
+  };
+
   const inMut = useMutation({
     mutationFn: async () => {
       if (!candidateId) throw new Error("Profile not ready.");
@@ -140,20 +174,39 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
         face = await verifyFaceForAttendance("Mark attendance check-in");
       }
       const geo = await getCurrentPosition();
-      const [row, battery, network] = await Promise.allSettled([
-        checkIn(candidateId, geo, face),
-        readBattery(),
-        readNetworkType(),
-      ]);
-      if (row.status !== "fulfilled") throw row.reason;
-      await pushTelemetry(row.value.id, {
-        geo,
-        battery: battery.status === "fulfilled" ? battery.value : null,
-        network: network.status === "fulfilled" ? network.value : null,
-      });
-      return row.value;
+
+      if (gated) {
+        const units = (allowedUnits ?? []).filter((u) => u.latitude != null && u.longitude != null);
+        if (units.length === 0) {
+          throw new Error("No unit locations are configured for you. Ask your admin to set unit coordinates.");
+        }
+        const withDist = units
+          .map((u) => ({
+            unit: u,
+            distance: distanceMeters({ lat: geo.lat, lng: geo.lng }, { lat: u.latitude as number, lng: u.longitude as number }) ?? Number.POSITIVE_INFINITY,
+          }))
+          .sort((a, b) => a.distance - b.distance);
+        const within = withDist.filter((r) => r.distance <= proximityThresholdM);
+        if (within.length === 0) {
+          const nearest = withDist[0];
+          throw new Error(
+            `Check-in not allowed — you are ${formatDistance(nearest.distance)} from ${nearest.unit.name}. Please reach one of your assigned units.`,
+          );
+        }
+        if (within.length === 1) {
+          return await performCheckIn(within[0].unit.id, geo, face);
+        }
+        // Multiple within range → ask user to confirm.
+        setNearby(within);
+        setPendingGeo({ geo, face });
+        setPickerOpen(true);
+        return null;
+      }
+
+      return await performCheckIn(null, geo, face);
     },
-    onSuccess: () => {
+    onSuccess: (row) => {
+      if (!row) return; // waiting for user to pick unit
       toast.success("Checked in");
       void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
       void qc.invalidateQueries({ queryKey: ["self-attendance-month", candidateId] });
@@ -161,6 +214,23 @@ export function MarkAttendanceCard({ candidateId, compact }: { candidateId: stri
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Check-in failed"),
     onSettled: () => setBusy(null),
   });
+
+  const confirmUnitMut = useMutation({
+    mutationFn: async (unitId: string) => {
+      if (!pendingGeo) throw new Error("Location expired. Try again.");
+      return await performCheckIn(unitId, pendingGeo.geo, pendingGeo.face);
+    },
+    onSuccess: () => {
+      toast.success("Checked in");
+      setPickerOpen(false);
+      setPendingGeo(null);
+      setNearby([]);
+      void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
+      void qc.invalidateQueries({ queryKey: ["self-attendance-month", candidateId] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Check-in failed"),
+  });
+
 
   const outMut = useMutation({
     mutationFn: async () => {
