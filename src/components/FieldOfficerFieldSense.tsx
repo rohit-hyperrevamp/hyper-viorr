@@ -1201,6 +1201,9 @@ function CheckOutDialog({
         clientPhotoUrl: clientPath,
         clientName: clientName.trim() || null,
       });
+      try {
+        await completeFieldVisitRequestByVisit(visit.id);
+      } catch { /* noop */ }
     },
     onSuccess: () => {
       toast.success("Visit completed");
