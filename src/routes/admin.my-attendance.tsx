@@ -205,8 +205,8 @@ function MyAttendancePage() {
       const punchCode = punchAttendanceCode(rec?.punch, d.date, todayIso);
       if (rec?.punch?.check_in_at && !rec.punch.check_out_at && !punchCode) continue;
       const code = punchCode ? codeMap.get(punchCode) : rec?.entry?.code ? codeMap.get(rec.entry.code) : undefined;
-      if (code?.counts_as_present || code?.is_paid) present += attendanceDayValue(code);
-      else if (code?.is_leave) leave += attendanceDayValue(code);
+      if (code?.is_leave) leave += attendanceDayValue(code);
+      else if (code?.counts_as_present || code?.is_paid) present += attendanceDayValue(code);
       else absent += 1;
     }
     return { present, absent, leave };
@@ -283,7 +283,7 @@ function MyAttendancePage() {
           const punchDuration = p?.check_in_at && p.check_out_at ? duration(p.check_in_at, p.check_out_at) : null;
           type Tone = "emerald" | "rose" | "amber" | "sky" | "muted";
           const badge: { label: string; tone: Tone } = p?.check_in_at
-            ? p.check_out_at && code
+            ? code && (p.check_out_at || punchCode === "A")
               ? { label: `${code.label || code.code}${punchDuration ? ` · ${punchDuration}` : ""}`, tone: code.counts_as_present ? "emerald" : code.is_paid ? "amber" : "rose" }
               : { label: "On duty", tone: "amber" }
             : code
