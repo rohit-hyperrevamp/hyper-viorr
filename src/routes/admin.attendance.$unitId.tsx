@@ -302,12 +302,12 @@ function MusterRollPage() {
             role_key: (c.role_key || "").toLowerCase(),
           };
         })
-        // Muster rolls are billable-only. Non-billable staff (field officers,
-        // branch managers, HR, etc.) never belong on a unit's Form XVI — their
-        // attendance is derived from self-attendance punches and paid from the
-        // Radiant home unit, not the client unit.
-        .filter((c) => !c.is_non_billable)
+        // Muster rolls are billable-only for client units. Non-billable staff
+        // (field officers, branch managers, HR, etc.) only appear on the
+        // Radiant home-unit muster (UN-RGS-PUNE), where their payroll lives.
+        .filter((c) => !c.is_non_billable || unitId === "92541381-14d3-4be6-ae8c-078b79c2e0f1")
         .sort((a, b) => (a.employee_code || a.full_name).localeCompare(b.employee_code || b.full_name));
+
 
 
 
