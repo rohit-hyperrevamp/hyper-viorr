@@ -130,7 +130,7 @@ async function loadFoUnits(candidateId: string): Promise<FoUnit[]> {
       unit_code: u.code,
       customer_name: u.customer_id ? customerMap.get(u.customer_id) ?? null : null,
       branch_name: u.branch_id ? branchMap.get(u.branch_id) ?? null : null,
-      address: u.address,
+      address: [u.billing_address1, u.billing_address2, u.billing_city, u.billing_state].filter(Boolean).join(", ") || null,
       latitude: u.latitude,
       longitude: u.longitude,
     });
