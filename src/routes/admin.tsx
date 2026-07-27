@@ -466,8 +466,9 @@ function AdminLayout() {
     const base = groups
       .filter((g) => {
         if (g.module === "__field_sense__") {
-          return isSuperAdmin || roleKey === "leadership";
+          return isSuperAdmin || roleKey === "leadership" || roleKey === "field_officer";
         }
+
         return !g.module || can(g.module);
       })
       .map((g) => {
