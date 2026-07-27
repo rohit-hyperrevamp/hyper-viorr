@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { FieldOfficerFieldSense } from "@/components/FieldOfficerFieldSense";
 import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visits";
+import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
+import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
 
 
 
@@ -349,6 +351,11 @@ function AdminFieldSense() {
         )}
       </section>
 
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <AdminVisitProgressCard />
+        <AdminFieldOfficerUnitsCard />
+      </div>
 
       <FieldSenseLeaderboards />
     </div>

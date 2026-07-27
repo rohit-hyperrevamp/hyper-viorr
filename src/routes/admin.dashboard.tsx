@@ -32,8 +32,6 @@ import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
-import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
-import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 
 function PeopleInsightsSection() {
   const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights();
@@ -604,12 +602,6 @@ function DashboardPage() {
         description="Live snapshot of everything you have access to — tiles, counts, and P&L for the selected cycle."
         crumbs={[{ label: "Dashboard" }]}
       />
-
-      {/* Field Sense — today's on-ground activity + emergency dispatch */}
-      <div className="grid gap-4 xl:grid-cols-2">
-        <AdminVisitProgressCard />
-        <AdminFieldOfficerUnitsCard />
-      </div>
 
       {/* Month hero — restrained slate panel */}
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
