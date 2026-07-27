@@ -463,6 +463,79 @@ function FoPeopleInsights() {
   );
 }
 
+function FieldSenseSummary({ candidateId }: { candidateId: string }) {
+  const q = useQuery({
+    queryKey: ["fo-dashboard-visits", candidateId],
+    queryFn: async () => {
+      const first = (() => {
+        const d = new Date();
+        const p = (n: number) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-01`;
+      })();
+      const [monthRes, lastRes] = await Promise.all([
+        supabase
+          .from("field_visits" as never)
+          .select("id", { count: "exact", head: true })
+          .eq("candidate_id", candidateId)
+          .gte("visit_date", first)
+          .not("check_out_at", "is", null),
+        supabase
+          .from("field_visits" as never)
+          .select("check_out_at, unit_id")
+          .eq("candidate_id", candidateId)
+          .not("check_out_at", "is", null)
+          .order("check_out_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      return {
+        monthCount: monthRes.count ?? 0,
+        last: (lastRes.data as { check_out_at: string; unit_id: string } | null) ?? null,
+      };
+    },
+    staleTime: 30_000,
+  });
+  const monthCount = q.data?.monthCount ?? 0;
+  const last = q.data?.last?.check_out_at ?? null;
+  const lastLabel = (() => {
+    if (!last) return "—";
+    const s = Math.round((Date.now() - new Date(last).getTime()) / 1000);
+    if (s < 3600) return `${Math.max(1, Math.round(s / 60))}m ago`;
+    if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+    return `${Math.round(s / 86400)}d ago`;
+  })();
+  return (
+    <section>
+      <div className="mb-2 flex items-end justify-between sm:mb-3">
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Field Sense</div>
+          <h2 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-2xl">My site visits</h2>
+        </div>
+        <Link to="/admin/field-sense" className="text-[11px] font-bold text-primary underline-offset-2 hover:underline">
+          Open Field Sense →
+        </Link>
+      </div>
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
+        <Link
+          to="/admin/field-sense"
+          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-sky-200/60"
+        >
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Last visit</div>
+          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{lastLabel}</div>
+        </Link>
+        <Link
+          to="/admin/field-sense"
+          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-emerald-200/60"
+        >
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Visits this month</div>
+          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{monthCount}</div>
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+
 
 function StatBar({ label, value }: { label: string; value: number | string }) {
   return (
