@@ -57,6 +57,13 @@ import {
   type FieldVisit,
   type RangePreset,
 } from "@/lib/field-visits";
+import {
+  acknowledgeFieldVisitRequest,
+  completeFieldVisitRequestForUnit,
+  listOpenRequestsForCandidate,
+  type FieldVisitRequest,
+} from "@/lib/field-visit-requests";
+} from "@/lib/field-visits";
 
 
 type FoUnit = {
