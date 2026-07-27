@@ -355,7 +355,7 @@ function DeploymentBreakdown({
           .select("id,full_name,employee_code,role_key,unit_id,status")
           .in("role_key", roleFilter)
           .in("status", ["approved", "active"]),
-        supabase.from("units" as never).select("id,name,code,customer_id,branch_id"),
+        supabase.from("units" as never).select("id,name,code,customer_id,branch_id,latitude,longitude"),
         supabase.from("customers" as never).select("id,name"),
         supabase.from("branches" as never).select("id,name"),
         supabase
