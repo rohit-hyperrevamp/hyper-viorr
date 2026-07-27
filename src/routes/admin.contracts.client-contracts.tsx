@@ -2604,7 +2604,7 @@ function ContractFormDialog({
                         value={unitQuery}
                         onValueChange={setUnitQuery}
                       />
-                      <CommandList>
+                      <CommandList className="max-h-64 overflow-y-auto overscroll-contain">
                         <CommandEmpty>No units found.</CommandEmpty>
                         <CommandGroup>
                           {filteredUnits.map((u) => {
@@ -3914,6 +3914,8 @@ function ResourceFormDialog({
                 <PopoverContent
                   className="w-[--radix-popover-trigger-width] p-0"
                   align="start"
+                  onWheel={(e) => e.stopPropagation()}
+                  onTouchMove={(e) => e.stopPropagation()}
                 >
                   <Command shouldFilter={false}>
                     <CommandInput
@@ -3921,7 +3923,7 @@ function ResourceFormDialog({
                       value={designationQuery}
                       onValueChange={setDesignationQuery}
                     />
-                    <CommandList>
+                    <CommandList className="max-h-64 overflow-y-auto overscroll-contain">
                       <CommandEmpty>No designation found.</CommandEmpty>
                       <CommandGroup>
                         {filteredDesignations.map((d) => (
@@ -4057,7 +4059,7 @@ function ResourceFormDialog({
                       value={allowanceQuery}
                       onValueChange={setAllowanceQuery}
                     />
-                    <CommandList>
+                    <CommandList className="max-h-64 overflow-y-auto overscroll-contain">
                       <CommandEmpty>No more allowances.</CommandEmpty>
                       <CommandGroup>
                         {filteredAvailableExtras.map((a) => (
@@ -4156,7 +4158,7 @@ function ResourceFormDialog({
                       value={deductionQuery}
                       onValueChange={setDeductionQuery}
                     />
-                    <CommandList>
+                    <CommandList className="max-h-64 overflow-y-auto overscroll-contain">
                       <CommandEmpty>No more components.</CommandEmpty>
                       <CommandGroup>
                         {filteredAvailableDeductions.map((c) => (
@@ -4310,7 +4312,7 @@ function ResourceFormDialog({
                       value={employerQuery}
                       onValueChange={setEmployerQuery}
                     />
-                    <CommandList>
+                    <CommandList className="max-h-64 overflow-y-auto overscroll-contain">
                       <CommandEmpty>No more components.</CommandEmpty>
                       <CommandGroup>
                         {filteredAvailableEmployer.map((c) => (
