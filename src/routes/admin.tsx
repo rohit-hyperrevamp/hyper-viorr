@@ -474,10 +474,11 @@ function AdminLayout() {
     }
     const base = groups
       .filter((g) => {
-        if (g.module === "__field_sense__") {
-          return isSuperAdmin || roleKey === "leadership" || roleKey === "field_officer";
+        if (g.key === "field-sense") {
+          // Field officers always see their own Day Patrol dashboard.
+          // Other roles need RBAC access to the field_sense module.
+          return isFieldOfficer || isSuperAdmin || can("field_sense");
         }
-
         return !g.module || can(g.module);
       })
       .map((g) => {
@@ -485,9 +486,12 @@ function AdminLayout() {
         if (g.key === "field-sense" && g.children) {
           let kids = g.children;
           if (isFieldOfficer) {
+            // FOs only see the Day Patrol dashboard — no Team/Expenses/Reports.
             kids = kids
-              .filter((c) => c.to !== "/admin/field-sense/team" && c.to !== "/admin/field-sense/expenses" && c.to !== "/admin/field-sense/reports")
-              .map((c) => (c.to === "/admin/field-sense" ? { ...c, label: "Day Patrol" } : c));
+              .filter((c) => c.to === "/admin/field-sense")
+              .map((c) => ({ ...c, label: "Day Patrol" }));
+          } else if (!isSuperAdmin) {
+            kids = kids.filter((c) => !c.sub || canSub("field_sense", c.sub));
           }
           return { ...g, children: kids };
         }
