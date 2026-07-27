@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Fingerprint, LogIn, LogOut, MapPin, Loader2, Clock, CheckCircle2, AlertTriangle, ExternalLink, Battery, BatteryCharging, Wifi, Signal, Radio } from "lucide-react";
 
@@ -23,6 +23,43 @@ import {
 import { isNativePlatform } from "@/lib/native";
 import { cn } from "@/lib/utils";
 
+// In-memory reverse-geocode cache keyed by rounded coords.
+const placeCache = new Map<string, string>();
+
+function useReverseGeocode(lat: number | null | undefined, lng: number | null | undefined) {
+  const [place, setPlace] = useState<string | null>(null);
+  const cancelledRef = useRef(false);
+  useEffect(() => {
+    cancelledRef.current = false;
+    if (lat == null || lng == null) { setPlace(null); return; }
+    const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+    const cached = placeCache.get(key);
+    if (cached) { setPlace(cached); return; }
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
+          { headers: { "Accept-Language": "en" } },
+        );
+        if (!res.ok) return;
+        const j = (await res.json()) as { address?: Record<string, string>; display_name?: string };
+        const a = j.address ?? {};
+        const primary = a.neighbourhood || a.suburb || a.village || a.town || a.city_district || a.city || a.county;
+        const secondary = a.city || a.town || a.state_district || a.state;
+        const label = [primary, secondary && secondary !== primary ? secondary : null]
+          .filter(Boolean)
+          .join(", ") || (j.display_name?.split(",").slice(0, 2).join(",").trim() ?? null);
+        if (!cancelledRef.current && label) {
+          placeCache.set(key, label);
+          setPlace(label);
+        }
+      } catch { /* ignore */ }
+    }, 250);
+    return () => { cancelledRef.current = true; clearTimeout(t); };
+  }, [lat, lng]);
+  return place;
+}
+
 function MapLink({
   lat,
   lng,
@@ -33,17 +70,26 @@ function MapLink({
   label?: string;
 }) {
   const url = mapsUrl(lat, lng);
+  const place = useReverseGeocode(lat, lng);
   if (!url || lat == null || lng == null) return null;
   return (
     <a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 rounded-md text-[11px] font-semibold text-primary underline-offset-2 hover:underline"
+      className="flex max-w-full flex-col gap-0.5 rounded-md text-[11px] font-semibold text-primary underline-offset-2 hover:underline"
     >
-      <MapPin className="h-3 w-3" />
-      {label ?? `${lat.toFixed(4)}, ${lng.toFixed(4)}`}
-      <ExternalLink className="h-2.5 w-2.5 opacity-70" />
+      {place && (
+        <span className="inline-flex items-center gap-1 truncate">
+          <MapPin className="h-3 w-3 shrink-0" />
+          <span className="truncate">{place}</span>
+        </span>
+      )}
+      <span className={cn("inline-flex items-center gap-1 truncate", place ? "pl-4 text-[10px] font-medium text-muted-foreground" : "")}>
+        {!place && <MapPin className="h-3 w-3 shrink-0" />}
+        {label ?? `${lat.toFixed(4)}, ${lng.toFixed(4)}`}
+        <ExternalLink className="h-2.5 w-2.5 opacity-70" />
+      </span>
     </a>
   );
 }
