@@ -86,12 +86,33 @@ function popupHtml(r: LivePunch): string {
 }
 
 function FieldSensePage() {
+  const { isFieldOfficer, candidateId, isLoading } = useCurrentUserRole();
+  if (isLoading) {
+    return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
+  }
+  if (isFieldOfficer && candidateId) {
+    return (
+      <div className="space-y-4">
+        <PageHeader
+          title="Field Sense"
+          description="Your live map — visits, distances traveled and check-in tracking for the day."
+          crumbs={[{ label: "Admin", to: "/admin/field-dashboard" }, { label: "Field Sense" }]}
+        />
+        <FieldOfficerFieldSense candidateId={candidateId} />
+      </div>
+    );
+  }
+  return <AdminFieldSense />;
+}
+
+function AdminFieldSense() {
   const qc = useQueryClient();
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<Map<string, any>>(new Map());
   const LRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
+
 
   const q = useQuery({
     queryKey: ["field-sense-live", today()],
