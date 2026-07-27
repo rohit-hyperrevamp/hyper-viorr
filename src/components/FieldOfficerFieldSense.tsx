@@ -551,7 +551,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
         /* noop */
       }
     }
-  }, [routeCoords, mapReady]);
+  }, [routeCoords, mapReady, roadRoute, roadRouteKey]);
 
   // Active-visit route: check-in origin → current position → destination unit.
   // Simulates a live navigation trail so the FO can see the intended route + km to destination.
