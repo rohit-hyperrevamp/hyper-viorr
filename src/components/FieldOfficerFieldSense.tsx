@@ -82,7 +82,7 @@ async function loadFoUnits(candidateId: string): Promise<FoUnit[]> {
       .from("employee_scope_assignments" as never)
       .select("scope_type,scope_id")
       .eq("candidate_id", candidateId),
-    supabase.from("units" as never).select("id,name,code,customer_id,branch_id,address,latitude,longitude"),
+    supabase.from("units" as never).select("id,name,code,customer_id,branch_id,billing_address1,billing_address2,billing_city,billing_state,latitude,longitude"),
     supabase.from("customers" as never).select("id,name"),
     supabase.from("branches" as never).select("id,name"),
   ]);
@@ -96,7 +96,10 @@ async function loadFoUnits(candidateId: string): Promise<FoUnit[]> {
     code: string | null;
     customer_id: string | null;
     branch_id: string | null;
-    address: string | null;
+    billing_address1: string | null;
+    billing_address2: string | null;
+    billing_city: string | null;
+    billing_state: string | null;
     latitude: number | null;
     longitude: number | null;
   }>;
@@ -127,7 +130,7 @@ async function loadFoUnits(candidateId: string): Promise<FoUnit[]> {
       unit_code: u.code,
       customer_name: u.customer_id ? customerMap.get(u.customer_id) ?? null : null,
       branch_name: u.branch_id ? branchMap.get(u.branch_id) ?? null : null,
-      address: u.address,
+      address: [u.billing_address1, u.billing_address2, u.billing_city, u.billing_state].filter(Boolean).join(", ") || null,
       latitude: u.latitude,
       longitude: u.longitude,
     });
