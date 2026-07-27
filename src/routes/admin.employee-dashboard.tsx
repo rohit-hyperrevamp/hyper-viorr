@@ -28,6 +28,7 @@ import { useAuth } from "@/lib/auth";
 import { useCountUp } from "@/hooks/useCountUp";
 import { nextOccurrence, ageFrom, yearsBetween } from "@/lib/people-insights";
 import { DashboardSkeleton } from "@/components/Skeletons";
+import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 
 
 export const Route = createFileRoute("/admin/employee-dashboard")({
