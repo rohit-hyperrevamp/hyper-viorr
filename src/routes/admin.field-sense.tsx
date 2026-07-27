@@ -109,9 +109,12 @@ function AdminFieldSense() {
   const qc = useQueryClient();
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
+  const tileRef = useRef<any>(null);
   const markersRef = useRef<Map<string, any>>(new Map());
   const LRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
+  const [mapKind, setMapKind] = useState<"street" | "satellite">("street");
+
 
 
   const q = useQuery({
