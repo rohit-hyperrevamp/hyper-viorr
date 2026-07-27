@@ -10,7 +10,7 @@ import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visit
 
 
 
-export const Route = createFileRoute("/admin/field-sense")({
+export const Route = createFileRoute("/admin/field-sense/")({
   component: FieldSensePage,
   validateSearch: (search: Record<string, unknown>) => ({
     range: (search.range as string | undefined) ?? undefined,
@@ -376,11 +376,6 @@ type UnitStats = {
   visits: number;
 };
 
-type CustomerStats = {
-  customer_id: string;
-  customer_name: string;
-  visits: number;
-};
 
 function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const toRad = (x: number) => (x * Math.PI) / 180;
@@ -485,36 +480,24 @@ function FieldSenseLeaderboards() {
         };
       });
 
-      // Unit / customer aggregates
+      // Unit aggregates — include ALL units so zero-visit units surface in "Least visited"
       const unitCount = new Map<string, number>();
-      const custCount = new Map<string, number>();
       for (const v of visits) {
         unitCount.set(v.unit_id, (unitCount.get(v.unit_id) ?? 0) + 1);
-        const u = unitById.get(v.unit_id);
-        if (u?.customer_id) custCount.set(u.customer_id, (custCount.get(u.customer_id) ?? 0) + 1);
       }
-      const unitStats: UnitStats[] = Array.from(unitCount.entries()).map(([uid, n]) => {
-        const u = unitById.get(uid);
-        return {
-          unit_id: uid,
-          unit_name: u?.name ?? "—",
-          customer_name: u?.customer_id ? custById.get(u.customer_id) ?? null : null,
-          visits: n,
-        };
-      });
-      const customerStats: CustomerStats[] = Array.from(custCount.entries()).map(([cid, n]) => ({
-        customer_id: cid,
-        customer_name: custById.get(cid) ?? "—",
-        visits: n,
+      const unitStats: UnitStats[] = units.map((u) => ({
+        unit_id: u.id,
+        unit_name: u.name ?? "—",
+        customer_name: u.customer_id ? custById.get(u.customer_id) ?? null : null,
+        visits: unitCount.get(u.id) ?? 0,
       }));
 
-      return { foStats, unitStats, customerStats };
+      return { foStats, unitStats };
     },
   });
 
   const foStats = dataQ.data?.foStats ?? [];
   const unitStats = dataQ.data?.unitStats ?? [];
-  const custStats = dataQ.data?.customerStats ?? [];
 
   const foByVisitsDesc = [...foStats].sort((a, b) => b.visits - a.visits || a.full_name.localeCompare(b.full_name));
   const foByVisitsAsc = [...foStats].sort((a, b) => a.visits - b.visits || a.full_name.localeCompare(b.full_name));
@@ -523,10 +506,8 @@ function FieldSenseLeaderboards() {
   const foByRatingAsc = [...rated].sort((a, b) => (a.avgRating ?? 0) - (b.avgRating ?? 0));
   const foByKmDesc = [...foStats].sort((a, b) => b.km - a.km);
   const foByKmAsc = [...foStats].sort((a, b) => a.km - b.km);
-  const unitsDesc = [...unitStats].sort((a, b) => b.visits - a.visits);
-  const unitsAsc = [...unitStats].sort((a, b) => a.visits - b.visits);
-  const custDesc = [...custStats].sort((a, b) => b.visits - a.visits);
-  const custAsc = [...custStats].sort((a, b) => a.visits - b.visits);
+  const unitsDesc = [...unitStats].sort((a, b) => b.visits - a.visits || a.unit_name.localeCompare(b.unit_name));
+  const unitsAsc = [...unitStats].sort((a, b) => a.visits - b.visits || a.unit_name.localeCompare(b.unit_name));
 
   return (
     <section className="space-y-3">
@@ -690,32 +671,6 @@ function FieldSenseLeaderboards() {
                 metricLabel: r.visits === 1 ? "visit" : "visits",
               })}
               emptyLabel="No units visited in range."
-            />
-            <Leaderboard
-              title="Customers · Most visited"
-              tone="emerald"
-              rows={custDesc}
-              render={(r) => ({
-                key: r.customer_id,
-                primary: r.customer_name,
-                secondary: "",
-                metric: `${r.visits}`,
-                metricLabel: r.visits === 1 ? "visit" : "visits",
-              })}
-              emptyLabel="No customer visits in range."
-            />
-            <Leaderboard
-              title="Customers · Least visited"
-              tone="violet"
-              rows={custAsc}
-              render={(r) => ({
-                key: r.customer_id,
-                primary: r.customer_name,
-                secondary: "",
-                metric: `${r.visits}`,
-                metricLabel: r.visits === 1 ? "visit" : "visits",
-              })}
-              emptyLabel="No customer visits in range."
             />
           </div>
         </>
