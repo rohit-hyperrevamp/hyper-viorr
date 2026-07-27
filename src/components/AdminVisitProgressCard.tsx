@@ -1,13 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Clock, MapPin, Star } from "lucide-react";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  RANGE_PRESETS, resolveRange, type RangePreset,
-} from "@/lib/field-visits";
+import { resolveRange, type RangePreset } from "@/lib/field-visits";
+import { FieldSenseRangeFilter } from "@/components/FieldSenseRangeFilter";
 
 type Row = {
   id: string;
