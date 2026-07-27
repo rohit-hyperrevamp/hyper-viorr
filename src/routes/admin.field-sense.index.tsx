@@ -376,11 +376,6 @@ type UnitStats = {
   visits: number;
 };
 
-type CustomerStats = {
-  customer_id: string;
-  customer_name: string;
-  visits: number;
-};
 
 function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const toRad = (x: number) => (x * Math.PI) / 180;
