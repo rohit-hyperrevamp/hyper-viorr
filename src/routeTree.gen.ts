@@ -97,6 +97,7 @@ import { Route as AdminAssetsInventoryRouteImport } from './routes/admin.assets.
 import { Route as AdminAssetsExpenseManagerRouteImport } from './routes/admin.assets.expense-manager'
 import { Route as ApiPublicNativePushRouteImport } from './routes/api/public/native/push'
 import { Route as ApiPublicHooksDailyPeoplePingsRouteImport } from './routes/api/public/hooks/daily-people-pings'
+import { Route as AdminFieldSenseOfficerIdRouteImport } from './routes/admin.field-sense.officer.$id'
 import { Route as AdminCandidatesIdDetailsRouteImport } from './routes/admin.candidates.$id.details'
 
 const WelcomeRoute = WelcomeRouteImport.update({
@@ -562,6 +563,12 @@ const ApiPublicHooksDailyPeoplePingsRoute =
     path: '/api/public/hooks/daily-people-pings',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminFieldSenseOfficerIdRoute =
+  AdminFieldSenseOfficerIdRouteImport.update({
+    id: '/officer/$id',
+    path: '/officer/$id',
+    getParentRoute: () => AdminFieldSenseRoute,
+  } as any)
 const AdminCandidatesIdDetailsRoute =
   AdminCandidatesIdDetailsRouteImport.update({
     id: '/candidates/$id/details',
@@ -596,7 +603,7 @@ export interface FileRoutesByFullPath {
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
-  '/admin/field-sense': typeof AdminFieldSenseRoute
+  '/admin/field-sense': typeof AdminFieldSenseRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/invoice': typeof AdminInvoiceRouteWithChildren
   '/admin/language-manager': typeof AdminLanguageManagerRoute
@@ -657,6 +664,7 @@ export interface FileRoutesByFullPath {
   '/admin/invoice/': typeof AdminInvoiceIndexRoute
   '/admin/payroll/': typeof AdminPayrollIndexRoute
   '/admin/candidates/$id/details': typeof AdminCandidatesIdDetailsRoute
+  '/admin/field-sense/officer/$id': typeof AdminFieldSenseOfficerIdRoute
   '/api/public/hooks/daily-people-pings': typeof ApiPublicHooksDailyPeoplePingsRoute
   '/api/public/native/push': typeof ApiPublicNativePushRoute
 }
@@ -686,7 +694,7 @@ export interface FileRoutesByTo {
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
-  '/admin/field-sense': typeof AdminFieldSenseRoute
+  '/admin/field-sense': typeof AdminFieldSenseRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/language-manager': typeof AdminLanguageManagerRoute
   '/admin/lwf-manager': typeof AdminLwfManagerRoute
@@ -745,6 +753,7 @@ export interface FileRoutesByTo {
   '/admin/invoice': typeof AdminInvoiceIndexRoute
   '/admin/payroll': typeof AdminPayrollIndexRoute
   '/admin/candidates/$id/details': typeof AdminCandidatesIdDetailsRoute
+  '/admin/field-sense/officer/$id': typeof AdminFieldSenseOfficerIdRoute
   '/api/public/hooks/daily-people-pings': typeof ApiPublicHooksDailyPeoplePingsRoute
   '/api/public/native/push': typeof ApiPublicNativePushRoute
 }
@@ -776,7 +785,7 @@ export interface FileRoutesById {
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
-  '/admin/field-sense': typeof AdminFieldSenseRoute
+  '/admin/field-sense': typeof AdminFieldSenseRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/invoice': typeof AdminInvoiceRouteWithChildren
   '/admin/language-manager': typeof AdminLanguageManagerRoute
@@ -837,6 +846,7 @@ export interface FileRoutesById {
   '/admin/invoice/': typeof AdminInvoiceIndexRoute
   '/admin/payroll/': typeof AdminPayrollIndexRoute
   '/admin/candidates/$id/details': typeof AdminCandidatesIdDetailsRoute
+  '/admin/field-sense/officer/$id': typeof AdminFieldSenseOfficerIdRoute
   '/api/public/hooks/daily-people-pings': typeof ApiPublicHooksDailyPeoplePingsRoute
   '/api/public/native/push': typeof ApiPublicNativePushRoute
 }
@@ -930,6 +940,7 @@ export interface FileRouteTypes {
     | '/admin/invoice/'
     | '/admin/payroll/'
     | '/admin/candidates/$id/details'
+    | '/admin/field-sense/officer/$id'
     | '/api/public/hooks/daily-people-pings'
     | '/api/public/native/push'
   fileRoutesByTo: FileRoutesByTo
@@ -1018,6 +1029,7 @@ export interface FileRouteTypes {
     | '/admin/invoice'
     | '/admin/payroll'
     | '/admin/candidates/$id/details'
+    | '/admin/field-sense/officer/$id'
     | '/api/public/hooks/daily-people-pings'
     | '/api/public/native/push'
   id:
@@ -1109,6 +1121,7 @@ export interface FileRouteTypes {
     | '/admin/invoice/'
     | '/admin/payroll/'
     | '/admin/candidates/$id/details'
+    | '/admin/field-sense/officer/$id'
     | '/api/public/hooks/daily-people-pings'
     | '/api/public/native/push'
   fileRoutesById: FileRoutesById
@@ -1740,6 +1753,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDailyPeoplePingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/field-sense/officer/$id': {
+      id: '/admin/field-sense/officer/$id'
+      path: '/officer/$id'
+      fullPath: '/admin/field-sense/officer/$id'
+      preLoaderRoute: typeof AdminFieldSenseOfficerIdRouteImport
+      parentRoute: typeof AdminFieldSenseRoute
+    }
     '/admin/candidates/$id/details': {
       id: '/admin/candidates/$id/details'
       path: '/candidates/$id/details'
@@ -1796,6 +1816,18 @@ const AdminCustomersRouteChildren: AdminCustomersRouteChildren = {
 
 const AdminCustomersRouteWithChildren = AdminCustomersRoute._addFileChildren(
   AdminCustomersRouteChildren,
+)
+
+interface AdminFieldSenseRouteChildren {
+  AdminFieldSenseOfficerIdRoute: typeof AdminFieldSenseOfficerIdRoute
+}
+
+const AdminFieldSenseRouteChildren: AdminFieldSenseRouteChildren = {
+  AdminFieldSenseOfficerIdRoute: AdminFieldSenseOfficerIdRoute,
+}
+
+const AdminFieldSenseRouteWithChildren = AdminFieldSenseRoute._addFileChildren(
+  AdminFieldSenseRouteChildren,
 )
 
 interface AdminInventoryRouteChildren {
@@ -1928,7 +1960,7 @@ interface AdminRouteChildren {
   AdminEsicBranchManagerRoute: typeof AdminEsicBranchManagerRoute
   AdminExServiceManagerRoute: typeof AdminExServiceManagerRoute
   AdminFieldDashboardRoute: typeof AdminFieldDashboardRoute
-  AdminFieldSenseRoute: typeof AdminFieldSenseRoute
+  AdminFieldSenseRoute: typeof AdminFieldSenseRouteWithChildren
   AdminInventoryRoute: typeof AdminInventoryRouteWithChildren
   AdminInvoiceRoute: typeof AdminInvoiceRouteWithChildren
   AdminLanguageManagerRoute: typeof AdminLanguageManagerRoute
@@ -1976,7 +2008,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEsicBranchManagerRoute: AdminEsicBranchManagerRoute,
   AdminExServiceManagerRoute: AdminExServiceManagerRoute,
   AdminFieldDashboardRoute: AdminFieldDashboardRoute,
-  AdminFieldSenseRoute: AdminFieldSenseRoute,
+  AdminFieldSenseRoute: AdminFieldSenseRouteWithChildren,
   AdminInventoryRoute: AdminInventoryRouteWithChildren,
   AdminInvoiceRoute: AdminInvoiceRouteWithChildren,
   AdminLanguageManagerRoute: AdminLanguageManagerRoute,
