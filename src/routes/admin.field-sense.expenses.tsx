@@ -366,15 +366,6 @@ function ExpenseManagerPage() {
         )}
       </div>
 
-      {dayModal && (
-        <DayTrailModal
-          candidateId={dayModal.candidateId}
-          foName={dayModal.foName}
-          day={dayModal.day}
-          unitById={dataQ.data?.unitById ?? new Map()}
-          onClose={() => setDayModal(null)}
-        />
-      )}
     </div>
   );
 }
