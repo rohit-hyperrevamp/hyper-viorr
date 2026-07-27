@@ -3914,6 +3914,8 @@ function ResourceFormDialog({
                 <PopoverContent
                   className="w-[--radix-popover-trigger-width] p-0"
                   align="start"
+                  onWheel={(e) => e.stopPropagation()}
+                  onTouchMove={(e) => e.stopPropagation()}
                 >
                   <Command shouldFilter={false}>
                     <CommandInput
@@ -3921,7 +3923,7 @@ function ResourceFormDialog({
                       value={designationQuery}
                       onValueChange={setDesignationQuery}
                     />
-                    <CommandList>
+                    <CommandList className="max-h-64 overflow-y-auto overscroll-contain">
                       <CommandEmpty>No designation found.</CommandEmpty>
                       <CommandGroup>
                         {filteredDesignations.map((d) => (
