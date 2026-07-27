@@ -625,6 +625,9 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
 
   // Total kms today
   const totalKmToday = useMemo(() => {
+    if (roadRoute && roadRoute.key === roadRouteKey && roadRoute.meters > 0) {
+      return roadRoute.meters / 1000;
+    }
     if (routeCoords.length < 2) return 0;
     let sum = 0;
     for (let i = 1; i < routeCoords.length; i += 1) {
@@ -634,7 +637,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
       if (d != null) sum += d;
     }
     return sum / 1000;
-  }, [routeCoords]);
+  }, [routeCoords, roadRoute, roadRouteKey]);
 
   // Check-in / Check-out dialogs
   const [checkInOpen, setCheckInOpen] = useState(false);
