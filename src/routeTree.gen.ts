@@ -86,6 +86,7 @@ import { Route as AdminInventoryDemandsRouteImport } from './routes/admin.invent
 import { Route as AdminInventoryDashboardRouteImport } from './routes/admin.inventory.dashboard'
 import { Route as AdminInventoryCollectionsRouteImport } from './routes/admin.inventory.collections'
 import { Route as AdminInventoryCapsRouteImport } from './routes/admin.inventory.caps'
+import { Route as AdminFieldSenseTeamRouteImport } from './routes/admin.field-sense.team'
 import { Route as AdminCustomersUnitManagerRouteImport } from './routes/admin.customers.unit-manager'
 import { Route as AdminCustomersStateManagerRouteImport } from './routes/admin.customers.state-manager'
 import { Route as AdminCustomersCustomerManagerRouteImport } from './routes/admin.customers.customer-manager'
@@ -501,6 +502,11 @@ const AdminInventoryCapsRoute = AdminInventoryCapsRouteImport.update({
   path: '/caps',
   getParentRoute: () => AdminInventoryRoute,
 } as any)
+const AdminFieldSenseTeamRoute = AdminFieldSenseTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AdminFieldSenseRoute,
+} as any)
 const AdminCustomersUnitManagerRoute =
   AdminCustomersUnitManagerRouteImport.update({
     id: '/unit-manager',
@@ -633,6 +639,7 @@ export interface FileRoutesByFullPath {
   '/admin/customers/customer-manager': typeof AdminCustomersCustomerManagerRoute
   '/admin/customers/state-manager': typeof AdminCustomersStateManagerRoute
   '/admin/customers/unit-manager': typeof AdminCustomersUnitManagerRoute
+  '/admin/field-sense/team': typeof AdminFieldSenseTeamRoute
   '/admin/inventory/caps': typeof AdminInventoryCapsRoute
   '/admin/inventory/collections': typeof AdminInventoryCollectionsRoute
   '/admin/inventory/dashboard': typeof AdminInventoryDashboardRoute
@@ -722,6 +729,7 @@ export interface FileRoutesByTo {
   '/admin/customers/customer-manager': typeof AdminCustomersCustomerManagerRoute
   '/admin/customers/state-manager': typeof AdminCustomersStateManagerRoute
   '/admin/customers/unit-manager': typeof AdminCustomersUnitManagerRoute
+  '/admin/field-sense/team': typeof AdminFieldSenseTeamRoute
   '/admin/inventory/caps': typeof AdminInventoryCapsRoute
   '/admin/inventory/collections': typeof AdminInventoryCollectionsRoute
   '/admin/inventory/dashboard': typeof AdminInventoryDashboardRoute
@@ -815,6 +823,7 @@ export interface FileRoutesById {
   '/admin/customers/customer-manager': typeof AdminCustomersCustomerManagerRoute
   '/admin/customers/state-manager': typeof AdminCustomersStateManagerRoute
   '/admin/customers/unit-manager': typeof AdminCustomersUnitManagerRoute
+  '/admin/field-sense/team': typeof AdminFieldSenseTeamRoute
   '/admin/inventory/caps': typeof AdminInventoryCapsRoute
   '/admin/inventory/collections': typeof AdminInventoryCollectionsRoute
   '/admin/inventory/dashboard': typeof AdminInventoryDashboardRoute
@@ -909,6 +918,7 @@ export interface FileRouteTypes {
     | '/admin/customers/customer-manager'
     | '/admin/customers/state-manager'
     | '/admin/customers/unit-manager'
+    | '/admin/field-sense/team'
     | '/admin/inventory/caps'
     | '/admin/inventory/collections'
     | '/admin/inventory/dashboard'
@@ -998,6 +1008,7 @@ export interface FileRouteTypes {
     | '/admin/customers/customer-manager'
     | '/admin/customers/state-manager'
     | '/admin/customers/unit-manager'
+    | '/admin/field-sense/team'
     | '/admin/inventory/caps'
     | '/admin/inventory/collections'
     | '/admin/inventory/dashboard'
@@ -1090,6 +1101,7 @@ export interface FileRouteTypes {
     | '/admin/customers/customer-manager'
     | '/admin/customers/state-manager'
     | '/admin/customers/unit-manager'
+    | '/admin/field-sense/team'
     | '/admin/inventory/caps'
     | '/admin/inventory/collections'
     | '/admin/inventory/dashboard'
@@ -1676,6 +1688,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInventoryCapsRouteImport
       parentRoute: typeof AdminInventoryRoute
     }
+    '/admin/field-sense/team': {
+      id: '/admin/field-sense/team'
+      path: '/team'
+      fullPath: '/admin/field-sense/team'
+      preLoaderRoute: typeof AdminFieldSenseTeamRouteImport
+      parentRoute: typeof AdminFieldSenseRoute
+    }
     '/admin/customers/unit-manager': {
       id: '/admin/customers/unit-manager'
       path: '/unit-manager'
@@ -1819,10 +1838,12 @@ const AdminCustomersRouteWithChildren = AdminCustomersRoute._addFileChildren(
 )
 
 interface AdminFieldSenseRouteChildren {
+  AdminFieldSenseTeamRoute: typeof AdminFieldSenseTeamRoute
   AdminFieldSenseOfficerIdRoute: typeof AdminFieldSenseOfficerIdRoute
 }
 
 const AdminFieldSenseRouteChildren: AdminFieldSenseRouteChildren = {
+  AdminFieldSenseTeamRoute: AdminFieldSenseTeamRoute,
   AdminFieldSenseOfficerIdRoute: AdminFieldSenseOfficerIdRoute,
 }
 

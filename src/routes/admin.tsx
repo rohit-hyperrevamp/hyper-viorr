@@ -161,6 +161,12 @@ const payrollChildren: LeafItem[] = [
   { to: "/admin/deductions", label: "Deductions", icon: Wallet, search: { mode: "list" } },
 ];
 
+const fieldSenseChildren: LeafItem[] = [
+  { to: "/admin/field-sense", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/admin/field-sense/team", label: "My Team", icon: Users },
+];
+
+
 function maskPhone(phone: string) {
   const d = phone.replace(/\D/g, "");
   return `+91 ••• ••• ${d.slice(-4)}`;
