@@ -302,11 +302,13 @@ function MusterRollPage() {
             role_key: (c.role_key || "").toLowerCase(),
           };
         })
-        .sort((a, b) => {
-          // Billable guards first, non-billable (FOs etc) after
-          if (a.is_non_billable !== b.is_non_billable) return a.is_non_billable ? 1 : -1;
-          return (a.employee_code || a.full_name).localeCompare(b.employee_code || b.full_name);
-        });
+        // Muster rolls are billable-only. Non-billable staff (field officers,
+        // branch managers, HR, etc.) never belong on a unit's Form XVI — their
+        // attendance is derived from self-attendance punches and paid from the
+        // Radiant home unit, not the client unit.
+        .filter((c) => !c.is_non_billable)
+        .sort((a, b) => (a.employee_code || a.full_name).localeCompare(b.employee_code || b.full_name));
+
 
 
       return mappedEmployees;
