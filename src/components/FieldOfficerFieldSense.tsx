@@ -469,6 +469,37 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
 
   const nextSeq = (visits[visits.length - 1]?.visit_seq ?? 0) + 1;
 
+  // Total on-duty time (mm) for the day
+  const totalMinutesOnDuty = useMemo(() => {
+    if (!punchQ.data?.check_in_at) return 0;
+    const start = new Date(punchQ.data.check_in_at).getTime();
+    const end = punchQ.data.check_out_at ? new Date(punchQ.data.check_out_at).getTime() : Date.now();
+    return Math.max(0, Math.round((end - start) / 60000));
+  }, [punchQ.data?.check_in_at, punchQ.data?.check_out_at]);
+
+  // Attendance checkout (from the map card)
+  const attendanceOutMut = useMutation({
+    mutationFn: async () => {
+      if (!punchQ.data?.id) throw new Error("No active check-in.");
+      let face = false;
+      try {
+        face = await verifyFaceForAttendance("Check out of duty");
+      } catch (err) {
+        // Face ID is optional on web — on native, verifyFaceForAttendance throws which we rethrow.
+        throw err;
+      }
+      const geo = await getCurrentPosition();
+      return await attendanceCheckOut(punchQ.data.id, geo, face);
+    },
+    onSuccess: () => {
+      toast.success("Duty ended for today");
+      void qc.invalidateQueries({ queryKey: ["fo-fs-punch", candidateId, todayPunchDate()] });
+      void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Check-out failed"),
+  });
+
+
   return (
     <div className="space-y-4">
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>
