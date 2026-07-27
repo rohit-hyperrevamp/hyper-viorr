@@ -142,6 +142,9 @@ export function AdminFieldOfficerUnitsCard() {
     return m;
   }, [reqQ.data]);
 
+  const statusLabel = (s: FieldVisitRequest["status"]) =>
+    s === "in_progress" ? "In progress" : s === "acknowledged" ? "Acknowledged" : "Sent";
+
   const toggle = (id: string) =>
     setExpanded((prev) => {
       const s = new Set(prev);
