@@ -390,11 +390,11 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     if (!mapReady || !mapRef.current || !LRef.current || !snappedPosition) return;
     const L = LRef.current;
     const map = mapRef.current;
-    const html = `<div style="position:relative;">
-      <div style="width:22px;height:22px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 4px 12px rgba(37,99,235,0.5);"></div>
-      <span style="position:absolute;inset:-8px;border-radius:50%;border:2px solid #2563eb;opacity:0.5;animation:fs-ping 1.6s ease-out infinite;"></span>
+    const html = `<div style="position:relative;display:flex;align-items:center;justify-content:center;">
+      <div style="width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid #2563eb;box-shadow:0 4px 14px rgba(37,99,235,0.55);display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;">🏍️</div>
+      <span style="position:absolute;inset:-6px;border-radius:50%;border:2px solid #2563eb;opacity:0.45;animation:fs-ping 1.6s ease-out infinite;"></span>
     </div>`;
-    const icon = L.divIcon({ className: "fo-fs-me-pin", html, iconSize: [22, 22], iconAnchor: [11, 11] });
+    const icon = L.divIcon({ className: "fo-fs-me-pin", html, iconSize: [36, 36], iconAnchor: [18, 18] });
     if (meMarkerRef.current) {
       meMarkerRef.current.setLatLng([snappedPosition.lat, snappedPosition.lng]);
     } else {
