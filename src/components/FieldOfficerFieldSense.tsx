@@ -313,8 +313,9 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
   );
   const snappedPosition = useMemo(() => unitGeo(openVisitUnit) ?? pos, [openVisitUnit, pos]);
 
-  // Initial geolocation + polling for telemetry + track points
+  // Initial geolocation + polling for telemetry + track points (live only)
   useEffect(() => {
+    if (isHistorical) return;
     let cancelled = false;
     let timer: number | null = null;
 
