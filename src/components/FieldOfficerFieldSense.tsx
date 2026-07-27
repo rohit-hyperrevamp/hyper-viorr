@@ -390,11 +390,11 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     if (!mapReady || !mapRef.current || !LRef.current || !snappedPosition) return;
     const L = LRef.current;
     const map = mapRef.current;
-    const html = `<div style="position:relative;">
-      <div style="width:22px;height:22px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 4px 12px rgba(37,99,235,0.5);"></div>
-      <span style="position:absolute;inset:-8px;border-radius:50%;border:2px solid #2563eb;opacity:0.5;animation:fs-ping 1.6s ease-out infinite;"></span>
+    const html = `<div style="position:relative;display:flex;align-items:center;justify-content:center;">
+      <div style="width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid #2563eb;box-shadow:0 4px 14px rgba(37,99,235,0.55);display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;">🏍️</div>
+      <span style="position:absolute;inset:-6px;border-radius:50%;border:2px solid #2563eb;opacity:0.45;animation:fs-ping 1.6s ease-out infinite;"></span>
     </div>`;
-    const icon = L.divIcon({ className: "fo-fs-me-pin", html, iconSize: [22, 22], iconAnchor: [11, 11] });
+    const icon = L.divIcon({ className: "fo-fs-me-pin", html, iconSize: [36, 36], iconAnchor: [18, 18] });
     if (meMarkerRef.current) {
       meMarkerRef.current.setLatLng([snappedPosition.lat, snappedPosition.lng]);
     } else {
@@ -462,6 +462,37 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     return points;
   }, [isOnDuty, punchQ.data, snappedPosition, track, units, visits]);
 
+  // Road-following bike route (OSRM public cycling profile).
+  // Snaps waypoints to actual roads so the polyline follows streets instead of
+  // drawing straight aerial lines, and returns realistic riding distance.
+  const [roadRoute, setRoadRoute] = useState<{ key: string; coords: Array<[number, number]>; meters: number } | null>(null);
+  const roadRouteKey = useMemo(
+    () => routeCoords.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join("|"),
+    [routeCoords],
+  );
+  useEffect(() => {
+    if (routeCoords.length < 2) { setRoadRoute(null); return; }
+    let cancelled = false;
+    const coordsParam = routeCoords.map((p) => `${p.lng},${p.lat}`).join(";");
+    const url = `https://router.project-osrm.org/route/v1/cycling/${coordsParam}?overview=full&geometries=geojson`;
+    (async () => {
+      try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`OSRM ${r.status}`);
+        const j: any = await r.json();
+        const route = j?.routes?.[0];
+        if (!route?.geometry?.coordinates?.length) throw new Error("no route");
+        const coords: Array<[number, number]> = route.geometry.coordinates.map(
+          (c: [number, number]) => [c[1], c[0]],
+        );
+        if (!cancelled) setRoadRoute({ key: roadRouteKey, coords, meters: Number(route.distance) || 0 });
+      } catch {
+        if (!cancelled) setRoadRoute(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [roadRouteKey, routeCoords]);
+
   // Sync complete route polyline: attendance start → site 1 → site 2 → current/checkout.
   useEffect(() => {
     if (!mapReady || !mapRef.current || !LRef.current) return;
@@ -479,7 +510,11 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
 
     const coords: Array<[number, number]> = routeCoords.map((point) => [point.lat, point.lng]);
     if (coords.length < 2) return;
-    trackLineRef.current = L.polyline(coords, {
+    const drawCoords: Array<[number, number]> =
+      roadRoute && roadRoute.key === roadRouteKey && roadRoute.coords.length >= 2
+        ? roadRoute.coords
+        : coords;
+    trackLineRef.current = L.polyline(drawCoords, {
       color: "#2563eb",
       weight: 5,
       opacity: 0.9,
@@ -516,7 +551,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
         /* noop */
       }
     }
-  }, [routeCoords, mapReady]);
+  }, [routeCoords, mapReady, roadRoute, roadRouteKey]);
 
   // Active-visit route: check-in origin → current position → destination unit.
   // Simulates a live navigation trail so the FO can see the intended route + km to destination.
@@ -590,6 +625,9 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
 
   // Total kms today
   const totalKmToday = useMemo(() => {
+    if (roadRoute && roadRoute.key === roadRouteKey && roadRoute.meters > 0) {
+      return roadRoute.meters / 1000;
+    }
     if (routeCoords.length < 2) return 0;
     let sum = 0;
     for (let i = 1; i < routeCoords.length; i += 1) {
@@ -599,7 +637,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
       if (d != null) sum += d;
     }
     return sum / 1000;
-  }, [routeCoords]);
+  }, [routeCoords, roadRoute, roadRouteKey]);
 
   // Check-in / Check-out dialogs
   const [checkInOpen, setCheckInOpen] = useState(false);
