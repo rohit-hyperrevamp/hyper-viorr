@@ -1345,18 +1345,20 @@ nav[data-bottom-nav]::after {
 @media (max-width: 1023px) {
   html:has(nav[data-bottom-nav]),
   body:has(nav[data-bottom-nav]) {
-    height: 100dvh;
+    min-height: 100dvh;
     background: var(--background);
-    overflow: hidden !important;
-    overscroll-behavior: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
   }
   body:has(nav[data-bottom-nav]) #root {
-    height: 100dvh;
+    min-height: 100dvh;
     background: var(--background);
-    overflow: hidden !important;
+    overflow-x: clip;
+    overflow-y: visible;
   }
   [data-admin-scroll] {
-    overscroll-behavior: contain;
+    overscroll-behavior-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 }
