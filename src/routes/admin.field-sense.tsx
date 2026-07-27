@@ -10,6 +10,12 @@ import { FieldOfficerFieldSense } from "@/components/FieldOfficerFieldSense";
 
 export const Route = createFileRoute("/admin/field-sense")({
   component: FieldSensePage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    range: (search.range as string | undefined) ?? undefined,
+    start: (search.start as string | undefined) ?? undefined,
+    end: (search.end as string | undefined) ?? undefined,
+    highlight: (search.highlight as string | undefined) ?? undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Field Sense — Live field officers on India map" },
