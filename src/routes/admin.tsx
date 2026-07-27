@@ -162,10 +162,10 @@ const payrollChildren: LeafItem[] = [
 ];
 
 const fieldSenseChildren: LeafItem[] = [
-  { to: "/admin/field-sense", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/field-sense/team", label: "Day Patrol", icon: Users },
-  { to: "/admin/field-sense/expenses", label: "Expense Manager", icon: Wallet },
-  { to: "/admin/field-sense/reports", label: "Reports", icon: FileText },
+  { to: "/admin/field-sense", label: "Dashboard", icon: LayoutDashboard, sub: "dashboard" },
+  { to: "/admin/field-sense/team", label: "Day Patrol", icon: Users, sub: "day_patrol" },
+  { to: "/admin/field-sense/expenses", label: "Expense Manager", icon: Wallet, sub: "expense_manager" },
+  { to: "/admin/field-sense/reports", label: "Reports", icon: FileText, sub: "reports" },
 ];
 
 
