@@ -411,7 +411,7 @@ function FieldSenseLeaderboards() {
     queryKey: ["field-sense-lb", resolved.start, resolved.end],
     staleTime: 30_000,
     queryFn: async () => {
-      const [foRes, visitsRes, tracksRes, unitsRes, custRes] = await Promise.all([
+      const [foRes, visitsRes, tracksRes, unitsRes, custRes, punchesRes] = await Promise.all([
         supabase
           .from("candidates" as never)
           .select("id, full_name, employee_code")
@@ -419,7 +419,7 @@ function FieldSenseLeaderboards() {
           .in("status", ["approved", "active"]),
         supabase
           .from("field_visits" as never)
-          .select("candidate_id, unit_id, customer_rating, check_out_at")
+          .select("candidate_id, unit_id, customer_rating, check_in_at, check_in_lat, check_in_lng, check_out_at")
           .gte("visit_date", resolved.start)
           .lte("visit_date", resolved.end)
           .not("check_out_at", "is", null),
@@ -429,8 +429,13 @@ function FieldSenseLeaderboards() {
           .gte("track_date", resolved.start)
           .lte("track_date", resolved.end)
           .order("recorded_at", { ascending: true }),
-        supabase.from("units" as never).select("id, name, customer_id"),
+        supabase.from("units" as never).select("id, name, customer_id, latitude, longitude"),
         supabase.from("customers" as never).select("id, name"),
+        supabase
+          .from("self_attendance_punches" as never)
+          .select("candidate_id, punch_date, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng")
+          .gte("punch_date", resolved.start)
+          .lte("punch_date", resolved.end),
       ]);
 
       const fos = ((foRes.data ?? []) as unknown) as Array<{ id: string; full_name: string; employee_code: string | null }>;
