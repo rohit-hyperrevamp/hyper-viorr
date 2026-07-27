@@ -55,6 +55,7 @@ type FoRow = { id: string; full_name: string; employee_code: string | null };
 type PunchRow = {
   candidate_id: string;
   punch_date: string;
+  distance_km: number | string | null;
   check_in_at: string | null;
   check_in_lat: number | string | null;
   check_in_lng: number | string | null;
