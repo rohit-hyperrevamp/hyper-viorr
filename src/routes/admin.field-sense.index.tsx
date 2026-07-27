@@ -677,32 +677,6 @@ function FieldSenseLeaderboards() {
               })}
               emptyLabel="No units visited in range."
             />
-            <Leaderboard
-              title="Customers · Most visited"
-              tone="emerald"
-              rows={custDesc}
-              render={(r) => ({
-                key: r.customer_id,
-                primary: r.customer_name,
-                secondary: "",
-                metric: `${r.visits}`,
-                metricLabel: r.visits === 1 ? "visit" : "visits",
-              })}
-              emptyLabel="No customer visits in range."
-            />
-            <Leaderboard
-              title="Customers · Least visited"
-              tone="violet"
-              rows={custAsc}
-              render={(r) => ({
-                key: r.customer_id,
-                primary: r.customer_name,
-                secondary: "",
-                metric: `${r.visits}`,
-                metricLabel: r.visits === 1 ? "visit" : "visits",
-              })}
-              emptyLabel="No customer visits in range."
-            />
           </div>
         </>
       )}
