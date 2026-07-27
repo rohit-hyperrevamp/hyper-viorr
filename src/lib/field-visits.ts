@@ -47,6 +47,93 @@ function firstOfMonth(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-01`;
 }
 
+// ----------------- Date range presets -----------------
+export type RangePreset =
+  | "today"
+  | "yesterday"
+  | "this_week"
+  | "this_month"
+  | "last_month"
+  | "last_quarter"
+  | "custom";
+
+export const RANGE_PRESETS: { value: RangePreset; label: string }[] = [
+  { value: "today", label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "this_week", label: "This week" },
+  { value: "this_month", label: "This month" },
+  { value: "last_month", label: "Last month" },
+  { value: "last_quarter", label: "Last quarter" },
+  { value: "custom", label: "Custom range" },
+];
+
+export function resolveRange(
+  preset: RangePreset,
+  customStart?: string | null,
+  customEnd?: string | null,
+): { start: string; end: string; label: string; preset: RangePreset } {
+  const now = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  const iso = (d: Date) => `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  const td = iso(now);
+  switch (preset) {
+    case "today":
+      return { start: td, end: td, label: "Today", preset };
+    case "yesterday": {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      return { start: iso(y), end: iso(y), label: "Yesterday", preset };
+    }
+    case "this_week": {
+      const d = new Date(now);
+      const dow = (d.getDay() + 6) % 7;
+      d.setDate(d.getDate() - dow);
+      return { start: iso(d), end: td, label: "This week", preset };
+    }
+    case "this_month": {
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { start: iso(s), end: td, label: "This month", preset };
+    }
+    case "last_month": {
+      const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const e = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { start: iso(s), end: iso(e), label: "Last month", preset };
+    }
+    case "last_quarter": {
+      const q = Math.floor(now.getMonth() / 3);
+      const startMonth = q === 0 ? 9 : (q - 1) * 3;
+      const year = q === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      const s = new Date(year, startMonth, 1);
+      const e = new Date(year, startMonth + 3, 0);
+      return { start: iso(s), end: iso(e), label: "Last quarter", preset };
+    }
+    case "custom":
+      return {
+        start: customStart || td,
+        end: customEnd || td,
+        label: "Custom range",
+        preset,
+      };
+  }
+}
+
+export async function fetchVisitsInRange(
+  candidateId: string,
+  start: string,
+  end: string,
+): Promise<FieldVisit[]> {
+  const { data, error } = await supabase
+    .from("field_visits" as never)
+    .select("*")
+    .eq("candidate_id", candidateId)
+    .gte("visit_date", start)
+    .lte("visit_date", end)
+    .order("visit_date", { ascending: false })
+    .order("visit_seq", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as FieldVisit[];
+}
+
 export async function fetchTodayVisits(candidateId: string): Promise<FieldVisit[]> {
   const { data, error } = await supabase
     .from("field_visits" as never)
