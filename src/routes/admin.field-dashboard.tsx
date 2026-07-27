@@ -469,26 +469,18 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
     const p = (n: number) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   })();
+  const firstOfMonth = `${todayStr.slice(0, 8)}01`;
 
   const q = useQuery({
-    queryKey: ["fo-dashboard-visits", candidateId, todayStr],
+    queryKey: ["fo-dashboard-visits-v2", candidateId, todayStr],
     queryFn: async () => {
-      const first = `${todayStr.slice(0, 8)}01`;
-      const [monthRes, lastRes, punchRes, trackRes] = await Promise.all([
+      const [monthVisitsRes, punchRes, trackRes, unitsRes, cuRes, esaRes, allUnitsRes, custRes] = await Promise.all([
         supabase
           .from("field_visits" as never)
-          .select("id", { count: "exact", head: true })
+          .select("id, unit_id, customer_rating, check_out_at")
           .eq("candidate_id", candidateId)
-          .gte("visit_date", first)
+          .gte("visit_date", firstOfMonth)
           .not("check_out_at", "is", null),
-        supabase
-          .from("field_visits" as never)
-          .select("check_out_at, unit_id")
-          .eq("candidate_id", candidateId)
-          .not("check_out_at", "is", null)
-          .order("check_out_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
         supabase
           .from("self_attendance_punches" as never)
           .select("check_in_at, check_out_at")
@@ -501,28 +493,92 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
           .eq("candidate_id", candidateId)
           .eq("track_date", todayStr)
           .order("recorded_at", { ascending: true }),
+        supabase
+          .from("candidates" as never)
+          .select("unit_id")
+          .eq("id", candidateId)
+          .maybeSingle(),
+        supabase.from("candidate_units").select("unit_id").eq("candidate_id", candidateId),
+        supabase
+          .from("employee_scope_assignments")
+          .select("scope_id,scope_type")
+          .eq("candidate_id", candidateId),
+        supabase.from("units").select("id, name, customer_id, branch_id"),
+        supabase.from("customers").select("id, name"),
       ]);
       return {
-        monthCount: monthRes.count ?? 0,
-        last: (lastRes.data as { check_out_at: string; unit_id: string } | null) ?? null,
+        visits: (monthVisitsRes.data ?? []) as Array<{
+          id: string;
+          unit_id: string;
+          customer_rating: number | null;
+          check_out_at: string | null;
+        }>,
         punch: (punchRes.data as { check_in_at: string | null; check_out_at: string | null } | null) ?? null,
         track: ((trackRes.data as unknown) as Array<{ lat: number; lng: number }>) ?? [],
+        candUnit: ((unitsRes.data as unknown) as { unit_id: string | null } | null)?.unit_id ?? null,
+        cu: (cuRes.data ?? []) as Array<{ unit_id: string }>,
+        esa: (esaRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>,
+        allUnits: (allUnitsRes.data ?? []) as Array<{
+          id: string;
+          name: string;
+          customer_id: string | null;
+          branch_id: string | null;
+        }>,
+        customers: (custRes.data ?? []) as Array<{ id: string; name: string }>,
       };
     },
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
-  const monthCount = q.data?.monthCount ?? 0;
-  const last = q.data?.last?.check_out_at ?? null;
-  const lastLabel = (() => {
-    if (!last) return "—";
-    const s = Math.round((Date.now() - new Date(last).getTime()) / 1000);
-    if (s < 3600) return `${Math.max(1, Math.round(s / 60))}m ago`;
-    if (s < 86400) return `${Math.round(s / 3600)}h ago`;
-    return `${Math.round(s / 86400)}d ago`;
-  })();
 
-  // Hours on duty today
+  const custMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of q.data?.customers ?? []) m.set(c.id, c.name);
+    return m;
+  }, [q.data?.customers]);
+
+  const scopedUnits = useMemo(() => {
+    if (!q.data) return [] as Array<{ id: string; name: string; customer_name: string }>;
+    const ids = new Set<string>();
+    if (q.data.candUnit) ids.add(q.data.candUnit);
+    for (const r of q.data.cu) ids.add(r.unit_id);
+    const branchIds = new Set<string>();
+    const custIds = new Set<string>();
+    for (const s of q.data.esa) {
+      if (s.scope_type === "unit") ids.add(s.scope_id);
+      else if (s.scope_type === "branch") branchIds.add(s.scope_id);
+      else if (s.scope_type === "customer") custIds.add(s.scope_id);
+    }
+    for (const u of q.data.allUnits) {
+      if ((u.branch_id && branchIds.has(u.branch_id)) || (u.customer_id && custIds.has(u.customer_id))) {
+        ids.add(u.id);
+      }
+    }
+    return q.data.allUnits
+      .filter((u) => ids.has(u.id))
+      .map((u) => ({
+        id: u.id,
+        name: u.name,
+        customer_name: (u.customer_id && custMap.get(u.customer_id)) || u.name,
+      }));
+  }, [q.data, custMap]);
+
+  const visits = q.data?.visits ?? [];
+  const monthCount = visits.length;
+  const rated = visits.filter((v) => v.customer_rating != null);
+  const avgRating = rated.length
+    ? rated.reduce((s, v) => s + (v.customer_rating ?? 0), 0) / rated.length
+    : 0;
+
+  const perUnit = new Map<string, number>();
+  for (const v of visits) perUnit.set(v.unit_id, (perUnit.get(v.unit_id) ?? 0) + 1);
+  const scopedCounts = scopedUnits.map((u) => ({ u, count: perUnit.get(u.id) ?? 0 }));
+  const visited = scopedCounts.filter((r) => r.count > 0);
+  const most = visited.length ? [...visited].sort((a, b) => b.count - a.count)[0] : null;
+  const least = visited.length ? [...visited].sort((a, b) => a.count - b.count)[0] : null;
+  const unvisitedCount = scopedCounts.filter((r) => r.count === 0).length;
+
+  // Hours today
   const hoursLabel = (() => {
     const p = q.data?.punch;
     if (!p?.check_in_at) return "—";
@@ -531,8 +587,7 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
     const mins = Math.max(0, Math.round((end - start) / 60000));
     return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   })();
-
-  // Km traveled today (Haversine over track points)
+  // Km traveled today
   const kmLabel = (() => {
     const pts = q.data?.track ?? [];
     if (pts.length < 2) return "0.00";
@@ -551,6 +606,8 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
     return (m / 1000).toFixed(2);
   })();
 
+  const monthLink = { to: "/admin/field-sense", search: { range: "this_month" } } as const;
+
   return (
     <section>
       <div className="mb-2 flex items-end justify-between sm:mb-3">
@@ -562,34 +619,77 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
           Open Field Sense →
         </Link>
       </div>
+
+      {/* Today strip */}
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-4">
         <Link
           to="/admin/field-sense"
+          search={{ range: "today" }}
           className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-sky-200/60"
-        >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Last visit</div>
-          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{lastLabel}</div>
-        </Link>
-        <Link
-          to="/admin/field-sense"
-          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-emerald-200/60"
-        >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Visits this month</div>
-          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{monthCount}</div>
-        </Link>
-        <Link
-          to="/admin/field-sense"
-          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-amber-200/60"
         >
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Hours today</div>
           <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{hoursLabel}</div>
         </Link>
         <Link
           to="/admin/field-sense"
+          search={{ range: "today" }}
           className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-violet-200/60"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Km traveled</div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Km today</div>
           <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{kmLabel}</div>
+        </Link>
+        <Link
+          {...monthLink}
+          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-emerald-200/60"
+        >
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Visits this month</div>
+          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{monthCount}</div>
+        </Link>
+        <Link
+          {...monthLink}
+          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-amber-200/60"
+        >
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Client rating (mo)</div>
+          <div className="mt-1 inline-flex items-baseline gap-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">
+            {rated.length ? avgRating.toFixed(1) : "—"}
+            {rated.length ? <span className="text-amber-500">★</span> : null}
+          </div>
+          <div className="text-[10px] text-muted-foreground">{rated.length} rated</div>
+        </Link>
+      </div>
+
+      {/* Client insights this month */}
+      <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-4">
+        <Link
+          to="/admin/field-sense"
+          search={{ range: "this_month", highlight: "most" }}
+          className="group rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-emerald-200/60"
+        >
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Most visited (mo)</div>
+          <div className="mt-1 truncate text-sm font-semibold text-foreground">{most?.u.customer_name ?? "—"}</div>
+          <div className="text-[11px] text-muted-foreground">
+            {most ? `${most.count} visit${most.count === 1 ? "" : "s"}` : "no visits yet"}
+          </div>
+        </Link>
+        <Link
+          to="/admin/field-sense"
+          search={{ range: "this_month", highlight: "least" }}
+          className="group rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-rose-200/60"
+        >
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Least visited (mo)</div>
+          <div className="mt-1 truncate text-sm font-semibold text-foreground">{least?.u.customer_name ?? "—"}</div>
+          <div className="text-[11px] text-muted-foreground">
+            {least ? `${least.count} visit${least.count === 1 ? "" : "s"}` : "no visits yet"}
+          </div>
+        </Link>
+        <Link
+          to="/admin/field-sense"
+          search={{ range: "this_month", highlight: "unvisited" }}
+          className="group rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-slate-200/60"
+        >
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Not visited (mo)</div>
+          <div className="mt-1 font-display text-xl font-bold tabular-nums text-foreground">{unvisitedCount}</div>
+          <div className="text-[11px] text-muted-foreground">of {scopedUnits.length} units</div>
         </Link>
       </div>
     </section>
