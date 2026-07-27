@@ -1024,6 +1024,14 @@ function CheckInDialog({
           });
         } catch { /* noop */ }
       }
+      // Auto-complete any open admin request for this FO+unit
+      try {
+        await completeFieldVisitRequestForUnit({
+          candidateId,
+          unitId: selectedId,
+          visitId: visit.id,
+        });
+      } catch { /* noop */ }
     },
     onSuccess: () => {
       toast.success("Checked in");
