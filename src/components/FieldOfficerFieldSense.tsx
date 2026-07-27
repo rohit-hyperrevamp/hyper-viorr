@@ -4,14 +4,19 @@ import { toast } from "sonner";
 import {
   Camera,
   CheckCircle2,
+  Clock,
+  Flag,
+  LogOut,
   Loader2,
   Map as MapIcon,
   MapPin,
   Navigation,
+  Route as RouteIcon,
   Satellite,
   Star,
   X,
 } from "lucide-react";
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -20,7 +25,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { SignaturePad } from "@/components/SignaturePad";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { capturePhoto } from "@/lib/native-camera";
+import { isNativePlatform } from "@/lib/native";
 import {
+  checkOut as attendanceCheckOut,
   distanceMeters,
   formatDistance,
   getCurrentPosition,
@@ -28,6 +36,7 @@ import {
   pushTelemetry,
   readBattery,
   readNetworkType,
+  verifyFaceForAttendance,
   type Geo,
 } from "@/lib/self-attendance";
 import {
@@ -43,6 +52,7 @@ import {
   uploadVisitProof,
   type FieldVisit,
 } from "@/lib/field-visits";
+
 
 type FoUnit = {
   unit_id: string;
@@ -464,6 +474,37 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
 
   const nextSeq = (visits[visits.length - 1]?.visit_seq ?? 0) + 1;
 
+  // Total on-duty time (mm) for the day
+  const totalMinutesOnDuty = useMemo(() => {
+    if (!punchQ.data?.check_in_at) return 0;
+    const start = new Date(punchQ.data.check_in_at).getTime();
+    const end = punchQ.data.check_out_at ? new Date(punchQ.data.check_out_at).getTime() : Date.now();
+    return Math.max(0, Math.round((end - start) / 60000));
+  }, [punchQ.data?.check_in_at, punchQ.data?.check_out_at]);
+
+  // Attendance checkout (from the map card)
+  const attendanceOutMut = useMutation({
+    mutationFn: async () => {
+      if (!punchQ.data?.id) throw new Error("No active check-in.");
+      let face = false;
+      try {
+        face = await verifyFaceForAttendance("Check out of duty");
+      } catch (err) {
+        // Face ID is optional on web — on native, verifyFaceForAttendance throws which we rethrow.
+        throw err;
+      }
+      const geo = await getCurrentPosition();
+      return await attendanceCheckOut(punchQ.data.id, geo, face);
+    },
+    onSuccess: () => {
+      toast.success("Duty ended for today");
+      void qc.invalidateQueries({ queryKey: ["fo-fs-punch", candidateId, todayPunchDate()] });
+      void qc.invalidateQueries({ queryKey: ["self-attendance-today", candidateId] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Check-out failed"),
+  });
+
+
   return (
     <div className="space-y-4">
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>
@@ -522,35 +563,73 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
         )}
       </div>
 
-      {/* Map view toggle + map */}
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
-        <div className="flex items-center justify-between border-b border-border/50 px-3 py-2">
-          <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Live map</div>
-          <div className="inline-flex rounded-lg border border-border/60 bg-background p-0.5 text-[11px] font-semibold">
-            <button
-              type="button"
-              onClick={() => setMapKind("street")}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2 py-1",
-                mapKind === "street" ? "bg-foreground text-background" : "text-muted-foreground",
-              )}
-            >
-              <MapIcon className="h-3 w-3" /> Map
-            </button>
-            <button
-              type="button"
-              onClick={() => setMapKind("satellite")}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2 py-1",
-                mapKind === "satellite" ? "bg-foreground text-background" : "text-muted-foreground",
-              )}
-            >
-              <Satellite className="h-3 w-3" /> Satellite
-            </button>
+      {/* Map + Timeline side-by-side (stacks on mobile) */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr,340px]">
+        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-border/50 px-3 py-2">
+            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Live map</div>
+            <div className="inline-flex rounded-lg border border-border/60 bg-background p-0.5 text-[11px] font-semibold">
+              <button
+                type="button"
+                onClick={() => setMapKind("street")}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-1",
+                  mapKind === "street" ? "bg-foreground text-background" : "text-muted-foreground",
+                )}
+              >
+                <MapIcon className="h-3 w-3" /> Map
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapKind("satellite")}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-1",
+                  mapKind === "satellite" ? "bg-foreground text-background" : "text-muted-foreground",
+                )}
+              >
+                <Satellite className="h-3 w-3" /> Satellite
+              </button>
+            </div>
+          </div>
+          <div ref={mapEl} style={{ height: "480px", width: "100%" }} />
+          {/* KPI strip under the map */}
+          <div className="grid grid-cols-3 divide-x divide-border/50 border-t border-border/50 bg-background/40 text-center">
+            <div className="px-2 py-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Visits</div>
+              <div className="text-sm font-bold text-foreground">{completedCount}{openVisit ? ` +1` : ""}</div>
+            </div>
+            <div className="px-2 py-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Distance</div>
+              <div className="text-sm font-bold text-foreground">{totalKmToday.toFixed(2)} km</div>
+            </div>
+            <div className="px-2 py-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">On duty</div>
+              <div className="text-sm font-bold text-foreground">
+                {isOnDuty || punchQ.data?.check_out_at
+                  ? `${Math.floor(totalMinutesOnDuty / 60)}h ${totalMinutesOnDuty % 60}m`
+                  : "—"}
+              </div>
+            </div>
           </div>
         </div>
-        <div ref={mapEl} style={{ height: "440px", width: "100%" }} />
+
+        {/* Timeline column */}
+        <FieldSenseTimeline
+          punchInAt={punchQ.data?.check_in_at ?? null}
+          punchOutAt={punchQ.data?.check_out_at ?? null}
+          visits={visits}
+          units={units}
+          openVisit={openVisit}
+          openVisitUnit={openVisitUnit}
+          distanceToDest={distanceToDest}
+          totalKmToday={totalKmToday}
+          isOnDuty={isOnDuty}
+          onCompleteVisit={() => setCheckOutOpen(true)}
+          onCheckOutDuty={() => attendanceOutMut.mutate()}
+          checkingOutDuty={attendanceOutMut.isPending}
+        />
       </div>
+
 
       {/* Distances strip */}
       {distances.length > 0 && (
@@ -830,7 +909,7 @@ function CheckOutDialog({
   const [clientName, setClientName] = useState<string>(visit.client_name ?? "");
   const [signature, setSignature] = useState<string>("");
   const [clientPhoto, setClientPhoto] = useState<string>("");
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  // (photo capture now handled by capturePhoto helper — no hidden input needed)
 
   const missing: string[] = [];
   if (!notes.trim()) missing.push("visit notes");
@@ -874,13 +953,8 @@ function CheckOutDialog({
     },
   });
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => setClientPhoto(typeof reader.result === "string" ? reader.result : "");
-    reader.readAsDataURL(f);
-  }
+
+
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -962,21 +1036,17 @@ function CheckOutDialog({
             ) : (
               <button
                 type="button"
-                onClick={() => fileRef.current?.click()}
+                onClick={async () => {
+                  const url = await capturePhoto();
+                  if (url) setClientPhoto(url);
+                }}
                 className="flex h-32 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-secondary/30 text-sm font-semibold text-muted-foreground"
               >
-                <Camera className="h-4 w-4" /> Capture client photo
+                <Camera className="h-4 w-4" /> {isNativePlatform() ? "Open camera" : "Capture client photo"}
               </button>
             )}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFile}
-              className="hidden"
-            />
           </div>
+
 
           {missing.length > 0 && (
             <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-2 text-[11px] font-semibold text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
@@ -1003,3 +1073,201 @@ function CheckOutDialog({
 export async function resolveProofUrl(path: string | null) {
   return signedProofUrl(path);
 }
+
+// ---------------------------------------------------------------------------
+// Timeline column
+// ---------------------------------------------------------------------------
+
+function fmtTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "—";
+  }
+}
+
+function FieldSenseTimeline(props: {
+  punchInAt: string | null;
+  punchOutAt: string | null;
+  visits: FieldVisit[];
+  units: FoUnit[];
+  openVisit: FieldVisit | null;
+  openVisitUnit: FoUnit | null;
+  distanceToDest: number | null;
+  totalKmToday: number;
+  isOnDuty: boolean;
+  onCompleteVisit: () => void;
+  onCheckOutDuty: () => void;
+  checkingOutDuty: boolean;
+}) {
+  const {
+    punchInAt,
+    punchOutAt,
+    visits,
+    units,
+    openVisit,
+    openVisitUnit,
+    distanceToDest,
+    totalKmToday,
+    isOnDuty,
+    onCompleteVisit,
+    onCheckOutDuty,
+    checkingOutDuty,
+  } = props;
+
+  const unitFor = (id: string) => units.find((u) => u.unit_id === id) ?? null;
+  const completedVisits = visits.filter((v) => v.check_out_at);
+
+  return (
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+      <div className="flex items-center justify-between border-b border-border/50 px-3 py-2">
+        <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+          Today's timeline
+        </div>
+        <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
+          <RouteIcon className="h-3 w-3" /> {totalKmToday.toFixed(2)} km
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-0 overflow-y-auto px-3 py-3">
+        {/* Punch-in */}
+        <TimelineRow
+          color="emerald"
+          icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+          title="Punched in"
+          time={fmtTime(punchInAt)}
+          subtitle={punchInAt ? "Duty started" : "Not on duty yet"}
+        />
+
+        {/* Completed visits */}
+        {completedVisits.map((v) => {
+          const u = unitFor(v.unit_id);
+          return (
+            <TimelineRow
+              key={v.id}
+              color="sky"
+              icon={<Flag className="h-3.5 w-3.5" />}
+              title={`Visit #${v.visit_seq} · ${u?.unit_name ?? "Unit"}`}
+              time={`${fmtTime(v.check_in_at)} → ${fmtTime(v.check_out_at)}`}
+              subtitle={u?.address ?? u?.customer_name ?? ""}
+              chip={v.customer_rating != null ? `★ ${v.customer_rating}` : undefined}
+            />
+          );
+        })}
+
+        {/* Active visit */}
+        {openVisit && (
+          <TimelineRow
+            color="amber"
+            pulsing
+            icon={<Navigation className="h-3.5 w-3.5" />}
+            title={`In meeting · ${openVisitUnit?.unit_name ?? "Unit"}`}
+            time={`${fmtTime(openVisit.check_in_at)} · now`}
+            subtitle={
+              openVisitUnit?.address ??
+              (distanceToDest != null ? `${formatDistance(distanceToDest)} to destination` : "")
+            }
+            action={
+              <Button
+                size="sm"
+                className="mt-2 h-8 w-full rounded-lg bg-emerald-600 text-[12px] font-semibold text-white hover:bg-emerald-700"
+                onClick={onCompleteVisit}
+              >
+                Complete visit
+              </Button>
+            }
+          />
+        )}
+
+        {/* Punch-out (if done) */}
+        {punchOutAt && (
+          <TimelineRow
+            color="slate"
+            icon={<Clock className="h-3.5 w-3.5" />}
+            title="Punched out"
+            time={fmtTime(punchOutAt)}
+            subtitle="Duty ended"
+          />
+        )}
+
+        {!punchInAt && visits.length === 0 && (
+          <div className="rounded-lg border border-dashed border-border/60 p-4 text-center text-[12px] text-muted-foreground">
+            Mark your attendance to start the day.
+          </div>
+        )}
+      </div>
+
+      {/* Attendance checkout */}
+      {isOnDuty && (
+        <div className="border-t border-border/50 bg-background/40 px-3 py-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 w-full rounded-lg border-rose-200 text-[12px] font-semibold text-rose-600 hover:bg-rose-50"
+            onClick={onCheckOutDuty}
+            disabled={checkingOutDuty || !!openVisit}
+          >
+            {checkingOutDuty ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <LogOut className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            {openVisit ? "Complete visit to end duty" : "End duty & check out"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TimelineRow(props: {
+  color: "emerald" | "sky" | "amber" | "slate";
+  icon: React.ReactNode;
+  title: string;
+  time: string;
+  subtitle?: string;
+  chip?: string;
+  action?: React.ReactNode;
+  pulsing?: boolean;
+}) {
+  const { color, icon, title, time, subtitle, chip, action, pulsing } = props;
+  const dotColor: Record<typeof props.color, string> = {
+    emerald: "bg-emerald-500",
+    sky: "bg-sky-500",
+    amber: "bg-amber-500",
+    slate: "bg-slate-400",
+  };
+  return (
+    <div className="relative flex gap-3 py-2">
+      <div className="flex flex-col items-center">
+        <div
+          className={cn(
+            "flex h-6 w-6 items-center justify-center rounded-full text-white shadow-sm",
+            dotColor[color],
+            pulsing && "ring-4 ring-amber-200 animate-pulse",
+          )}
+        >
+          {icon}
+        </div>
+        <div className="mt-1 w-px flex-1 bg-border/70" />
+      </div>
+      <div className="flex-1 pb-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="text-[12.5px] font-semibold text-foreground leading-snug">{title}</div>
+          {chip && (
+            <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+              {chip}
+            </span>
+          )}
+        </div>
+        <div className="text-[11px] font-medium text-muted-foreground">{time}</div>
+        {subtitle && (
+          <div className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{subtitle}</div>
+        )}
+        {action}
+      </div>
+    </div>
+  );
+}
+
