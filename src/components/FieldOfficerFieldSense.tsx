@@ -649,23 +649,35 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     // day path remains visible, not only the active destination segment.
   }, [openVisit, openVisitUnit, snappedPosition, routeCoords, mapReady]);
 
-  // Auto-fit map bounds once when we have data
+  // Auto-fit map bounds once when we have data. Only use the actual trail
+  // (route + current position) so the map zooms tight to where the officer
+  // actually is — not to every unit on file (which would zoom way out).
   const didFitRef = useRef(false);
   useEffect(() => {
     if (didFitRef.current) return;
     if (!mapReady || !mapRef.current || !LRef.current) return;
     const L = LRef.current;
     const pts: Array<[number, number]> = routeCoords.map((point) => [point.lat, point.lng]);
-    for (const u of units) if (u.latitude != null && u.longitude != null) pts.push([Number(u.latitude), Number(u.longitude)]);
     if (snappedPosition) pts.push([snappedPosition.lat, snappedPosition.lng]);
+    // Fallback: no trail yet — fit to nearby units around the current position.
+    if (pts.length === 0 && snappedPosition) {
+      const NEAR_KM = 25;
+      for (const u of units) {
+        if (u.latitude == null || u.longitude == null) continue;
+        const d = distanceMeters(snappedPosition, { lat: Number(u.latitude), lng: Number(u.longitude) });
+        if (d != null && d / 1000 <= NEAR_KM) pts.push([Number(u.latitude), Number(u.longitude)]);
+      }
+      pts.push([snappedPosition.lat, snappedPosition.lng]);
+    }
     if (pts.length === 0) return;
     if (pts.length === 1) {
       mapRef.current.setView(pts[0], 16, { animate: true });
     } else {
-      mapRef.current.fitBounds(L.latLngBounds(pts).pad(0.15), { maxZoom: 17 });
+      mapRef.current.fitBounds(L.latLngBounds(pts).pad(0.18), { maxZoom: 16, animate: true });
     }
     didFitRef.current = true;
   }, [routeCoords, units, snappedPosition, mapReady]);
+
 
   // Distance list from current position
   const distances = useMemo(() => {
