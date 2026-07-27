@@ -9,6 +9,7 @@ import { FieldOfficerFieldSense } from "@/components/FieldOfficerFieldSense";
 import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visits";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
+import { AdminEscalationRequestsCard } from "@/components/AdminEscalationRequestsCard";
 
 
 
@@ -356,6 +357,8 @@ function AdminFieldSense() {
         <AdminVisitProgressCard />
         <AdminFieldOfficerUnitsCard />
       </div>
+
+      <AdminEscalationRequestsCard />
 
       <FieldSenseLeaderboards />
     </div>

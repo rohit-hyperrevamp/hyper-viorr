@@ -60,6 +60,7 @@ import {
 import {
   acknowledgeFieldVisitRequest,
   completeFieldVisitRequestForUnit,
+  completeFieldVisitRequestByVisit,
   listOpenRequestsForCandidate,
   type FieldVisitRequest,
 } from "@/lib/field-visit-requests";
@@ -1200,6 +1201,9 @@ function CheckOutDialog({
         clientPhotoUrl: clientPath,
         clientName: clientName.trim() || null,
       });
+      try {
+        await completeFieldVisitRequestByVisit(visit.id);
+      } catch { /* noop */ }
     },
     onSuccess: () => {
       toast.success("Visit completed");
