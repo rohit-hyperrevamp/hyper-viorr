@@ -464,15 +464,17 @@ function FoPeopleInsights() {
 }
 
 function FieldSenseSummary({ candidateId }: { candidateId: string }) {
+  const todayStr = (() => {
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  })();
+
   const q = useQuery({
-    queryKey: ["fo-dashboard-visits", candidateId],
+    queryKey: ["fo-dashboard-visits", candidateId, todayStr],
     queryFn: async () => {
-      const first = (() => {
-        const d = new Date();
-        const p = (n: number) => String(n).padStart(2, "0");
-        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-01`;
-      })();
-      const [monthRes, lastRes] = await Promise.all([
+      const first = `${todayStr.slice(0, 8)}01`;
+      const [monthRes, lastRes, punchRes, trackRes] = await Promise.all([
         supabase
           .from("field_visits" as never)
           .select("id", { count: "exact", head: true })
@@ -487,13 +489,28 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
           .order("check_out_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from("self_attendance_punches" as never)
+          .select("check_in_at, check_out_at")
+          .eq("candidate_id", candidateId)
+          .eq("punch_date", todayStr)
+          .maybeSingle(),
+        supabase
+          .from("field_track_points" as never)
+          .select("lat,lng,recorded_at")
+          .eq("candidate_id", candidateId)
+          .eq("track_date", todayStr)
+          .order("recorded_at", { ascending: true }),
       ]);
       return {
         monthCount: monthRes.count ?? 0,
         last: (lastRes.data as { check_out_at: string; unit_id: string } | null) ?? null,
+        punch: (punchRes.data as { check_in_at: string | null; check_out_at: string | null } | null) ?? null,
+        track: ((trackRes.data as unknown) as Array<{ lat: number; lng: number }>) ?? [],
       };
     },
     staleTime: 30_000,
+    refetchInterval: 60_000,
   });
   const monthCount = q.data?.monthCount ?? 0;
   const last = q.data?.last?.check_out_at ?? null;
@@ -504,6 +521,36 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
     if (s < 86400) return `${Math.round(s / 3600)}h ago`;
     return `${Math.round(s / 86400)}d ago`;
   })();
+
+  // Hours on duty today
+  const hoursLabel = (() => {
+    const p = q.data?.punch;
+    if (!p?.check_in_at) return "—";
+    const start = new Date(p.check_in_at).getTime();
+    const end = p.check_out_at ? new Date(p.check_out_at).getTime() : Date.now();
+    const mins = Math.max(0, Math.round((end - start) / 60000));
+    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  })();
+
+  // Km traveled today (Haversine over track points)
+  const kmLabel = (() => {
+    const pts = q.data?.track ?? [];
+    if (pts.length < 2) return "0.00";
+    const toRad = (x: number) => (x * Math.PI) / 180;
+    let m = 0;
+    for (let i = 1; i < pts.length; i += 1) {
+      const a = pts[i - 1];
+      const b = pts[i];
+      const dLat = toRad(Number(b.lat) - Number(a.lat));
+      const dLng = toRad(Number(b.lng) - Number(a.lng));
+      const lat1 = toRad(Number(a.lat));
+      const lat2 = toRad(Number(b.lat));
+      const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+      m += 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h)));
+    }
+    return (m / 1000).toFixed(2);
+  })();
+
   return (
     <section>
       <div className="mb-2 flex items-end justify-between sm:mb-3">
@@ -515,7 +562,7 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
           Open Field Sense →
         </Link>
       </div>
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-4">
         <Link
           to="/admin/field-sense"
           className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-sky-200/60"
@@ -529,6 +576,20 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
         >
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Visits this month</div>
           <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{monthCount}</div>
+        </Link>
+        <Link
+          to="/admin/field-sense"
+          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-amber-200/60"
+        >
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Hours today</div>
+          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{hoursLabel}</div>
+        </Link>
+        <Link
+          to="/admin/field-sense"
+          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-violet-200/60"
+        >
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Km traveled</div>
+          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{kmLabel}</div>
         </Link>
       </div>
     </section>

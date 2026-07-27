@@ -53,6 +53,12 @@
 	<string>Radiant Guard captures your live GPS location when you check in or check out for attendance.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Radiant Guard captures your live GPS location when you check in or check out for attendance.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Radiant Guard uses the camera to capture client photos during site visits.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Radiant Guard needs photo access to attach a client photo to your site visit report.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Radiant Guard may save captured client photos to your library.</string>
 
 	<key>UIBackgroundModes</key>
 	<array>

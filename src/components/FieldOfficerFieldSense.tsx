@@ -819,7 +819,8 @@ function CheckInDialog({
     mutationFn: async () => {
       if (!pos) throw new Error("Location not available.");
       if (!selectedId) throw new Error("Select a unit.");
-      await createVisit({
+      const unit = units.find((u) => u.unit_id === selectedId) ?? null;
+      const visit = await createVisit({
         candidateId,
         unitId: selectedId,
         lat: pos.lat,
@@ -829,6 +830,19 @@ function CheckInDialog({
         prevLat: prevPoint?.lat ?? null,
         prevLng: prevPoint?.lng ?? null,
       });
+      // Simulate arrival: snap a track point to the unit so the map draws the
+      // route from the previous location all the way to the site.
+      if (unit && unit.latitude != null && unit.longitude != null) {
+        try {
+          await insertTrackPoint({
+            candidateId,
+            lat: Number(unit.latitude),
+            lng: Number(unit.longitude),
+            accuracy: null,
+            visitId: visit.id,
+          });
+        } catch { /* noop */ }
+      }
     },
     onSuccess: () => {
       toast.success("Checked in");
@@ -933,10 +947,23 @@ function CheckOutDialog({
         kind: "client",
         dataUrl: clientPhoto,
       });
+      // Snap a checkout track point to the unit so the polyline closes on-site
+      // before the next segment starts.
+      if (unit && unit.latitude != null && unit.longitude != null) {
+        try {
+          await insertTrackPoint({
+            candidateId,
+            lat: Number(unit.latitude),
+            lng: Number(unit.longitude),
+            accuracy: null,
+            visitId: visit.id,
+          });
+        } catch { /* noop */ }
+      }
       await completeVisit({
         id: visit.id,
-        lat: pos.lat,
-        lng: pos.lng,
+        lat: unit?.latitude != null ? Number(unit.latitude) : pos.lat,
+        lng: unit?.longitude != null ? Number(unit.longitude) : pos.lng,
         visitNotes: notes.trim(),
         customerRating: rating,
         clientSignatureUrl: sigPath,
