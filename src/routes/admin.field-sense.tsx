@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Battery, BatteryCharging, Building2, ChevronDown, MapPin, Radio, Signal, UserCog, Wifi } from "lucide-react";
+import { Battery, BatteryCharging, Radio, Signal, Star, Wifi } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { FieldOfficerFieldSense } from "@/components/FieldOfficerFieldSense";
+import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visits";
+
 
 
 export const Route = createFileRoute("/admin/field-sense")({
@@ -348,247 +350,447 @@ function AdminFieldSense() {
       </section>
 
 
-      <OnDutyColumn
-        title="On duty — Field Officers"
-        icon={<UserCog className="h-3.5 w-3.5" />}
-        tone="sky"
-        rows={rows}
-      />
-
-      <DeploymentBreakdown role="field_officer" title="Units & Organizations by Field Officer" tone="sky" />
+      <FieldSenseLeaderboards />
     </div>
   );
 }
 
-function OnDutyColumn({
-  title,
-  icon,
-  tone,
-  rows,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  tone: "sky" | "emerald";
-  rows: LivePunch[];
-}) {
-  const accent = tone === "sky" ? "text-sky-700 dark:text-sky-300" : "text-emerald-700 dark:text-emerald-300";
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-      <div className={`mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.22em] ${accent}`}>
-        {icon}
-        {title} <span className="text-muted-foreground">({rows.length})</span>
-      </div>
-      {rows.length === 0 ? (
-        <div className="py-4 text-center text-[11px] italic text-muted-foreground">No one on duty right now.</div>
-      ) : (
-        <ul className="space-y-2">
-          {rows.map((r) => {
-            const bat = r.battery_pct;
-            const net = r.network_type;
-            const NetIcon = net === "WiFi" ? Wifi : net === "5G" || net === "4G" ? Signal : Radio;
-            return (
-              <li
-                key={r.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/60 px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-foreground">
-                    {r.candidate?.full_name ?? "—"}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">{seenLabel(r.last_seen_at)}</div>
-                </div>
-                <div className="flex items-center gap-3 text-[11px] font-bold">
-                  <span style={{ color: batteryTone(bat) }} className="inline-flex items-center gap-1">
-                    {r.battery_charging ? <BatteryCharging className="h-3.5 w-3.5" /> : <Battery className="h-3.5 w-3.5" />}
-                    {bat == null ? "n/a" : `${bat}%`}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-foreground">
-                    <NetIcon className="h-3.5 w-3.5" />
-                    {net ?? "n/a"}
-                  </span>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
-}
+// ------------------------ Leaderboards ------------------------
 
-type DeploymentPerson = {
-  id: string;
+type LbPreset = Exclude<RangePreset, "custom"> | "custom";
+
+type FoStats = {
+  candidate_id: string;
   full_name: string;
   employee_code: string | null;
-  units: Array<{ unit_id: string; unit_name: string; unit_code: string | null; customer_name: string | null; branch_name: string | null; latitude: number | null; longitude: number | null }>;
+  visits: number;
+  ratedCount: number;
+  avgRating: number | null;
+  km: number;
 };
 
-function DeploymentBreakdown({
-  role,
-  title,
-  tone,
-}: {
-  role: "field_officer" | "guard";
-  title: string;
-  tone: "sky" | "emerald";
-}) {
-  const accent = tone === "sky" ? "text-sky-700 dark:text-sky-300" : "text-emerald-700 dark:text-emerald-300";
-  const [openId, setOpenId] = useState<string | null>(null);
+type UnitStats = {
+  unit_id: string;
+  unit_name: string;
+  customer_name: string | null;
+  visits: number;
+};
 
-  const q = useQuery({
-    queryKey: ["field-sense-deployment", role],
-    staleTime: 60_000,
-    queryFn: async (): Promise<DeploymentPerson[]> => {
-      const roleFilter = role === "guard" ? ["guard", "security_guard"] : ["field_officer"];
-      const [candRes, unitsRes, custRes, branchRes, esaRes, cuRes] = await Promise.all([
+type CustomerStats = {
+  customer_id: string;
+  customer_name: string;
+  visits: number;
+};
+
+function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function FieldSenseLeaderboards() {
+  const [preset, setPreset] = useState<LbPreset>("this_month");
+  const [customStart, setCustomStart] = useState<string>("");
+  const [customEnd, setCustomEnd] = useState<string>("");
+
+  const resolved = useMemo(
+    () => resolveRange(preset as RangePreset, customStart || null, customEnd || null),
+    [preset, customStart, customEnd],
+  );
+
+  const dataQ = useQuery({
+    queryKey: ["field-sense-lb", resolved.start, resolved.end],
+    staleTime: 30_000,
+    queryFn: async () => {
+      const [foRes, visitsRes, tracksRes, unitsRes, custRes] = await Promise.all([
         supabase
           .from("candidates" as never)
-          .select("id,full_name,employee_code,role_key,unit_id,status")
-          .in("role_key", roleFilter)
+          .select("id, full_name, employee_code")
+          .eq("role_key", "field_officer")
           .in("status", ["approved", "active"]),
-        supabase.from("units" as never).select("id,name,code,customer_id,branch_id,latitude,longitude"),
-        supabase.from("customers" as never).select("id,name"),
-        supabase.from("branches" as never).select("id,name"),
         supabase
-          .from("employee_scope_assignments" as never)
-          .select("candidate_id,scope_type,scope_id"),
-        supabase.from("candidate_units" as never).select("candidate_id,unit_id"),
+          .from("field_visits" as never)
+          .select("candidate_id, unit_id, customer_rating, check_out_at")
+          .gte("visit_date", resolved.start)
+          .lte("visit_date", resolved.end)
+          .not("check_out_at", "is", null),
+        supabase
+          .from("field_track_points" as never)
+          .select("candidate_id, track_date, lat, lng, recorded_at")
+          .gte("track_date", resolved.start)
+          .lte("track_date", resolved.end)
+          .order("recorded_at", { ascending: true }),
+        supabase.from("units" as never).select("id, name, customer_id"),
+        supabase.from("customers" as never).select("id, name"),
       ]);
-      if (candRes.error) throw candRes.error;
 
-      const units = ((unitsRes.data ?? []) as unknown) as Array<{ id: string; name: string; code: string | null; customer_id: string | null; branch_id: string | null; latitude: number | null; longitude: number | null }>;
-      const custMap = new Map(((custRes.data ?? []) as unknown as Array<{ id: string; name: string }>).map((c) => [c.id, c.name]));
-      const branchMap = new Map(((branchRes.data ?? []) as unknown as Array<{ id: string; name: string }>).map((b) => [b.id, b.name]));
+      const fos = ((foRes.data ?? []) as unknown) as Array<{ id: string; full_name: string; employee_code: string | null }>;
+      const visits = ((visitsRes.data ?? []) as unknown) as Array<{
+        candidate_id: string;
+        unit_id: string;
+        customer_rating: number | null;
+      }>;
+      const tracks = ((tracksRes.data ?? []) as unknown) as Array<{
+        candidate_id: string;
+        track_date: string;
+        lat: number | string;
+        lng: number | string;
+      }>;
+      const units = ((unitsRes.data ?? []) as unknown) as Array<{ id: string; name: string; customer_id: string | null }>;
+      const customers = ((custRes.data ?? []) as unknown) as Array<{ id: string; name: string }>;
+
       const unitById = new Map(units.map((u) => [u.id, u]));
-      const esa = ((esaRes.data ?? []) as unknown) as Array<{ candidate_id: string; scope_type: string; scope_id: string }>;
-      const cu = ((cuRes.data ?? []) as unknown) as Array<{ candidate_id: string; unit_id: string }>;
-      const cands = ((candRes.data ?? []) as unknown) as Array<{ id: string; full_name: string; employee_code: string | null; unit_id: string | null }>;
+      const custById = new Map(customers.map((c) => [c.id, c.name]));
 
-      const out: DeploymentPerson[] = cands.map((c) => {
-        const unitIds = new Set<string>();
-        if (c.unit_id) unitIds.add(c.unit_id);
-        for (const row of cu) if (row.candidate_id === c.id) unitIds.add(row.unit_id);
-        // FO scope expansion via branch/customer
-        if (role === "field_officer") {
-          const mine = esa.filter((s) => s.candidate_id === c.id);
-          const branchIds = new Set(mine.filter((s) => s.scope_type === "branch").map((s) => s.scope_id));
-          const customerIds = new Set(mine.filter((s) => s.scope_type === "customer").map((s) => s.scope_id));
-          for (const s of mine) if (s.scope_type === "unit") unitIds.add(s.scope_id);
-          if (branchIds.size || customerIds.size) {
-            for (const u of units) {
-              if (u.branch_id && branchIds.has(u.branch_id)) unitIds.add(u.id);
-              if (u.customer_id && customerIds.has(u.customer_id)) unitIds.add(u.id);
-            }
-          }
-        } else {
-          for (const s of esa.filter((x) => x.candidate_id === c.id && x.scope_type === "unit")) {
-            unitIds.add(s.scope_id);
-          }
-        }
-        const unitList = Array.from(unitIds)
-          .map((uid) => {
-            const u = unitById.get(uid);
-            if (!u) return null;
-            return {
-              unit_id: uid,
-              unit_name: u.name,
-              unit_code: u.code,
-              customer_name: u.customer_id ? custMap.get(u.customer_id) ?? null : null,
-              branch_name: u.branch_id ? branchMap.get(u.branch_id) ?? null : null,
-              latitude: u.latitude,
-              longitude: u.longitude,
-            };
-          })
-          .filter(Boolean) as DeploymentPerson["units"];
-        unitList.sort((a, b) => a.unit_name.localeCompare(b.unit_name));
-        return { id: c.id, full_name: c.full_name, employee_code: c.employee_code, units: unitList };
+      // FO aggregates
+      const visitByCand = new Map<string, { visits: number; ratings: number[] }>();
+      for (const v of visits) {
+        const row = visitByCand.get(v.candidate_id) ?? { visits: 0, ratings: [] };
+        row.visits += 1;
+        if (v.customer_rating != null) row.ratings.push(Number(v.customer_rating));
+        visitByCand.set(v.candidate_id, row);
+      }
+
+      // Distance per candidate: sum of haversine over consecutive points within same track_date
+      const kmByCand = new Map<string, number>();
+      const grouped = new Map<string, Array<{ lat: number; lng: number }>>();
+      for (const p of tracks) {
+        const key = `${p.candidate_id}|${p.track_date}`;
+        const arr = grouped.get(key) ?? [];
+        arr.push({ lat: Number(p.lat), lng: Number(p.lng) });
+        grouped.set(key, arr);
+      }
+      for (const [key, pts] of grouped) {
+        const cand = key.split("|")[0];
+        let m = 0;
+        for (let i = 1; i < pts.length; i += 1) m += haversineM(pts[i - 1], pts[i]);
+        kmByCand.set(cand, (kmByCand.get(cand) ?? 0) + m / 1000);
+      }
+
+      const foStats: FoStats[] = fos.map((f) => {
+        const v = visitByCand.get(f.id);
+        const ratings = v?.ratings ?? [];
+        return {
+          candidate_id: f.id,
+          full_name: f.full_name,
+          employee_code: f.employee_code,
+          visits: v?.visits ?? 0,
+          ratedCount: ratings.length,
+          avgRating: ratings.length ? ratings.reduce((s, x) => s + x, 0) / ratings.length : null,
+          km: Number((kmByCand.get(f.id) ?? 0).toFixed(2)),
+        };
       });
-      out.sort((a, b) => a.full_name.localeCompare(b.full_name));
-      return out;
+
+      // Unit / customer aggregates
+      const unitCount = new Map<string, number>();
+      const custCount = new Map<string, number>();
+      for (const v of visits) {
+        unitCount.set(v.unit_id, (unitCount.get(v.unit_id) ?? 0) + 1);
+        const u = unitById.get(v.unit_id);
+        if (u?.customer_id) custCount.set(u.customer_id, (custCount.get(u.customer_id) ?? 0) + 1);
+      }
+      const unitStats: UnitStats[] = Array.from(unitCount.entries()).map(([uid, n]) => {
+        const u = unitById.get(uid);
+        return {
+          unit_id: uid,
+          unit_name: u?.name ?? "—",
+          customer_name: u?.customer_id ? custById.get(u.customer_id) ?? null : null,
+          visits: n,
+        };
+      });
+      const customerStats: CustomerStats[] = Array.from(custCount.entries()).map(([cid, n]) => ({
+        customer_id: cid,
+        customer_name: custById.get(cid) ?? "—",
+        visits: n,
+      }));
+
+      return { foStats, unitStats, customerStats };
     },
   });
 
-  const people = q.data ?? [];
+  const foStats = dataQ.data?.foStats ?? [];
+  const unitStats = dataQ.data?.unitStats ?? [];
+  const custStats = dataQ.data?.customerStats ?? [];
+
+  const foByVisitsDesc = [...foStats].sort((a, b) => b.visits - a.visits || a.full_name.localeCompare(b.full_name));
+  const foByVisitsAsc = [...foStats].sort((a, b) => a.visits - b.visits || a.full_name.localeCompare(b.full_name));
+  const rated = foStats.filter((f) => f.avgRating != null);
+  const foByRatingDesc = [...rated].sort((a, b) => (b.avgRating ?? 0) - (a.avgRating ?? 0));
+  const foByRatingAsc = [...rated].sort((a, b) => (a.avgRating ?? 0) - (b.avgRating ?? 0));
+  const foByKmDesc = [...foStats].sort((a, b) => b.km - a.km);
+  const foByKmAsc = [...foStats].sort((a, b) => a.km - b.km);
+  const unitsDesc = [...unitStats].sort((a, b) => b.visits - a.visits);
+  const unitsAsc = [...unitStats].sort((a, b) => a.visits - b.visits);
+  const custDesc = [...custStats].sort((a, b) => b.visits - a.visits);
+  const custAsc = [...custStats].sort((a, b) => a.visits - b.visits);
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-      <div className={`mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.22em] ${accent}`}>
-        <Building2 className="h-3.5 w-3.5" />
-        {title} <span className="text-muted-foreground">({people.length})</span>
+    <section className="space-y-3">
+      {/* Filter bar */}
+      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Range</div>
+          <div className="flex flex-wrap gap-1">
+            {RANGE_PRESETS.map((r) => (
+              <button
+                key={r.value}
+                type="button"
+                onClick={() => setPreset(r.value)}
+                className={
+                  preset === r.value
+                    ? "rounded-full bg-foreground px-3 py-1 text-[11px] font-bold text-background"
+                    : "rounded-full border border-border/60 bg-background px-3 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+                }
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          {preset === "custom" && (
+            <div className="flex items-center gap-2 text-[11px]">
+              <input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="rounded-md border border-border bg-background px-2 py-1 font-semibold"
+              />
+              <span className="text-muted-foreground">→</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="rounded-md border border-border bg-background px-2 py-1 font-semibold"
+              />
+            </div>
+          )}
+          <div className="ml-auto text-[11px] font-semibold text-muted-foreground">
+            {resolved.label} · {resolved.start === resolved.end ? resolved.start : `${resolved.start} → ${resolved.end}`}
+          </div>
+        </div>
       </div>
-      {q.isLoading ? (
-        <div className="py-4 text-center text-[11px] italic text-muted-foreground">Loading…</div>
-      ) : people.length === 0 ? (
-        <div className="py-4 text-center text-[11px] italic text-muted-foreground">No one mapped yet.</div>
+
+      {dataQ.isLoading ? (
+        <div className="rounded-2xl border border-border/60 bg-card p-6 text-center text-xs italic text-muted-foreground shadow-sm">
+          Crunching leaderboards…
+        </div>
       ) : (
-        <ul className="space-y-1.5">
-          {people.map((p) => {
-            const open = openId === p.id;
+        <>
+          {/* Field officer leaderboards */}
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <Leaderboard
+              title="Field officers · Most visits"
+              tone="sky"
+              rows={foByVisitsDesc}
+              render={(r) => ({
+                key: r.candidate_id,
+                primary: r.full_name,
+                secondary: r.employee_code ?? "—",
+                metric: `${r.visits}`,
+                metricLabel: r.visits === 1 ? "visit" : "visits",
+              })}
+              emptyLabel="No visits recorded in range."
+            />
+            <Leaderboard
+              title="Field officers · Least visits"
+              tone="rose"
+              rows={foByVisitsAsc}
+              render={(r) => ({
+                key: r.candidate_id,
+                primary: r.full_name,
+                secondary: r.employee_code ?? "—",
+                metric: `${r.visits}`,
+                metricLabel: r.visits === 1 ? "visit" : "visits",
+              })}
+              emptyLabel="No visits recorded in range."
+            />
+            <Leaderboard
+              title="Field officers · Highest rating"
+              tone="amber"
+              rows={foByRatingDesc}
+              render={(r) => ({
+                key: r.candidate_id,
+                primary: r.full_name,
+                secondary: `${r.ratedCount} rated`,
+                metric: (r.avgRating ?? 0).toFixed(2),
+                metricLabel: "avg ★",
+              })}
+              emptyLabel="No client ratings in range."
+              accent={<Star className="h-3.5 w-3.5 text-amber-500" />}
+            />
+            <Leaderboard
+              title="Field officers · Lowest rating"
+              tone="violet"
+              rows={foByRatingAsc}
+              render={(r) => ({
+                key: r.candidate_id,
+                primary: r.full_name,
+                secondary: `${r.ratedCount} rated`,
+                metric: (r.avgRating ?? 0).toFixed(2),
+                metricLabel: "avg ★",
+              })}
+              emptyLabel="No client ratings in range."
+              accent={<Star className="h-3.5 w-3.5 text-violet-500" />}
+            />
+            <Leaderboard
+              title="Field officers · Distance traveled (high → low)"
+              tone="emerald"
+              rows={foByKmDesc}
+              render={(r) => ({
+                key: r.candidate_id,
+                primary: r.full_name,
+                secondary: r.employee_code ?? "—",
+                metric: r.km.toFixed(2),
+                metricLabel: "km",
+              })}
+              emptyLabel="No GPS trail recorded in range."
+            />
+            <Leaderboard
+              title="Field officers · Distance traveled (low → high)"
+              tone="slate"
+              rows={foByKmAsc}
+              render={(r) => ({
+                key: r.candidate_id,
+                primary: r.full_name,
+                secondary: r.employee_code ?? "—",
+                metric: r.km.toFixed(2),
+                metricLabel: "km",
+              })}
+              emptyLabel="No GPS trail recorded in range."
+            />
+          </div>
+
+          {/* Units + Customers */}
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <Leaderboard
+              title="Units · Most visited"
+              tone="sky"
+              rows={unitsDesc}
+              render={(r) => ({
+                key: r.unit_id,
+                primary: r.unit_name,
+                secondary: r.customer_name ?? "—",
+                metric: `${r.visits}`,
+                metricLabel: r.visits === 1 ? "visit" : "visits",
+              })}
+              emptyLabel="No units visited in range."
+            />
+            <Leaderboard
+              title="Units · Least visited"
+              tone="rose"
+              rows={unitsAsc}
+              render={(r) => ({
+                key: r.unit_id,
+                primary: r.unit_name,
+                secondary: r.customer_name ?? "—",
+                metric: `${r.visits}`,
+                metricLabel: r.visits === 1 ? "visit" : "visits",
+              })}
+              emptyLabel="No units visited in range."
+            />
+            <Leaderboard
+              title="Customers · Most visited"
+              tone="emerald"
+              rows={custDesc}
+              render={(r) => ({
+                key: r.customer_id,
+                primary: r.customer_name,
+                secondary: "",
+                metric: `${r.visits}`,
+                metricLabel: r.visits === 1 ? "visit" : "visits",
+              })}
+              emptyLabel="No customer visits in range."
+            />
+            <Leaderboard
+              title="Customers · Least visited"
+              tone="violet"
+              rows={custAsc}
+              render={(r) => ({
+                key: r.customer_id,
+                primary: r.customer_name,
+                secondary: "",
+                metric: `${r.visits}`,
+                metricLabel: r.visits === 1 ? "visit" : "visits",
+              })}
+              emptyLabel="No customer visits in range."
+            />
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+const LB_TONES: Record<string, string> = {
+  sky: "text-sky-700 dark:text-sky-300",
+  emerald: "text-emerald-700 dark:text-emerald-300",
+  amber: "text-amber-700 dark:text-amber-300",
+  violet: "text-violet-700 dark:text-violet-300",
+  rose: "text-rose-700 dark:text-rose-300",
+  slate: "text-slate-700 dark:text-slate-300",
+};
+
+function Leaderboard<T>({
+  title,
+  tone,
+  rows,
+  render,
+  emptyLabel,
+  accent,
+}: {
+  title: string;
+  tone: keyof typeof LB_TONES;
+  rows: T[];
+  render: (r: T) => { key: string; primary: string; secondary: string; metric: string; metricLabel: string };
+  emptyLabel: string;
+  accent?: React.ReactNode;
+}) {
+  const top = rows.slice(0, 8);
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
+      <div className={`mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.22em] ${LB_TONES[tone]}`}>
+        {accent}
+        {title}
+        <span className="text-muted-foreground">({rows.length})</span>
+      </div>
+      {top.length === 0 ? (
+        <div className="py-4 text-center text-[11px] italic text-muted-foreground">{emptyLabel}</div>
+      ) : (
+        <ol className="space-y-1.5">
+          {top.map((r, i) => {
+            const item = render(r);
             return (
-              <li key={p.id} className="rounded-xl border border-border/50 bg-background/60">
-                <button
-                  type="button"
-                  onClick={() => setOpenId(open ? null : p.id)}
-                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
-                >
+              <li
+                key={item.key}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/60 px-3 py-2"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="inline-flex h-6 w-6 flex-none items-center justify-center rounded-full bg-foreground/90 text-[11px] font-bold text-background">
+                    {i + 1}
+                  </span>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-foreground">{p.full_name}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground">
-                      {p.employee_code ?? "—"} · {p.units.length} unit{p.units.length === 1 ? "" : "s"}
-                    </div>
+                    <div className="truncate text-sm font-semibold text-foreground">{item.primary}</div>
+                    {item.secondary ? (
+                      <div className="truncate text-[11px] text-muted-foreground">{item.secondary}</div>
+                    ) : null}
                   </div>
-                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
-                </button>
-                {open && (
-                  <div className="border-t border-border/50 px-3 py-2">
-                    {p.units.length === 0 ? (
-                      <div className="text-[11px] italic text-muted-foreground">No units mapped.</div>
-                    ) : (
-                      <ul className="space-y-1.5">
-                        {p.units.map((u) => {
-                          const hasGeo = u.latitude != null && u.longitude != null;
-                          const mapsHref = hasGeo
-                            ? `https://www.google.com/maps/search/?api=1&query=${u.latitude},${u.longitude}`
-                            : null;
-                          return (
-                            <li key={u.unit_id} className="flex items-start gap-2 text-[11px]">
-                              <MapPin className="mt-0.5 h-3 w-3 flex-none text-muted-foreground" />
-                              <div className="min-w-0">
-                                <div className="truncate font-semibold text-foreground">
-                                  {u.unit_name}
-                                  {u.unit_code && <span className="ml-1 font-mono text-[10px] text-muted-foreground">({u.unit_code})</span>}
-                                </div>
-                                <div className="truncate text-muted-foreground">
-                                  {u.customer_name ?? "—"}{u.branch_name ? ` · ${u.branch_name}` : ""}
-                                </div>
-                                {hasGeo ? (
-                                  <a
-                                    href={mapsHref!}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="mt-0.5 inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-sky-700 hover:underline dark:text-sky-300"
-                                  >
-                                    {Number(u.latitude).toFixed(5)}, {Number(u.longitude).toFixed(5)}
-                                  </a>
-                                ) : (
-                                  <div className="mt-0.5 font-mono text-[10px] italic text-muted-foreground">no geo set</div>
-                                )}
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                )}
+                </div>
+                <div className="flex items-baseline gap-1 tabular-nums">
+                  <span className="font-display text-base font-bold text-foreground">{item.metric}</span>
+                  <span className="text-[10px] font-semibold uppercase text-muted-foreground">{item.metricLabel}</span>
+                </div>
               </li>
             );
           })}
-        </ul>
+        </ol>
       )}
     </div>
   );
 }
+
 
 const TILE_TONES: Record<string, { ring: string; dot: string; live: string; total: string }> = {
   sky: { ring: "ring-sky-200/70", dot: "bg-sky-500", live: "text-sky-700 dark:text-sky-300", total: "text-slate-900 dark:text-slate-100" },
