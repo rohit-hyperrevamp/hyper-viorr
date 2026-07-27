@@ -10,7 +10,7 @@ import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visit
 
 
 
-export const Route = createFileRoute("/admin/field-sense")({
+export const Route = createFileRoute("/admin/field-sense/")({
   component: FieldSensePage,
   validateSearch: (search: Record<string, unknown>) => ({
     range: (search.range as string | undefined) ?? undefined,
