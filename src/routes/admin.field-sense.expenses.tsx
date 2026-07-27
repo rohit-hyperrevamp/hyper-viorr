@@ -192,11 +192,20 @@ function ExpenseManagerPage() {
         visitsPerDay.set(k, (visitsPerDay.get(k) ?? 0) + 1);
       }
 
-      const allKeys = new Set<string>([...rawKmMap.keys(), ...wpKmMap.keys(), ...visitsPerDay.keys()]);
+      // Stored road-snapped km per candidate|day (from FO app — source of truth)
+      const storedKmMap = new Map<string, number>();
+      for (const pu of punches) {
+        const v = Number(pu.distance_km);
+        if (!Number.isFinite(v) || v <= 0) continue;
+        storedKmMap.set(`${pu.candidate_id}|${pu.punch_date}`, v);
+      }
+
+      const allKeys = new Set<string>([...storedKmMap.keys(), ...rawKmMap.keys(), ...wpKmMap.keys(), ...visitsPerDay.keys()]);
       const dayRows = new Map<string, DayBreak[]>();
       for (const k of allKeys) {
         const [cand, day] = k.split("|");
-        const km = Math.max(rawKmMap.get(k) ?? 0, wpKmMap.get(k) ?? 0);
+        const stored = storedKmMap.get(k) ?? 0;
+        const km = stored > 0 ? stored : Math.max(rawKmMap.get(k) ?? 0, wpKmMap.get(k) ?? 0);
         const arr = dayRows.get(cand) ?? [];
         arr.push({ day, km: Number(km.toFixed(2)), visits: visitsPerDay.get(k) ?? 0 });
         dayRows.set(cand, arr);
