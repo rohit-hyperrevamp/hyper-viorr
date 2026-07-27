@@ -25,7 +25,13 @@ const PATH_FOR: Record<string,string> = {
 function Index() {
   const navigate = useNavigate();
   const { user, isReady } = useAuth();
-  const { can, isLoading, isSuperAdmin, roleKey } = useCurrentPermissions();
+  const {
+    can,
+    isLoading,
+    isSuperAdmin,
+    isAdminConsole,
+    isFieldOfficer,
+  } = useCurrentPermissions();
 
   useEffect(() => {
     if (!isReady) return;
@@ -35,8 +41,9 @@ function Index() {
     }
     if (isLoading) return;
 
-    // Role-based dashboard landing
-    if (roleKey === "field_officer" && !isSuperAdmin) {
+    // Role-based dashboard landing — derived from RBAC role helpers,
+    // not from hardcoded role-key sets.
+    if (isFieldOfficer) {
       navigate({ to: "/admin/field-dashboard", replace: true });
       return;
     }
@@ -44,33 +51,11 @@ function Index() {
       navigate({ to: "/admin/dashboard", replace: true });
       return;
     }
-    // Admin-console roles: HR, leadership, branch managers, admins, etc.
-    const ADMIN_ROLES = new Set([
-      "admin",
-      "super_admin",
-      "hr",
-      "leadership",
-      "branch_manager",
-      "branch_admin",
-      "inventory_manager",
-      "inventory",
-      "accounts",
-      "finance",
-      "operations",
-    ]);
-    const hasAdminAccess =
-      (roleKey && ADMIN_ROLES.has(roleKey)) ||
-      can("dashboard") || can("organizations") || can("employees") ||
-      can("payroll") || can("attendance") || can("rbac") || can("control_center");
-
-    // Frontline employees onboarded by field officers (guards, VMS operators,
-    // housekeeping, drivers, etc.) get the employee dashboard — profile,
-    // unit teammates, unit birthdays/anniversaries and their own notifications.
-    if (!hasAdminAccess) {
+    if (!isAdminConsole) {
+      // Guards & other frontline employees.
       navigate({ to: "/admin/employee-dashboard", replace: true });
       return;
     }
-
     if (can("dashboard") || can("organizations") || can("employees")) {
       navigate({ to: "/admin/dashboard", replace: true });
       return;
@@ -82,8 +67,7 @@ function Index() {
       }
     }
     navigate({ to: "/admin/employee-dashboard", replace: true });
-  }, [user, isReady, isLoading, isSuperAdmin, roleKey, can, navigate]);
-
+  }, [user, isReady, isLoading, isSuperAdmin, isAdminConsole, isFieldOfficer, can, navigate]);
 
   return <div className="min-h-screen bg-background" />;
 }

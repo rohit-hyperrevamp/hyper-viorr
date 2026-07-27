@@ -111,6 +111,12 @@ export function hasFromMap(
 // ---------------- Runtime enforcement ----------------
 import { useQuery } from "@tanstack/react-query";
 import { useAuth, SUPER_ADMIN_PHONE } from "@/lib/auth";
+import {
+  isAdminConsoleRole,
+  isFieldOfficerRole,
+  isGuardRole,
+  ROLE_KEYS,
+} from "@/lib/role-keys";
 
 export type PermCheck = (moduleKey: string, action?: PermissionAction) => boolean;
 export type SubPermCheck = (moduleKey: string, subModuleKey: string, action?: PermissionAction) => boolean;
@@ -118,17 +124,23 @@ export type SubPermCheck = (moduleKey: string, subModuleKey: string, action?: Pe
 export function useCurrentPermissions(): {
   isLoading: boolean;
   isSuperAdmin: boolean;
+  isAdminConsole: boolean;
+  isFieldOfficer: boolean;
+  isGuard: boolean;
   roleKey: string | null;
   can: PermCheck;
   canSub: SubPermCheck;
 } {
   const { user } = useAuth();
   const phone = user?.phone?.replace(/\D/g, "").slice(-10) ?? "";
-  const isSuperAdmin = phone === SUPER_ADMIN_PHONE;
+  // Phone allowlist retained as a bootstrap bypass: the three super-admin
+  // phones don't exist as candidate rows so removing this would lock them
+  // out. DB `is_admin_user()` mirrors the same allowlist.
+  const isSuperAdminByPhone = phone === SUPER_ADMIN_PHONE;
 
   const roleQ = useQuery({
     queryKey: ["rbac", "current-role", phone],
-    enabled: !!phone && !isSuperAdmin,
+    enabled: !!phone,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("candidates")
@@ -141,6 +153,10 @@ export function useCurrentPermissions(): {
   });
 
   const roleKey = roleQ.data ?? null;
+  const isSuperAdmin =
+    isSuperAdminByPhone ||
+    roleKey === ROLE_KEYS.SUPER_ADMIN ||
+    roleKey === ROLE_KEYS.ADMIN;
 
   const permsQ = useQuery({
     queryKey: ["rbac", "current-perms", roleKey],
@@ -192,8 +208,11 @@ export function useCurrentPermissions(): {
   };
 
   return {
-    isLoading: (!isSuperAdmin && (roleQ.isLoading || permsQ.isLoading)),
+    isLoading: !isSuperAdmin && (roleQ.isLoading || permsQ.isLoading),
     isSuperAdmin,
+    isAdminConsole: isSuperAdmin || isAdminConsoleRole(roleKey),
+    isFieldOfficer: !isSuperAdmin && isFieldOfficerRole(roleKey),
+    isGuard: !isSuperAdmin && isGuardRole(roleKey),
     roleKey,
     can,
     canSub,
