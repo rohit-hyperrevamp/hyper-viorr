@@ -179,9 +179,29 @@ function FieldSensePage() {
     const map = mapRef.current;
     const seen = new Set<string>();
 
+    // Group rows sharing (approx) same coordinate so overlapping pins fan out
+    const groups = new Map<string, typeof rows>();
     for (const r of rows) {
-      const lat = r.last_lat as number;
-      const lng = r.last_lng as number;
+      const key = `${(r.last_lat as number).toFixed(5)},${(r.last_lng as number).toFixed(5)}`;
+      const arr = groups.get(key) ?? [];
+      arr.push(r);
+      groups.set(key, arr);
+    }
+    const offsetFor = (r: (typeof rows)[number]): [number, number] => {
+      const key = `${(r.last_lat as number).toFixed(5)},${(r.last_lng as number).toFixed(5)}`;
+      const group = groups.get(key)!;
+      if (group.length < 2) return [r.last_lat as number, r.last_lng as number];
+      const idx = group.findIndex((g) => g.id === r.id);
+      const radius = 0.00012; // ~13m
+      const angle = (2 * Math.PI * idx) / group.length;
+      return [
+        (r.last_lat as number) + radius * Math.cos(angle),
+        (r.last_lng as number) + radius * Math.sin(angle),
+      ];
+    };
+
+    for (const r of rows) {
+      const [lat, lng] = offsetFor(r);
       seen.add(r.id);
       const html = popupHtml(r);
       const initial = (r.candidate?.full_name ?? "F").trim().charAt(0).toUpperCase();
@@ -208,6 +228,7 @@ function FieldSensePage() {
         markersRef.current.set(r.id, m);
       }
     }
+
 
     // Remove stale
     for (const [id, m] of markersRef.current) {
