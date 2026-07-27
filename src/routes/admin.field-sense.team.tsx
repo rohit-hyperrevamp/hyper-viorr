@@ -181,7 +181,7 @@ function MyTeamPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="My Team"
+        title="Day Patrol"
         description="Live snapshot of field officers — punch-in, current location and travel today."
         crumbs={[
           { label: "Admin", to: "/admin/dashboard" },
