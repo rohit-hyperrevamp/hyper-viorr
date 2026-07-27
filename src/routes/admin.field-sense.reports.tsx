@@ -5,6 +5,7 @@ import { Download, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visits";
+import { FieldSenseRangeFilter } from "@/components/FieldSenseRangeFilter";
 import radiantLogo from "@/assets/radiant-logo-v2.png";
 
 export const Route = createFileRoute("/admin/field-sense/reports")({
