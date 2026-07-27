@@ -5453,10 +5453,17 @@ function CameraCaptureDialog({
           <DialogDescription>Position the subject and click Capture.</DialogDescription>
         </DialogHeader>
         <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-md bg-black">
-          {error ? (
-            <div className="px-6 text-center text-sm text-rose-300">{error}</div>
-          ) : (
-            <video ref={videoRef} playsInline muted className="h-full w-full object-contain" />
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            autoPlay
+            className={`h-full w-full object-contain ${error ? "hidden" : ""}`}
+          />
+          {error && (
+            <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-rose-300">
+              {error}
+            </div>
           )}
           {!ready && !error && (
             <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
@@ -5464,6 +5471,7 @@ function CameraCaptureDialog({
             </div>
           )}
         </div>
+
         <DialogFooter className="gap-2 sm:justify-between">
           <Button
             type="button"
