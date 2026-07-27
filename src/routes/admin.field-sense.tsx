@@ -365,7 +365,7 @@ function DeploymentBreakdown({
       ]);
       if (candRes.error) throw candRes.error;
 
-      const units = ((unitsRes.data ?? []) as unknown) as Array<{ id: string; name: string; code: string | null; customer_id: string | null; branch_id: string | null }>;
+      const units = ((unitsRes.data ?? []) as unknown) as Array<{ id: string; name: string; code: string | null; customer_id: string | null; branch_id: string | null; latitude: number | null; longitude: number | null }>;
       const custMap = new Map(((custRes.data ?? []) as unknown as Array<{ id: string; name: string }>).map((c) => [c.id, c.name]));
       const branchMap = new Map(((branchRes.data ?? []) as unknown as Array<{ id: string; name: string }>).map((b) => [b.id, b.name]));
       const unitById = new Map(units.map((u) => [u.id, u]));
