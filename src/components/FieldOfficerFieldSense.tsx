@@ -569,9 +569,9 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     if (snappedPosition) pts.push([snappedPosition.lat, snappedPosition.lng]);
     if (pts.length === 0) return;
     if (pts.length === 1) {
-      mapRef.current.setView(pts[0], 14, { animate: true });
+      mapRef.current.setView(pts[0], 16, { animate: true });
     } else {
-      mapRef.current.fitBounds(L.latLngBounds(pts).pad(0.2), { maxZoom: 15 });
+      mapRef.current.fitBounds(L.latLngBounds(pts).pad(0.15), { maxZoom: 17 });
     }
     didFitRef.current = true;
   }, [routeCoords, units, snappedPosition, mapReady]);
