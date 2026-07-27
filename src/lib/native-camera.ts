@@ -98,6 +98,8 @@ async function capturePhotoFromWebCamera(): Promise<string | null> {
     overlay.style.background = "rgba(2, 6, 23, 0.92)";
     overlay.style.display = "flex";
     overlay.style.flexDirection = "column";
+    overlay.style.pointerEvents = "auto";
+    overlay.style.touchAction = "manipulation";
     overlay.style.padding = "16px";
     overlay.style.paddingTop = "max(16px, env(safe-area-inset-top))";
     overlay.style.paddingBottom = "max(16px, env(safe-area-inset-bottom))";
@@ -141,7 +143,14 @@ async function capturePhotoFromWebCamera(): Promise<string | null> {
     cancel.style.background = "rgba(255,255,255,0.08)";
     cancel.style.color = "white";
     cancel.style.font = "700 14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-    cancel.onclick = () => cleanup(null);
+    cancel.style.cursor = "pointer";
+    cancel.style.pointerEvents = "auto";
+    cancel.style.touchAction = "manipulation";
+    cancel.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      cleanup(null);
+    });
 
     const capture = document.createElement("button");
     capture.type = "button";
@@ -152,7 +161,12 @@ async function capturePhotoFromWebCamera(): Promise<string | null> {
     capture.style.background = "#16a34a";
     capture.style.color = "white";
     capture.style.font = "800 14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-    capture.onclick = () => {
+    capture.style.cursor = "pointer";
+    capture.style.pointerEvents = "auto";
+    capture.style.touchAction = "manipulation";
+    capture.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       const width = video.videoWidth || 1280;
       const height = video.videoHeight || 960;
       const canvas = document.createElement("canvas");
@@ -165,7 +179,7 @@ async function capturePhotoFromWebCamera(): Promise<string | null> {
       }
       ctx.drawImage(video, 0, 0, width, height);
       cleanup(canvas.toDataURL("image/jpeg", 0.86));
-    };
+    });
 
     actions.append(cancel, capture);
     overlay.append(title, videoWrap, actions);
