@@ -571,30 +571,12 @@ function UnitRow({ unit }: { unit: UnitNode }) {
         </div>
         <div className="hidden shrink-0 items-center gap-2 text-[11px] font-medium sm:flex">
           <Pill tone="slate" value={total} label="team" />
-          <Pill tone="amber" value={unit.pending_onboarding} label="pending" />
-          <Pill tone="violet" value={unit.open_demands} label="demands" />
-          <Pill tone="cyan" value={unit.inventory_items} label="items" />
         </div>
       </button>
       {open && (
         <div className="space-y-3 border-t border-border/40 bg-secondary/20 px-3.5 py-3 sm:px-6 sm:py-4">
-          <div className="grid grid-cols-2 gap-2 sm:hidden">
+          <div className="flex gap-2 sm:hidden">
             <Pill tone="slate" value={total} label="team" />
-            <Pill tone="amber" value={unit.pending_onboarding} label="pending" />
-            <Pill tone="violet" value={unit.open_demands} label="demands" />
-            <Pill tone="cyan" value={unit.inventory_items} label="items" />
-          </div>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {unit.id !== "__unassigned__" && (
-              <>
-                <Link to="/admin/attendance/$unitId" params={{ unitId: unit.id }} className="rounded-full border border-border bg-card px-3 py-1 font-medium hover:border-accent/40 hover:text-accent">
-                  Mark attendance
-                </Link>
-                <Link to="/admin/employees" className="rounded-full border border-border bg-card px-3 py-1 font-medium hover:border-accent/40 hover:text-accent">
-                  Onboard employee
-                </Link>
-              </>
-            )}
           </div>
           {unit.guards.length === 0 ? (
             <div className="py-2 text-sm text-muted-foreground">No active employees on this unit yet.</div>
