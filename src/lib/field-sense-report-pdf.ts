@@ -109,11 +109,9 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(220, 220, 220);
-  const unitLine =
-    input.unitNames.length <= 2
-      ? input.unitNames.join(" · ")
-      : `${input.unitNames.slice(0, 2).join(" · ")} +${input.unitNames.length - 2} more`;
-  doc.text(unitLine, rightX, 47, { align: "right" });
+  const unitCountLabel =
+    input.unitNames.length === 1 ? "1 unit in scope" : `${input.unitNames.length} units in scope`;
+  doc.text(unitCountLabel, rightX, 47, { align: "right" });
   doc.setFontSize(8);
   doc.setTextColor(255, 210, 120);
   doc.text(input.rangeLabel.toUpperCase(), rightX, 62, { align: "right" });
@@ -163,8 +161,34 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
     doc.text(t.value, x + 10, cursorY + 38);
   });
 
+  // ---------- Units in scope ----------
+  let tableStartY = cursorY + 68;
+  {
+    const blockX = margin;
+    const blockW = pageW - margin * 2;
+    const headerY = tableStartY;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...muted);
+    doc.text(`UNITS IN SCOPE (${input.unitNames.length})`, blockX, headerY);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(30, 30, 30);
+    const unitsText = input.unitNames.length ? input.unitNames.join("  •  ") : "—";
+    const lines = doc.splitTextToSize(unitsText, blockW - 16) as string[];
+    const lineH = 12;
+    const padY = 10;
+    const boxH = padY * 2 + lines.length * lineH;
+    const boxY = headerY + 6;
+    doc.setDrawColor(220, 222, 228);
+    doc.setFillColor(250, 250, 252);
+    doc.roundedRect(blockX, boxY, blockW, boxH, 6, 6, "FD");
+    doc.text(lines, blockX + 8, boxY + padY + 9);
+    tableStartY = boxY + boxH + 14;
+  }
+
   // ---------- Visits table ----------
-  const tableStartY = cursorY + 68;
   autoTable(doc, {
     startY: tableStartY,
     margin: { left: margin, right: margin, bottom: 40 },
