@@ -510,7 +510,11 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
 
     const coords: Array<[number, number]> = routeCoords.map((point) => [point.lat, point.lng]);
     if (coords.length < 2) return;
-    trackLineRef.current = L.polyline(coords, {
+    const drawCoords: Array<[number, number]> =
+      roadRoute && roadRoute.key === roadRouteKey && roadRoute.coords.length >= 2
+        ? roadRoute.coords
+        : coords;
+    trackLineRef.current = L.polyline(drawCoords, {
       color: "#2563eb",
       weight: 5,
       opacity: 0.9,
