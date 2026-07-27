@@ -50,10 +50,11 @@ function duration(a: string | null, b: string | null) {
 }
 
 function MyAttendancePage() {
-  const [me, setMe] = useState<{ candidate_id: string | null; name: string; code: string }>({
+  const [me, setMe] = useState<{ candidate_id: string | null; name: string; code: string; role_key: string | null }>({
     candidate_id: null,
     name: "",
     code: "",
+    role_key: null,
   });
   const [monthDate, setMonthDate] = useState<Date>(() => new Date());
   const [search, setSearch] = useState("");
@@ -66,17 +67,19 @@ function MyAttendancePage() {
       if (!phone) return;
       const { data: c } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code")
+        .select("id,full_name,employee_code,role_key")
         .eq("mobile", phone)
         .maybeSingle();
-      const row = c as { id?: string; full_name?: string; employee_code?: string } | null;
+      const row = c as { id?: string; full_name?: string; employee_code?: string; role_key?: string } | null;
       setMe({
         candidate_id: row?.id ?? null,
         name: row?.full_name ?? "",
         code: row?.employee_code ?? "",
+        role_key: row?.role_key ?? null,
       });
     })();
   }, []);
+
 
   const ymKey = ym(monthDate);
 
