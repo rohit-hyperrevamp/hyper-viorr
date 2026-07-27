@@ -60,6 +60,7 @@ import {
 import {
   acknowledgeFieldVisitRequest,
   completeFieldVisitRequestForUnit,
+  completeFieldVisitRequestByVisit,
   listOpenRequestsForCandidate,
   type FieldVisitRequest,
 } from "@/lib/field-visit-requests";
