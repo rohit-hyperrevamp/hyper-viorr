@@ -1631,46 +1631,15 @@ function RangeInsightsPanel({
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
       {/* Range filter bar */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Range</div>
-        <div className="flex flex-wrap gap-1">
-          {RANGE_PRESETS.map((p) => (
-            <button
-              key={p.value}
-              type="button"
-              onClick={() => onChangePreset(p.value)}
-              className={cn(
-                "rounded-full px-2.5 py-1 text-[11px] font-semibold transition",
-                rangeInfo.preset === p.value
-                  ? "bg-foreground text-background"
-                  : "bg-secondary text-muted-foreground hover:bg-secondary/70",
-              )}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-        {rangeInfo.preset === "custom" && (
-          <div className="flex items-center gap-1.5">
-            <input
-              type="date"
-              value={rangeInfo.start}
-              onChange={(e) => onChangeCustom(e.target.value, rangeInfo.end)}
-              className="rounded-md border border-border/60 bg-background px-2 py-1 text-[11px]"
-            />
-            <span className="text-[11px] text-muted-foreground">to</span>
-            <input
-              type="date"
-              value={rangeInfo.end}
-              onChange={(e) => onChangeCustom(rangeInfo.start, e.target.value)}
-              className="rounded-md border border-border/60 bg-background px-2 py-1 text-[11px]"
-            />
-          </div>
-        )}
-        <div className="ml-auto text-[11px] text-muted-foreground">
-          {rangeInfo.start === rangeInfo.end ? rangeInfo.start : `${rangeInfo.start} → ${rangeInfo.end}`}
-        </div>
-      </div>
+      <FieldSenseRangeFilter
+        bare
+        preset={rangeInfo.preset as RangePreset}
+        onPresetChange={(p) => onChangePreset(p)}
+        customStart={rangeInfo.start}
+        customEnd={rangeInfo.end}
+        onCustomChange={(s, e) => onChangeCustom(s, e)}
+        resolvedLabel={rangeInfo.start === rangeInfo.end ? rangeInfo.start : `${rangeInfo.start} → ${rangeInfo.end}`}
+      />
 
       {/* Aggregate insights */}
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
