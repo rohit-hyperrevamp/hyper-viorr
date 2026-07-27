@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { FieldSenseAdminGuard } from "@/components/FieldSenseAdminGuard";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { FieldOfficerFieldSense } from "@/components/FieldOfficerFieldSense";
 
 export const Route = createFileRoute("/admin/field-sense/officer/$id")({
-  component: OfficerViewPage,
+  component: () => (<FieldSenseAdminGuard sub="day_patrol"><OfficerViewPage /></FieldSenseAdminGuard>),
   validateSearch: (search: Record<string, unknown>) => ({
     date: (search.date as string | undefined) ?? undefined,
     from: (search.from as string | undefined) ?? undefined,

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { FieldSenseAdminGuard } from "@/components/FieldSenseAdminGuard";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, MapPin, X } from "lucide-react";
@@ -8,7 +9,7 @@ import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visit
 import { FieldSenseRangeFilter } from "@/components/FieldSenseRangeFilter";
 
 export const Route = createFileRoute("/admin/field-sense/expenses")({
-  component: ExpenseManagerPage,
+  component: () => (<FieldSenseAdminGuard sub="expense_manager"><ExpenseManagerPage /></FieldSenseAdminGuard>),
   validateSearch: (search: Record<string, unknown>) => ({
     range: (search.range as string | undefined) ?? undefined,
     start: (search.start as string | undefined) ?? undefined,

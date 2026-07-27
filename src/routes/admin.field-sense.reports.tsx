@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { FieldSenseAdminGuard } from "@/components/FieldSenseAdminGuard";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Star } from "lucide-react";
@@ -9,7 +10,7 @@ import { FieldSenseRangeFilter } from "@/components/FieldSenseRangeFilter";
 import radiantLogo from "@/assets/radiant-logo-v2.png";
 
 export const Route = createFileRoute("/admin/field-sense/reports")({
-  component: ReportsPage,
+  component: () => (<FieldSenseAdminGuard sub="reports"><ReportsPage /></FieldSenseAdminGuard>),
   head: () => ({
     meta: [
       { title: "Field Sense Reports — Radiant Guard" },

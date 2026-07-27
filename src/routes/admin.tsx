@@ -162,10 +162,10 @@ const payrollChildren: LeafItem[] = [
 ];
 
 const fieldSenseChildren: LeafItem[] = [
-  { to: "/admin/field-sense", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/field-sense/team", label: "Day Patrol", icon: Users },
-  { to: "/admin/field-sense/expenses", label: "Expense Manager", icon: Wallet },
-  { to: "/admin/field-sense/reports", label: "Reports", icon: FileText },
+  { to: "/admin/field-sense", label: "Dashboard", icon: LayoutDashboard, sub: "dashboard" },
+  { to: "/admin/field-sense/team", label: "Day Patrol", icon: Users, sub: "day_patrol" },
+  { to: "/admin/field-sense/expenses", label: "Expense Manager", icon: Wallet, sub: "expense_manager" },
+  { to: "/admin/field-sense/reports", label: "Reports", icon: FileText, sub: "reports" },
 ];
 
 
@@ -410,7 +410,7 @@ function AdminLayout() {
       { key: "payroll", label: "Payroll", module: "payroll", icon: Wallet, children: payrollChildren, activePrefixes: ["/admin/payroll", "/admin/additions", "/admin/deductions"] },
       { key: "invoice", label: "Invoice", module: "invoice", icon: CreditCard, to: "/admin/invoice", activePrefixes: ["/admin/invoice"] },
       { key: "inventory", label: "Uniform Manager", module: "inventory", icon: Boxes, children: inventoryChildren, activePrefixes: ["/admin/inventory"] },
-      { key: "field-sense", label: "Field Sense", icon: Radio, children: fieldSenseChildren, activePrefixes: ["/admin/field-sense"], module: "__field_sense__" },
+      { key: "field-sense", label: "Field Sense", icon: Radio, children: fieldSenseChildren, activePrefixes: ["/admin/field-sense"], module: "field_sense" },
       { key: "vehicles", label: "Vehicles", module: "vehicles", icon: Car, to: "/admin/vehicles", children: vehiclesChildren, activePrefixes: ["/admin/vehicles"] },
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
       { key: "office-assets", label: "Office Assets", module: "office_assets", icon: Briefcase, to: "/admin/office-assets", children: officeAssetsChildren, activePrefixes: ["/admin/office-assets"] },
@@ -474,10 +474,11 @@ function AdminLayout() {
     }
     const base = groups
       .filter((g) => {
-        if (g.module === "__field_sense__") {
-          return isSuperAdmin || roleKey === "leadership" || roleKey === "field_officer";
+        if (g.key === "field-sense") {
+          // Field officers always see their own Day Patrol dashboard.
+          // Other roles need RBAC access to the field_sense module.
+          return isFieldOfficer || isSuperAdmin || can("field_sense");
         }
-
         return !g.module || can(g.module);
       })
       .map((g) => {
@@ -485,9 +486,12 @@ function AdminLayout() {
         if (g.key === "field-sense" && g.children) {
           let kids = g.children;
           if (isFieldOfficer) {
+            // FOs only see the Day Patrol dashboard — no Team/Expenses/Reports.
             kids = kids
-              .filter((c) => c.to !== "/admin/field-sense/team" && c.to !== "/admin/field-sense/expenses" && c.to !== "/admin/field-sense/reports")
-              .map((c) => (c.to === "/admin/field-sense" ? { ...c, label: "Day Patrol" } : c));
+              .filter((c) => c.to === "/admin/field-sense")
+              .map((c) => ({ ...c, label: "Day Patrol" }));
+          } else if (!isSuperAdmin) {
+            kids = kids.filter((c) => !c.sub || canSub("field_sense", c.sub));
           }
           return { ...g, children: kids };
         }
