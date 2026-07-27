@@ -471,19 +471,47 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
       map.removeLayer(trackLineRef.current);
       trackLineRef.current = null;
     }
+    // Clear prior numbered waypoint markers
+    for (const m of waypointMarkersRef.current) {
+      try { map.removeLayer(m); } catch { /* noop */ }
+    }
+    waypointMarkersRef.current = [];
+
     const coords: Array<[number, number]> = routeCoords.map((point) => [point.lat, point.lng]);
     if (coords.length < 2) return;
     trackLineRef.current = L.polyline(coords, {
       color: "#2563eb",
       weight: 5,
-      opacity: 0.88,
+      opacity: 0.9,
     }).addTo(map);
     trackLineRef.current.bringToFront();
+
+    // Numbered waypoint pins: S = start (punch-in), 1..N = site visits, E = checkout
+    let visitCounter = 0;
+    for (const point of routeCoords) {
+      let label: string | null = null;
+      let bg = "#2563eb";
+      if (point.kind === "punch-in") { label = "S"; bg = "#0f766e"; }
+      else if (point.kind === "visit-in") { visitCounter += 1; label = String(visitCounter); bg = "#2563eb"; }
+      else if (point.kind === "punch-out") { label = "E"; bg = "#b91c1c"; }
+      if (!label) continue;
+      const html = `<div style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:9999px;background:${bg};color:#fff;font-weight:700;font-size:12px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.35);">${label}</div>`;
+      const icon = L.divIcon({ className: "fo-fs-wp-pin", html, iconSize: [26, 26], iconAnchor: [13, 13] });
+      const m = L.marker([point.lat, point.lng], { icon, zIndexOffset: 950 }).addTo(map);
+      waypointMarkersRef.current.push(m);
+    }
+
     const fitKey = routeCoords.map((point) => `${point.kind}:${point.lat.toFixed(5)},${point.lng.toFixed(5)}`).join("|");
     if (fitKey && fitKey !== lastRouteFitKeyRef.current) {
       lastRouteFitKeyRef.current = fitKey;
       try {
-        map.fitBounds(L.latLngBounds(coords).pad(0.26), { maxZoom: 16, animate: true });
+        const bounds = L.latLngBounds(coords);
+        // Single-point route: center and zoom in close
+        if (coords.length === 1 || bounds.getNorthEast().equals(bounds.getSouthWest())) {
+          map.setView(coords[0], 17, { animate: true });
+        } else {
+          map.fitBounds(bounds.pad(0.15), { maxZoom: 17, animate: true });
+        }
       } catch {
         /* noop */
       }
