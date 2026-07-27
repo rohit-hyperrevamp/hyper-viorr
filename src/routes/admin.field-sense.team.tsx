@@ -12,7 +12,7 @@ export const Route = createFileRoute("/admin/field-sense/team")({
   }),
   head: () => ({
     meta: [
-      { title: "Field Sense — My Team" },
+      { title: "Field Sense — Day Patrol" },
       { name: "description", content: "Field officer roster with punch-in status, current location and travel distance." },
     ],
   }),
