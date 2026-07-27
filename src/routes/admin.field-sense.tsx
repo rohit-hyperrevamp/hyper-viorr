@@ -404,6 +404,8 @@ function DeploymentBreakdown({
               unit_code: u.code,
               customer_name: u.customer_id ? custMap.get(u.customer_id) ?? null : null,
               branch_name: u.branch_id ? branchMap.get(u.branch_id) ?? null : null,
+              latitude: u.latitude,
+              longitude: u.longitude,
             };
           })
           .filter(Boolean) as DeploymentPerson["units"];
