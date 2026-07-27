@@ -201,6 +201,18 @@ export const RBAC_MODULES: ModuleDef[] = [
   },
 
   {
+    key: "field_sense",
+    label: "Field Sense",
+    path: "/admin/field-sense",
+    icon: MapPin,
+    subModules: [
+      { key: "dashboard",       label: "Dashboard",       path: "/admin/field-sense",          icon: LayoutDashboard },
+      { key: "day_patrol",      label: "Day Patrol",      path: "/admin/field-sense/team",     icon: Users },
+      { key: "expense_manager", label: "Expense Manager", path: "/admin/field-sense/expenses", icon: Wallet },
+      { key: "reports",         label: "Reports",         path: "/admin/field-sense/reports",  icon: FileText },
+    ],
+  },
+  {
     key: "notification_center",
     label: "Notification Center",
     path: "/admin/notifications",
