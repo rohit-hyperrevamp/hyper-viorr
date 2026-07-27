@@ -1073,3 +1073,201 @@ function CheckOutDialog({
 export async function resolveProofUrl(path: string | null) {
   return signedProofUrl(path);
 }
+
+// ---------------------------------------------------------------------------
+// Timeline column
+// ---------------------------------------------------------------------------
+
+function fmtTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "—";
+  }
+}
+
+function FieldSenseTimeline(props: {
+  punchInAt: string | null;
+  punchOutAt: string | null;
+  visits: FieldVisit[];
+  units: FoUnit[];
+  openVisit: FieldVisit | null;
+  openVisitUnit: FoUnit | null;
+  distanceToDest: number | null;
+  totalKmToday: number;
+  isOnDuty: boolean;
+  onCompleteVisit: () => void;
+  onCheckOutDuty: () => void;
+  checkingOutDuty: boolean;
+}) {
+  const {
+    punchInAt,
+    punchOutAt,
+    visits,
+    units,
+    openVisit,
+    openVisitUnit,
+    distanceToDest,
+    totalKmToday,
+    isOnDuty,
+    onCompleteVisit,
+    onCheckOutDuty,
+    checkingOutDuty,
+  } = props;
+
+  const unitFor = (id: string) => units.find((u) => u.unit_id === id) ?? null;
+  const completedVisits = visits.filter((v) => v.check_out_at);
+
+  return (
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+      <div className="flex items-center justify-between border-b border-border/50 px-3 py-2">
+        <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+          Today's timeline
+        </div>
+        <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
+          <RouteIcon className="h-3 w-3" /> {totalKmToday.toFixed(2)} km
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-0 overflow-y-auto px-3 py-3">
+        {/* Punch-in */}
+        <TimelineRow
+          color="emerald"
+          icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+          title="Punched in"
+          time={fmtTime(punchInAt)}
+          subtitle={punchInAt ? "Duty started" : "Not on duty yet"}
+        />
+
+        {/* Completed visits */}
+        {completedVisits.map((v) => {
+          const u = unitFor(v.unit_id);
+          return (
+            <TimelineRow
+              key={v.id}
+              color="sky"
+              icon={<Flag className="h-3.5 w-3.5" />}
+              title={`Visit #${v.visit_seq} · ${u?.unit_name ?? "Unit"}`}
+              time={`${fmtTime(v.check_in_at)} → ${fmtTime(v.check_out_at)}`}
+              subtitle={u?.address ?? u?.customer_name ?? ""}
+              chip={v.customer_rating != null ? `★ ${v.customer_rating}` : undefined}
+            />
+          );
+        })}
+
+        {/* Active visit */}
+        {openVisit && (
+          <TimelineRow
+            color="amber"
+            pulsing
+            icon={<Navigation className="h-3.5 w-3.5" />}
+            title={`In meeting · ${openVisitUnit?.unit_name ?? "Unit"}`}
+            time={`${fmtTime(openVisit.check_in_at)} · now`}
+            subtitle={
+              openVisitUnit?.address ??
+              (distanceToDest != null ? `${formatDistance(distanceToDest)} to destination` : "")
+            }
+            action={
+              <Button
+                size="sm"
+                className="mt-2 h-8 w-full rounded-lg bg-emerald-600 text-[12px] font-semibold text-white hover:bg-emerald-700"
+                onClick={onCompleteVisit}
+              >
+                Complete visit
+              </Button>
+            }
+          />
+        )}
+
+        {/* Punch-out (if done) */}
+        {punchOutAt && (
+          <TimelineRow
+            color="slate"
+            icon={<Clock className="h-3.5 w-3.5" />}
+            title="Punched out"
+            time={fmtTime(punchOutAt)}
+            subtitle="Duty ended"
+          />
+        )}
+
+        {!punchInAt && visits.length === 0 && (
+          <div className="rounded-lg border border-dashed border-border/60 p-4 text-center text-[12px] text-muted-foreground">
+            Mark your attendance to start the day.
+          </div>
+        )}
+      </div>
+
+      {/* Attendance checkout */}
+      {isOnDuty && (
+        <div className="border-t border-border/50 bg-background/40 px-3 py-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 w-full rounded-lg border-rose-200 text-[12px] font-semibold text-rose-600 hover:bg-rose-50"
+            onClick={onCheckOutDuty}
+            disabled={checkingOutDuty || !!openVisit}
+          >
+            {checkingOutDuty ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <LogOut className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            {openVisit ? "Complete visit to end duty" : "End duty & check out"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TimelineRow(props: {
+  color: "emerald" | "sky" | "amber" | "slate";
+  icon: React.ReactNode;
+  title: string;
+  time: string;
+  subtitle?: string;
+  chip?: string;
+  action?: React.ReactNode;
+  pulsing?: boolean;
+}) {
+  const { color, icon, title, time, subtitle, chip, action, pulsing } = props;
+  const dotColor: Record<typeof props.color, string> = {
+    emerald: "bg-emerald-500",
+    sky: "bg-sky-500",
+    amber: "bg-amber-500",
+    slate: "bg-slate-400",
+  };
+  return (
+    <div className="relative flex gap-3 py-2">
+      <div className="flex flex-col items-center">
+        <div
+          className={cn(
+            "flex h-6 w-6 items-center justify-center rounded-full text-white shadow-sm",
+            dotColor[color],
+            pulsing && "ring-4 ring-amber-200 animate-pulse",
+          )}
+        >
+          {icon}
+        </div>
+        <div className="mt-1 w-px flex-1 bg-border/70" />
+      </div>
+      <div className="flex-1 pb-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="text-[12.5px] font-semibold text-foreground leading-snug">{title}</div>
+          {chip && (
+            <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+              {chip}
+            </span>
+          )}
+        </div>
+        <div className="text-[11px] font-medium text-muted-foreground">{time}</div>
+        {subtitle && (
+          <div className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{subtitle}</div>
+        )}
+        {action}
+      </div>
+    </div>
+  );
+}
+
