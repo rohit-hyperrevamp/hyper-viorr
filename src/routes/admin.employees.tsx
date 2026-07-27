@@ -10,6 +10,7 @@ import {
   NomineeSection,
   SectionHeaderContext,
 } from "@/components/candidate-extra-sections";
+import { GuardReportingManagersEditor } from "@/components/GuardReportingManagersEditor";
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -4912,6 +4913,14 @@ function CandidateWizard({
                       />
                     </Field>
                   </div>
+                  {editing && ['guard','security_guard'].includes((editing as { role_key?: string })?.role_key ?? '') && (
+                    <div className="sm:col-span-2">
+                      <GuardReportingManagersEditor
+                        candidateId={editing.id}
+                        candidateName={editing.full_name || editing.employee_code || ''}
+                      />
+                    </div>
+                  )}
                   <div className="sm:col-span-2">
                     <Field label={`Organizations${(() => {
                       const orgs = Array.from(new Set(form.unit_ids.map((id) => units.find((u) => u.id === id)?.customer_name).filter(Boolean) as string[]));

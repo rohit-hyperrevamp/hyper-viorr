@@ -510,6 +510,58 @@ export type Database = {
           },
         ]
       }
+      candidate_reporting_managers: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          id: string
+          is_primary: boolean
+          manager_id: string
+          source: string
+          unit_id: string | null
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          manager_id: string
+          source?: string
+          unit_id?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          manager_id?: string
+          source?: string
+          unit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_reporting_managers_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_reporting_managers_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_reporting_managers_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidate_units: {
         Row: {
           candidate_id: string
