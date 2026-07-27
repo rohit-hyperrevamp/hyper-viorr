@@ -47,11 +47,15 @@ import {
   fetchMonthVisitCounts,
   fetchTodayTrackPoints,
   fetchTodayVisits,
+  fetchVisitsInRange,
   findNearestUnit,
   insertTrackPoint,
+  resolveRange,
   signedProofUrl,
   uploadVisitProof,
+  RANGE_PRESETS,
   type FieldVisit,
+  type RangePreset,
 } from "@/lib/field-visits";
 
 
