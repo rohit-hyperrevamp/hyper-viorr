@@ -1633,6 +1633,141 @@ export type Database = {
         }
         Relationships: []
       }
+      field_track_points: {
+        Row: {
+          accuracy: number | null
+          candidate_id: string
+          created_at: string
+          id: string
+          lat: number
+          lng: number
+          recorded_at: string
+          track_date: string
+          visit_id: string | null
+        }
+        Insert: {
+          accuracy?: number | null
+          candidate_id: string
+          created_at?: string
+          id?: string
+          lat: number
+          lng: number
+          recorded_at?: string
+          track_date?: string
+          visit_id?: string | null
+        }
+        Update: {
+          accuracy?: number | null
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          lat?: number
+          lng?: number
+          recorded_at?: string
+          track_date?: string
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_track_points_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_track_points_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "field_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      field_visits: {
+        Row: {
+          candidate_id: string
+          check_in_accuracy: number | null
+          check_in_at: string
+          check_in_lat: number | null
+          check_in_lng: number | null
+          check_out_at: string | null
+          check_out_lat: number | null
+          check_out_lng: number | null
+          client_name: string | null
+          client_photo_url: string | null
+          client_signature_url: string | null
+          created_at: string
+          customer_rating: number | null
+          distance_from_prev_m: number | null
+          id: string
+          unit_id: string
+          updated_at: string
+          visit_date: string
+          visit_notes: string | null
+          visit_seq: number
+        }
+        Insert: {
+          candidate_id: string
+          check_in_accuracy?: number | null
+          check_in_at?: string
+          check_in_lat?: number | null
+          check_in_lng?: number | null
+          check_out_at?: string | null
+          check_out_lat?: number | null
+          check_out_lng?: number | null
+          client_name?: string | null
+          client_photo_url?: string | null
+          client_signature_url?: string | null
+          created_at?: string
+          customer_rating?: number | null
+          distance_from_prev_m?: number | null
+          id?: string
+          unit_id: string
+          updated_at?: string
+          visit_date?: string
+          visit_notes?: string | null
+          visit_seq?: number
+        }
+        Update: {
+          candidate_id?: string
+          check_in_accuracy?: number | null
+          check_in_at?: string
+          check_in_lat?: number | null
+          check_in_lng?: number | null
+          check_out_at?: string | null
+          check_out_lat?: number | null
+          check_out_lng?: number | null
+          client_name?: string | null
+          client_photo_url?: string | null
+          client_signature_url?: string | null
+          created_at?: string
+          customer_rating?: number | null
+          distance_from_prev_m?: number | null
+          id?: string
+          unit_id?: string
+          updated_at?: string
+          visit_date?: string
+          visit_notes?: string | null
+          visit_seq?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_visits_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_visits_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       indian_states: {
         Row: {
           code: string
