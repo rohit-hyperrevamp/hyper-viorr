@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Battery, BatteryCharging, Radio, Signal, Wifi } from "lucide-react";
+import { Battery, BatteryCharging, Building2, ChevronDown, MapPin, Radio, Shield, Signal, UserCog, Wifi } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 
