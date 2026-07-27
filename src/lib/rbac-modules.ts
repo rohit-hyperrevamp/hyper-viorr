@@ -220,6 +220,27 @@ export const RBAC_MODULES: ModuleDef[] = [
     subModules: [],
   },
   {
+    key: "dashboard",
+    label: "Dashboard",
+    path: "/admin/dashboard",
+    icon: LayoutDashboard,
+    subModules: [],
+  },
+  {
+    key: "my_attendance",
+    label: "My Attendance",
+    path: "/admin/my-attendance",
+    icon: ClipboardList,
+    subModules: [],
+  },
+  {
+    key: "profile",
+    label: "Profile",
+    path: "/admin/profile",
+    icon: BadgeCheck,
+    subModules: [],
+  },
+  {
     key: "rbac",
     label: "Role-Based Access Control",
     path: "/admin/rbac",
