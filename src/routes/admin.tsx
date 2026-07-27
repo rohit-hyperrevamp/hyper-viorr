@@ -480,6 +480,15 @@ function AdminLayout() {
       })
       .map((g) => {
         if (g.key === "inventory") return { ...g, children: filteredInventoryChildren };
+        if (g.key === "field-sense" && g.children) {
+          let kids = g.children;
+          if (isFieldOfficer) {
+            kids = kids
+              .filter((c) => c.to !== "/admin/field-sense/team" && c.to !== "/admin/field-sense/expenses")
+              .map((c) => (c.to === "/admin/field-sense" ? { ...c, label: "Day Patrol" } : c));
+          }
+          return { ...g, children: kids };
+        }
         if (!g.module || !g.children) return g;
         const filtered = g.children.filter((c) => !c.sub || canSub(g.module!, c.sub));
         return { ...g, children: filtered };
