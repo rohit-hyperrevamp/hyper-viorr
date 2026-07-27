@@ -702,16 +702,30 @@ function MusterRollPage() {
     const desigByCand = new Map<string, string | null>(
       (employees ?? []).map((e) => [e.id, e.designation_id ?? null]),
     );
+    const today = new Date().toISOString().slice(0, 10);
     const rows: EntryRow[] = [];
     for (const p of selfPunches) {
       if (!p.check_in_at) continue;
-      let otDays = 0;
-      if (p.check_out_at) {
-        const mins = (new Date(p.check_out_at).getTime() - new Date(p.check_in_at).getTime()) / 60000;
-        const hours = Math.max(0, mins / 60);
-        const otHours = Math.max(0, hours - 8);
-        otDays = roundHalf(otHours / 8);
+      // Wait for checkout before counting attendance.
+      // If the punch date has already passed and the officer never checked out,
+      // treat that day as Absent. For today with no checkout yet, skip entirely
+      // so the cell stays blank until they check out.
+      if (!p.check_out_at) {
+        if (p.punch_date < today) {
+          rows.push({
+            candidate_id: p.candidate_id,
+            designation_id: desigByCand.get(p.candidate_id) ?? null,
+            entry_date: p.punch_date,
+            code: "A",
+            ot_hours: 0,
+          });
+        }
+        continue;
       }
+      const mins = (new Date(p.check_out_at).getTime() - new Date(p.check_in_at).getTime()) / 60000;
+      const hours = Math.max(0, mins / 60);
+      const otHours = Math.max(0, hours - 8);
+      const otDays = roundHalf(otHours / 8);
       rows.push({
         candidate_id: p.candidate_id,
         designation_id: desigByCand.get(p.candidate_id) ?? null,
