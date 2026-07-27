@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { FieldOfficerFieldSense } from "@/components/FieldOfficerFieldSense";
 import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visits";
+import { FieldSenseRangeFilter } from "@/components/FieldSenseRangeFilter";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
 import { AdminEscalationRequestsCard } from "@/components/AdminEscalationRequestsCard";
