@@ -479,9 +479,25 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
       <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Today</div>
-          <div className="mt-0.5 text-sm font-semibold text-foreground">
-            {completedCount} visit{completedCount === 1 ? "" : "s"} completed · {totalKmToday.toFixed(2)} km traveled
-          </div>
+          {openVisit ? (
+            <>
+              <div className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-300">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-70" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                </span>
+                In meeting at {openVisitUnit?.unit_name ?? "site"}
+              </div>
+              <div className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                {completedCount} completed · {totalKmToday.toFixed(2)} km traveled
+                {distanceToDest != null ? ` · ${formatDistance(distanceToDest)} to destination` : ""}
+              </div>
+            </>
+          ) : (
+            <div className="mt-0.5 text-sm font-semibold text-foreground">
+              {completedCount} visit{completedCount === 1 ? "" : "s"} completed · {totalKmToday.toFixed(2)} km traveled
+            </div>
+          )}
           {posError && <div className="mt-0.5 text-[11px] font-semibold text-rose-600">{posError}</div>}
         </div>
         {openVisit ? (
