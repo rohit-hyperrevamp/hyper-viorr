@@ -188,12 +188,13 @@ export async function fetchLastVisitPerUnit(
 
 export async function fetchTodayTrackPoints(
   candidateId: string,
+  date?: string,
 ): Promise<FieldTrackPoint[]> {
   const { data, error } = await supabase
     .from("field_track_points" as never)
     .select("*")
     .eq("candidate_id", candidateId)
-    .eq("track_date", today())
+    .eq("track_date", date ?? today())
     .order("recorded_at", { ascending: true });
   if (error) throw error;
   return (data ?? []) as unknown as FieldTrackPoint[];
