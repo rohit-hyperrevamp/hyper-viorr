@@ -63,7 +63,6 @@ import {
   listOpenRequestsForCandidate,
   type FieldVisitRequest,
 } from "@/lib/field-visit-requests";
-} from "@/lib/field-visits";
 
 
 type FoUnit = {
