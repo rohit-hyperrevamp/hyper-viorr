@@ -169,16 +169,8 @@ function FieldSensePage() {
 
   const rows = useMemo(() => (q.data ?? []).filter((r) => r.last_lat != null && r.last_lng != null), [q.data]);
 
-  const liveFoCount = useMemo(
-    () => rows.filter((r) => r.candidate?.role_key === "field_officer").length,
-    [rows],
-  );
-  const liveSgCount = useMemo(
-    () => rows.filter((r) => r.candidate?.role_key === "guard" || r.candidate?.role_key === "security_guard").length,
-    [rows],
-  );
+  const liveFoCount = rows.length;
   const totalFo = totalsQ.data?.fo ?? 0;
-  const totalSg = totalsQ.data?.sg ?? 0;
 
   // Sync markers
   useEffect(() => {
@@ -246,9 +238,8 @@ function FieldSensePage() {
 
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <StatTile label="Field Officers" total={totalFo} live={liveFoCount} tone="sky" />
-        <StatTile label="Security Guards" total={totalSg} live={liveSgCount} tone="emerald" />
         <StatTile label="With GPS Ping" total={(q.data ?? []).length} live={rows.length} tone="amber" />
       </section>
 
@@ -256,35 +247,24 @@ function FieldSensePage() {
         <div ref={mapEl} style={{ height: "520px", width: "100%" }} />
         {q.isLoading && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/40 text-xs font-semibold text-muted-foreground">
-            Loading live field officers & guards…
+            Loading live field officers…
           </div>
         )}
         {!q.isLoading && rows.length === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-4 mx-auto w-fit rounded-full bg-background/90 px-4 py-2 text-xs font-semibold text-muted-foreground shadow ring-1 ring-border/60">
-            No one is currently checked in with a GPS ping.
+            No field officer is currently checked in with a GPS ping.
           </div>
         )}
       </section>
 
-      <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <OnDutyColumn
-          title="On duty — Field Officers"
-          icon={<UserCog className="h-3.5 w-3.5" />}
-          tone="sky"
-          rows={rows.filter((r) => r.candidate?.role_key === "field_officer")}
-        />
-        <OnDutyColumn
-          title="On duty — Security Guards"
-          icon={<Shield className="h-3.5 w-3.5" />}
-          tone="emerald"
-          rows={rows.filter((r) => r.candidate?.role_key === "guard" || r.candidate?.role_key === "security_guard")}
-        />
-      </section>
+      <OnDutyColumn
+        title="On duty — Field Officers"
+        icon={<UserCog className="h-3.5 w-3.5" />}
+        tone="sky"
+        rows={rows}
+      />
 
-      <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <DeploymentBreakdown role="field_officer" title="Units & Organizations by Field Officer" tone="sky" />
-        <DeploymentBreakdown role="guard" title="Units & Organizations by Guard" tone="emerald" />
-      </section>
+      <DeploymentBreakdown role="field_officer" title="Units & Organizations by Field Officer" tone="sky" />
     </div>
   );
 }
