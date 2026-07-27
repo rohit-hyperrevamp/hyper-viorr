@@ -281,6 +281,11 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     queryFn: () => fetchTodayTrackPoints(candidateId),
     refetchInterval: 15_000,
   });
+  const rangeVisitsQ = useQuery({
+    queryKey: ["fo-fs-range-visits", candidateId, rangeInfo.start, rangeInfo.end],
+    queryFn: () => fetchVisitsInRange(candidateId, rangeInfo.start, rangeInfo.end),
+    staleTime: 30_000,
+  });
 
   const units = unitsQ.data ?? [];
   const visits = visitsQ.data ?? [];
