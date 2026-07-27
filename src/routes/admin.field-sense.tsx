@@ -258,6 +258,9 @@ function FieldSensePage() {
         <StatTile label="Security Guards" total={totalSg} live={liveSgCount} tone="emerald" />
         <StatTile label="Live on Duty" total={totalFo + totalSg} live={liveFoCount + liveSgCount} tone="violet" />
         <StatTile label="With GPS Ping" total={(q.data ?? []).length} live={rows.length} tone="amber" />
+      </section>
+
+
 
       <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
         <div ref={mapEl} style={{ height: "min(72vh, 720px)", width: "100%" }} />
