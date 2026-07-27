@@ -102,7 +102,7 @@ export async function completeFieldVisitRequestForUnit(params: {
   unitId: string;
   visitId: string;
 }): Promise<void> {
-  // Auto-complete the most recent open request for this FO+unit when they check in
+  // On check-in, mark the most recent open request for this FO+unit as in_progress
   const { data } = await supabase
     .from("field_visit_requests" as never)
     .select("id")
@@ -116,11 +116,22 @@ export async function completeFieldVisitRequestForUnit(params: {
   await supabase
     .from("field_visit_requests" as never)
     .update({
-      status: "completed",
-      completed_at: new Date().toISOString(),
+      status: "in_progress",
+      acknowledged_at: new Date().toISOString(),
       visit_id: params.visitId,
     } as never)
     .eq("id", row.id);
+}
+
+export async function completeFieldVisitRequestByVisit(visitId: string): Promise<void> {
+  await supabase
+    .from("field_visit_requests" as never)
+    .update({
+      status: "completed",
+      completed_at: new Date().toISOString(),
+    } as never)
+    .eq("visit_id", visitId)
+    .in("status", ["in_progress", "acknowledged", "pending"]);
 }
 
 export async function listOpenRequestsForCandidate(candidateId: string): Promise<FieldVisitRequest[]> {
