@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { notifyUser } from "@/lib/notifications";
 import { logActivity } from "@/lib/activity-log";
 
-export type FieldVisitRequestStatus = "pending" | "acknowledged" | "completed" | "cancelled";
+export type FieldVisitRequestStatus = "pending" | "acknowledged" | "in_progress" | "completed" | "cancelled";
 export type FieldVisitRequestPriority = "emergency" | "high" | "normal";
 
 export type FieldVisitRequest = {
