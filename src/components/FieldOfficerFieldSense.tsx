@@ -973,16 +973,22 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
           units={units}
           pos={pos}
           nextSeq={nextSeq}
+          preselectUnitId={preselectUnitId}
           prevPoint={
             visits.length > 0
               ? { lat: visits[visits.length - 1].check_out_lat, lng: visits[visits.length - 1].check_out_lng }
               : null
           }
-          onClose={() => setCheckInOpen(false)}
+          onClose={() => {
+            setCheckInOpen(false);
+            setPreselectUnitId(null);
+          }}
           onDone={() => {
             setCheckInOpen(false);
+            setPreselectUnitId(null);
             void qc.invalidateQueries({ queryKey: ["fo-fs-visits", candidateId, todayPunchDate()] });
             void qc.invalidateQueries({ queryKey: ["fo-fs-track", candidateId, todayPunchDate()] });
+            void qc.invalidateQueries({ queryKey: ["fo-fs-requests", candidateId] });
           }}
         />
       )}
