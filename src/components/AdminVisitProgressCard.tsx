@@ -40,7 +40,12 @@ function fmtHm(from: string, to?: string | null) {
 
 export function AdminVisitProgressCard() {
   const [preset, setPreset] = useState<RangePreset>("today");
-  const range = useMemo(() => resolveRange(preset), [preset]);
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const range = useMemo(
+    () => resolveRange(preset, customStart || null, customEnd || null),
+    [preset, customStart, customEnd],
+  );
 
   const q = useQuery({
     queryKey: ["admin-visit-progress", range.start, range.end],
