@@ -25,6 +25,18 @@ export async function capturePhoto(): Promise<string | null> {
     }
   }
 
+  if (
+    typeof navigator !== "undefined" &&
+    navigator.mediaDevices &&
+    typeof navigator.mediaDevices.getUserMedia === "function"
+  ) {
+    try {
+      return await capturePhotoFromWebCamera();
+    } catch (err) {
+      console.warn("[capturePhoto] web camera failed", err);
+    }
+  }
+
   return new Promise<string | null>((resolve) => {
     const input = document.createElement("input");
     input.type = "file";
@@ -50,5 +62,115 @@ export async function capturePhoto(): Promise<string | null> {
     });
     input.addEventListener("cancel", () => finish(null));
     input.click();
+  });
+}
+
+async function capturePhotoFromWebCamera(): Promise<string | null> {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: { ideal: "environment" },
+      width: { ideal: 1280 },
+      height: { ideal: 960 },
+    },
+    audio: false,
+  });
+
+  return await new Promise<string | null>((resolve) => {
+    let settled = false;
+    const cleanup = (value: string | null) => {
+      if (settled) return;
+      settled = true;
+      stream.getTracks().forEach((track) => track.stop());
+      try {
+        document.body.removeChild(overlay);
+      } catch {
+        /* noop */
+      }
+      resolve(value);
+    };
+
+    const overlay = document.createElement("div");
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-label", "Capture client photo");
+    overlay.style.position = "fixed";
+    overlay.style.inset = "0";
+    overlay.style.zIndex = "2147483647";
+    overlay.style.background = "rgba(2, 6, 23, 0.92)";
+    overlay.style.display = "flex";
+    overlay.style.flexDirection = "column";
+    overlay.style.padding = "16px";
+    overlay.style.paddingTop = "max(16px, env(safe-area-inset-top))";
+    overlay.style.paddingBottom = "max(16px, env(safe-area-inset-bottom))";
+    overlay.style.gap = "12px";
+
+    const title = document.createElement("div");
+    title.textContent = "Client photo";
+    title.style.color = "white";
+    title.style.font = "700 15px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    title.style.letterSpacing = "0";
+
+    const videoWrap = document.createElement("div");
+    videoWrap.style.flex = "1";
+    videoWrap.style.minHeight = "0";
+    videoWrap.style.borderRadius = "18px";
+    videoWrap.style.overflow = "hidden";
+    videoWrap.style.background = "#020617";
+    videoWrap.style.border = "1px solid rgba(255,255,255,0.16)";
+
+    const video = document.createElement("video");
+    video.autoplay = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.srcObject = stream;
+    video.style.width = "100%";
+    video.style.height = "100%";
+    video.style.objectFit = "cover";
+    videoWrap.appendChild(video);
+
+    const actions = document.createElement("div");
+    actions.style.display = "grid";
+    actions.style.gridTemplateColumns = "1fr 1.4fr";
+    actions.style.gap = "10px";
+
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    cancel.style.height = "48px";
+    cancel.style.borderRadius = "14px";
+    cancel.style.border = "1px solid rgba(255,255,255,0.18)";
+    cancel.style.background = "rgba(255,255,255,0.08)";
+    cancel.style.color = "white";
+    cancel.style.font = "700 14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    cancel.onclick = () => cleanup(null);
+
+    const capture = document.createElement("button");
+    capture.type = "button";
+    capture.textContent = "Take photo";
+    capture.style.height = "48px";
+    capture.style.borderRadius = "14px";
+    capture.style.border = "0";
+    capture.style.background = "#16a34a";
+    capture.style.color = "white";
+    capture.style.font = "800 14px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    capture.onclick = () => {
+      const width = video.videoWidth || 1280;
+      const height = video.videoHeight || 960;
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        cleanup(null);
+        return;
+      }
+      ctx.drawImage(video, 0, 0, width, height);
+      cleanup(canvas.toDataURL("image/jpeg", 0.86));
+    };
+
+    actions.append(cancel, capture);
+    overlay.append(title, videoWrap, actions);
+    document.body.appendChild(overlay);
+
+    video.play().catch(() => cleanup(null));
   });
 }
