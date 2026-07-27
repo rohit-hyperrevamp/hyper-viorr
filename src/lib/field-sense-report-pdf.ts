@@ -109,11 +109,9 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(220, 220, 220);
-  const unitLine =
-    input.unitNames.length <= 2
-      ? input.unitNames.join(" · ")
-      : `${input.unitNames.slice(0, 2).join(" · ")} +${input.unitNames.length - 2} more`;
-  doc.text(unitLine, rightX, 47, { align: "right" });
+  const unitCountLabel =
+    input.unitNames.length === 1 ? "1 unit in scope" : `${input.unitNames.length} units in scope`;
+  doc.text(unitCountLabel, rightX, 47, { align: "right" });
   doc.setFontSize(8);
   doc.setTextColor(255, 210, 120);
   doc.text(input.rangeLabel.toUpperCase(), rightX, 62, { align: "right" });
