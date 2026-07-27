@@ -605,12 +605,6 @@ function DashboardPage() {
         crumbs={[{ label: "Dashboard" }]}
       />
 
-      {/* Field Sense — today's on-ground activity + emergency dispatch */}
-      <div className="grid gap-4 xl:grid-cols-2">
-        <AdminVisitProgressCard />
-        <AdminFieldOfficerUnitsCard />
-      </div>
-
       {/* Month hero — restrained slate panel */}
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-foreground/80" />
