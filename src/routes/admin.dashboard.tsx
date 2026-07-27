@@ -40,8 +40,6 @@ function PeopleInsightsSection() {
   return (
     <div className="flex flex-col gap-4">
       <LiveFieldOfficersCard />
-      <AdminVisitProgressCard />
-      <AdminFieldOfficerUnitsCard />
       <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
       <PeopleInsightsCard kind="anniversaries" items={anniversaries} isLoading={isLoading} />
       {showSixtyPlus && (
