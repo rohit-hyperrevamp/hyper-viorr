@@ -190,7 +190,9 @@ async function loadFoUnits(candidateId: string): Promise<FoUnit[]> {
   return list;
 }
 
-export function FieldOfficerFieldSense({ candidateId }: { candidateId: string }) {
+export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId: string; viewDate?: string }) {
+  const effectiveDate = viewDate ?? todayPunchDate();
+  const isHistorical = !!viewDate && viewDate !== todayPunchDate();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as {
@@ -247,13 +249,13 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     staleTime: 60_000,
   });
   const punchQ = useQuery({
-    queryKey: ["fo-fs-punch", candidateId, todayPunchDate()],
+    queryKey: ["fo-fs-punch", candidateId, effectiveDate],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("self_attendance_punches" as never)
         .select("id, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng")
         .eq("candidate_id", candidateId)
-        .eq("punch_date", todayPunchDate())
+        .eq("punch_date", effectiveDate)
         .maybeSingle();
       if (error && error.code !== "PGRST116") throw error;
       return (data as {
@@ -266,15 +268,15 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
         check_out_lng: number | null;
       } | null) ?? null;
     },
-    refetchInterval: 30_000,
+    refetchInterval: isHistorical ? false : 30_000,
   });
   const visitsQ = useQuery({
-    queryKey: ["fo-fs-visits", candidateId, todayPunchDate()],
-    queryFn: () => fetchTodayVisits(candidateId),
-    refetchInterval: 30_000,
+    queryKey: ["fo-fs-visits", candidateId, effectiveDate],
+    queryFn: () => fetchTodayVisits(candidateId, effectiveDate),
+    refetchInterval: isHistorical ? false : 30_000,
   });
   const monthCountsQ = useQuery({
-    queryKey: ["fo-fs-month-counts", candidateId, todayPunchDate().slice(0, 7)],
+    queryKey: ["fo-fs-month-counts", candidateId, effectiveDate.slice(0, 7)],
     queryFn: () => fetchMonthVisitCounts(candidateId),
     staleTime: 60_000,
   });
@@ -284,9 +286,9 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     staleTime: 60_000,
   });
   const trackQ = useQuery({
-    queryKey: ["fo-fs-track", candidateId, todayPunchDate()],
-    queryFn: () => fetchTodayTrackPoints(candidateId),
-    refetchInterval: 15_000,
+    queryKey: ["fo-fs-track", candidateId, effectiveDate],
+    queryFn: () => fetchTodayTrackPoints(candidateId, effectiveDate),
+    refetchInterval: isHistorical ? false : 15_000,
   });
   const rangeVisitsQ = useQuery({
     queryKey: ["fo-fs-range-visits", candidateId, rangeInfo.start, rangeInfo.end],
@@ -296,7 +298,8 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
   const requestsQ = useQuery({
     queryKey: ["fo-fs-requests", candidateId],
     queryFn: () => listOpenRequestsForCandidate(candidateId),
-    refetchInterval: 20_000,
+    refetchInterval: isHistorical ? false : 20_000,
+    enabled: !isHistorical,
   });
 
   const units = unitsQ.data ?? [];
@@ -310,8 +313,9 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
   );
   const snappedPosition = useMemo(() => unitGeo(openVisitUnit) ?? pos, [openVisitUnit, pos]);
 
-  // Initial geolocation + polling for telemetry + track points
+  // Initial geolocation + polling for telemetry + track points (live only)
   useEffect(() => {
+    if (isHistorical) return;
     let cancelled = false;
     let timer: number | null = null;
 

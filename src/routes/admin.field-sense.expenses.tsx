@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, IndianRupee, MapPin, X } from "lucide-react";
@@ -105,7 +105,6 @@ function ExpenseManagerPage() {
   );
 
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [dayModal, setDayModal] = useState<{ candidateId: string; foName: string; day: string } | null>(null);
 
   const dataQ = useQuery({
     queryKey: ["expense-manager", resolved.start, resolved.end],
@@ -336,11 +335,10 @@ function ExpenseManagerPage() {
                         <ul className="grid gap-1.5 sm:grid-cols-2">
                           {row.days.map((d) => (
                             <li key={d.day}>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setDayModal({ candidateId: row.candidate_id, foName: row.full_name, day: d.day })
-                                }
+                              <Link
+                                to="/admin/field-sense/officer/$id"
+                                params={{ id: row.candidate_id }}
+                                search={{ date: d.day, from: "expenses" }}
                                 className="flex w-full items-center justify-between gap-3 rounded-xl border border-border/50 bg-card px-3 py-2 text-left transition hover:border-foreground/30 hover:bg-background"
                               >
                                 <div className="min-w-0">
@@ -353,8 +351,8 @@ function ExpenseManagerPage() {
                                   <span className="text-sm font-bold text-foreground">{d.km.toFixed(2)}</span>
                                   <span className="text-[10px] font-semibold uppercase text-muted-foreground">km</span>
                                 </div>
-                                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                              </button>
+                                <MapPin className="h-3.5 w-3.5 text-primary" />
+                              </Link>
                             </li>
                           ))}
                         </ul>
@@ -368,15 +366,6 @@ function ExpenseManagerPage() {
         )}
       </div>
 
-      {dayModal && (
-        <DayTrailModal
-          candidateId={dayModal.candidateId}
-          foName={dayModal.foName}
-          day={dayModal.day}
-          unitById={dataQ.data?.unitById ?? new Map()}
-          onClose={() => setDayModal(null)}
-        />
-      )}
     </div>
   );
 }
