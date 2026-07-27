@@ -193,7 +193,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
   const trackQ = useQuery({
     queryKey: ["fo-fs-track", candidateId, todayPunchDate()],
     queryFn: () => fetchTodayTrackPoints(candidateId),
-    refetchInterval: 45_000,
+    refetchInterval: 15_000,
   });
 
   const units = unitsQ.data ?? [];
