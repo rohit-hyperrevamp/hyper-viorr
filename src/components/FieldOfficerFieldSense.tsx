@@ -835,7 +835,7 @@ function CheckOutDialog({
   const [clientName, setClientName] = useState<string>(visit.client_name ?? "");
   const [signature, setSignature] = useState<string>("");
   const [clientPhoto, setClientPhoto] = useState<string>("");
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  // (photo capture now handled by capturePhoto helper — no hidden input needed)
 
   const missing: string[] = [];
   if (!notes.trim()) missing.push("visit notes");
