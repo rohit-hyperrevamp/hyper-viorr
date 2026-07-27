@@ -4406,7 +4406,7 @@ function CandidateWizard({
           )}
         </div>
 
-        <div ref={wizardScrollRef} className="shrink-0 px-3 py-2.5 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:overscroll-contain sm:px-4">
+        <div ref={wizardBodyRef} className="shrink-0 px-3 py-2.5 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:overscroll-contain sm:px-4">
           {/* ----- Full form (single page) ----- */}
           {true && (
             <div className="space-y-4 sm:space-y-6">
