@@ -4491,7 +4491,7 @@ function CandidateWizard({
                           defaultMonth={form.date_of_birth ? parseISO(form.date_of_birth) : new Date(2000, 0, 1)}
                           startMonth={new Date(1940, 0)}
                           endMonth={new Date()}
-                          disabled={{ after: new Date() }}
+                          disabled={(d) => d > new Date()}
                           onSelect={(d) =>
                             set("date_of_birth", d ? formatDateFns(d, "yyyy-MM-dd") : null)
                           }
