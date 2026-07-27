@@ -4,6 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Battery, BatteryCharging, Building2, ChevronDown, MapPin, Radio, Signal, UserCog, Wifi } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
+import { useCurrentUserRole } from "@/lib/use-current-user-role";
+import { FieldOfficerFieldSense } from "@/components/FieldOfficerFieldSense";
+
 
 export const Route = createFileRoute("/admin/field-sense")({
   component: FieldSensePage,
