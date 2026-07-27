@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, IndianRupee, MapPin, X } from "lucide-react";
+import { ChevronDown, ChevronRight, MapPin, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visits";
@@ -225,8 +225,11 @@ function ExpenseManagerPage() {
       const dayRows = new Map<string, DayBreak[]>();
       for (const k of allKeys) {
         const [cand, day] = k.split("|");
-        const stored = storedKmMap.get(k) ?? 0;
-        const km = stored > 0 ? stored : Math.max(rawKmMap.get(k) ?? 0, wpKmMap.get(k) ?? 0);
+        const km = Math.max(
+          storedKmMap.get(k) ?? 0,
+          rawKmMap.get(k) ?? 0,
+          wpKmMap.get(k) ?? 0,
+        );
         const arr = dayRows.get(cand) ?? [];
         arr.push({ day, km: Number(km.toFixed(2)), visits: visitsPerDay.get(k) ?? 0 });
         dayRows.set(cand, arr);
@@ -414,10 +417,7 @@ function SummaryTile({ label, value, tone }: { label: string; value: string; ton
   return (
     <div className={`rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-sm ring-1 ${t.ring}`}>
       <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{label}</div>
-      <div className="mt-1 flex items-baseline gap-2">
-        <IndianRupee className={`h-3.5 w-3.5 ${t.text}`} />
-        <div className={`text-[22px] font-semibold leading-none text-foreground`}>{value}</div>
-      </div>
+      <div className={`mt-1 text-[22px] font-semibold leading-none text-foreground`}>{value}</div>
     </div>
   );
 }
