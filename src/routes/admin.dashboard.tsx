@@ -40,8 +40,6 @@ function PeopleInsightsSection() {
   return (
     <div className="flex flex-col gap-4">
       <LiveFieldOfficersCard />
-      <AdminVisitProgressCard />
-      <AdminFieldOfficerUnitsCard />
       <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
       <PeopleInsightsCard kind="anniversaries" items={anniversaries} isLoading={isLoading} />
       {showSixtyPlus && (
@@ -606,6 +604,12 @@ function DashboardPage() {
         description="Live snapshot of everything you have access to — tiles, counts, and P&L for the selected cycle."
         crumbs={[{ label: "Dashboard" }]}
       />
+
+      {/* Field Sense — today's on-ground activity + emergency dispatch */}
+      <div className="grid gap-4 xl:grid-cols-2">
+        <AdminVisitProgressCard />
+        <AdminFieldOfficerUnitsCard />
+      </div>
 
       {/* Month hero — restrained slate panel */}
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
