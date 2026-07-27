@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Battery, BatteryCharging, Building2, ChevronDown, MapPin, Radio, Shield, Signal, UserCog, Wifi } from "lucide-react";
+import { Battery, BatteryCharging, Building2, ChevronDown, MapPin, Radio, Signal, UserCog, Wifi } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 
@@ -102,7 +102,7 @@ function FieldSensePage() {
         .eq("punch_date", today())
         .not("check_in_at", "is", null)
         .is("check_out_at", null)
-        .in("candidate.role_key", ["field_officer", "guard", "security_guard"])
+        .eq("candidate.role_key", "field_officer")
         .order("last_seen_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return (data ?? []) as unknown as LivePunch[];
@@ -113,19 +113,12 @@ function FieldSensePage() {
     queryKey: ["field-sense-totals"],
     staleTime: 60_000,
     queryFn: async () => {
-      const [fo, sg] = await Promise.all([
-        supabase
-          .from("candidates" as never)
-          .select("id", { count: "exact", head: true })
-          .eq("role_key", "field_officer")
-          .in("status", ["approved", "active"]),
-        supabase
-          .from("candidates" as never)
-          .select("id", { count: "exact", head: true })
-          .in("role_key", ["guard", "security_guard"])
-          .in("status", ["approved", "active"]),
-      ]);
-      return { fo: fo.count ?? 0, sg: sg.count ?? 0 };
+      const fo = await supabase
+        .from("candidates" as never)
+        .select("id", { count: "exact", head: true })
+        .eq("role_key", "field_officer")
+        .in("status", ["approved", "active"]);
+      return { fo: fo.count ?? 0 };
     },
   });
 
@@ -176,16 +169,8 @@ function FieldSensePage() {
 
   const rows = useMemo(() => (q.data ?? []).filter((r) => r.last_lat != null && r.last_lng != null), [q.data]);
 
-  const liveFoCount = useMemo(
-    () => rows.filter((r) => r.candidate?.role_key === "field_officer").length,
-    [rows],
-  );
-  const liveSgCount = useMemo(
-    () => rows.filter((r) => r.candidate?.role_key === "guard" || r.candidate?.role_key === "security_guard").length,
-    [rows],
-  );
+  const liveFoCount = rows.length;
   const totalFo = totalsQ.data?.fo ?? 0;
-  const totalSg = totalsQ.data?.sg ?? 0;
 
   // Sync markers
   useEffect(() => {
@@ -253,9 +238,8 @@ function FieldSensePage() {
 
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <StatTile label="Field Officers" total={totalFo} live={liveFoCount} tone="sky" />
-        <StatTile label="Security Guards" total={totalSg} live={liveSgCount} tone="emerald" />
         <StatTile label="With GPS Ping" total={(q.data ?? []).length} live={rows.length} tone="amber" />
       </section>
 
@@ -263,35 +247,24 @@ function FieldSensePage() {
         <div ref={mapEl} style={{ height: "520px", width: "100%" }} />
         {q.isLoading && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/40 text-xs font-semibold text-muted-foreground">
-            Loading live field officers & guards…
+            Loading live field officers…
           </div>
         )}
         {!q.isLoading && rows.length === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-4 mx-auto w-fit rounded-full bg-background/90 px-4 py-2 text-xs font-semibold text-muted-foreground shadow ring-1 ring-border/60">
-            No one is currently checked in with a GPS ping.
+            No field officer is currently checked in with a GPS ping.
           </div>
         )}
       </section>
 
-      <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <OnDutyColumn
-          title="On duty — Field Officers"
-          icon={<UserCog className="h-3.5 w-3.5" />}
-          tone="sky"
-          rows={rows.filter((r) => r.candidate?.role_key === "field_officer")}
-        />
-        <OnDutyColumn
-          title="On duty — Security Guards"
-          icon={<Shield className="h-3.5 w-3.5" />}
-          tone="emerald"
-          rows={rows.filter((r) => r.candidate?.role_key === "guard" || r.candidate?.role_key === "security_guard")}
-        />
-      </section>
+      <OnDutyColumn
+        title="On duty — Field Officers"
+        icon={<UserCog className="h-3.5 w-3.5" />}
+        tone="sky"
+        rows={rows}
+      />
 
-      <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <DeploymentBreakdown role="field_officer" title="Units & Organizations by Field Officer" tone="sky" />
-        <DeploymentBreakdown role="guard" title="Units & Organizations by Guard" tone="emerald" />
-      </section>
+      <DeploymentBreakdown role="field_officer" title="Units & Organizations by Field Officer" tone="sky" />
     </div>
   );
 }
@@ -356,7 +329,7 @@ type DeploymentPerson = {
   id: string;
   full_name: string;
   employee_code: string | null;
-  units: Array<{ unit_id: string; unit_name: string; unit_code: string | null; customer_name: string | null; branch_name: string | null }>;
+  units: Array<{ unit_id: string; unit_name: string; unit_code: string | null; customer_name: string | null; branch_name: string | null; latitude: number | null; longitude: number | null }>;
 };
 
 function DeploymentBreakdown({
@@ -382,7 +355,7 @@ function DeploymentBreakdown({
           .select("id,full_name,employee_code,role_key,unit_id,status")
           .in("role_key", roleFilter)
           .in("status", ["approved", "active"]),
-        supabase.from("units" as never).select("id,name,code,customer_id,branch_id"),
+        supabase.from("units" as never).select("id,name,code,customer_id,branch_id,latitude,longitude"),
         supabase.from("customers" as never).select("id,name"),
         supabase.from("branches" as never).select("id,name"),
         supabase
@@ -392,7 +365,7 @@ function DeploymentBreakdown({
       ]);
       if (candRes.error) throw candRes.error;
 
-      const units = ((unitsRes.data ?? []) as unknown) as Array<{ id: string; name: string; code: string | null; customer_id: string | null; branch_id: string | null }>;
+      const units = ((unitsRes.data ?? []) as unknown) as Array<{ id: string; name: string; code: string | null; customer_id: string | null; branch_id: string | null; latitude: number | null; longitude: number | null }>;
       const custMap = new Map(((custRes.data ?? []) as unknown as Array<{ id: string; name: string }>).map((c) => [c.id, c.name]));
       const branchMap = new Map(((branchRes.data ?? []) as unknown as Array<{ id: string; name: string }>).map((b) => [b.id, b.name]));
       const unitById = new Map(units.map((u) => [u.id, u]));
@@ -431,6 +404,8 @@ function DeploymentBreakdown({
               unit_code: u.code,
               customer_name: u.customer_id ? custMap.get(u.customer_id) ?? null : null,
               branch_name: u.branch_id ? branchMap.get(u.branch_id) ?? null : null,
+              latitude: u.latitude,
+              longitude: u.longitude,
             };
           })
           .filter(Boolean) as DeploymentPerson["units"];
@@ -479,20 +454,38 @@ function DeploymentBreakdown({
                       <div className="text-[11px] italic text-muted-foreground">No units mapped.</div>
                     ) : (
                       <ul className="space-y-1.5">
-                        {p.units.map((u) => (
-                          <li key={u.unit_id} className="flex items-start gap-2 text-[11px]">
-                            <MapPin className="mt-0.5 h-3 w-3 flex-none text-muted-foreground" />
-                            <div className="min-w-0">
-                              <div className="truncate font-semibold text-foreground">
-                                {u.unit_name}
-                                {u.unit_code && <span className="ml-1 font-mono text-[10px] text-muted-foreground">({u.unit_code})</span>}
+                        {p.units.map((u) => {
+                          const hasGeo = u.latitude != null && u.longitude != null;
+                          const mapsHref = hasGeo
+                            ? `https://www.google.com/maps/search/?api=1&query=${u.latitude},${u.longitude}`
+                            : null;
+                          return (
+                            <li key={u.unit_id} className="flex items-start gap-2 text-[11px]">
+                              <MapPin className="mt-0.5 h-3 w-3 flex-none text-muted-foreground" />
+                              <div className="min-w-0">
+                                <div className="truncate font-semibold text-foreground">
+                                  {u.unit_name}
+                                  {u.unit_code && <span className="ml-1 font-mono text-[10px] text-muted-foreground">({u.unit_code})</span>}
+                                </div>
+                                <div className="truncate text-muted-foreground">
+                                  {u.customer_name ?? "—"}{u.branch_name ? ` · ${u.branch_name}` : ""}
+                                </div>
+                                {hasGeo ? (
+                                  <a
+                                    href={mapsHref!}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-0.5 inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-sky-700 hover:underline dark:text-sky-300"
+                                  >
+                                    {Number(u.latitude).toFixed(5)}, {Number(u.longitude).toFixed(5)}
+                                  </a>
+                                ) : (
+                                  <div className="mt-0.5 font-mono text-[10px] italic text-muted-foreground">no geo set</div>
+                                )}
                               </div>
-                              <div className="truncate text-muted-foreground">
-                                {u.customer_name ?? "—"}{u.branch_name ? ` · ${u.branch_name}` : ""}
-                              </div>
-                            </div>
-                          </li>
-                        ))}
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </div>
