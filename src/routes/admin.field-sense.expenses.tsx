@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, MapPin, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visits";
+import { FieldSenseRangeFilter } from "@/components/FieldSenseRangeFilter";
 
 export const Route = createFileRoute("/admin/field-sense/expenses")({
   component: ExpenseManagerPage,
