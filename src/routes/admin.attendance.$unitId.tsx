@@ -667,11 +667,109 @@ function MusterRollPage() {
     enabled: Boolean(unitId),
   });
 
+  // --- Self-attendance punches (field officers / non-billable employees) ---
+  // Any employee mapped to this unit who is non-billable (e.g. field officer)
+  // records attendance through the self-punch flow. Their Punch In / Punch Out
+  // rows are read from `self_attendance_punches` and derived into muster
+  // entries (code = "P", ot_hours = max(0, hoursWorked-8)/8 rounded to 0.5).
+  const selfPunchCandidateIds = useMemo(
+    () => (employees ?? []).filter((e) => e.is_non_billable).map((e) => e.id),
+    [employees],
+  );
+  const selfPunchQK = ["attendance-self-punches", unitId, periodStart, periodEnd, selfPunchCandidateIds.join(",")];
+  const { data: selfPunches = [] } = useQuery({
+    queryKey: selfPunchQK,
+    queryFn: async () => {
+      if (!selfPunchCandidateIds.length) return [] as Array<{
+        candidate_id: string;
+        punch_date: string;
+        check_in_at: string | null;
+        check_out_at: string | null;
+      }>;
+      const { data, error } = await supabase
+        .from("self_attendance_punches")
+        .select("candidate_id, punch_date, check_in_at, check_out_at")
+        .in("candidate_id", selfPunchCandidateIds)
+        .gte("punch_date", periodStart)
+        .lte("punch_date", periodEnd);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: selfPunchCandidateIds.length > 0,
+  });
+
+  const derivedSelfEntries = useMemo(() => {
+    const desigByCand = new Map<string, string | null>(
+      (employees ?? []).map((e) => [e.id, e.designation_id ?? null]),
+    );
+    const rows: EntryRow[] = [];
+    for (const p of selfPunches) {
+      if (!p.check_in_at) continue;
+      let otDays = 0;
+      if (p.check_out_at) {
+        const mins = (new Date(p.check_out_at).getTime() - new Date(p.check_in_at).getTime()) / 60000;
+        const hours = Math.max(0, mins / 60);
+        const otHours = Math.max(0, hours - 8);
+        otDays = roundHalf(otHours / 8);
+      }
+      rows.push({
+        candidate_id: p.candidate_id,
+        designation_id: desigByCand.get(p.candidate_id) ?? null,
+        entry_date: p.punch_date,
+        code: "P",
+        ot_hours: otDays,
+      });
+    }
+    return rows;
+  }, [selfPunches, employees]);
+
   const entryMap = useMemo(() => {
     const m = new Map<string, EntryRow>();
+    // Derived first — manual attendance_entries win on conflict
+    for (const e of derivedSelfEntries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
     for (const e of entries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
     return m;
-  }, [entries]);
+  }, [entries, derivedSelfEntries]);
+
+  // Persist derived self-punch entries into attendance_entries so payroll
+  // picks them up. Only inserts rows that don't already exist.
+  useEffect(() => {
+    if (!unitId || !derivedSelfEntries.length) return;
+    const missing = derivedSelfEntries.filter((e) => {
+      const existing = entries.find(
+        (x) =>
+          x.candidate_id === e.candidate_id &&
+          x.entry_date === e.entry_date &&
+          (x.designation_id ?? null) === (e.designation_id ?? null),
+      );
+      return !existing;
+    });
+    if (!missing.length) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const payload = missing.map((e) => ({
+          unit_id: unitId,
+          candidate_id: e.candidate_id,
+          designation_id: e.designation_id,
+          entry_date: e.entry_date,
+          code: e.code,
+          ot_hours: e.ot_hours,
+        }));
+        const { error } = await supabase
+          .from("attendance_entries")
+          .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" });
+        if (error) throw error;
+        if (!cancelled) queryClient.invalidateQueries({ queryKey: entriesQK });
+      } catch {
+        // Silently ignore — the derived view still displays correctly.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unitId, derivedSelfEntries, entries]);
 
   // Extra (candidate, designation) rows the user added locally — persisted as soon as an entry is saved.
   const [extraRows, setExtraRows] = useState<Set<string>>(new Set());
