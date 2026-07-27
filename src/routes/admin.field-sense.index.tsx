@@ -511,10 +511,8 @@ function FieldSenseLeaderboards() {
   const foByRatingAsc = [...rated].sort((a, b) => (a.avgRating ?? 0) - (b.avgRating ?? 0));
   const foByKmDesc = [...foStats].sort((a, b) => b.km - a.km);
   const foByKmAsc = [...foStats].sort((a, b) => a.km - b.km);
-  const unitsDesc = [...unitStats].sort((a, b) => b.visits - a.visits);
-  const unitsAsc = [...unitStats].sort((a, b) => a.visits - b.visits);
-  const custDesc = [...custStats].sort((a, b) => b.visits - a.visits);
-  const custAsc = [...custStats].sort((a, b) => a.visits - b.visits);
+  const unitsDesc = [...unitStats].sort((a, b) => b.visits - a.visits || a.unit_name.localeCompare(b.unit_name));
+  const unitsAsc = [...unitStats].sort((a, b) => a.visits - b.visits || a.unit_name.localeCompare(b.unit_name));
 
   return (
     <section className="space-y-3">
