@@ -486,7 +486,7 @@ function AdminLayout() {
           let kids = g.children;
           if (isFieldOfficer) {
             kids = kids
-              .filter((c) => c.to !== "/admin/field-sense/team" && c.to !== "/admin/field-sense/expenses")
+              .filter((c) => c.to !== "/admin/field-sense/team" && c.to !== "/admin/field-sense/expenses" && c.to !== "/admin/field-sense/reports")
               .map((c) => (c.to === "/admin/field-sense" ? { ...c, label: "Day Patrol" } : c));
           }
           return { ...g, children: kids };
