@@ -68,6 +68,27 @@ type FoUnit = {
 const TRACK_INTERVAL_MS = 15_000;
 const NEAREST_MAX_METERS = 500;
 
+type RouteCoord = {
+  lat: number;
+  lng: number;
+  at: string;
+  kind: "punch-in" | "track" | "visit-in" | "visit-out" | "current" | "punch-out";
+};
+
+function hasGeo(lat: unknown, lng: unknown): lat is number {
+  return typeof lat === "number" && typeof lng === "number" && Number.isFinite(lat) && Number.isFinite(lng);
+}
+
+function pushRouteCoord(points: RouteCoord[], point: RouteCoord | null) {
+  if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return;
+  const prev = points[points.length - 1];
+  if (prev) {
+    const d = distanceMeters({ lat: prev.lat, lng: prev.lng }, { lat: point.lat, lng: point.lng }) ?? 0;
+    if (d < 8 && prev.kind === point.kind) return;
+  }
+  points.push(point);
+}
+
 function whenAgo(iso: string | null): string {
   if (!iso) return "—";
   const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
@@ -178,12 +199,20 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     queryFn: async () => {
       const { data, error } = await supabase
         .from("self_attendance_punches" as never)
-        .select("id, check_in_at, check_out_at")
+        .select("id, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng")
         .eq("candidate_id", candidateId)
         .eq("punch_date", todayPunchDate())
         .maybeSingle();
       if (error && error.code !== "PGRST116") throw error;
-      return (data as { id: string; check_in_at: string | null; check_out_at: string | null } | null) ?? null;
+      return (data as {
+        id: string;
+        check_in_at: string | null;
+        check_in_lat: number | null;
+        check_in_lng: number | null;
+        check_out_at: string | null;
+        check_out_lat: number | null;
+        check_out_lng: number | null;
+      } | null) ?? null;
     },
     refetchInterval: 30_000,
   });
@@ -359,8 +388,62 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     }
   }, [pos, mapReady]);
 
-  // Sync track polyline — include current live position as last point for real-time feel
   const track = trackQ.data ?? [];
+  const routeCoords = useMemo(() => {
+    const points: RouteCoord[] = [];
+    const punch = punchQ.data;
+    if (punch?.check_in_at && hasGeo(punch.check_in_lat, punch.check_in_lng)) {
+      pushRouteCoord(points, {
+        lat: Number(punch.check_in_lat),
+        lng: Number(punch.check_in_lng),
+        at: punch.check_in_at,
+        kind: "punch-in",
+      });
+    }
+
+    const events: RouteCoord[] = [];
+    for (const t of track) {
+      events.push({
+        lat: Number(t.lat),
+        lng: Number(t.lng),
+        at: t.recorded_at,
+        kind: "track",
+      });
+    }
+    for (const v of visits) {
+      const unit = units.find((u) => u.unit_id === v.unit_id) ?? null;
+      const siteLat = unit?.latitude != null ? Number(unit.latitude) : v.check_in_lat;
+      const siteLng = unit?.longitude != null ? Number(unit.longitude) : v.check_in_lng;
+      if (v.check_in_at && hasGeo(siteLat, siteLng)) {
+        events.push({ lat: Number(siteLat), lng: Number(siteLng), at: v.check_in_at, kind: "visit-in" });
+      }
+      const outLat = unit?.latitude != null ? Number(unit.latitude) : v.check_out_lat;
+      const outLng = unit?.longitude != null ? Number(unit.longitude) : v.check_out_lng;
+      if (v.check_out_at && hasGeo(outLat, outLng)) {
+        events.push({ lat: Number(outLat), lng: Number(outLng), at: v.check_out_at, kind: "visit-out" });
+      }
+    }
+    if (pos && isOnDuty) {
+      events.push({ lat: pos.lat, lng: pos.lng, at: new Date().toISOString(), kind: "current" });
+    }
+    if (punch?.check_out_at && hasGeo(punch.check_out_lat, punch.check_out_lng)) {
+      events.push({
+        lat: Number(punch.check_out_lat),
+        lng: Number(punch.check_out_lng),
+        at: punch.check_out_at,
+        kind: "punch-out",
+      });
+    }
+
+    events
+      .filter((event) => Number.isFinite(event.lat) && Number.isFinite(event.lng) && !!event.at)
+      .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+      .forEach((event) => pushRouteCoord(points, event));
+
+    return points;
+  }, [isOnDuty, pos, punchQ.data, track, units, visits]);
+
+  // Sync complete route polyline: attendance start → site 1 → site 2 → current/checkout.
   useEffect(() => {
     if (!mapReady || !mapRef.current || !LRef.current) return;
     const L = LRef.current;
@@ -369,16 +452,15 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
       map.removeLayer(trackLineRef.current);
       trackLineRef.current = null;
     }
-    const coords: Array<[number, number]> = track.map((t) => [Number(t.lat), Number(t.lng)]);
-    if (pos) coords.push([pos.lat, pos.lng]);
+    const coords: Array<[number, number]> = routeCoords.map((point) => [point.lat, point.lng]);
     if (coords.length < 2) return;
     trackLineRef.current = L.polyline(coords, {
       color: "#2563eb",
-      weight: 4,
-      opacity: 0.75,
-      dashArray: "4 6",
+      weight: 5,
+      opacity: 0.88,
     }).addTo(map);
-  }, [track, pos, mapReady]);
+    trackLineRef.current.bringToFront();
+  }, [routeCoords, mapReady]);
 
   // Active-visit route: check-in origin → current position → destination unit.
   // Simulates a live navigation trail so the FO can see the intended route + km to destination.
@@ -431,7 +513,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     if (didFitRef.current) return;
     if (!mapReady || !mapRef.current || !LRef.current) return;
     const L = LRef.current;
-    const pts: Array<[number, number]> = [];
+    const pts: Array<[number, number]> = routeCoords.map((point) => [point.lat, point.lng]);
     for (const u of units) if (u.latitude != null && u.longitude != null) pts.push([Number(u.latitude), Number(u.longitude)]);
     if (pos) pts.push([pos.lat, pos.lng]);
     if (pts.length === 0) return;
@@ -441,7 +523,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
       mapRef.current.fitBounds(L.latLngBounds(pts).pad(0.2), { maxZoom: 15 });
     }
     didFitRef.current = true;
-  }, [units, pos, mapReady]);
+  }, [routeCoords, units, pos, mapReady]);
 
   // Distance list from current position
   const distances = useMemo(() => {
@@ -457,16 +539,16 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
 
   // Total kms today
   const totalKmToday = useMemo(() => {
-    if (track.length < 2) return 0;
+    if (routeCoords.length < 2) return 0;
     let sum = 0;
-    for (let i = 1; i < track.length; i += 1) {
-      const a = track[i - 1];
-      const b = track[i];
+    for (let i = 1; i < routeCoords.length; i += 1) {
+      const a = routeCoords[i - 1];
+      const b = routeCoords[i];
       const d = distanceMeters({ lat: Number(a.lat), lng: Number(a.lng) }, { lat: Number(b.lat), lng: Number(b.lng) });
       if (d != null) sum += d;
     }
     return sum / 1000;
-  }, [track]);
+  }, [routeCoords]);
 
   // Check-in / Check-out dialogs
   const [checkInOpen, setCheckInOpen] = useState(false);
