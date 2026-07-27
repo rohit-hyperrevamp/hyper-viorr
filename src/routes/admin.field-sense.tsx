@@ -176,6 +176,17 @@ function FieldSensePage() {
 
   const rows = useMemo(() => (q.data ?? []).filter((r) => r.last_lat != null && r.last_lng != null), [q.data]);
 
+  const liveFoCount = useMemo(
+    () => rows.filter((r) => r.candidate?.role_key === "field_officer").length,
+    [rows],
+  );
+  const liveSgCount = useMemo(
+    () => rows.filter((r) => r.candidate?.role_key === "guard" || r.candidate?.role_key === "security_guard").length,
+    [rows],
+  );
+  const totalFo = totalsQ.data?.fo ?? 0;
+  const totalSg = totalsQ.data?.sg ?? 0;
+
   // Sync markers
   useEffect(() => {
     if (!ready || !mapRef.current || !LRef.current) return;
