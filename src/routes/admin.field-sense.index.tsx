@@ -443,6 +443,9 @@ function FieldSenseLeaderboards() {
         candidate_id: string;
         unit_id: string;
         customer_rating: number | null;
+        check_in_at: string | null;
+        check_in_lat: number | string | null;
+        check_in_lng: number | string | null;
       }>;
       const tracks = ((tracksRes.data ?? []) as unknown) as Array<{
         candidate_id: string;
@@ -450,8 +453,24 @@ function FieldSenseLeaderboards() {
         lat: number | string;
         lng: number | string;
       }>;
-      const units = ((unitsRes.data ?? []) as unknown) as Array<{ id: string; name: string; customer_id: string | null }>;
+      const units = ((unitsRes.data ?? []) as unknown) as Array<{
+        id: string;
+        name: string;
+        customer_id: string | null;
+        latitude: number | string | null;
+        longitude: number | string | null;
+      }>;
       const customers = ((custRes.data ?? []) as unknown) as Array<{ id: string; name: string }>;
+      const punches = ((punchesRes.data ?? []) as unknown) as Array<{
+        candidate_id: string;
+        punch_date: string;
+        check_in_at: string | null;
+        check_in_lat: number | string | null;
+        check_in_lng: number | string | null;
+        check_out_at: string | null;
+        check_out_lat: number | string | null;
+        check_out_lng: number | string | null;
+      }>;
 
       const unitById = new Map(units.map((u) => [u.id, u]));
       const custById = new Map(customers.map((c) => [c.id, c.name]));
@@ -465,8 +484,20 @@ function FieldSenseLeaderboards() {
         visitByCand.set(v.candidate_id, row);
       }
 
-      // Distance per candidate: sum of haversine over consecutive points within same track_date
-      const kmByCand = new Map<string, number>();
+      // Distance per candidate: build day-by-day waypoints (punch-in → site
+      // visits in order → punch-out), sum haversine, and apply a road factor
+      // so numbers align with the FO map (which follows real roads via OSRM).
+      // Fall back to raw GPS-ping haversine when waypoints are missing, and
+      // always take the larger of the two so we don't undercount motion.
+      const ROAD_FACTOR = 1.3;
+      const isNum = (n: unknown): n is number => Number.isFinite(Number(n));
+      const toPt = (lat: unknown, lng: unknown) =>
+        isNum(lat) && isNum(lng) ? { lat: Number(lat), lng: Number(lng) } : null;
+      const dateKey = (iso: string | null | undefined, fallback: string) =>
+        iso ? iso.slice(0, 10) : fallback;
+
+      // 1) Raw ping haversine
+      const rawKmByCand = new Map<string, number>();
       const grouped = new Map<string, Array<{ lat: number; lng: number }>>();
       for (const p of tracks) {
         const key = `${p.candidate_id}|${p.track_date}`;
@@ -478,12 +509,42 @@ function FieldSenseLeaderboards() {
         const cand = key.split("|")[0];
         let m = 0;
         for (let i = 1; i < pts.length; i += 1) m += haversineM(pts[i - 1], pts[i]);
-        kmByCand.set(cand, (kmByCand.get(cand) ?? 0) + m / 1000);
+        rawKmByCand.set(cand, (rawKmByCand.get(cand) ?? 0) + m / 1000);
+      }
+
+      // 2) Waypoint distance per candidate/day
+      const wpKmByCand = new Map<string, number>();
+      const dayBucket = new Map<string, Array<{ pt: { lat: number; lng: number }; at: number; kind: string }>>();
+      const pushWp = (cand: string, day: string, pt: { lat: number; lng: number } | null, at: string | null, kind: string) => {
+        if (!pt || !at) return;
+        const k = `${cand}|${day}`;
+        const arr = dayBucket.get(k) ?? [];
+        arr.push({ pt, at: new Date(at).getTime(), kind });
+        dayBucket.set(k, arr);
+      };
+      for (const pu of punches) {
+        pushWp(pu.candidate_id, pu.punch_date, toPt(pu.check_in_lat, pu.check_in_lng), pu.check_in_at ?? pu.punch_date, "punch-in");
+        pushWp(pu.candidate_id, pu.punch_date, toPt(pu.check_out_lat, pu.check_out_lng), pu.check_out_at, "punch-out");
+      }
+      for (const v of visits) {
+        const u = unitById.get(v.unit_id);
+        const site = toPt(u?.latitude, u?.longitude) ?? toPt(v.check_in_lat, v.check_in_lng);
+        const day = dateKey(v.check_in_at, "");
+        if (!day) continue;
+        pushWp(v.candidate_id, day, site, v.check_in_at, "visit-in");
+      }
+      for (const [key, arr] of dayBucket) {
+        const cand = key.split("|")[0];
+        arr.sort((a, b) => a.at - b.at);
+        let m = 0;
+        for (let i = 1; i < arr.length; i += 1) m += haversineM(arr[i - 1].pt, arr[i].pt);
+        wpKmByCand.set(cand, (wpKmByCand.get(cand) ?? 0) + (m * ROAD_FACTOR) / 1000);
       }
 
       const foStats: FoStats[] = fos.map((f) => {
         const v = visitByCand.get(f.id);
         const ratings = v?.ratings ?? [];
+        const km = Math.max(rawKmByCand.get(f.id) ?? 0, wpKmByCand.get(f.id) ?? 0);
         return {
           candidate_id: f.id,
           full_name: f.full_name,
@@ -491,7 +552,7 @@ function FieldSenseLeaderboards() {
           visits: v?.visits ?? 0,
           ratedCount: ratings.length,
           avgRating: ratings.length ? ratings.reduce((s, x) => s + x, 0) / ratings.length : null,
-          km: Number((kmByCand.get(f.id) ?? 0).toFixed(2)),
+          km: Number(km.toFixed(2)),
         };
       });
 
