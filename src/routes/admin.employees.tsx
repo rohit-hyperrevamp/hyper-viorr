@@ -5464,7 +5464,7 @@ function CameraCaptureDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="z-[200] max-w-2xl" overlayClassName="z-[190]">
+      <DialogContent className="z-[200] max-w-2xl">
         <DialogHeader>
           <DialogTitle>Take Photograph</DialogTitle>
           <DialogDescription>Position the subject and click Capture.</DialogDescription>
