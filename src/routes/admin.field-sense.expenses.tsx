@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, IndianRupee, MapPin, X } from "lucide-react";
+import { ChevronDown, ChevronRight, MapPin, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visits";
