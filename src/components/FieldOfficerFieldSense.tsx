@@ -292,6 +292,11 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     queryFn: () => fetchVisitsInRange(candidateId, rangeInfo.start, rangeInfo.end),
     staleTime: 30_000,
   });
+  const requestsQ = useQuery({
+    queryKey: ["fo-fs-requests", candidateId],
+    queryFn: () => listOpenRequestsForCandidate(candidateId),
+    refetchInterval: 20_000,
+  });
 
   const units = unitsQ.data ?? [];
   const visits = visitsQ.data ?? [];
