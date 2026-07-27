@@ -910,7 +910,9 @@ function AdminLayout() {
         <div className="mx-auto max-w-[1500px]">
           <div key={pathname} className="page-enter">
             {isReady && user && !permsLoading ? (
-              <Outlet />
+              <RoutePermissionGuard>
+                <Outlet />
+              </RoutePermissionGuard>
             ) : (
               <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/70" />
