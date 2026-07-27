@@ -4912,6 +4912,14 @@ function CandidateWizard({
                       />
                     </Field>
                   </div>
+                  {editing && ['guard','security_guard'].includes((editing as { role_key?: string })?.role_key ?? '') && (
+                    <div className="sm:col-span-2">
+                      <GuardReportingManagersEditor
+                        candidateId={editing.id}
+                        candidateName={editing.full_name || editing.employee_code || ''}
+                      />
+                    </div>
+                  )}
                   <div className="sm:col-span-2">
                     <Field label={`Organizations${(() => {
                       const orgs = Array.from(new Set(form.unit_ids.map((id) => units.find((u) => u.id === id)?.customer_name).filter(Boolean) as string[]));
