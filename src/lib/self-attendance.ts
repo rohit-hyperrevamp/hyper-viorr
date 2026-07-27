@@ -189,6 +189,22 @@ export function formatDistance(m: number | null): string {
   return `${(m / 1000).toFixed(m < 10_000 ? 2 : 1)} km`;
 }
 
+export const SELF_ATTENDANCE_HALF_DAY_MIN_HOURS = 4;
+export const SELF_ATTENDANCE_FULL_DAY_HOURS = 8;
+
+export function workedHours(checkInAt: string | null | undefined, checkOutAt: string | null | undefined): number | null {
+  if (!checkInAt || !checkOutAt) return null;
+  const mins = (new Date(checkOutAt).getTime() - new Date(checkInAt).getTime()) / 60000;
+  if (!Number.isFinite(mins)) return null;
+  return Math.max(0, mins / 60);
+}
+
+export function getAttendanceCodeForWorkedHours(hours: number): "A" | "HD" | "P" {
+  if (hours >= SELF_ATTENDANCE_FULL_DAY_HOURS) return "P";
+  if (hours >= SELF_ATTENDANCE_HALF_DAY_MIN_HOURS) return "HD";
+  return "A";
+}
+
 /** Google Maps URL for a coordinate, opens with a pin. */
 export function mapsUrl(lat: number | null | undefined, lng: number | null | undefined): string | null {
   if (lat == null || lng == null) return null;

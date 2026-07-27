@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import { getAttendanceCodeForWorkedHours } from "@/lib/self-attendance";
 import { cn } from "@/lib/utils";
 import { useCurrentPermissions } from "@/lib/rbac";
 
@@ -50,6 +51,7 @@ type AttendanceCode = {
   counts_as_present: boolean;
   is_paid: boolean;
   is_leave: boolean;
+  day_value: number | string | null;
   sort_order: number;
 };
 
@@ -639,7 +641,7 @@ function MusterRollPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendance_codes")
-        .select("id, code, label, color, counts_as_present, is_paid, is_leave, sort_order")
+        .select("id, code, label, color, counts_as_present, is_paid, is_leave, day_value, sort_order")
         .eq("enabled", true)
         .order("sort_order", { ascending: true });
       if (error) throw error;
@@ -675,13 +677,12 @@ function MusterRollPage() {
     enabled: Boolean(unitId),
   });
 
-  // --- Self-attendance punches (field officers / non-billable employees) ---
-  // Any employee mapped to this unit who is non-billable (e.g. field officer)
-  // records attendance through the self-punch flow. Their Punch In / Punch Out
-  // rows are read from `self_attendance_punches` and derived into muster
-  // entries (code = "P", ot_hours = max(0, hoursWorked-8)/8 rounded to 0.5).
+  // --- Self-attendance punches (guards + non-billable employees) ---
+  // Employees mapped to this unit can record attendance through the self-punch
+  // flow. Their Punch In / Punch Out rows are derived into muster entries using
+  // the duty-duration rules: <4h = A, 4h–<8h = HD, >=8h = P.
   const selfPunchCandidateIds = useMemo(
-    () => (employees ?? []).filter((e) => e.is_non_billable).map((e) => e.id),
+    () => (employees ?? []).map((e) => e.id),
     [employees],
   );
   const selfPunchQK = ["attendance-self-punches", unitId, periodStart, periodEnd, selfPunchCandidateIds.join(",")];
@@ -734,11 +735,12 @@ function MusterRollPage() {
       const hours = Math.max(0, mins / 60);
       const otHours = Math.max(0, hours - 8);
       const otDays = roundHalf(otHours / 8);
+      const code = getAttendanceCodeForWorkedHours(hours);
       rows.push({
         candidate_id: p.candidate_id,
         designation_id: desigByCand.get(p.candidate_id) ?? null,
         entry_date: p.punch_date,
-        code: "P",
+        code,
         ot_hours: otDays,
       });
     }
@@ -747,30 +749,31 @@ function MusterRollPage() {
 
   const entryMap = useMemo(() => {
     const m = new Map<string, EntryRow>();
-    // Derived first — manual attendance_entries win on conflict
-    for (const e of derivedSelfEntries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
+    // Stored entries first — self-punch derived entries are the source of truth
+    // for employees using app attendance on that date.
     for (const e of entries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
+    for (const e of derivedSelfEntries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
     return m;
   }, [entries, derivedSelfEntries]);
 
   // Persist derived self-punch entries into attendance_entries so payroll
-  // picks them up. Only inserts rows that don't already exist.
+  // picks them up. Upserts only rows that are missing or differ from punches.
   useEffect(() => {
     if (!unitId || !derivedSelfEntries.length) return;
-    const missing = derivedSelfEntries.filter((e) => {
+    const toPersist = derivedSelfEntries.filter((e) => {
       const existing = entries.find(
         (x) =>
           x.candidate_id === e.candidate_id &&
           x.entry_date === e.entry_date &&
           (x.designation_id ?? null) === (e.designation_id ?? null),
       );
-      return !existing;
+      return !existing || existing.code !== e.code || Number(existing.ot_hours) !== Number(e.ot_hours);
     });
-    if (!missing.length) return;
+    if (!toPersist.length) return;
     let cancelled = false;
     (async () => {
       try {
-        const payload = missing.map((e) => ({
+        const payload = toPersist.map((e) => ({
           unit_id: unitId,
           candidate_id: e.candidate_id,
           designation_id: e.designation_id,
@@ -1140,8 +1143,9 @@ function MusterRollPage() {
             phCount += 1;
             continue;
           }
-          if (meta.counts_as_present) pDays += 1;
-          else if (meta.is_paid) otherPaidDays += 1;
+          const dayValue = meta.day_value == null || Number.isNaN(Number(meta.day_value)) ? 1 : Number(meta.day_value);
+          if (meta.counts_as_present) pDays += dayValue;
+          else if (meta.is_paid) otherPaidDays += dayValue;
         }
         const otDays = roundHalf(otHours);
         const tDays = roundHalf(pDays + otherPaidDays + phCount * 2 + otDays);
@@ -1615,8 +1619,9 @@ function MusterRollPage() {
       const c = codeMap.get(e.code);
       if (!c) continue;
       if (e.code === "PH") { phCount += 1; continue; }
-      if (c.counts_as_present) pDays += 1;
-      else if (c.is_paid) otherPaidDays += 1;
+      const dayValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
+      if (c.counts_as_present) pDays += dayValue;
+      else if (c.is_paid) otherPaidDays += dayValue;
     }
     const phDays = phCount * 2;
     const otDays = Math.round(otDaysSum * 100) / 100;

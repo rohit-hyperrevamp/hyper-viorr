@@ -4894,6 +4894,10 @@ export type Database = {
       current_user_branch_scope_ids: { Args: never; Returns: string[] }
       current_user_can_approve_onboarding: { Args: never; Returns: boolean }
       current_user_can_edit_organizations: { Args: never; Returns: boolean }
+      current_user_can_manage_attendance_unit: {
+        Args: { _unit_id: string }
+        Returns: boolean
+      }
       current_user_can_manage_unit_scope_assignment: {
         Args: { _unit_id: string }
         Returns: boolean
@@ -4907,6 +4911,10 @@ export type Database = {
         Returns: boolean
       }
       current_user_can_submit_onboarding: { Args: never; Returns: boolean }
+      current_user_can_view_self_attendance: {
+        Args: { _candidate_id: string; _unit_id?: string }
+        Returns: boolean
+      }
       current_user_candidate_id: { Args: never; Returns: string }
       current_user_has_branch_scope: { Args: never; Returns: boolean }
       current_user_has_permission: {
