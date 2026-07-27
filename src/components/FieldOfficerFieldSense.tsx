@@ -909,7 +909,7 @@ function CheckOutDialog({
               ref={fileRef}
               type="file"
               accept="image/*"
-              capture="user"
+              capture="environment"
               onChange={handleFile}
               className="hidden"
             />
