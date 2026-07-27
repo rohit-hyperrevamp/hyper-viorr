@@ -879,13 +879,8 @@ function CheckOutDialog({
     },
   });
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => setClientPhoto(typeof reader.result === "string" ? reader.result : "");
-    reader.readAsDataURL(f);
-  }
+
+
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
