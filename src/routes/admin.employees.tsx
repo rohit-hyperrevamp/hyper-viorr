@@ -10,6 +10,7 @@ import {
   NomineeSection,
   SectionHeaderContext,
 } from "@/components/candidate-extra-sections";
+import { GuardReportingManagersEditor } from "@/components/GuardReportingManagersEditor";
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
