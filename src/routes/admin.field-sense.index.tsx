@@ -358,6 +358,8 @@ function AdminFieldSense() {
         <AdminFieldOfficerUnitsCard />
       </div>
 
+      <AdminEscalationRequestsCard />
+
       <FieldSenseLeaderboards />
     </div>
   );
