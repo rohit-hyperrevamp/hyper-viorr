@@ -252,8 +252,14 @@ function MusterRollPage() {
 
       const scopeIds = new Set<string>();
       for (const assignment of ((scopeAssignments ?? []) as AttendanceScopeAssignment[])) {
-        if (context && matchesAttendanceScope(context, assignment)) scopeIds.add(assignment.candidate_id);
+        // Only include people explicitly scoped to THIS unit. Branch / customer /
+        // state scopes on field officers are oversight markers — they must not
+        // pull unrelated people into another unit's muster roll.
+        if (assignment.scope_type === "unit" && context && assignment.scope_id === context.id) {
+          scopeIds.add(assignment.candidate_id);
+        }
       }
+
 
       const secondaryIds = Array.from(new Set([...(links ?? []).map((l) => l.candidate_id), ...scopeIds]));
       let extra: typeof prim = [];
