@@ -266,12 +266,12 @@ function FieldSensePage() {
         <div ref={mapEl} style={{ height: "min(72vh, 720px)", width: "100%" }} />
         {q.isLoading && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/40 text-xs font-semibold text-muted-foreground">
-            Loading live field officers…
+            Loading live field officers & guards…
           </div>
         )}
         {!q.isLoading && rows.length === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-4 mx-auto w-fit rounded-full bg-background/90 px-4 py-2 text-xs font-semibold text-muted-foreground shadow ring-1 ring-border/60">
-            No field officers are currently checked in with a GPS ping.
+            No one is currently checked in with a GPS ping.
           </div>
         )}
       </section>
