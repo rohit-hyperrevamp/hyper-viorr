@@ -5376,17 +5376,26 @@ function CameraCaptureDialog({
           return;
         }
         streamRef.current = stream;
-        if (videoRef.current) {
-          const v = videoRef.current;
-          v.srcObject = stream;
-          v.onloadedmetadata = () => {
-            v.play().catch(() => {});
-            setReady(true);
-          };
-          // Fallback in case onloadedmetadata already fired
-          await v.play().catch(() => {});
-          if (v.readyState >= 1) setReady(true);
-        }
+        // The <video> element lives inside a Radix Dialog portal that mounts
+        // asynchronously — poll briefly for the ref before attaching the stream.
+        const attach = async () => {
+          for (let i = 0; i < 40; i++) {
+            if (cancelled) return;
+            const v = videoRef.current;
+            if (v) {
+              v.srcObject = stream;
+              v.onloadedmetadata = () => {
+                v.play().catch(() => {});
+                setReady(true);
+              };
+              try { await v.play(); } catch { /* autoplay may need user gesture */ }
+              if (v.readyState >= 1) setReady(true);
+              return;
+            }
+            await new Promise((r) => setTimeout(r, 50));
+          }
+        };
+        await attach();
       } catch (e: unknown) {
         const err = e as { name?: string; message?: string };
         if (err.name === "NotAllowedError" || err.name === "SecurityError") {
@@ -5412,6 +5421,7 @@ function CameraCaptureDialog({
       if (videoRef.current) videoRef.current.srcObject = null;
     };
   }, [open, facing]);
+
 
   const snap = () => {
     const video = videoRef.current;
