@@ -153,6 +153,8 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
   const meMarkerRef = useRef<any>(null);
   const unitMarkersRef = useRef<Map<string, any>>(new Map());
   const trackLineRef = useRef<any>(null);
+  const routeLineRef = useRef<any>(null);
+  const destMarkerRef = useRef<any>(null);
   const [mapReady, setMapReady] = useState(false);
 
   // Data
