@@ -117,6 +117,31 @@ function MyAttendancePage() {
     },
   });
 
+  const isGuard = me.role_key === "guard" || me.role_key === "security_guard";
+  const guardUnitsQ = useQuery({
+    queryKey: ["my-guard-units", me.candidate_id],
+    enabled: !!me.candidate_id && isGuard,
+    queryFn: async () => {
+      const { data: cu } = await supabase
+        .from("candidate_units")
+        .select("unit_id")
+        .eq("candidate_id", me.candidate_id!);
+      const ids = Array.from(new Set(((cu ?? []) as Array<{ unit_id: string | null }>).map((r) => r.unit_id).filter(Boolean))) as string[];
+      if (ids.length === 0) return [];
+      const { data: units } = await supabase
+        .from("units")
+        .select("id,name,latitude,longitude")
+        .in("id", ids);
+      return ((units ?? []) as Array<{ id: string; name: string; latitude: number | null; longitude: number | null }>).map((u) => ({
+        id: u.id,
+        name: u.name,
+        latitude: u.latitude,
+        longitude: u.longitude,
+      }));
+    },
+  });
+
+
   const codeMap = useMemo(() => {
     const m = new Map<string, CodeRow>();
     for (const c of codesQ.data ?? []) m.set(c.code, c);
