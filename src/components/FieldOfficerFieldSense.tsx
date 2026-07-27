@@ -967,21 +967,17 @@ function CheckOutDialog({
             ) : (
               <button
                 type="button"
-                onClick={() => fileRef.current?.click()}
+                onClick={async () => {
+                  const url = await capturePhoto();
+                  if (url) setClientPhoto(url);
+                }}
                 className="flex h-32 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-secondary/30 text-sm font-semibold text-muted-foreground"
               >
-                <Camera className="h-4 w-4" /> Capture client photo
+                <Camera className="h-4 w-4" /> {isNativePlatform() ? "Open camera" : "Capture client photo"}
               </button>
             )}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFile}
-              className="hidden"
-            />
           </div>
+
 
           {missing.length > 0 && (
             <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-2 text-[11px] font-semibold text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
