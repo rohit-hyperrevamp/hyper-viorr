@@ -5191,6 +5191,52 @@ function Field({ label, required, children }: { label: string; required?: boolea
   );
 }
 
+function DatePickerInput({
+  value,
+  onChange,
+  placeholder = "Pick a date",
+  startYear = 1940,
+  endYear,
+  disableFuture = false,
+}: {
+  value: string | null | undefined;
+  onChange: (v: string | null) => void;
+  placeholder?: string;
+  startYear?: number;
+  endYear?: number;
+  disableFuture?: boolean;
+}) {
+  const parsed = value ? parseISO(value) : undefined;
+  const end = endYear ? new Date(endYear, 11, 31) : new Date(new Date().getFullYear() + 5, 11, 31);
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn("w-full justify-start text-left font-normal", !parsed && "text-muted-foreground")}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {parsed ? formatDateFns(parsed, "dd MMM yyyy") : placeholder}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0 z-[210]" align="start">
+        <Calendar
+          mode="single"
+          captionLayout="dropdown"
+          selected={parsed}
+          defaultMonth={parsed ?? new Date()}
+          startMonth={new Date(startYear, 0)}
+          endMonth={end}
+          disabled={disableFuture ? (d) => d > new Date() : undefined}
+          onSelect={(d) => onChange(d ? formatDateFns(d, "yyyy-MM-dd") : null)}
+          className="p-3 pointer-events-auto"
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function CandidateAddressFields({
   block,
   onChange,
