@@ -4936,17 +4936,16 @@ function CandidateWizard({
               <Section title="Assignment">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Application Date">
-                    <Input
-                      type="date"
+                    <DatePickerInput
                       value={form.application_date}
-                      onChange={(e) => set("application_date", e.target.value)}
+                      onChange={(v) => set("application_date", v ?? "")}
                     />
                   </Field>
                   <Field label="Preferred Joining Date">
-                    <Input
-                      type="date"
+                    <DatePickerInput
                       value={form.preferred_joining_date ?? ""}
-                      onChange={(e) => set("preferred_joining_date", e.target.value || null)}
+                      onChange={(v) => set("preferred_joining_date", v)}
+                      startYear={2000}
                     />
                   </Field>
                   <div className="sm:col-span-2">
@@ -5188,6 +5187,52 @@ function Field({ label, required, children }: { label: string; required?: boolea
       </Label>
       {children}
     </div>
+  );
+}
+
+function DatePickerInput({
+  value,
+  onChange,
+  placeholder = "Pick a date",
+  startYear = 1940,
+  endYear,
+  disableFuture = false,
+}: {
+  value: string | null | undefined;
+  onChange: (v: string | null) => void;
+  placeholder?: string;
+  startYear?: number;
+  endYear?: number;
+  disableFuture?: boolean;
+}) {
+  const parsed = value ? parseISO(value) : undefined;
+  const end = endYear ? new Date(endYear, 11, 31) : new Date(new Date().getFullYear() + 5, 11, 31);
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn("w-full justify-start text-left font-normal", !parsed && "text-muted-foreground")}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {parsed ? formatDateFns(parsed, "dd MMM yyyy") : placeholder}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0 z-[210]" align="start">
+        <Calendar
+          mode="single"
+          captionLayout="dropdown"
+          selected={parsed}
+          defaultMonth={parsed ?? new Date()}
+          startMonth={new Date(startYear, 0)}
+          endMonth={end}
+          disabled={disableFuture ? (d) => d > new Date() : undefined}
+          onSelect={(d) => onChange(d ? formatDateFns(d, "yyyy-MM-dd") : null)}
+          className="p-3 pointer-events-auto"
+        />
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -5855,23 +5900,23 @@ function OffboardingDialog({
               </div>
               <div className="space-y-1">
                 <Label>Date of offboarding *</Label>
-                <Input type="date" value={dateOfOffboarding} onChange={(e) => setDateOfOffboarding(e.target.value)} />
+                <DatePickerInput value={dateOfOffboarding} onChange={(v) => setDateOfOffboarding(v ?? "")} startYear={2000} />
               </div>
               <div className="space-y-1">
                 <Label>Date of resignation</Label>
-                <Input type="date" value={dateOfResignation} onChange={(e) => setDateOfResignation(e.target.value)} />
+                <DatePickerInput value={dateOfResignation} onChange={(v) => setDateOfResignation(v ?? "")} startYear={2000} />
               </div>
               <div className="space-y-1">
                 <Label>Date of last working day</Label>
-                <Input type="date" value={dateOfLastWorking} onChange={(e) => setDateOfLastWorking(e.target.value)} />
+                <DatePickerInput value={dateOfLastWorking} onChange={(v) => setDateOfLastWorking(v ?? "")} startYear={2000} />
               </div>
               <div className="space-y-1">
                 <Label>Date of PF update</Label>
-                <Input type="date" value={dateOfPfUpdate} onChange={(e) => setDateOfPfUpdate(e.target.value)} />
+                <DatePickerInput value={dateOfPfUpdate} onChange={(v) => setDateOfPfUpdate(v ?? "")} startYear={2000} />
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label>Date of ESIC update</Label>
-                <Input type="date" value={dateOfEsicUpdate} onChange={(e) => setDateOfEsicUpdate(e.target.value)} />
+                <DatePickerInput value={dateOfEsicUpdate} onChange={(v) => setDateOfEsicUpdate(v ?? "")} startYear={2000} />
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label>Reason for offboarding</Label>
