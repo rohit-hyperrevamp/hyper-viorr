@@ -57,6 +57,12 @@ import {
   type FieldVisit,
   type RangePreset,
 } from "@/lib/field-visits";
+import {
+  acknowledgeFieldVisitRequest,
+  completeFieldVisitRequestForUnit,
+  listOpenRequestsForCandidate,
+  type FieldVisitRequest,
+} from "@/lib/field-visit-requests";
 
 
 type FoUnit = {
@@ -285,6 +291,11 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     queryKey: ["fo-fs-range-visits", candidateId, rangeInfo.start, rangeInfo.end],
     queryFn: () => fetchVisitsInRange(candidateId, rangeInfo.start, rangeInfo.end),
     staleTime: 30_000,
+  });
+  const requestsQ = useQuery({
+    queryKey: ["fo-fs-requests", candidateId],
+    queryFn: () => listOpenRequestsForCandidate(candidateId),
+    refetchInterval: 20_000,
   });
 
   const units = unitsQ.data ?? [];
@@ -681,6 +692,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
 
   // Check-in / Check-out dialogs
   const [checkInOpen, setCheckInOpen] = useState(false);
+  const [preselectUnitId, setPreselectUnitId] = useState<string | null>(null);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
 
   const nextSeq = (visits[visits.length - 1]?.visit_seq ?? 0) + 1;
@@ -726,6 +738,25 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
           Mark your attendance from the dashboard to start tracking visits.
         </div>
       )}
+
+      {/* Emergency / admin-requested visits */}
+      <RequestedVisitsPanel
+        requests={requestsQ.data ?? []}
+        units={units}
+        onAcknowledge={async (id: string) => {
+          try {
+            await acknowledgeFieldVisitRequest(id);
+            toast.success("Acknowledged");
+            void qc.invalidateQueries({ queryKey: ["fo-fs-requests", candidateId] });
+          } catch (e) {
+            toast.error((e as Error).message ?? "Failed");
+          }
+        }}
+        onStartVisit={(unitId: string) => {
+          setPreselectUnitId(unitId);
+          setCheckInOpen(true);
+        }}
+      />
 
       {/* Primary CTA */}
       <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -941,16 +972,22 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
           units={units}
           pos={pos}
           nextSeq={nextSeq}
+          preselectUnitId={preselectUnitId}
           prevPoint={
             visits.length > 0
               ? { lat: visits[visits.length - 1].check_out_lat, lng: visits[visits.length - 1].check_out_lng }
               : null
           }
-          onClose={() => setCheckInOpen(false)}
+          onClose={() => {
+            setCheckInOpen(false);
+            setPreselectUnitId(null);
+          }}
           onDone={() => {
             setCheckInOpen(false);
+            setPreselectUnitId(null);
             void qc.invalidateQueries({ queryKey: ["fo-fs-visits", candidateId, todayPunchDate()] });
             void qc.invalidateQueries({ queryKey: ["fo-fs-track", candidateId, todayPunchDate()] });
+            void qc.invalidateQueries({ queryKey: ["fo-fs-requests", candidateId] });
           }}
         />
       )}
@@ -982,6 +1019,7 @@ function CheckInDialog({
   pos,
   nextSeq,
   prevPoint,
+  preselectUnitId,
   onClose,
   onDone,
 }: {
@@ -990,11 +1028,14 @@ function CheckInDialog({
   pos: Geo | null;
   nextSeq: number;
   prevPoint: { lat: number | null; lng: number | null } | null;
+  preselectUnitId?: string | null;
   onClose: () => void;
   onDone: () => void;
 }) {
   const nearest = useMemo(() => (pos ? findNearestUnit(units, pos, NEAREST_MAX_METERS) : null), [pos, units]);
-  const [selectedId, setSelectedId] = useState<string>(nearest?.unit.unit_id ?? units[0]?.unit_id ?? "");
+  const [selectedId, setSelectedId] = useState<string>(
+    preselectUnitId ?? nearest?.unit.unit_id ?? units[0]?.unit_id ?? "",
+  );
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -1024,6 +1065,14 @@ function CheckInDialog({
           });
         } catch { /* noop */ }
       }
+      // Auto-complete any open admin request for this FO+unit
+      try {
+        await completeFieldVisitRequestForUnit({
+          candidateId,
+          unitId: selectedId,
+          visitId: visit.id,
+        });
+      } catch { /* noop */ }
     },
     onSuccess: () => {
       toast.success("Checked in");
@@ -1701,4 +1750,110 @@ function RangeInsightsPanel({
     </div>
   );
 }
+
+/* ------------------------------ Requested visits panel ------------------------------ */
+function RequestedVisitsPanel({
+  requests,
+  units,
+  onAcknowledge,
+  onStartVisit,
+}: {
+  requests: FieldVisitRequest[];
+  units: FoUnit[];
+  onAcknowledge: (id: string) => void | Promise<void>;
+  onStartVisit: (unitId: string) => void;
+}) {
+  if (!requests.length) return null;
+  const unitById = new Map(units.map((u) => [u.unit_id, u] as const));
+  const emergency = requests.filter((r) => r.priority === "emergency").length;
+
+  return (
+    <section
+      className={
+        emergency > 0
+          ? "rounded-2xl border-2 border-rose-400 bg-rose-50 p-3 shadow-lg dark:border-rose-500/60 dark:bg-rose-500/10"
+          : "rounded-2xl border border-amber-300/60 bg-amber-50 p-3 shadow-sm dark:border-amber-500/40 dark:bg-amber-500/10"
+      }
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <span className="relative flex h-2.5 w-2.5">
+          <span
+            className={
+              "absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 " +
+              (emergency > 0 ? "bg-rose-500" : "bg-amber-500")
+            }
+          />
+          <span
+            className={
+              "relative inline-flex h-2.5 w-2.5 rounded-full " +
+              (emergency > 0 ? "bg-rose-600" : "bg-amber-600")
+            }
+          />
+        </span>
+        <div
+          className={
+            "text-[11px] font-bold uppercase tracking-[0.22em] " +
+            (emergency > 0 ? "text-rose-800 dark:text-rose-200" : "text-amber-800 dark:text-amber-200")
+          }
+        >
+          {emergency > 0 ? "Emergency site visits requested" : "Site visits requested"}
+        </div>
+        <span className="ml-auto rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold text-foreground shadow-sm">
+          {requests.length}
+        </span>
+      </div>
+      <ul className="space-y-2">
+        {requests.map((r) => {
+          const u = unitById.get(r.unit_id);
+          const priorityCls =
+            r.priority === "emergency"
+              ? "bg-rose-600 text-white"
+              : r.priority === "high"
+              ? "bg-amber-500 text-white"
+              : "bg-slate-500 text-white";
+          const priorityLabel = r.priority === "emergency" ? "EMERGENCY" : r.priority === "high" ? "HIGH" : "NORMAL";
+          return (
+            <li
+              key={r.id}
+              className="flex flex-col gap-2 rounded-xl bg-white/85 p-2.5 ring-1 ring-black/5 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-900/70"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className={"rounded-full px-1.5 py-0.5 text-[10px] font-black tracking-wider " + priorityCls}>
+                    {priorityLabel}
+                  </span>
+                  {r.status === "acknowledged" && (
+                    <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-500/30 dark:text-emerald-300">
+                      Acknowledged
+                    </span>
+                  )}
+                  <span className="truncate text-[13px] font-semibold text-foreground">
+                    {u ? `${u.customer_name ? `${u.customer_name} — ` : ""}${u.unit_name}` : "Unit"}
+                  </span>
+                </div>
+                {r.reason && (
+                  <div className="mt-1 text-[12px] leading-snug text-foreground/80">{r.reason}</div>
+                )}
+                <div className="mt-0.5 text-[10.5px] text-muted-foreground">
+                  {whenAgo(r.created_at)} · {u?.address ?? u?.branch_name ?? ""}
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {r.status === "pending" && (
+                  <Button size="sm" variant="outline" className="h-8" onClick={() => void onAcknowledge(r.id)}>
+                    Acknowledge
+                  </Button>
+                )}
+                <Button size="sm" className="h-8" onClick={() => onStartVisit(r.unit_id)}>
+                  <MapPin className="mr-1 h-3.5 w-3.5" /> Start visit
+                </Button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 

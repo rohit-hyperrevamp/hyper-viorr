@@ -1684,6 +1684,73 @@ export type Database = {
           },
         ]
       }
+      field_visit_requests: {
+        Row: {
+          acknowledged_at: string | null
+          candidate_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          priority: string
+          reason: string
+          requested_by: string | null
+          status: string
+          unit_id: string
+          updated_at: string
+          visit_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          candidate_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          priority?: string
+          reason?: string
+          requested_by?: string | null
+          status?: string
+          unit_id: string
+          updated_at?: string
+          visit_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          candidate_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          priority?: string
+          reason?: string
+          requested_by?: string | null
+          status?: string
+          unit_id?: string
+          updated_at?: string
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_visit_requests_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_visit_requests_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_visit_requests_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "field_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       field_visits: {
         Row: {
           candidate_id: string
