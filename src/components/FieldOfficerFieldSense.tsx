@@ -922,50 +922,18 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
         )}
       </div>
 
-      {/* Today's visits log */}
-      {visits.length > 0 && (
-        <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-            Today's visits
-          </div>
-          <ul className="space-y-2">
-            {visits.map((v) => {
-              const unit = units.find((u) => u.unit_id === v.unit_id);
-              return (
-                <li key={v.id} className="rounded-xl border border-border/50 bg-background/60 p-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-foreground">
-                        #{v.visit_seq} · {unit?.unit_name ?? "Unit"}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground">
-                        In {whenAgo(v.check_in_at)}
-                        {v.check_out_at ? ` · Out ${whenAgo(v.check_out_at)}` : " · in progress"}
-                        {v.distance_from_prev_m != null ? ` · +${formatDistance(v.distance_from_prev_m)}` : ""}
-                      </div>
-                    </div>
-                    {v.customer_rating != null && (
-                      <div className="inline-flex items-center gap-0.5 text-amber-500">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className={cn("h-3.5 w-3.5", i < (v.customer_rating ?? 0) ? "fill-amber-400" : "opacity-30")}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {v.visit_notes && (
-                    <div className="mt-1.5 rounded-md bg-muted/40 p-2 text-[11px] italic text-muted-foreground">
-                      "{v.visit_notes}"
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+      {/* Range-driven visit history & insights */}
+      <RangeInsightsPanel
+        units={units}
+        visits={rangeVisitsQ.data ?? []}
+        loading={rangeVisitsQ.isLoading}
+        rangeInfo={rangeInfo}
+        highlight={highlight}
+        onChangePreset={(preset) => setRange(preset, { highlight: null })}
+        onChangeCustom={(start, end) => setRange("custom", { start, end, highlight: null })}
+        onClearHighlight={() => setRange(validPreset, { highlight: null })}
+      />
+
 
       {checkInOpen && (
         <CheckInDialog
