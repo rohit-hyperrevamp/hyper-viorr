@@ -165,6 +165,7 @@ export function ContractApprovalDialog({
       onDone();
       onOpenChange(false);
     } catch (e) {
+      console.error("[ContractApproval] approve failed", e);
       toast.error(e instanceof Error ? e.message : "Approval failed");
     } finally {
       setSaving(false);
