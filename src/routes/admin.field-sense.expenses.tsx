@@ -106,6 +106,27 @@ function ExpenseManagerPage() {
   );
 
   const [expanded, setExpanded] = useState<string | null>(null);
+  const qc = useQueryClient();
+
+  // Live updates: refetch when FO app writes a new distance / punch / visit.
+  useEffect(() => {
+    const ch = supabase
+      .channel("expense-manager-live")
+      .on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: "self_attendance_punches" } as never,
+        () => qc.invalidateQueries({ queryKey: ["expense-manager"] }),
+      )
+      .on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: "field_visits" } as never,
+        () => qc.invalidateQueries({ queryKey: ["expense-manager"] }),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [qc]);
 
   const dataQ = useQuery({
     queryKey: ["expense-manager", resolved.start, resolved.end],
