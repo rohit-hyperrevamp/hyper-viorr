@@ -454,20 +454,38 @@ function DeploymentBreakdown({
                       <div className="text-[11px] italic text-muted-foreground">No units mapped.</div>
                     ) : (
                       <ul className="space-y-1.5">
-                        {p.units.map((u) => (
-                          <li key={u.unit_id} className="flex items-start gap-2 text-[11px]">
-                            <MapPin className="mt-0.5 h-3 w-3 flex-none text-muted-foreground" />
-                            <div className="min-w-0">
-                              <div className="truncate font-semibold text-foreground">
-                                {u.unit_name}
-                                {u.unit_code && <span className="ml-1 font-mono text-[10px] text-muted-foreground">({u.unit_code})</span>}
+                        {p.units.map((u) => {
+                          const hasGeo = u.latitude != null && u.longitude != null;
+                          const mapsHref = hasGeo
+                            ? `https://www.google.com/maps/search/?api=1&query=${u.latitude},${u.longitude}`
+                            : null;
+                          return (
+                            <li key={u.unit_id} className="flex items-start gap-2 text-[11px]">
+                              <MapPin className="mt-0.5 h-3 w-3 flex-none text-muted-foreground" />
+                              <div className="min-w-0">
+                                <div className="truncate font-semibold text-foreground">
+                                  {u.unit_name}
+                                  {u.unit_code && <span className="ml-1 font-mono text-[10px] text-muted-foreground">({u.unit_code})</span>}
+                                </div>
+                                <div className="truncate text-muted-foreground">
+                                  {u.customer_name ?? "—"}{u.branch_name ? ` · ${u.branch_name}` : ""}
+                                </div>
+                                {hasGeo ? (
+                                  <a
+                                    href={mapsHref!}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-0.5 inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-sky-700 hover:underline dark:text-sky-300"
+                                  >
+                                    {Number(u.latitude).toFixed(5)}, {Number(u.longitude).toFixed(5)}
+                                  </a>
+                                ) : (
+                                  <div className="mt-0.5 font-mono text-[10px] italic text-muted-foreground">no geo set</div>
+                                )}
                               </div>
-                              <div className="truncate text-muted-foreground">
-                                {u.customer_name ?? "—"}{u.branch_name ? ` · ${u.branch_name}` : ""}
-                              </div>
-                            </div>
-                          </li>
-                        ))}
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </div>
