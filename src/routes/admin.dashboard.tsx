@@ -32,12 +32,14 @@ import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
+import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
 
 function PeopleInsightsSection() {
   const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights();
   return (
     <div className="flex flex-col gap-4">
       <LiveFieldOfficersCard />
+      <AdminFieldOfficerUnitsCard />
       <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
       <PeopleInsightsCard kind="anniversaries" items={anniversaries} isLoading={isLoading} />
       {showSixtyPlus && (
