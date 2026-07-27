@@ -415,6 +415,10 @@ function FieldOfficerDashboard() {
         </div>
       </section>
 
+      {data?.meId && <FieldSenseSummary candidateId={data.meId} />}
+
+
+
 
       {/* Units list */}
       <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/90 shadow-sm backdrop-blur-xl sm:rounded-[28px]">
