@@ -165,7 +165,9 @@ const fieldSenseChildren: LeafItem[] = [
   { to: "/admin/field-sense", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/field-sense/team", label: "Day Patrol", icon: Users },
   { to: "/admin/field-sense/expenses", label: "Expense Manager", icon: Wallet },
+  { to: "/admin/field-sense/reports", label: "Reports", icon: FileText },
 ];
+
 
 
 function maskPhone(phone: string) {
@@ -484,7 +486,7 @@ function AdminLayout() {
           let kids = g.children;
           if (isFieldOfficer) {
             kids = kids
-              .filter((c) => c.to !== "/admin/field-sense/team" && c.to !== "/admin/field-sense/expenses")
+              .filter((c) => c.to !== "/admin/field-sense/team" && c.to !== "/admin/field-sense/expenses" && c.to !== "/admin/field-sense/reports")
               .map((c) => (c.to === "/admin/field-sense" ? { ...c, label: "Day Patrol" } : c));
           }
           return { ...g, children: kids };
