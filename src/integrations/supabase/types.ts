@@ -4207,6 +4207,7 @@ export type Database = {
           network_type: string | null
           notes: string | null
           punch_date: string
+          unit_id: string | null
           updated_at: string
         }
         Insert: {
@@ -4233,6 +4234,7 @@ export type Database = {
           network_type?: string | null
           notes?: string | null
           punch_date: string
+          unit_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -4259,6 +4261,7 @@ export type Database = {
           network_type?: string | null
           notes?: string | null
           punch_date?: string
+          unit_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4267,6 +4270,13 @@ export type Database = {
             columns: ["candidate_id"]
             isOneToOne: false
             referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "self_attendance_punches_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
             referencedColumns: ["id"]
           },
         ]

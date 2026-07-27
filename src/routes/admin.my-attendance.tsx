@@ -50,10 +50,11 @@ function duration(a: string | null, b: string | null) {
 }
 
 function MyAttendancePage() {
-  const [me, setMe] = useState<{ candidate_id: string | null; name: string; code: string }>({
+  const [me, setMe] = useState<{ candidate_id: string | null; name: string; code: string; role_key: string | null }>({
     candidate_id: null,
     name: "",
     code: "",
+    role_key: null,
   });
   const [monthDate, setMonthDate] = useState<Date>(() => new Date());
   const [search, setSearch] = useState("");
@@ -66,17 +67,19 @@ function MyAttendancePage() {
       if (!phone) return;
       const { data: c } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code")
+        .select("id,full_name,employee_code,role_key")
         .eq("mobile", phone)
         .maybeSingle();
-      const row = c as { id?: string; full_name?: string; employee_code?: string } | null;
+      const row = c as { id?: string; full_name?: string; employee_code?: string; role_key?: string } | null;
       setMe({
         candidate_id: row?.id ?? null,
         name: row?.full_name ?? "",
         code: row?.employee_code ?? "",
+        role_key: row?.role_key ?? null,
       });
     })();
   }, []);
+
 
   const ymKey = ym(monthDate);
 
@@ -113,6 +116,31 @@ function MyAttendancePage() {
       return (data ?? []) as EntryRow[];
     },
   });
+
+  const isGuard = me.role_key === "guard" || me.role_key === "security_guard";
+  const guardUnitsQ = useQuery({
+    queryKey: ["my-guard-units", me.candidate_id],
+    enabled: !!me.candidate_id && isGuard,
+    queryFn: async () => {
+      const { data: cu } = await supabase
+        .from("candidate_units")
+        .select("unit_id")
+        .eq("candidate_id", me.candidate_id!);
+      const ids = Array.from(new Set(((cu ?? []) as Array<{ unit_id: string | null }>).map((r) => r.unit_id).filter(Boolean))) as string[];
+      if (ids.length === 0) return [];
+      const { data: units } = await supabase
+        .from("units")
+        .select("id,name,latitude,longitude")
+        .in("id", ids);
+      return ((units ?? []) as Array<{ id: string; name: string; latitude: number | null; longitude: number | null }>).map((u) => ({
+        id: u.id,
+        name: u.name,
+        latitude: u.latitude,
+        longitude: u.longitude,
+      }));
+    },
+  });
+
 
   const codeMap = useMemo(() => {
     const m = new Map<string, CodeRow>();
@@ -177,7 +205,12 @@ function MyAttendancePage() {
         crumbs={[{ label: "Home", to: "/" }, { label: "My Attendance" }]}
       />
 
-      <MarkAttendanceCard candidateId={me.candidate_id} />
+      <MarkAttendanceCard
+        candidateId={me.candidate_id}
+        allowedUnits={isGuard ? (guardUnitsQ.data ?? []) : undefined}
+        proximityThresholdM={300}
+      />
+
 
       {/* Month picker + totals */}
       <section className="rounded-3xl border border-border/60 bg-card/95 p-4 shadow-sm backdrop-blur-xl sm:p-5">

@@ -23,6 +23,7 @@ export type SelfPunch = {
   battery_pct: number | null;
   battery_charging: boolean | null;
   network_type: string | null;
+  unit_id?: string | null;
 };
 
 
@@ -103,8 +104,8 @@ export async function fetchTodayPunch(candidateId: string): Promise<SelfPunch | 
   return (data as SelfPunch | null) ?? null;
 }
 
-export async function checkIn(candidateId: string, geo: Geo, faceVerified: boolean): Promise<SelfPunch> {
-  const row = {
+export async function checkIn(candidateId: string, geo: Geo, faceVerified: boolean, unitId?: string | null): Promise<SelfPunch> {
+  const row: Record<string, unknown> = {
     candidate_id: candidateId,
     punch_date: today(),
     check_in_at: new Date().toISOString(),
@@ -113,6 +114,7 @@ export async function checkIn(candidateId: string, geo: Geo, faceVerified: boole
     check_in_accuracy: geo.accuracy,
     check_in_face_verified: faceVerified,
   };
+  if (unitId) row.unit_id = unitId;
   const { data, error } = await supabase
     .from("self_attendance_punches" as never)
     .upsert(row as never, { onConflict: "candidate_id,punch_date" })
