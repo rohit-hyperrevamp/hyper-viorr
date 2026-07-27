@@ -5900,23 +5900,23 @@ function OffboardingDialog({
               </div>
               <div className="space-y-1">
                 <Label>Date of offboarding *</Label>
-                <Input type="date" value={dateOfOffboarding} onChange={(e) => setDateOfOffboarding(e.target.value)} />
+                <DatePickerInput value={dateOfOffboarding} onChange={(v) => setDateOfOffboarding(v ?? "")} startYear={2000} />
               </div>
               <div className="space-y-1">
                 <Label>Date of resignation</Label>
-                <Input type="date" value={dateOfResignation} onChange={(e) => setDateOfResignation(e.target.value)} />
+                <DatePickerInput value={dateOfResignation} onChange={(v) => setDateOfResignation(v ?? "")} startYear={2000} />
               </div>
               <div className="space-y-1">
                 <Label>Date of last working day</Label>
-                <Input type="date" value={dateOfLastWorking} onChange={(e) => setDateOfLastWorking(e.target.value)} />
+                <DatePickerInput value={dateOfLastWorking} onChange={(v) => setDateOfLastWorking(v ?? "")} startYear={2000} />
               </div>
               <div className="space-y-1">
                 <Label>Date of PF update</Label>
-                <Input type="date" value={dateOfPfUpdate} onChange={(e) => setDateOfPfUpdate(e.target.value)} />
+                <DatePickerInput value={dateOfPfUpdate} onChange={(v) => setDateOfPfUpdate(v ?? "")} startYear={2000} />
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label>Date of ESIC update</Label>
-                <Input type="date" value={dateOfEsicUpdate} onChange={(e) => setDateOfEsicUpdate(e.target.value)} />
+                <DatePickerInput value={dateOfEsicUpdate} onChange={(v) => setDateOfEsicUpdate(v ?? "")} startYear={2000} />
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label>Reason for offboarding</Label>
