@@ -520,7 +520,7 @@ function AdminLayout() {
   return (
     <TooltipProvider delayDuration={150} skipDelayDuration={100}>
     <div className={cn(
-      "relative flex h-[100dvh] min-h-0 flex-col overflow-hidden lg:block lg:h-auto lg:min-h-screen lg:overflow-visible",
+      "relative flex min-h-[100dvh] flex-col overflow-x-clip lg:block lg:min-h-screen lg:overflow-visible",
       isFieldOfficer && "bg-white dark:bg-neutral-950",
     )}>
       <AppleNativeSetupCard autoStart nativeOnly className="hidden" />
@@ -890,7 +890,7 @@ function AdminLayout() {
 
 
       {/* Main */}
-      <main data-admin-scroll className={cn("relative z-10 min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain safe-x py-3 !pb-[calc(78px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:overflow-y-visible lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
+      <main data-admin-scroll className={cn("relative z-10 min-h-0 flex-1 overflow-x-clip overflow-y-visible safe-x py-3 !pb-[calc(78px+env(safe-area-inset-bottom))] transition-[margin] duration-300 sm:px-6 sm:py-6 lg:min-h-[calc(100dvh-3.5rem)] lg:py-8 lg:pr-6 lg:!pb-8", mainOffset)}>
         {/* Desktop top utility bar — global search + notifications */}
         {!isFieldOfficer && !nativeShell && (
           <div className="mb-4 hidden items-center gap-3 lg:flex animate-slide-in-top">
