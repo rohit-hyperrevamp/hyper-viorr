@@ -749,30 +749,31 @@ function MusterRollPage() {
 
   const entryMap = useMemo(() => {
     const m = new Map<string, EntryRow>();
-    // Derived first — manual attendance_entries win on conflict
-    for (const e of derivedSelfEntries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
+    // Stored entries first — self-punch derived entries are the source of truth
+    // for employees using app attendance on that date.
     for (const e of entries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
+    for (const e of derivedSelfEntries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
     return m;
   }, [entries, derivedSelfEntries]);
 
   // Persist derived self-punch entries into attendance_entries so payroll
-  // picks them up. Only inserts rows that don't already exist.
+  // picks them up. Upserts only rows that are missing or differ from punches.
   useEffect(() => {
     if (!unitId || !derivedSelfEntries.length) return;
-    const missing = derivedSelfEntries.filter((e) => {
+    const toPersist = derivedSelfEntries.filter((e) => {
       const existing = entries.find(
         (x) =>
           x.candidate_id === e.candidate_id &&
           x.entry_date === e.entry_date &&
           (x.designation_id ?? null) === (e.designation_id ?? null),
       );
-      return !existing;
+      return !existing || existing.code !== e.code || Number(existing.ot_hours) !== Number(e.ot_hours);
     });
-    if (!missing.length) return;
+    if (!toPersist.length) return;
     let cancelled = false;
     (async () => {
       try {
-        const payload = missing.map((e) => ({
+        const payload = toPersist.map((e) => ({
           unit_id: unitId,
           candidate_id: e.candidate_id,
           designation_id: e.designation_id,
