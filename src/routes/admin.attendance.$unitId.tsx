@@ -50,6 +50,7 @@ type AttendanceCode = {
   counts_as_present: boolean;
   is_paid: boolean;
   is_leave: boolean;
+  day_value: number | string | null;
   sort_order: number;
 };
 
@@ -639,7 +640,7 @@ function MusterRollPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendance_codes")
-        .select("id, code, label, color, counts_as_present, is_paid, is_leave, sort_order")
+        .select("id, code, label, color, counts_as_present, is_paid, is_leave, day_value, sort_order")
         .eq("enabled", true)
         .order("sort_order", { ascending: true });
       if (error) throw error;
@@ -675,13 +676,12 @@ function MusterRollPage() {
     enabled: Boolean(unitId),
   });
 
-  // --- Self-attendance punches (field officers / non-billable employees) ---
-  // Any employee mapped to this unit who is non-billable (e.g. field officer)
-  // records attendance through the self-punch flow. Their Punch In / Punch Out
-  // rows are read from `self_attendance_punches` and derived into muster
-  // entries (code = "P", ot_hours = max(0, hoursWorked-8)/8 rounded to 0.5).
+  // --- Self-attendance punches (guards + non-billable employees) ---
+  // Employees mapped to this unit can record attendance through the self-punch
+  // flow. Their Punch In / Punch Out rows are derived into muster entries using
+  // the duty-duration rules: <4h = A, 4h–<8h = HD, >=8h = P.
   const selfPunchCandidateIds = useMemo(
-    () => (employees ?? []).filter((e) => e.is_non_billable).map((e) => e.id),
+    () => (employees ?? []).map((e) => e.id),
     [employees],
   );
   const selfPunchQK = ["attendance-self-punches", unitId, periodStart, periodEnd, selfPunchCandidateIds.join(",")];
@@ -734,11 +734,12 @@ function MusterRollPage() {
       const hours = Math.max(0, mins / 60);
       const otHours = Math.max(0, hours - 8);
       const otDays = roundHalf(otHours / 8);
+      const code = hours >= 8 ? "P" : hours >= 4 ? "HD" : "A";
       rows.push({
         candidate_id: p.candidate_id,
         designation_id: desigByCand.get(p.candidate_id) ?? null,
         entry_date: p.punch_date,
-        code: "P",
+        code,
         ot_hours: otDays,
       });
     }
@@ -1140,8 +1141,9 @@ function MusterRollPage() {
             phCount += 1;
             continue;
           }
-          if (meta.counts_as_present) pDays += 1;
-          else if (meta.is_paid) otherPaidDays += 1;
+          const dayValue = meta.day_value == null || Number.isNaN(Number(meta.day_value)) ? 1 : Number(meta.day_value);
+          if (meta.counts_as_present) pDays += dayValue;
+          else if (meta.is_paid) otherPaidDays += dayValue;
         }
         const otDays = roundHalf(otHours);
         const tDays = roundHalf(pDays + otherPaidDays + phCount * 2 + otDays);
@@ -1615,8 +1617,9 @@ function MusterRollPage() {
       const c = codeMap.get(e.code);
       if (!c) continue;
       if (e.code === "PH") { phCount += 1; continue; }
-      if (c.counts_as_present) pDays += 1;
-      else if (c.is_paid) otherPaidDays += 1;
+      const dayValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
+      if (c.counts_as_present) pDays += dayValue;
+      else if (c.is_paid) otherPaidDays += dayValue;
     }
     const phDays = phCount * 2;
     const otDays = Math.round(otDaysSum * 100) / 100;
