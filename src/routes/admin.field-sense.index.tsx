@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { FieldOfficerFieldSense } from "@/components/FieldOfficerFieldSense";
 import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visits";
+import { FieldSenseRangeFilter } from "@/components/FieldSenseRangeFilter";
 import { AdminVisitProgressCard } from "@/components/AdminVisitProgressCard";
 import { AdminFieldOfficerUnitsCard } from "@/components/AdminFieldOfficerUnitsCard";
 import { AdminEscalationRequestsCard } from "@/components/AdminEscalationRequestsCard";
@@ -600,47 +601,14 @@ function FieldSenseLeaderboards() {
   return (
     <section className="space-y-3">
       {/* Filter bar */}
-      <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Range</div>
-          <div className="flex flex-wrap gap-1">
-            {RANGE_PRESETS.map((r) => (
-              <button
-                key={r.value}
-                type="button"
-                onClick={() => setPreset(r.value)}
-                className={
-                  preset === r.value
-                    ? "rounded-full bg-foreground px-3 py-1 text-[11px] font-bold text-background"
-                    : "rounded-full border border-border/60 bg-background px-3 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
-                }
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-          {preset === "custom" && (
-            <div className="flex items-center gap-2 text-[11px]">
-              <input
-                type="date"
-                value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
-                className="rounded-md border border-border bg-background px-2 py-1 font-semibold"
-              />
-              <span className="text-muted-foreground">→</span>
-              <input
-                type="date"
-                value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
-                className="rounded-md border border-border bg-background px-2 py-1 font-semibold"
-              />
-            </div>
-          )}
-          <div className="ml-auto text-[11px] font-semibold text-muted-foreground">
-            {resolved.label} · {resolved.start === resolved.end ? resolved.start : `${resolved.start} → ${resolved.end}`}
-          </div>
-        </div>
-      </div>
+      <FieldSenseRangeFilter
+        preset={preset as RangePreset}
+        onPresetChange={(p) => setPreset(p as LbPreset)}
+        customStart={customStart}
+        customEnd={customEnd}
+        onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
+        resolvedLabel={`${resolved.label} · ${resolved.start === resolved.end ? resolved.start : `${resolved.start} → ${resolved.end}`}`}
+      />
 
       {dataQ.isLoading ? (
         <div className="rounded-2xl border border-border/60 bg-card p-6 text-center text-xs italic text-muted-foreground shadow-sm">

@@ -1,13 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Clock, MapPin, Star } from "lucide-react";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  RANGE_PRESETS, resolveRange, type RangePreset,
-} from "@/lib/field-visits";
+import { resolveRange, type RangePreset } from "@/lib/field-visits";
+import { FieldSenseRangeFilter } from "@/components/FieldSenseRangeFilter";
 
 type Row = {
   id: string;
@@ -44,7 +40,12 @@ function fmtHm(from: string, to?: string | null) {
 
 export function AdminVisitProgressCard() {
   const [preset, setPreset] = useState<RangePreset>("today");
-  const range = useMemo(() => resolveRange(preset), [preset]);
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const range = useMemo(
+    () => resolveRange(preset, customStart || null, customEnd || null),
+    [preset, customStart, customEnd],
+  );
 
   const q = useQuery({
     queryKey: ["admin-visit-progress", range.start, range.end],
@@ -78,7 +79,7 @@ export function AdminVisitProgressCard() {
 
   return (
     <section className="rounded-2xl border border-border/60 bg-card/90 shadow-sm backdrop-blur-xl sm:rounded-3xl">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
+      <header className="border-b border-border/50 px-4 py-3 space-y-3">
         <div className="min-w-0">
           <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
             Site visits
@@ -87,16 +88,15 @@ export function AdminVisitProgressCard() {
             Completed vs in-progress · {range.label}
           </h3>
         </div>
-        <Select value={preset} onValueChange={(v) => setPreset(v as RangePreset)}>
-          <SelectTrigger className="h-8 w-[150px] text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {RANGE_PRESETS.filter((p) => p.value !== "custom").map((p) => (
-              <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <FieldSenseRangeFilter
+          bare
+          preset={preset}
+          onPresetChange={setPreset}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomChange={(s, e) => { setCustomStart(s); setCustomEnd(e); }}
+          resolvedLabel={range.start === range.end ? range.start : `${range.start} → ${range.end}`}
+        />
       </header>
 
       <div className="grid grid-cols-2 gap-2 px-4 py-3 sm:grid-cols-4">
