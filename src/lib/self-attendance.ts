@@ -23,6 +23,7 @@ export type SelfPunch = {
   battery_pct: number | null;
   battery_charging: boolean | null;
   network_type: string | null;
+  unit_id?: string | null;
 };
 
 
