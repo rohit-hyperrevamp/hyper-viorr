@@ -244,7 +244,7 @@ export function AdminFieldOfficerUnitsCard() {
                             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
                               {priorityBadge(openReq.priority)}
                               <span className="font-semibold text-foreground/80">
-                                {openReq.status === "acknowledged" ? "Acknowledged" : "Pending"}
+                                {statusLabel(openReq.status)}
                               </span>
                               {openReq.reason && <span className="truncate">· {openReq.reason}</span>}
                             </div>
