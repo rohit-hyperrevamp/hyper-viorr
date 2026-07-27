@@ -4,14 +4,19 @@ import { toast } from "sonner";
 import {
   Camera,
   CheckCircle2,
+  Clock,
+  Flag,
+  LogOut,
   Loader2,
   Map as MapIcon,
   MapPin,
   Navigation,
+  Route as RouteIcon,
   Satellite,
   Star,
   X,
 } from "lucide-react";
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
