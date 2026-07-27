@@ -20,7 +20,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { SignaturePad } from "@/components/SignaturePad";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { capturePhoto } from "@/lib/native-camera";
+import { isNativePlatform } from "@/lib/native";
 import {
+  checkOut as attendanceCheckOut,
   distanceMeters,
   formatDistance,
   getCurrentPosition,
@@ -28,6 +31,7 @@ import {
   pushTelemetry,
   readBattery,
   readNetworkType,
+  verifyFaceForAttendance,
   type Geo,
 } from "@/lib/self-attendance";
 import {
@@ -43,6 +47,7 @@ import {
   uploadVisitProof,
   type FieldVisit,
 } from "@/lib/field-visits";
+
 
 type FoUnit = {
   unit_id: string;
