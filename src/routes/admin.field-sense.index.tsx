@@ -464,6 +464,7 @@ function FieldSenseLeaderboards() {
       const punches = ((punchesRes.data ?? []) as unknown) as Array<{
         candidate_id: string;
         punch_date: string;
+        distance_km: number | string | null;
         check_in_at: string | null;
         check_in_lat: number | string | null;
         check_in_lng: number | string | null;
