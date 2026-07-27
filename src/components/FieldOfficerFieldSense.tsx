@@ -153,6 +153,8 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
   const meMarkerRef = useRef<any>(null);
   const unitMarkersRef = useRef<Map<string, any>>(new Map());
   const trackLineRef = useRef<any>(null);
+  const routeLineRef = useRef<any>(null);
+  const destMarkerRef = useRef<any>(null);
   const [mapReady, setMapReady] = useState(false);
 
   // Data
@@ -368,6 +370,51 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
     }).addTo(map);
   }, [track, pos, mapReady]);
 
+  // Active-visit route: check-in origin → current position → destination unit.
+  // Simulates a live navigation trail so the FO can see the intended route + km to destination.
+  const openVisitUnit = useMemo(
+    () => (openVisit ? units.find((u) => u.unit_id === openVisit.unit_id) ?? null : null),
+    [openVisit, units],
+  );
+  const distanceToDest = useMemo(() => {
+    if (!openVisitUnit || openVisitUnit.latitude == null || openVisitUnit.longitude == null) return null;
+    const from = pos ?? (openVisit && openVisit.check_in_lat != null && openVisit.check_in_lng != null
+      ? { lat: Number(openVisit.check_in_lat), lng: Number(openVisit.check_in_lng) }
+      : null);
+    if (!from) return null;
+    return distanceMeters(from, { lat: Number(openVisitUnit.latitude), lng: Number(openVisitUnit.longitude) });
+  }, [openVisit, openVisitUnit, pos]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !LRef.current) return;
+    const L = LRef.current;
+    const map = mapRef.current;
+    // Clear previous
+    if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
+    if (destMarkerRef.current) { map.removeLayer(destMarkerRef.current); destMarkerRef.current = null; }
+    if (!openVisit || !openVisitUnit || openVisitUnit.latitude == null || openVisitUnit.longitude == null) return;
+    const origin: [number, number] | null =
+      openVisit.check_in_lat != null && openVisit.check_in_lng != null
+        ? [Number(openVisit.check_in_lat), Number(openVisit.check_in_lng)]
+        : pos ? [pos.lat, pos.lng] : null;
+    if (!origin) return;
+    const dest: [number, number] = [Number(openVisitUnit.latitude), Number(openVisitUnit.longitude)];
+    const coords: Array<[number, number]> = [origin];
+    if (pos) coords.push([pos.lat, pos.lng]);
+    coords.push(dest);
+    routeLineRef.current = L.polyline(coords, {
+      color: "#f59e0b",
+      weight: 5,
+      opacity: 0.9,
+    }).addTo(map);
+    const destHtml = `<div style="width:30px;height:30px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;box-shadow:0 4px 12px rgba(245,158,11,0.55);border:3px solid #fff;">🏁</div>`;
+    const destIcon = L.divIcon({ className: "fo-fs-dest-pin", html: destHtml, iconSize: [30, 30], iconAnchor: [15, 15] });
+    destMarkerRef.current = L.marker(dest, { icon: destIcon, zIndexOffset: 900 }).addTo(map);
+    destMarkerRef.current.bindPopup(`Destination: ${openVisitUnit.unit_name}`);
+    // Fit route bounds
+    try { map.fitBounds(L.latLngBounds(coords).pad(0.3), { maxZoom: 16, animate: true }); } catch { /* noop */ }
+  }, [openVisit, openVisitUnit, pos, mapReady]);
+
   // Auto-fit map bounds once when we have data
   const didFitRef = useRef(false);
   useEffect(() => {
@@ -432,9 +479,25 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
       <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Today</div>
-          <div className="mt-0.5 text-sm font-semibold text-foreground">
-            {completedCount} visit{completedCount === 1 ? "" : "s"} completed · {totalKmToday.toFixed(2)} km traveled
-          </div>
+          {openVisit ? (
+            <>
+              <div className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-300">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-70" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                </span>
+                In meeting at {openVisitUnit?.unit_name ?? "site"}
+              </div>
+              <div className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                {completedCount} completed · {totalKmToday.toFixed(2)} km traveled
+                {distanceToDest != null ? ` · ${formatDistance(distanceToDest)} to destination` : ""}
+              </div>
+            </>
+          ) : (
+            <div className="mt-0.5 text-sm font-semibold text-foreground">
+              {completedCount} visit{completedCount === 1 ? "" : "s"} completed · {totalKmToday.toFixed(2)} km traveled
+            </div>
+          )}
           {posError && <div className="mt-0.5 text-[11px] font-semibold text-rose-600">{posError}</div>}
         </div>
         {openVisit ? (
