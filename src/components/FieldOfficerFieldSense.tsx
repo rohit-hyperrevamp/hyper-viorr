@@ -692,6 +692,7 @@ export function FieldOfficerFieldSense({ candidateId }: { candidateId: string })
 
   // Check-in / Check-out dialogs
   const [checkInOpen, setCheckInOpen] = useState(false);
+  const [preselectUnitId, setPreselectUnitId] = useState<string | null>(null);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
 
   const nextSeq = (visits[visits.length - 1]?.visit_seq ?? 0) + 1;
