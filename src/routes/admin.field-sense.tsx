@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Battery, BatteryCharging, Building2, ChevronDown, MapPin, Radio, Signal, UserCog, Wifi } from "lucide-react";
+import { Battery, BatteryCharging, Radio, Signal, Star, Wifi } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import { FieldOfficerFieldSense } from "@/components/FieldOfficerFieldSense";
+import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visits";
+
 
 
 export const Route = createFileRoute("/admin/field-sense")({
