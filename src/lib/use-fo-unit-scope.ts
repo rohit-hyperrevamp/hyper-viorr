@@ -60,7 +60,11 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
     const set = new Set<string>();
     if (!isFieldOfficer || !candidateId) return set;
     const mine = (scopeQ.data ?? []).filter((s) => s.candidate_id === candidateId);
-    const branchIds = new Set(mine.filter((s) => s.scope_type === "branch").map((s) => s.scope_id));
+    // NOTE: `scope_type='branch'` on a field officer is their **Home Branch**
+    // (payroll/employment marker — always Radiant's own branch). It is NOT an
+    // operational scope, so we must NOT expand it into every unit under that
+    // branch. Operational reach comes exclusively from explicit unit scopes,
+    // customer scopes, and candidate_units rows.
     const customerIds = new Set(mine.filter((s) => s.scope_type === "customer").map((s) => s.scope_id));
     for (const s of mine) {
       if (s.scope_type === "unit") set.add(s.scope_id);
@@ -68,14 +72,14 @@ export function useFieldOfficerUnitScope(): FieldOfficerUnitScope {
     for (const cu of cuQ.data ?? []) {
       if (cu.unit_id) set.add(cu.unit_id);
     }
-    if (branchIds.size || customerIds.size) {
+    if (customerIds.size) {
       for (const u of unitsQ.data ?? []) {
-        if (u.branch_id && branchIds.has(u.branch_id)) set.add(u.id);
         if (u.customer_id && customerIds.has(u.customer_id)) set.add(u.id);
       }
     }
     return set;
   }, [isFieldOfficer, candidateId, scopeQ.data, cuQ.data, unitsQ.data]);
+
 
   const isLoading = !!isFieldOfficer && (roleLoading || scopeQ.isLoading || cuQ.isLoading || unitsQ.isLoading);
   return {
