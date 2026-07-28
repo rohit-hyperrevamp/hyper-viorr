@@ -57,6 +57,7 @@ type Deduction = {
   max_duty?: number;
   description: string;
   status: Status;
+  source_kind?: string | null;
   entry_mode?: EntryMode;
   days?: number | null;
   per_day_amount?: number | null;
