@@ -783,6 +783,35 @@ function CollectDialog({ open, onOpenChange, guard, unit, balances, itemMap, onC
                       <span className="ml-1 text-[11px] text-muted-foreground">/ {max}</span>
                     </div>
                   </div>
+                  {isOffboarding && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={checked && val === max ? "default" : "outline"}
+                        className="h-7 rounded-md text-xs"
+                        onClick={() => {
+                          setCheckedMap((m) => ({ ...m, [key]: true }));
+                          setQtyMap((m) => ({ ...m, [key]: max }));
+                          setReasonMap((m) => ({ ...m, [key]: "" }));
+                        }}
+                      >
+                        Collected
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={!checked || val === 0 ? "default" : "outline"}
+                        className="h-7 rounded-md text-xs"
+                        onClick={() => {
+                          setCheckedMap((m) => ({ ...m, [key]: false }));
+                          setQtyMap((m) => ({ ...m, [key]: 0 }));
+                        }}
+                      >
+                        Not collected
+                      </Button>
+                    </div>
+                  )}
                   {isOffboarding && short && (
                     <Input
                       placeholder="Reason for not collecting this item (mandatory)"
@@ -791,6 +820,7 @@ function CollectDialog({ open, onOpenChange, guard, unit, balances, itemMap, onC
                       onChange={(e) => setReasonMap((m) => ({ ...m, [key]: e.target.value }))}
                     />
                   )}
+
                 </div>
               );
             })}
