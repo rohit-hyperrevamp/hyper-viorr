@@ -419,6 +419,62 @@ export function MarkAttendanceCard({
         );
       })()}
 
+      {gated && (allowedUnits?.length ?? 0) > 0 && (
+        <div className="mt-3 rounded-xl border border-border/50 bg-background/40 p-2.5">
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Assigned unit{(allowedUnits?.length ?? 0) > 1 ? "s" : ""} · reference location
+            </div>
+            <span className="text-[10px] font-semibold text-muted-foreground">
+              within {proximityThresholdM}m
+            </span>
+          </div>
+          <ul className="mt-1.5 space-y-1.5">
+            {(allowedUnits ?? []).map((u) => {
+              const hasCoords = u.latitude != null && u.longitude != null;
+              const ref = hasCoords
+                ? { lat: u.latitude as number, lng: u.longitude as number }
+                : null;
+              const here =
+                punch?.last_lat != null && punch?.last_lng != null
+                  ? { lat: punch.last_lat, lng: punch.last_lng }
+                  : punch?.check_in_lat != null && punch?.check_in_lng != null
+                  ? { lat: punch.check_in_lat, lng: punch.check_in_lng }
+                  : null;
+              const d = ref && here ? distanceMeters(here, ref) : null;
+              const within = d != null && d <= proximityThresholdM;
+              return (
+                <li
+                  key={u.id}
+                  className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-border/40 bg-card/60 px-2.5 py-1.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[12px] font-semibold text-foreground">{u.name}</div>
+                    {hasCoords ? (
+                      <MapLink lat={u.latitude} lng={u.longitude} />
+                    ) : (
+                      <div className="text-[10px] italic text-muted-foreground">No coordinates set</div>
+                    )}
+                  </div>
+                  {d != null && (
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1",
+                        within
+                          ? "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-400"
+                          : "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-400",
+                      )}
+                    >
+                      {formatDistance(d)} away
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       {state === "in" && punch && <LiveTelemetryStrip punch={punch} />}
 
       <div className="mt-3 sm:mt-4">
