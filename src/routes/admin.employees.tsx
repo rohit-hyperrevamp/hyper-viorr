@@ -6139,7 +6139,39 @@ function OffboardingDialog({
     },
   });
 
+  // Last present day from the attendance system (muster roll + self punches)
+  const lastPresentQ = useQuery({
+    queryKey: ["offboard-last-present", target?.id],
+    enabled: !!target?.id,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const [entries, punches] = await Promise.all([
+        supabase
+          .from("attendance_entries" as never)
+          .select("entry_date,code")
+          .eq("candidate_id", target!.id)
+          .in("code", ["P", "HD", "OT"])
+          .order("entry_date", { ascending: false })
+          .limit(1),
+        supabase
+          .from("self_attendance_punches" as never)
+          .select("punch_date,check_in_at")
+          .eq("candidate_id", target!.id)
+          .not("check_in_at", "is", null)
+          .order("punch_date", { ascending: false })
+          .limit(1),
+      ]);
+      if (entries.error) throw entries.error;
+      if (punches.error) throw punches.error;
+      const a = ((entries.data as unknown) as Array<{ entry_date: string }>)?.[0]?.entry_date ?? "";
+      const b = ((punches.data as unknown) as Array<{ punch_date: string }>)?.[0]?.punch_date ?? "";
+      const best = [a, b].filter(Boolean).sort().pop() ?? "";
+      return best;
+    },
+  });
+
   // Fetch active Field Officers — the offboarding collection MUST be received by an FO
+
   const fieldOfficersQ = useQuery({
     queryKey: ["offboard-field-officers"],
     enabled: !!target?.id,
