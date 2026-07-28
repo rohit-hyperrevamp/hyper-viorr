@@ -6346,7 +6346,15 @@ function OffboardingDialog({
               <div className="space-y-1">
                 <Label>Date of last working day</Label>
                 <DatePickerInput value={dateOfLastWorking} onChange={(v) => setDateOfLastWorking(v ?? "")} startYear={2000} />
+                <p className="text-[11px] text-muted-foreground">
+                  {lastPresentQ.isLoading
+                    ? "Checking attendance…"
+                    : lastPresent
+                      ? `Auto-filled from last present day in attendance (${lastPresent})`
+                      : "No attendance found — set this manually."}
+                </p>
               </div>
+
               <div className="space-y-1">
                 <Label>Date of PF update</Label>
                 <DatePickerInput value={dateOfPfUpdate} onChange={(v) => setDateOfPfUpdate(v ?? "")} startYear={2000} />
