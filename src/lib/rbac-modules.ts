@@ -20,6 +20,7 @@ import {
   FileText,
   Files,
   Fuel,
+  GitBranch,
   HandCoins,
   LayoutDashboard,
   Languages,
@@ -259,7 +260,7 @@ export const PERMISSION_ACTIONS: PermissionAction[] = ["view", "edit", "delete",
 // Keep this list as the single source of truth — the RBAC editor reads it to
 // decide which rows show the Approve checkbox, and runtime checks call
 // `moduleSupportsApprove` before evaluating an approval permission.
-export const APPROVE_CAPABLE_MODULES: ReadonlySet<string> = new Set(["contracts", "attendance", "payroll", "invoice", "employees"]);
+export const APPROVE_CAPABLE_MODULES: ReadonlySet<string> = new Set(["contracts", "attendance", "payroll", "invoice", "employees", "control_center"]);
 
 export function moduleSupportsApprove(moduleKey: string): boolean {
   return APPROVE_CAPABLE_MODULES.has(moduleKey);
