@@ -5147,9 +5147,19 @@ function CandidateWizard({
                         onChange={(ids) => setForm((f) => ({ ...f, assigned_asset_ids: ids }))}
                         sizes={(form.other_info?.uniform_sizes ?? {}) as Record<string, string>}
                         onSizesChange={(next) => setForm((f) => ({ ...f, other_info: { ...(f.other_info ?? {}), uniform_sizes: next } }))}
+                        uniformIncluded={(() => {
+                          const ids = form.unit_ids.length > 0 ? form.unit_ids : (form.unit_id ? [form.unit_id] : []);
+                          if (ids.length === 0) return true;
+                          // Treat as included only when every assigned unit includes uniforms.
+                          return ids.every((id) => {
+                            const u = unitMap.get(id);
+                            return u ? u.uniform_included !== false : true;
+                          });
+                        })()}
                       />
                     </Field>
                   </div>
+
                   {isEmployeeMode && (
                     <div className="sm:col-span-2 flex items-start justify-between gap-3 rounded-md border border-border bg-secondary/30 p-3">
                       <div className="min-w-0 flex-1">
