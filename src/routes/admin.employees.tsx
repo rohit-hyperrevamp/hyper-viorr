@@ -660,6 +660,7 @@ function EmployeesPage() {
   const [confirmDelete, setConfirmDelete] = useState<CandidateListItem | null>(null);
   const [rejectTarget, setRejectTarget] = useState<CandidateListItem | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [approvePreview, setApprovePreview] = useState<CandidateListItem | null>(null);
   const [signTarget, setSignTarget] = useState<{ id: string; docType: DocType } | null>(null);
   const [offboardTarget, setOffboardTarget] = useState<CandidateListItem | null>(null);
   const [offboardReasonId, setOffboardReasonId] = useState<string>("");
@@ -2168,11 +2169,11 @@ function EmployeesPage() {
                   <Button
                     size="icon"
                     data-variant="success"
-                    onClick={() => approveMut.mutate(c)}
+                    onClick={() => setApprovePreview(c)}
                     disabled={approveMut.isPending}
                     className="h-8 w-8 rounded-full bg-emerald-600 text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
-                    title="Approve & assign Employee ID"
-                    aria-label="Approve"
+                    title="Review & approve"
+                    aria-label="Review & approve"
                   >
                     <Check className="h-4 w-4" />
                   </Button>
@@ -2470,7 +2471,7 @@ function EmployeesPage() {
               <div className="mt-2 flex items-center justify-end gap-1.5 border-t border-border/50 pt-2">
                 {mode === "candidate" && c.status === "pending" && canApproveOnboarding && (
                   <>
-                    <Button size="icon" data-variant="success" onClick={() => approveMut.mutate(c)} disabled={approveMut.isPending} className="h-8 w-8 rounded-full bg-emerald-600 text-white hover:bg-emerald-700" title="Approve" aria-label="Approve">
+                    <Button size="icon" data-variant="success" onClick={() => setApprovePreview(c)} disabled={approveMut.isPending} className="h-8 w-8 rounded-full bg-emerald-600 text-white hover:bg-emerald-700" title="Review & approve" aria-label="Review & approve">
                       <Check className="h-4 w-4" />
                     </Button>
                     <Button size="icon" data-variant="danger" variant="outline" onClick={() => { setRejectTarget(c); setRejectReason(""); }} className="h-8 w-8 rounded-full border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100" title="Reject" aria-label="Reject">
@@ -3169,7 +3170,92 @@ function EmployeesPage() {
         </DialogContent>
       </Dialog>
 
-
+      <Dialog open={!!approvePreview} onOpenChange={(o) => { if (!o) setApprovePreview(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Review candidate before approval</DialogTitle>
+            <DialogDescription>
+              Confirm the details below. Approving assigns an Employee ID and activates access.
+            </DialogDescription>
+          </DialogHeader>
+          {approvePreview && (() => {
+            const c = approvePreview;
+            const roleName = rolesList.find((r) => r.key === c.role_key)?.name ?? c.role_key ?? "—";
+            const unit = units.find((u) => u.id === c.unit_id);
+            const unitLabel = unit ? `${unit.customer_name ? unit.customer_name + " — " : ""}${unit.name}${unit.code ? ` (${unit.code})` : ""}` : "—";
+            const desig = designations.find((d) => d.id === c.designation_id);
+            const desigLabel = desig ? `${desig.name}${desig.billable ? "" : " · Non-billable"}` : "—";
+            const aad = c.aadhaar_number ? `•••• •••• ${String(c.aadhaar_number).slice(-4)}` : "—";
+            const Row = ({ k, v }: { k: string; v: React.ReactNode }) => (
+              <div className="flex items-start justify-between gap-3 py-1.5">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{k}</span>
+                <span className="text-right text-sm font-medium text-foreground">{v || "—"}</span>
+              </div>
+            );
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 p-3">
+                  {c.photo_url ? (
+                    <img src={c.photo_url} alt={c.full_name ?? ""} className="h-14 w-14 rounded-full object-cover ring-2 ring-border" />
+                  ) : (
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
+                      {(c.full_name ?? "?").slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="truncate font-display text-base font-semibold text-foreground">{c.full_name || "Unnamed"}</div>
+                    <div className="text-[11px] font-mono text-muted-foreground">{c.candidate_code ?? "—"}</div>
+                  </div>
+                </div>
+                <div className="divide-y divide-border/50 rounded-xl border border-border/60 px-3">
+                  <Row k="Role" v={roleName} />
+                  <Row k="Designation" v={desigLabel} />
+                  <Row k="Unit" v={unitLabel} />
+                  <Row k="Mobile" v={c.mobile ?? "—"} />
+                  <Row k="Email" v={c.email ?? "—"} />
+                  <Row k="Aadhaar" v={aad} />
+                  <Row k="DOB" v={fmtDate(c.date_of_birth)} />
+                  <Row k="Joining date" v={fmtDate(c.preferred_joining_date)} />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Need to change something? Cancel and open the candidate to edit, or reject with a reason for the field officer.
+                </p>
+              </div>
+            );
+          })()}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setApprovePreview(null)} disabled={approveMut.isPending}>
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+              onClick={() => {
+                const c = approvePreview;
+                if (!c) return;
+                setApprovePreview(null);
+                setRejectTarget(c);
+                setRejectReason("");
+              }}
+              disabled={approveMut.isPending}
+            >
+              <X className="mr-1 h-4 w-4" /> Reject
+            </Button>
+            <Button
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              onClick={() => {
+                const c = approvePreview;
+                if (!c) return;
+                approveMut.mutate(c, { onSuccess: () => setApprovePreview(null) });
+              }}
+              disabled={approveMut.isPending}
+            >
+              {approveMut.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Check className="mr-1 h-4 w-4" />}
+              Confirm approval
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
 
       <Dialog
