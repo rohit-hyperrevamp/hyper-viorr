@@ -6282,7 +6282,13 @@ function AssetMultiPicker({
   const isUniform = (a: { category: string; name: string }) =>
     /uniform/i.test(a.category ?? "") || /uniform/i.test(a.name ?? "");
 
+  const priceFor = (a: { category: string; name: string; unit_price?: number }) =>
+    isUniform(a) && uniformIncluded ? 0 : Number(a.unit_price ?? 0) || 0;
+
+  const inr = (n: number) => `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+
   const uniformSelected = selected.filter(isUniform);
+  const totalRecoverable = selected.reduce((sum, a) => sum + priceFor(a), 0);
 
   useEffect(() => {
     if (!open) {
