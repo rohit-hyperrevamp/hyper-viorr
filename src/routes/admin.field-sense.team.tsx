@@ -35,10 +35,11 @@ type Row = {
   last_lng: number | null;
   last_seen_at: string | null;
   in_meeting_unit: string | null;
-  work_ms: number;
+  work_ms: number | null;
   km_today: number;
-  status: "in_meeting" | "in_transit" | "punched_in" | "not_punched";
+  status: "in_meeting" | "in_transit" | "punched_in" | "not_punched" | "checkout_missing";
 };
+
 
 function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const toRad = (x: number) => (x * Math.PI) / 180;
@@ -50,11 +51,13 @@ function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: numb
   return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-function fmtDur(ms: number) {
+function fmtDur(ms: number | null) {
+  if (ms == null) return "—";
   if (ms <= 0) return "0:00 hrs";
   const mins = Math.round(ms / 60000);
   return `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")} hrs`;
 }
+
 
 function timeShort(iso: string | null) {
   if (!iso) return "—";
@@ -142,18 +145,29 @@ function MyTeamPage() {
         kmByCand.set(cid, m / 1000);
       }
 
+      const isToday = selectedDate === todayIso();
+      const isPast = selectedDate < todayIso();
+
       const rows: Row[] = fos.map((f) => {
         const p = punchByCand.get(f.id);
         const inMeetingUnit = activeVisitByCand.get(f.id) ?? null;
         let status: Row["status"] = "not_punched";
         if (p?.check_in_at) {
           if (p.check_out_at) status = "punched_in";
+          else if (isPast) status = "checkout_missing";
           else if (inMeetingUnit) status = "in_meeting";
           else status = "in_transit";
         }
-        const workMs = p?.check_in_at
-          ? (p.check_out_at ? new Date(p.check_out_at).getTime() : Date.now()) - new Date(p.check_in_at).getTime()
-          : 0;
+        let workMs: number | null = null;
+        if (p?.check_in_at) {
+          if (p.check_out_at) {
+            workMs = new Date(p.check_out_at).getTime() - new Date(p.check_in_at).getTime();
+          } else if (isToday) {
+            workMs = Date.now() - new Date(p.check_in_at).getTime();
+          } else {
+            workMs = null; // past day with no checkout — do not accrue
+          }
+        }
         return {
           id: f.id,
           full_name: f.full_name,
@@ -164,7 +178,7 @@ function MyTeamPage() {
           last_lng: p?.last_lng ?? null,
           last_seen_at: p?.last_seen_at ?? null,
           in_meeting_unit: inMeetingUnit,
-          work_ms: Math.max(0, workMs),
+          work_ms: workMs != null ? Math.max(0, workMs) : null,
           km_today: Number((kmByCand.get(f.id) ?? 0).toFixed(2)),
           status,
         };
@@ -173,11 +187,14 @@ function MyTeamPage() {
     },
   });
 
+
   const rows = dataQ.data?.rows ?? [];
   const total = dataQ.data?.total ?? 0;
+  const isPast = selectedDate < todayIso();
   const punchedIn = rows.filter((r) => r.punch_in && !r.punch_out).length;
   const inMeeting = rows.filter((r) => r.status === "in_meeting").length;
   const inTransit = rows.filter((r) => r.status === "in_transit").length;
+  const checkoutMissing = rows.filter((r) => r.status === "checkout_missing").length;
 
   return (
     <div className="space-y-4">
@@ -213,7 +230,11 @@ function MyTeamPage() {
           <div className="ml-auto flex flex-wrap items-center gap-x-6 gap-y-2">
             <Counter label="Punched-In" value={`${punchedIn}/${total}`} tone="sky" />
             <Counter label="In Meeting" value={inMeeting} tone="emerald" />
-            <Counter label="In Transit" value={inTransit} tone="amber" />
+            {isPast ? (
+              <Counter label="Checkout missing" value={checkoutMissing} tone="amber" />
+            ) : (
+              <Counter label="In Transit" value={inTransit} tone="amber" />
+            )}
           </div>
         </div>
       </section>
@@ -263,6 +284,7 @@ function StatusPill({ row }: { row: Row }) {
     in_transit: { label: "In Transit", cls: "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300" },
     punched_in: { label: "Ended shift", cls: "bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-500/10 dark:text-slate-300" },
     not_punched: { label: "Not Punched In", cls: "bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-300" },
+    checkout_missing: { label: "Checkout missing", cls: "bg-orange-50 text-orange-700 ring-orange-200 dark:bg-orange-500/10 dark:text-orange-300" },
   };
   const it = map[row.status];
   return (
