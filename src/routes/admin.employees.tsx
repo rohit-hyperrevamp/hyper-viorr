@@ -3240,6 +3240,7 @@ function EmployeesPage() {
             <Button
               variant="outline"
               className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+              data-force-enabled="true"
               onClick={() => {
                 const c = approvePreview;
                 if (!c) return;
@@ -3253,6 +3254,7 @@ function EmployeesPage() {
             </Button>
             <Button
               className="bg-emerald-600 text-white hover:bg-emerald-700"
+              data-force-enabled="true"
               onClick={() => {
                 const c = approvePreview;
                 if (!c) return;
@@ -3263,6 +3265,7 @@ function EmployeesPage() {
               {approveMut.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Check className="mr-1 h-4 w-4" />}
               Confirm approval
             </Button>
+
           </DialogFooter>
         </DialogContent>
       </Dialog>
