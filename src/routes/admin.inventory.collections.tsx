@@ -19,12 +19,31 @@ export const Route = createFileRoute("/admin/inventory/collections")({ component
 const MODULE = "Inventory Collections";
 const ENTITY = "inv_stock_movements";
 
+export type ExitDocumentRecord = {
+  key: "resignation_letter" | "id_card_photo";
+  label: string;
+  collected: boolean;
+  file_url?: string | null;
+  reason?: string;
+};
+
+export type ExitAssetNote = {
+  item_id: string;
+  size_value: string;
+  item_name: string;
+  held: number;
+  collected: number;
+  reason?: string;
+};
+
 type OffboardingDetails = {
   pending_collection_fo_id?: string | null;
   collection_status?: "pending" | "completed" | null;
   collection_requested_at?: string | null;
   reason_text?: string;
   date_of_offboarding?: string | null;
+  exit_documents?: ExitDocumentRecord[];
+  exit_asset_notes?: ExitAssetNote[];
 };
 type Candidate = { id: string; full_name: string; employee_code: string | null; mobile: string | null; role_key: string; unit_id: string | null; reports_to: string | null; offboarding_details?: OffboardingDetails | null };
 
