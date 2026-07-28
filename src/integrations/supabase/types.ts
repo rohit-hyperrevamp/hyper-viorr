@@ -643,6 +643,7 @@ export type Database = {
           offboarded_at: string | null
           offboarding_details: Json
           offboarding_reason_id: string | null
+          onboarding_details: Json
           other_info: Json
           pan_image_url: string
           pan_number: string
@@ -730,6 +731,7 @@ export type Database = {
           offboarded_at?: string | null
           offboarding_details?: Json
           offboarding_reason_id?: string | null
+          onboarding_details?: Json
           other_info?: Json
           pan_image_url?: string
           pan_number?: string
@@ -817,6 +819,7 @@ export type Database = {
           offboarded_at?: string | null
           offboarding_details?: Json
           offboarding_reason_id?: string | null
+          onboarding_details?: Json
           other_info?: Json
           pan_image_url?: string
           pan_number?: string
