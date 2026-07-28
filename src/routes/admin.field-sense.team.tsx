@@ -190,9 +190,11 @@ function MyTeamPage() {
 
   const rows = dataQ.data?.rows ?? [];
   const total = dataQ.data?.total ?? 0;
+  const isPast = selectedDate < todayIso();
   const punchedIn = rows.filter((r) => r.punch_in && !r.punch_out).length;
   const inMeeting = rows.filter((r) => r.status === "in_meeting").length;
   const inTransit = rows.filter((r) => r.status === "in_transit").length;
+  const checkoutMissing = rows.filter((r) => r.status === "checkout_missing").length;
 
   return (
     <div className="space-y-4">
