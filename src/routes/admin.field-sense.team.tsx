@@ -278,6 +278,7 @@ function StatusPill({ row }: { row: Row }) {
     in_transit: { label: "In Transit", cls: "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300" },
     punched_in: { label: "Ended shift", cls: "bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-500/10 dark:text-slate-300" },
     not_punched: { label: "Not Punched In", cls: "bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-300" },
+    checkout_missing: { label: "Checkout missing", cls: "bg-orange-50 text-orange-700 ring-orange-200 dark:bg-orange-500/10 dark:text-orange-300" },
   };
   const it = map[row.status];
   return (
