@@ -2275,32 +2275,49 @@ function MusterRollPage() {
                       {periodCells.map((cell) => {
                         const date = cell.date;
                         const isFuture = date > todayStr;
+                        const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
                         const entry = entryMap.get(`${mr.key}|${date}`);
-                        const codeMeta = entry?.code ? codeMap.get(entry.code) : undefined;
+                        // Implicit "A" for on/after DOJ, on/before today, when no entry exists.
+                        const displayCode = entry?.code
+                          ? entry.code
+                          : (!isFuture && !beforeDoj ? "A" : "");
+                        const codeMeta = displayCode ? codeMap.get(displayCode) : undefined;
+                        const isImplicitAbsent = !entry?.code && displayCode === "A";
                         const isSelected = dragRowKey === mr.key && selectedDates.has(date);
                         const isUncertain = !entry?.code && uncertainCells.has(`${mr.key}|${date}`);
+                        const isBlocked = isFuture || beforeDoj;
                         return (
                           <td
                             key={`a-${cell.date}`}
                             className={cn(
                               cellBase,
                               "p-0 print:bg-transparent select-none",
-                              isFuture
-                                ? "bg-slate-100 cursor-not-allowed"
-                                : "cursor-pointer",
+                              isFuture && "bg-slate-100 cursor-not-allowed",
+                              beforeDoj && "bg-slate-50 cursor-not-allowed",
+                              !isBlocked && "cursor-pointer",
                               isSelected && "ring-2 ring-primary ring-inset",
                               isUncertain && "ring-2 ring-rose-500 ring-inset bg-rose-50",
                             )}
                             style={{
                               height: 22,
                               minWidth: 18,
-                              backgroundColor: isFuture
+                              backgroundColor: isBlocked
                                 ? undefined
                                 : codeMeta?.color ? `${codeMeta.color}22` : undefined,
                             }}
-                            title={isFuture ? "Future date — cannot mark attendance" : isUncertain ? "OCR could not read this cell — please mark manually" : undefined}
+                            title={
+                              beforeDoj
+                                ? `Before joining date (${mr.emp.doj})`
+                                : isFuture
+                                ? "Future date — cannot mark attendance"
+                                : isUncertain
+                                ? "OCR could not read this cell — please mark manually"
+                                : isImplicitAbsent
+                                ? "No attendance recorded — treated as Absent"
+                                : undefined
+                            }
                             onMouseDown={(e) => {
-                              if (isFuture) { e.preventDefault(); return; }
+                              if (isBlocked) { e.preventDefault(); return; }
                               if (!editable) { e.preventDefault(); return; }
                               e.preventDefault();
                               const additive = e.ctrlKey || e.metaKey;
@@ -2320,7 +2337,7 @@ function MusterRollPage() {
                               setSelectedDates(new Set([date]));
                             }}
                             onMouseEnter={() => {
-                              if (isFuture) return;
+                              if (isBlocked) return;
                               if (isDragging && dragRowKey === mr.key) {
                                 setSelectedDates((prev) => {
                                   if (prev.has(date)) return prev;
@@ -2333,10 +2350,13 @@ function MusterRollPage() {
                             onClick={(e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }}
                           >
                             <div
-                              className="h-full w-full px-0 text-[10px] font-semibold leading-none flex items-center justify-center"
+                              className={cn(
+                                "h-full w-full px-0 text-[10px] font-semibold leading-none flex items-center justify-center",
+                                isImplicitAbsent && "opacity-60",
+                              )}
                               style={{ color: codeMeta?.color }}
                             >
-                              {entry?.code || ""}
+                              {displayCode}
                             </div>
                           </td>
                         );
