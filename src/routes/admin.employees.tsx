@@ -4886,8 +4886,23 @@ function CandidateWizard({
                     <Input value={form.birthplace} onChange={(e) => set("birthplace", e.target.value)} />
                   </Field>
                   <Field label="Aadhaar Number">
-                    <Input format="aadhaar" value={form.aadhaar_number} onChange={(e) => set("aadhaar_number", e.target.value.replace(/\D/g, "").slice(0, 12))} />
+                    <Input
+                      format="aadhaar"
+                      value={form.aadhaar_number}
+                      onChange={(e) => set("aadhaar_number", e.target.value.replace(/\D/g, "").slice(0, 12))}
+                      onBlur={() => void checkAadhaarForRehire(form.aadhaar_number)}
+                    />
+                    {aadhaarChecking && (
+                      <div className="mt-1 text-[11px] text-muted-foreground">Checking existing records…</div>
+                    )}
+                    <RehireRequestDialog
+                      open={rehireOpen}
+                      match={rehireMatch}
+                      onOpenChange={setRehireOpen}
+                      onSubmitted={() => onOpenChange(false)}
+                    />
                   </Field>
+
                   <Field label={isEmployeeMode ? "Employee Code" : "Candidate Number"}>
                     <Input
                       value={isEmployeeMode ? form.employee_code : form.candidate_code}
