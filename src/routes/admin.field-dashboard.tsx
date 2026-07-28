@@ -518,7 +518,7 @@ function FieldOfficerDashboard() {
               <div className="text-xs text-muted-foreground">Ask HR to map you to your unit(s).</div>
             </div>
           ) : (
-            units.map((u) => <UnitRow key={u.id} unit={u} />)
+            units.map((u) => <UnitRow key={u.id} unit={u} allUnits={units} />)
           )}
         </div>
       </section>
