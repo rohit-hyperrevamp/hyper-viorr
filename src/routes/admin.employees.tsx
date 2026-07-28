@@ -1820,7 +1820,7 @@ function EmployeesPage() {
         .from("candidates" as never)
         .update({
           status: nextStatus,
-          is_enabled: true,
+          is_enabled: !deferForIssuance,
           rejection_reason: "",
           rejected_at: null,
           offboarding_reason_id: null,
