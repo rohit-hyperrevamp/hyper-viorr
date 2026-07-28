@@ -5045,6 +5045,14 @@ export type Database = {
           token_suffix: string
         }[]
       }
+      resolve_candidate_issuance_field_officer: {
+        Args: { _candidate_id: string; _reports_to: string; _unit_id: string }
+        Returns: {
+          fo_candidate_id: string
+          fo_name: string
+          fo_user_id: string
+        }[]
+      }
     }
     Enums: {
       customer_status: "active" | "inactive"

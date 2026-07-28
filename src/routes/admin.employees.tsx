@@ -408,6 +408,29 @@ function getMutationErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function normalizeIdArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === "{}") return [];
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      return trimmed
+        .slice(1, -1)
+        .split(",")
+        .map((item) => item.replace(/^"|"$/g, "").trim())
+        .filter(Boolean);
+    }
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+      if (Array.isArray(parsed)) return parsed.map((item) => String(item).trim()).filter(Boolean);
+    } catch { /* fall through */ }
+    return [trimmed];
+  }
+  return [];
+}
+
 function toTime(value: string | null | undefined) {
   if (!value) return 0;
   const time = Date.parse(value);
@@ -1724,7 +1747,7 @@ function EmployeesPage() {
           .maybeSingle();
         if (fresh) {
           const f = fresh as Partial<CandidateListItem>;
-          c = { ...cIn, ...f, assigned_asset_ids: (f.assigned_asset_ids as string[]) ?? cIn.assigned_asset_ids ?? [] };
+          c = { ...cIn, ...f, assigned_asset_ids: normalizeIdArray(f.assigned_asset_ids ?? cIn.assigned_asset_ids) };
         }
       } catch { /* fall back to snapshot */ }
 
@@ -1734,7 +1757,8 @@ function EmployeesPage() {
       // then confirms hand-over in Uniform Manager → Collections → Issuances,
       // which flips the row to "active".
       const guardRoles = new Set(["guard", "security_guard"]);
-      const hasAssets = Array.isArray(c.assigned_asset_ids) && c.assigned_asset_ids.length > 0;
+      const assignedAssetIds = normalizeIdArray(c.assigned_asset_ids);
+      const hasAssets = assignedAssetIds.length > 0;
       const isGuardRole = guardRoles.has((c.role_key || "").toLowerCase());
 
       let foCandidateId: string | null = c.reports_to;
@@ -1767,6 +1791,18 @@ function EmployeesPage() {
         } catch { /* ignore */ }
       }
 
+      if (!foUserId && isGuardRole && hasAssets) {
+        try {
+          const { data: resolved } = await supabase.rpc(
+            "resolve_candidate_issuance_field_officer" as never,
+            { _candidate_id: c.id, _unit_id: c.unit_id, _reports_to: c.reports_to } as never,
+          );
+          const row = (((resolved as unknown) as Array<{ fo_user_id?: string | null; fo_name?: string | null }> | null) ?? [])[0];
+          foUserId = row?.fo_user_id ?? null;
+          foName = row?.fo_name ?? foName;
+        } catch { /* trigger still resolves this server-side */ }
+      }
+
       const deferForIssuance = hasAssets && isGuardRole && !!foUserId;
 
       const nextStatus = deferForIssuance ? "approved" : "active";
@@ -1776,7 +1812,7 @@ function EmployeesPage() {
             pending_issuance_fo_name: foName || null,
             issuance_status: "pending",
             issuance_requested_at: new Date().toISOString(),
-            issuance_asset_ids: c.assigned_asset_ids ?? [],
+            issuance_asset_ids: assignedAssetIds,
           }
         : {};
 

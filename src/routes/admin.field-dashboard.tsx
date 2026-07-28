@@ -21,6 +21,7 @@ import {
   Warehouse,
   Activity,
   ArrowUpRight,
+  PackageCheck,
   Sparkles,
 } from "lucide-react";
 
@@ -57,6 +58,14 @@ type UnitNode = {
   pending_onboarding: number;
   open_demands: number;
   inventory_items: number;
+};
+
+type PendingIssuance = {
+  id: string;
+  full_name: string | null;
+  employee_code: string | null;
+  assigned_asset_ids: string[] | null;
+  onboarding_details: { issuance_asset_ids?: string[] | null; issuance_requested_at?: string | null } | null;
 };
 
 function isoDaysAgo(days: number) {
@@ -357,6 +366,29 @@ function FieldOfficerDashboard() {
   const isLoading = dashQ.isLoading;
   const units = useMemo(() => data?.units ?? [], [data?.units]);
 
+  const pendingIssuanceQ = useQuery({
+    queryKey: ["field-officer", "pending-issuance", userId],
+    enabled: !!userId && (roleKey === "field_officer" || isSuperAdmin),
+    refetchInterval: 15_000,
+    queryFn: async () => {
+      const { data: rows, error } = await supabase
+        .from("candidates" as never)
+        .select("id,full_name,employee_code,assigned_asset_ids,onboarding_details")
+        .eq("status", "approved")
+        .eq("onboarding_details->>issuance_status", "pending")
+        .eq("onboarding_details->>pending_issuance_fo_id", userId!)
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return ((rows as unknown) as PendingIssuance[]) ?? [];
+    },
+  });
+
+  const pendingIssuances = pendingIssuanceQ.data ?? [];
+  const pendingAssetCount = pendingIssuances.reduce(
+    (sum, row) => sum + (row.onboarding_details?.issuance_asset_ids?.length ?? row.assigned_asset_ids?.length ?? 0),
+    0,
+  );
+
   const primaryUnit = units.find((u) => u.is_primary) ?? units[0];
   const teamDelta = (data?.joinedThisWeek ?? 0) - (data?.joinedLastWeek ?? 0);
   const attnDelta = (data?.attendanceRateToday ?? 0) - (data?.attendanceRateYesterday ?? 0);
@@ -438,6 +470,26 @@ function FieldOfficerDashboard() {
 
 
       <MarkAttendanceCard candidateId={data?.meId ?? null} />
+
+      {pendingIssuances.length > 0 && (
+        <section className="rounded-2xl border border-amber-200/70 bg-amber-50/90 p-3 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10 sm:p-4">
+          <div className="flex items-start gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-500 text-white shadow-sm">
+              <PackageCheck className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-200">Action required</div>
+              <h2 className="mt-0.5 text-sm font-bold text-foreground sm:text-base">Issue assets to activate new guard</h2>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                {pendingIssuances[0]?.full_name || "New employee"}{pendingIssuances.length > 1 ? ` and ${pendingIssuances.length - 1} more` : ""} awaiting {pendingAssetCount} asset{pendingAssetCount === 1 ? "" : "s"}.
+              </p>
+            </div>
+            <Button asChild size="sm" className="h-9 shrink-0 rounded-full px-3 text-xs">
+              <Link to="/admin/inventory/collections">Issue</Link>
+            </Button>
+          </div>
+        </section>
+      )}
 
       <MyLiveStatusCard />
 
