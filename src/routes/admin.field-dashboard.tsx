@@ -1,6 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, MoveRight } from "lucide-react";
 import {
   Building2,
   ChevronDown,
@@ -513,7 +518,7 @@ function FieldOfficerDashboard() {
               <div className="text-xs text-muted-foreground">Ask HR to map you to your unit(s).</div>
             </div>
           ) : (
-            units.map((u) => <UnitRow key={u.id} unit={u} />)
+            units.map((u) => <UnitRow key={u.id} unit={u} allUnits={units} />)
           )}
         </div>
       </section>
@@ -853,9 +858,11 @@ function PastelTile({
   return to ? <Link to={to} className="block">{inner}</Link> : inner;
 }
 
-function UnitRow({ unit }: { unit: UnitNode }) {
+function UnitRow({ unit, allUnits }: { unit: UnitNode; allUnits: UnitNode[] }) {
   const [open, setOpen] = useState(false);
+  const [manageGuard, setManageGuard] = useState<Guard | null>(null);
   const total = unit.guards.length;
+  const assignableUnits = allUnits.filter((u) => u.id !== "__unassigned__");
   return (
     <div>
       <button
@@ -908,13 +915,23 @@ function UnitRow({ unit }: { unit: UnitNode }) {
           ) : (
             <table className="ios-table min-w-full table-auto text-sm">
               <thead className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-                <tr><th className="py-2 pr-4">Name</th><th className="py-2">Designation</th></tr>
+                <tr><th className="py-2 pr-4">Name</th><th className="py-2 pr-4">Designation</th><th className="py-2 text-right">Units</th></tr>
               </thead>
               <tbody className="divide-y divide-border/40">
                 {unit.guards.map((g) => (
                   <tr key={g.id}>
                     <td className="py-2 pr-4 font-medium">{g.full_name}</td>
-                    <td className="py-2 text-muted-foreground">{g.designation}</td>
+                    <td className="py-2 pr-4 text-muted-foreground">{g.designation}</td>
+                    <td className="py-2 text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 rounded-full px-2 text-[11px]"
+                        onClick={() => setManageGuard(g)}
+                      >
+                        <MoveRight className="h-3 w-3" /> Manage units
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -922,7 +939,156 @@ function UnitRow({ unit }: { unit: UnitNode }) {
           )}
         </div>
       )}
+      <ManageGuardUnitsDialog
+        guard={manageGuard}
+        currentUnitId={unit.id}
+        assignableUnits={assignableUnits}
+        onClose={() => setManageGuard(null)}
+      />
     </div>
+  );
+}
+
+function ManageGuardUnitsDialog({
+  guard,
+  currentUnitId,
+  assignableUnits,
+  onClose,
+}: {
+  guard: Guard | null;
+  currentUnitId: string;
+  assignableUnits: UnitNode[];
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [initial, setInitial] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const open = !!guard;
+
+  useEffect(() => {
+    if (!guard) return;
+    let cancel = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("candidate_units")
+        .select("unit_id")
+        .eq("candidate_id", guard.id);
+      if (cancel) return;
+      if (error) {
+        toast.error(error.message || "Failed to load unit mappings");
+      }
+      const ids = new Set<string>(((data ?? []) as Array<{ unit_id: string }>).map((r) => r.unit_id));
+      // Ensure the unit the guard is currently visible under is reflected as selected
+      // even if only tracked via candidates.unit_id and not candidate_units.
+      ids.add(currentUnitId);
+      setSelected(new Set(ids));
+      setInitial(new Set(ids));
+      setLoading(false);
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [guard, currentUnitId]);
+
+  const toggle = (uid: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(uid)) next.delete(uid);
+      else next.add(uid);
+      return next;
+    });
+  };
+
+  const save = async () => {
+    if (!guard) return;
+    if (selected.size === 0) {
+      toast.error("A guard must be mapped to at least one unit.");
+      return;
+    }
+    const toAdd = [...selected].filter((u) => !initial.has(u));
+    const toRemove = [...initial].filter((u) => !selected.has(u));
+    if (toAdd.length === 0 && toRemove.length === 0) {
+      onClose();
+      return;
+    }
+    setSaving(true);
+    try {
+      if (toAdd.length) {
+        const rows = toAdd.map((unit_id) => ({ candidate_id: guard.id, unit_id, is_primary: false }));
+        const { error } = await supabase.from("candidate_units").insert(rows);
+        if (error) throw error;
+      }
+      if (toRemove.length) {
+        const { error } = await supabase
+          .from("candidate_units")
+          .delete()
+          .eq("candidate_id", guard.id)
+          .in("unit_id", toRemove);
+        if (error) throw error;
+      }
+      toast.success(`Updated ${guard.full_name}'s unit mapping`);
+      await qc.invalidateQueries({ queryKey: ["field-dashboard"] });
+      onClose();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to update unit mapping";
+      toast.error(msg.includes("row-level security") ? "You don't have permission to change this guard's units." : msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Manage units</DialogTitle>
+          <DialogDescription>
+            {guard ? (
+              <>Tick every unit <span className="font-semibold text-foreground">{guard.full_name}</span> should cover. Uncheck to remove them from a unit.</>
+            ) : null}
+          </DialogDescription>
+        </DialogHeader>
+        {loading ? (
+          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading current mapping…
+          </div>
+        ) : (
+          <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
+            {assignableUnits.map((u) => {
+              const checked = selected.has(u.id);
+              return (
+                <label
+                  key={u.id}
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition ${checked ? "border-emerald-500/40 bg-emerald-500/5" : "border-border/60 hover:bg-muted/50"}`}
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={() => toggle(u.id)}
+                    className="mt-0.5"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold text-foreground">{u.name}</div>
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      {u.customer_name} · <span className="font-mono">{u.code}</span>
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        )}
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button onClick={save} disabled={saving || loading} className="bg-emerald-600 text-white hover:bg-emerald-700">
+            {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+            Save mapping
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
