@@ -764,6 +764,7 @@ function unitToRow(data: Omit<Unit, "id">) {
     longitude: data.longitude,
     enable_pt: data.enablePt,
     enable_lwf: data.enableLwf,
+    uniform_included: data.uniformIncluded,
   };
 }
 
