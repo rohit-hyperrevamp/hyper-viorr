@@ -6211,6 +6211,13 @@ function OffboardingDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.id]);
 
+  // Default last working day = last present day from attendance
+  const lastPresent = lastPresentQ.data ?? "";
+  useEffect(() => {
+    if (lastPresent) setDateOfLastWorking((prev) => prev || lastPresent);
+  }, [lastPresent]);
+
+
   // Build default destination (Field Officer) + inv return rows once data loads
   useEffect(() => {
     if (!target) return;
