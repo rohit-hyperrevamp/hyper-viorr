@@ -840,17 +840,24 @@ function EmployeesPage() {
     if (!isFieldOfficer) return units;
     if (!currentCandidateId) return [] as typeof units;
     const mine = scopeAssignments.filter((s) => s.candidate_id === currentCandidateId);
-    // Only DIRECT unit mappings count for onboarding — branch/customer scopes
-    // grant visibility elsewhere but must NOT balloon the wizard's unit
-    // picker into every sibling unit in the branch.
-    const unitIds = new Set(mine.filter((s) => s.scope_type === "unit").map((s) => s.scope_id));
+    const unitIds = new Set(
+      mine.filter((s) => s.scope_type === "unit").map((s) => s.scope_id),
+    );
+    // Branch scope grants onboarding across every unit inside the branch —
+    // FOs commonly cover a whole branch and must be able to onboard into any
+    // of its units, not only ones directly assigned.
+    const branchIds = new Set(
+      mine.filter((s) => s.scope_type === "branch").map((s) => s.scope_id),
+    );
     // Legacy: candidate_units mappings also count as direct unit scope.
     for (const cu of candidateUnitsQuery.data ?? []) {
       if (cu.candidate_id === currentCandidateId && cu.unit_id) unitIds.add(cu.unit_id);
     }
     // Always include "No Man's Land" as a fallback unit for FO onboarding.
     unitIds.add(NOMANS_UNIT_ID);
-    return units.filter((u) => unitIds.has(u.id));
+    return units.filter(
+      (u) => unitIds.has(u.id) || (u.branch_id != null && branchIds.has(u.branch_id)),
+    );
   }, [isFieldOfficer, currentCandidateId, scopeAssignments, units, candidateUnitsQuery.data]);
   const scopedUnitIdSet = useMemo(
     () => new Set(scopedUnitsForWizard.map((u) => u.id)),
