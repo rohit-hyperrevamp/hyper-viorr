@@ -196,7 +196,9 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "language_manager",         label: "Language Manager",         path: "/admin/language-manager",         icon: Languages },
       { key: "company_documents",        label: "Company Documents",        path: "/admin/company-documents",        icon: FileSignature },
       { key: "roles_manager",            label: "Roles Manager",            path: "/admin/roles-manager",            icon: ShieldCheck },
+      { key: "workflows",                label: "Workflow",                 path: "/admin/workflows",                icon: GitBranch },
       { key: "system_logs",              label: "System Logs",              path: "/admin/system-logs",              icon: ClipboardList },
+
     ],
   },
 
