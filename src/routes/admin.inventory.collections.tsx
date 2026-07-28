@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
 import { useAuth, SUPER_ADMIN_PHONE } from "@/lib/auth";
-import { createNotification, notifyUser } from "@/lib/notifications";
+import { createNotification } from "@/lib/notifications";
 
 export const Route = createFileRoute("/admin/inventory/collections")({ component: CollectionsPage });
 
