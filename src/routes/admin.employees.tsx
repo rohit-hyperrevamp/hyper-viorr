@@ -2449,6 +2449,10 @@ function EmployeesPage() {
             c.offboarding_details?.collection_status === "pending" &&
             !!c.offboarding_details?.pending_collection_fo_id;
           const pendingFoName = c.offboarding_details?.pending_collection_fo_name;
+          const isPendingIssuance =
+            c.onboarding_details?.issuance_status === "pending" &&
+            !!c.onboarding_details?.pending_issuance_fo_id;
+          const pendingIssuanceFoName = c.onboarding_details?.pending_issuance_fo_name;
           const editLocked = c.status === "inactive" && !canEditInactiveProfile;
           const lockedTitle = "Inactive profile — only leadership or super admin can edit.";
           const roleName = rolesList.find((r) => r.key === c.role_key)?.name ?? c.role_key ?? "No role";
