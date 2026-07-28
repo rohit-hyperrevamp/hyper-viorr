@@ -164,6 +164,22 @@ function FieldOfficerDashboard() {
       unitIdSet.delete(RADIANT_BILLING_UNIT_ID);
       const unitIds = Array.from(unitIdSet);
 
+      // Guards mapped to any of my units via candidate_units (multi-unit coverage)
+      // must be included even when their primary candidates.unit_id points elsewhere.
+      const guardExtraUnits = new Map<string, Set<string>>();
+      if (unitIds.length) {
+        const { data: cuGuards } = await supabase
+          .from("candidate_units")
+          .select("candidate_id,unit_id")
+          .in("unit_id", unitIds);
+        for (const r of (cuGuards ?? []) as Array<{ candidate_id: string; unit_id: string }>) {
+          const gs = guardExtraUnits.get(r.candidate_id) ?? new Set<string>();
+          gs.add(r.unit_id);
+          guardExtraUnits.set(r.candidate_id, gs);
+        }
+      }
+      const extraGuardIds = Array.from(guardExtraUnits.keys());
+
       let guardQuery = supabase
         .from("candidates")
         .select("id,full_name,designation_id,unit_id,role_key,status,is_enabled,reports_to,created_by,created_at")
@@ -172,6 +188,7 @@ function FieldOfficerDashboard() {
       const teamFilters = [`reports_to.eq.${meId}`];
       if (userId) teamFilters.push(`created_by.eq.${userId}`);
       if (unitIds.length) teamFilters.push(`unit_id.in.(${unitIds.join(",")})`);
+      if (extraGuardIds.length) teamFilters.push(`id.in.(${extraGuardIds.join(",")})`);
       guardQuery = guardQuery.or(teamFilters.join(","));
       const { data: myGuards } = await guardQuery;
       const guardList = (myGuards ?? []) as Array<{ id: string; full_name: string; designation_id: string | null; unit_id: string | null; created_at: string | null }>;
