@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Search, PackageCheck, Inbox, ShieldCheck, Warehouse, ChevronDown, ChevronRight, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, PackageCheck, Inbox, ShieldCheck, Warehouse, ChevronDown, ChevronRight, X, PackagePlus, UserPlus } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
 import { useAuth, SUPER_ADMIN_PHONE } from "@/lib/auth";
+import { createNotification, notifyUser } from "@/lib/notifications";
 
 export const Route = createFileRoute("/admin/inventory/collections")({ component: CollectionsPage });
 
