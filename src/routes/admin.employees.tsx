@@ -2169,11 +2169,11 @@ function EmployeesPage() {
                   <Button
                     size="icon"
                     data-variant="success"
-                    onClick={() => approveMut.mutate(c)}
+                    onClick={() => setApprovePreview(c)}
                     disabled={approveMut.isPending}
                     className="h-8 w-8 rounded-full bg-emerald-600 text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
-                    title="Approve & assign Employee ID"
-                    aria-label="Approve"
+                    title="Review & approve"
+                    aria-label="Review & approve"
                   >
                     <Check className="h-4 w-4" />
                   </Button>
