@@ -4316,6 +4316,29 @@ function CandidateWizard({
 
   const persist = async (status: string, successMsg: string) => {
     const payload = buildPayload(status);
+    const normalizedMobile = String((payload as { mobile?: unknown }).mobile ?? "").replace(/\D/g, "");
+    if (normalizedMobile) {
+      const duplicateQuery = supabase
+        .from("candidates" as never)
+        .select("id,full_name,status,candidate_code,employee_code")
+        .eq("mobile", normalizedMobile)
+        .neq("status", "inactive")
+        .limit(1);
+      if (editing?.id) duplicateQuery.neq("id", editing.id);
+      const { data: duplicateMobileRows, error: duplicateMobileError } = await duplicateQuery;
+      if (duplicateMobileError) throw duplicateMobileError;
+      const duplicate = ((duplicateMobileRows as unknown) as Array<{
+        id: string;
+        full_name: string | null;
+        status: string | null;
+        candidate_code: string | null;
+        employee_code: string | null;
+      }> | null)?.[0];
+      if (duplicate) {
+        const recordCode = duplicate.employee_code || duplicate.candidate_code || "existing record";
+        throw new Error(`Mobile ${normalizedMobile} is already linked to ${duplicate.full_name || recordCode} (${recordCode}, ${duplicate.status || "active"}). Open that profile or use a different mobile number.`);
+      }
+    }
     let createdCandidateId: string | null = null;
     if (editing) {
       const wasRejected = editing.status === "rejected";
@@ -4441,7 +4464,7 @@ function CandidateWizard({
       await persist(editing && editing.status !== "draft" ? form.status : "draft", "Draft saved");
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not save draft");
+      toast.error(getMutationErrorMessage(e, "Could not save draft"));
     } finally {
       setSavingDraft(false);
     }
@@ -4480,7 +4503,7 @@ function CandidateWizard({
       await persist(nextStatus, successMsg);
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+      toast.error(getMutationErrorMessage(e, "Save failed"));
     } finally {
       setSubmitting(false);
     }
