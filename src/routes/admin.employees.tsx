@@ -3921,6 +3921,7 @@ function CandidateWizard({
   const [form, setForm] = useState<CandidateForm>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [saveError, setSaveError] = useState<{ title: string; detail?: string } | null>(null);
   const [scanning, setScanning] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
