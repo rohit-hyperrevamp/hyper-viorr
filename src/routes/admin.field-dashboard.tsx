@@ -318,6 +318,7 @@ function FieldOfficerDashboard() {
         customer_name: (u.customer_id && custMap.get(u.customer_id)) || "—",
         is_primary: primaryMap.get(u.id) ?? false,
         guards: guardsByUnit.get(u.id) ?? [],
+        co_field_officers: coFoByUnit.get(u.id) ?? [],
         pending_onboarding: pendingByUnit.get(u.id) ?? 0,
         open_demands: demandsByUnit.get(u.id) ?? 0,
         inventory_items: inventoryByUnit.get(u.id) ?? 0,
@@ -328,7 +329,7 @@ function FieldOfficerDashboard() {
       if (orphaned.length || orphPending) {
         units.push({
           id: UNASSIGNED, code: "—", name: "Unassigned", customer_name: "Map these to a unit",
-          is_primary: false, guards: orphaned, pending_onboarding: orphPending,
+          is_primary: false, guards: orphaned, co_field_officers: [], pending_onboarding: orphPending,
           open_demands: demandsByUnit.get(UNASSIGNED) ?? 0, inventory_items: inventoryByUnit.get(UNASSIGNED) ?? 0,
         });
       }
