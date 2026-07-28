@@ -143,18 +143,29 @@ function MyTeamPage() {
         kmByCand.set(cid, m / 1000);
       }
 
+      const isToday = selectedDate === todayIso();
+      const isPast = selectedDate < todayIso();
+
       const rows: Row[] = fos.map((f) => {
         const p = punchByCand.get(f.id);
         const inMeetingUnit = activeVisitByCand.get(f.id) ?? null;
         let status: Row["status"] = "not_punched";
         if (p?.check_in_at) {
           if (p.check_out_at) status = "punched_in";
+          else if (isPast) status = "checkout_missing";
           else if (inMeetingUnit) status = "in_meeting";
           else status = "in_transit";
         }
-        const workMs = p?.check_in_at
-          ? (p.check_out_at ? new Date(p.check_out_at).getTime() : Date.now()) - new Date(p.check_in_at).getTime()
-          : 0;
+        let workMs: number | null = null;
+        if (p?.check_in_at) {
+          if (p.check_out_at) {
+            workMs = new Date(p.check_out_at).getTime() - new Date(p.check_in_at).getTime();
+          } else if (isToday) {
+            workMs = Date.now() - new Date(p.check_in_at).getTime();
+          } else {
+            workMs = null; // past day with no checkout — do not accrue
+          }
+        }
         return {
           id: f.id,
           full_name: f.full_name,
@@ -165,7 +176,7 @@ function MyTeamPage() {
           last_lng: p?.last_lng ?? null,
           last_seen_at: p?.last_seen_at ?? null,
           in_meeting_unit: inMeetingUnit,
-          work_ms: Math.max(0, workMs),
+          work_ms: workMs != null ? Math.max(0, workMs) : null,
           km_today: Number((kmByCand.get(f.id) ?? 0).toFixed(2)),
           status,
         };
@@ -173,6 +184,7 @@ function MyTeamPage() {
       return { rows, total: fos.length };
     },
   });
+
 
   const rows = dataQ.data?.rows ?? [];
   const total = dataQ.data?.total ?? 0;
