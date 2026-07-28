@@ -13,6 +13,7 @@ import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminWorkflowsRouteImport } from './routes/admin.workflows'
 import { Route as AdminVehiclesRouteImport } from './routes/admin.vehicles'
 import { Route as AdminSystemLogsRouteImport } from './routes/admin.system-logs'
 import { Route as AdminServiceTypeManagerRouteImport } from './routes/admin.service-type-manager'
@@ -122,6 +123,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminWorkflowsRoute = AdminWorkflowsRouteImport.update({
+  id: '/workflows',
+  path: '/workflows',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminVehiclesRoute = AdminVehiclesRouteImport.update({
   id: '/vehicles',
@@ -641,6 +647,7 @@ export interface FileRoutesByFullPath {
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
   '/admin/vehicles': typeof AdminVehiclesRouteWithChildren
+  '/admin/workflows': typeof AdminWorkflowsRoute
   '/admin/assets/expense-manager': typeof AdminAssetsExpenseManagerRoute
   '/admin/assets/inventory': typeof AdminAssetsInventoryRoute
   '/admin/assets/loan-manager': typeof AdminAssetsLoanManagerRoute
@@ -733,6 +740,7 @@ export interface FileRoutesByTo {
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
   '/admin/vehicles': typeof AdminVehiclesRouteWithChildren
+  '/admin/workflows': typeof AdminWorkflowsRoute
   '/admin/assets/expense-manager': typeof AdminAssetsExpenseManagerRoute
   '/admin/assets/inventory': typeof AdminAssetsInventoryRoute
   '/admin/assets/loan-manager': typeof AdminAssetsLoanManagerRoute
@@ -829,6 +837,7 @@ export interface FileRoutesById {
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
   '/admin/vehicles': typeof AdminVehiclesRouteWithChildren
+  '/admin/workflows': typeof AdminWorkflowsRoute
   '/admin/assets/expense-manager': typeof AdminAssetsExpenseManagerRoute
   '/admin/assets/inventory': typeof AdminAssetsInventoryRoute
   '/admin/assets/loan-manager': typeof AdminAssetsLoanManagerRoute
@@ -926,6 +935,7 @@ export interface FileRouteTypes {
     | '/admin/service-type-manager'
     | '/admin/system-logs'
     | '/admin/vehicles'
+    | '/admin/workflows'
     | '/admin/assets/expense-manager'
     | '/admin/assets/inventory'
     | '/admin/assets/loan-manager'
@@ -1018,6 +1028,7 @@ export interface FileRouteTypes {
     | '/admin/service-type-manager'
     | '/admin/system-logs'
     | '/admin/vehicles'
+    | '/admin/workflows'
     | '/admin/assets/expense-manager'
     | '/admin/assets/inventory'
     | '/admin/assets/loan-manager'
@@ -1113,6 +1124,7 @@ export interface FileRouteTypes {
     | '/admin/service-type-manager'
     | '/admin/system-logs'
     | '/admin/vehicles'
+    | '/admin/workflows'
     | '/admin/assets/expense-manager'
     | '/admin/assets/inventory'
     | '/admin/assets/loan-manager'
@@ -1200,6 +1212,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/workflows': {
+      id: '/admin/workflows'
+      path: '/workflows'
+      fullPath: '/admin/workflows'
+      preLoaderRoute: typeof AdminWorkflowsRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/vehicles': {
       id: '/admin/vehicles'
@@ -2025,6 +2044,7 @@ interface AdminRouteChildren {
   AdminServiceTypeManagerRoute: typeof AdminServiceTypeManagerRoute
   AdminSystemLogsRoute: typeof AdminSystemLogsRoute
   AdminVehiclesRoute: typeof AdminVehiclesRouteWithChildren
+  AdminWorkflowsRoute: typeof AdminWorkflowsRoute
   AdminContractsClientContractsRoute: typeof AdminContractsClientContractsRoute
   AdminFieldSenseExpensesRoute: typeof AdminFieldSenseExpensesRoute
   AdminFieldSenseReportsRoute: typeof AdminFieldSenseReportsRoute
@@ -2077,6 +2097,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminServiceTypeManagerRoute: AdminServiceTypeManagerRoute,
   AdminSystemLogsRoute: AdminSystemLogsRoute,
   AdminVehiclesRoute: AdminVehiclesRouteWithChildren,
+  AdminWorkflowsRoute: AdminWorkflowsRoute,
   AdminContractsClientContractsRoute: AdminContractsClientContractsRoute,
   AdminFieldSenseExpensesRoute: AdminFieldSenseExpensesRoute,
   AdminFieldSenseReportsRoute: AdminFieldSenseReportsRoute,
