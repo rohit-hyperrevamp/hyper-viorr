@@ -3619,6 +3619,8 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
 type CandidateForm = Omit<Candidate, "id"> & {
   /** All units assigned to this candidate. First entry is the primary unit (mirrored to candidates.unit_id). */
   unit_ids: string[];
+  /** Primary reporting manager (mirrored to candidates.reports_to). */
+  reports_to?: string | null;
 };
 
 function emptyForm(): CandidateForm {
