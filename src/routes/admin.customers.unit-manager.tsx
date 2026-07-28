@@ -125,6 +125,7 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     longitude: null,
     enablePt: false,
     enableLwf: false,
+    uniformIncluded: true,
   };
 }
 
