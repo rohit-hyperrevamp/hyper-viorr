@@ -660,6 +660,7 @@ function EmployeesPage() {
   const [confirmDelete, setConfirmDelete] = useState<CandidateListItem | null>(null);
   const [rejectTarget, setRejectTarget] = useState<CandidateListItem | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [approvePreview, setApprovePreview] = useState<CandidateListItem | null>(null);
   const [signTarget, setSignTarget] = useState<{ id: string; docType: DocType } | null>(null);
   const [offboardTarget, setOffboardTarget] = useState<CandidateListItem | null>(null);
   const [offboardReasonId, setOffboardReasonId] = useState<string>("");
