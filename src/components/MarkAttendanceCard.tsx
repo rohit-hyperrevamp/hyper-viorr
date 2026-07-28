@@ -219,9 +219,19 @@ export function MarkAttendanceCard({
       if (isNativePlatform()) {
         face = await verifyFaceForAttendance("Mark attendance check-in");
       }
-      const geo = await getCurrentPosition();
+      // Geolocation is REQUIRED only when proximity gating is on (guards
+      // tied to a unit). Ungated callers (e.g. field officers) can check
+      // in from anywhere — capture GPS if available, otherwise proceed.
+      let geo: import("@/lib/self-attendance").Geo | null = null;
+      try {
+        geo = await getCurrentPosition();
+      } catch (err) {
+        if (gated) throw err;
+        toast.info("Location unavailable — checking you in without GPS.");
+      }
 
       if (gated) {
+        if (!geo) throw new Error("Location is required to check in at your assigned unit.");
         const units = (allowedUnits ?? []).filter((u) => u.latitude != null && u.longitude != null);
         if (units.length === 0) {
           throw new Error("No unit locations are configured for you. Ask your admin to set unit coordinates.");
@@ -229,7 +239,7 @@ export function MarkAttendanceCard({
         const withDist = units
           .map((u) => ({
             unit: u,
-            distance: distanceMeters({ lat: geo.lat, lng: geo.lng }, { lat: u.latitude as number, lng: u.longitude as number }) ?? Number.POSITIVE_INFINITY,
+            distance: distanceMeters({ lat: geo!.lat, lng: geo!.lng }, { lat: u.latitude as number, lng: u.longitude as number }) ?? Number.POSITIVE_INFINITY,
           }))
           .sort((a, b) => a.distance - b.distance);
         const within = withDist.filter((r) => r.distance <= proximityThresholdM);
