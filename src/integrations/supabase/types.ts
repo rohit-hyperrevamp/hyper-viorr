@@ -4901,6 +4901,10 @@ export type Database = {
         Args: { _unit_id: string }
         Returns: boolean
       }
+      current_user_can_manage_guard_unit_mapping: {
+        Args: { _candidate_id: string; _unit_id: string }
+        Returns: boolean
+      }
       current_user_can_manage_unit_scope_assignment: {
         Args: { _unit_id: string }
         Returns: boolean
