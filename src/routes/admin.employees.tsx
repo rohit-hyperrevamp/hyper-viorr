@@ -281,6 +281,20 @@ export type OffboardingDetails = {
   collection_completed_by?: string | null;
 };
 
+export type OnboardingDetails = {
+  // Onboarding-issuance handshake with the Field Officer.
+  // Mirrors offboarding: on approval, if assets are assigned and a FO is
+  // resolvable, the candidate stays at status='approved' until the FO
+  // confirms issuance in Uniform Manager → Collections → Issuances.
+  pending_issuance_fo_id?: string | null;
+  pending_issuance_fo_name?: string | null;
+  issuance_status?: "pending" | "completed" | null;
+  issuance_requested_at?: string | null;
+  issuance_completed_at?: string | null;
+  issuance_completed_by?: string | null;
+  issuance_asset_ids?: string[];
+};
+
 
 type CandidateExperience = {
   company_name: string;
