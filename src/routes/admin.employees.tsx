@@ -4538,12 +4538,12 @@ function CandidateWizard({
                   <Field label="Aadhaar Number">
                     <Input format="aadhaar" value={form.aadhaar_number} onChange={(e) => set("aadhaar_number", e.target.value.replace(/\D/g, "").slice(0, 12))} />
                   </Field>
-                  <Field label="Employee Code">
+                  <Field label={isEmployeeMode ? "Employee Code" : "Candidate Number"}>
                     <Input
-                      value={form.employee_code}
-                      placeholder="EMP-001"
+                      value={isEmployeeMode ? form.employee_code : form.candidate_code}
+                      placeholder={isEmployeeMode ? "EMP-001" : "CAN-001"}
                       className="font-mono"
-                      onChange={(e) => set("employee_code", e.target.value)}
+                      onChange={(e) => set(isEmployeeMode ? "employee_code" : "candidate_code", e.target.value)}
                     />
                   </Field>
                 </div>
@@ -5061,17 +5061,19 @@ function CandidateWizard({
                       />
                     </Field>
                   </div>
-                  <div className="sm:col-span-2 flex items-start justify-between gap-3 rounded-md border border-border bg-secondary/30 p-3">
-                    <div className="min-w-0 flex-1">
-                      <Label className="m-0 block">Do not re-hire</Label>
-                      <p className="mt-0.5 text-xs text-muted-foreground leading-snug">Flag this employee as ineligible for re-hiring. Auto-enabled when offboarded as Absconding.</p>
+                  {isEmployeeMode && (
+                    <div className="sm:col-span-2 flex items-start justify-between gap-3 rounded-md border border-border bg-secondary/30 p-3">
+                      <div className="min-w-0 flex-1">
+                        <Label className="m-0 block">Do not re-hire</Label>
+                        <p className="mt-0.5 text-xs text-muted-foreground leading-snug">Flag this employee as ineligible for re-hiring. Auto-enabled when offboarded as Absconding.</p>
+                      </div>
+                      <Switch
+                        className="mt-0.5 shrink-0"
+                        checked={form.no_hire}
+                        onCheckedChange={(v) => set("no_hire", v)}
+                      />
                     </div>
-                    <Switch
-                      className="mt-0.5 shrink-0"
-                      checked={form.no_hire}
-                      onCheckedChange={(v) => set("no_hire", v)}
-                    />
-                  </div>
+                  )}
 
                 </div>
               </Section>
@@ -5092,7 +5094,7 @@ function CandidateWizard({
                 <IdentificationSection form={form} set={setAny} setSection={setSection} hideWeapon={isEmployeeMode} />
               </Section>
 
-              {!isEmployeeMode && (
+              {isEmployeeMode && (
                 <Section title="Criminal History">
                   <CriminalSection form={form} set={setAny} />
                 </Section>
