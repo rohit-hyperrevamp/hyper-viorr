@@ -886,6 +886,23 @@ function UnitRow({ unit }: { unit: UnitNode }) {
           <div className="flex gap-2 sm:hidden">
             <Pill tone="slate" value={total} label="team" />
           </div>
+          {unit.co_field_officers.length > 0 && (
+            <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-2">
+              <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
+                <UserCog className="h-3 w-3" /> Also on this unit ({unit.co_field_officers.length})
+              </div>
+              <ul className="space-y-0.5">
+                {unit.co_field_officers.map((f) => (
+                  <li key={f.id} className="flex items-center gap-2 text-[12px]">
+                    <span className="font-medium text-foreground">{f.full_name}</span>
+                    {f.employee_code && (
+                      <span className="font-mono text-[10px] text-muted-foreground">{f.employee_code}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {unit.guards.length === 0 ? (
             <div className="py-2 text-sm text-muted-foreground">No active employees on this unit yet.</div>
           ) : (
