@@ -2533,6 +2533,15 @@ function EmployeesPage() {
                   <span className="truncate">Awaiting collection{pendingFoName ? ` · ${pendingFoName}` : ""}</span>
                 </div>
               )}
+              {isPendingIssuance && (
+                <div
+                  className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full border border-sky-300/70 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-300"
+                  title={`Approved — awaiting Field Officer${pendingIssuanceFoName ? ` (${pendingIssuanceFoName})` : ""} to issue assets. Activates once issuance is confirmed.`}
+                >
+                  <Clock className="h-3 w-3 shrink-0" />
+                  <span className="truncate">Awaiting issuance{pendingIssuanceFoName ? ` · ${pendingIssuanceFoName}` : ""}</span>
+                </div>
+              )}
 
               {mode === "employee" && columnsVisible.role && (
                 <div className="mt-2">
