@@ -4460,36 +4460,45 @@ function CandidateWizard({
 
   const saveDraft = async () => {
     setSavingDraft(true);
+    setSaveError(null);
     try {
       // Drafts have no strict validation — let user save partial work.
       await persist(editing && editing.status !== "draft" ? form.status : "draft", "Draft saved");
       onOpenChange(false);
     } catch (e) {
-      toast.error(getMutationErrorMessage(e, "Could not save draft"));
+      const msg = getMutationErrorMessage(e, "Could not save draft");
+      setSaveError({ title: "Draft not saved", detail: msg });
+      toast.error(msg);
     } finally {
       setSavingDraft(false);
     }
   };
 
+  const failValidation = (message: string) => {
+    setSaveError({ title: "Missing required information", detail: message });
+    toast.error(message);
+  };
+
   const submit = async () => {
+    setSaveError(null);
     if (!isEditingEmployeeProfile) {
-      if (!form.photo_url) return toast.error("Photograph is required");
-      if (!form.aadhaar_image_url) return toast.error("Aadhaar upload is required");
-      if (!form.signature_url) return toast.error("Signature is required");
-      if (!form.pan_image_url) return toast.error("PAN card upload is required");
-      if (!form.full_name.trim()) return toast.error("Name is required");
-      if (!form.mobile.trim()) return toast.error("Mobile is required");
+      if (!form.photo_url) return failValidation("Photograph is required");
+      if (!form.aadhaar_image_url) return failValidation("Aadhaar upload is required");
+      if (!form.signature_url) return failValidation("Signature is required");
+      if (!form.pan_image_url) return failValidation("PAN card upload is required");
+      if (!form.full_name.trim()) return failValidation("Name is required");
+      if (!form.mobile.trim()) return failValidation("Mobile is required");
       const compliance = (form.compliance ?? {}) as Record<string, unknown>;
       const esicEnabled = compliance.esic_enabled !== false; // default true
       if (esicEnabled && !compliance.esic_branch_id) {
-        return toast.error("ESIC Branch is missing. Please map a branch from ESIC Branch Manager (Compliance section).");
+        return failValidation("ESIC Branch is missing. Please map a branch from ESIC Branch Manager (Compliance section).");
       }
       if (form.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(form.pan_number.trim().toUpperCase()))
-        return toast.error("PAN number format is invalid (e.g. ABCDE1234F)");
+        return failValidation("PAN number format is invalid (e.g. ABCDE1234F)");
       if (form.bank_ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(form.bank_ifsc.trim().toUpperCase()))
-        return toast.error("IFSC code format is invalid (e.g. SBIN0001234)");
+        return failValidation("IFSC code format is invalid (e.g. SBIN0001234)");
       if (form.bank_account_number && !/^\d{6,18}$/.test(form.bank_account_number.trim()))
-        return toast.error("Bank account number must be 6–18 digits");
+        return failValidation("Bank account number must be 6–18 digits");
     }
     setSubmitting(true);
     try {
@@ -4504,11 +4513,14 @@ function CandidateWizard({
       await persist(nextStatus, successMsg);
       onOpenChange(false);
     } catch (e) {
-      toast.error(getMutationErrorMessage(e, "Save failed"));
+      const msg = getMutationErrorMessage(e, "Save failed");
+      setSaveError({ title: "Could not save candidate", detail: msg });
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
   };
+
 
 
   const wizardScrollRef = useRef<HTMLDivElement>(null);
