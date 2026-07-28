@@ -703,6 +703,7 @@ function rowToUnit(r: UnitRow): Unit {
     longitude: r.longitude == null ? null : Number(r.longitude),
     enablePt: Boolean(r.enable_pt),
     enableLwf: Boolean(r.enable_lwf),
+    uniformIncluded: r.uniform_included == null ? true : Boolean(r.uniform_included),
   };
 }
 
