@@ -6337,9 +6337,11 @@ function AssetMultiPicker({
   const selectedSet = useMemo(() => new Set(value), [value]);
   const selected = useMemo(() => assets.filter((a) => selectedSet.has(a.id)), [assets, selectedSet]);
 
-  // Show every enabled asset / inventory item so users can browse what exists.
-  // Out-of-stock rows stay visible but are visually flagged below.
-  const pickable = useMemo(() => assets, [assets]);
+  // Only surface assets that actually have live inventory available.
+  const pickable = useMemo(
+    () => assets.filter((a) => (a.available_qty ?? 0) > 0),
+    [assets],
+  );
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
