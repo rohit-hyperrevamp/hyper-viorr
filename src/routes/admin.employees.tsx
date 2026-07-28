@@ -6429,6 +6429,25 @@ function AssetMultiPicker({
                               <Check className={cn("h-4 w-4 shrink-0", checked ? "opacity-100" : "opacity-0")} />
                               <span className="flex-1 truncate">{a.name}</span>
                               <span className="text-[10px] text-muted-foreground">{a.category}</span>
+                              {(() => {
+                                const uni = isUniform(a);
+                                const price = priceFor(a);
+                                if (uni && uniformIncluded) {
+                                  return (
+                                    <span className="ml-1 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                                      ₹0 · Free
+                                    </span>
+                                  );
+                                }
+                                if (price > 0) {
+                                  return (
+                                    <span className="ml-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                                      {inr(price)}
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
                               <span className={cn(
                                 "ml-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
                                 (a.available_qty ?? 0) > 0
@@ -6437,6 +6456,7 @@ function AssetMultiPicker({
                               )}>
                                 {(a.available_qty ?? 0) > 0 ? `${a.available_qty} in stock` : "Out of stock"}
                               </span>
+
 
                             </button>
                           );
