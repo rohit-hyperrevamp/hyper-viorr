@@ -2007,12 +2007,17 @@ function EmployeesPage() {
         c.offboarding_details?.collection_status === "pending" &&
         !!c.offboarding_details?.pending_collection_fo_id;
       const pendingFoName = c.offboarding_details?.pending_collection_fo_name;
+      const isPendingIssuance =
+        c.onboarding_details?.issuance_status === "pending" &&
+        !!c.onboarding_details?.pending_issuance_fo_id;
+      const pendingIssuanceFoName = c.onboarding_details?.pending_issuance_fo_name;
       return (
         <tr key={c.id} className={cn(
           "group transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-500/5",
           isDisabled && "opacity-60",
-          isPendingOffboarding && "bg-amber-500/[0.04] hover:bg-amber-500/[0.07]"
+          (isPendingOffboarding || isPendingIssuance) && "bg-amber-500/[0.04] hover:bg-amber-500/[0.07]"
         )}>
+
           <td className="px-2.5 py-2.5 align-top">
             <span className="inline-flex items-center whitespace-nowrap rounded-md bg-secondary px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wide tabular-nums text-muted-foreground">
               {code}
