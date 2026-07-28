@@ -384,15 +384,27 @@ const QK_ESIC_BRANCHES = ["admin", "esic-branches-lite"] as const;
 const QK_SIGNED_DOCS = ["admin", "signed-docs-summary"] as const;
 
 function getMutationErrorMessage(error: unknown, fallback: string) {
+  const parts: string[] = [];
   if (error instanceof Error && error.message.trim()) return error.message;
   if (error && typeof error === "object") {
     const record = error as Record<string, unknown>;
     for (const key of ["message", "details", "hint", "code"]) {
       const value = record[key];
-      if (typeof value === "string" && value.trim()) return value;
+      if (typeof value === "string" && value.trim()) parts.push(value.trim());
     }
   }
-  if (typeof error === "string" && error.trim()) return error;
+  if (typeof error === "string" && error.trim()) parts.push(error.trim());
+  const raw = parts.join(" · ");
+  if (/candidates_mobile_unique|Key \(mobile\)=/i.test(raw)) {
+    return "This mobile number is already used by an active candidate or employee. Open the existing profile or use a different number.";
+  }
+  if (/candidates_candidate_code_key|Key \(candidate_code\)=/i.test(raw)) {
+    return "Candidate number generation collided with an existing record. Please retry once; the next number will be allocated automatically.";
+  }
+  if (/candidate_units|row-level security|infinite recursion/i.test(raw)) {
+    return `Unit assignment failed: ${raw}`;
+  }
+  if (raw) return raw;
   return fallback;
 }
 
@@ -4304,6 +4316,29 @@ function CandidateWizard({
 
   const persist = async (status: string, successMsg: string) => {
     const payload = buildPayload(status);
+    const normalizedMobile = String((payload as { mobile?: unknown }).mobile ?? "").replace(/\D/g, "");
+    if (normalizedMobile) {
+      const duplicateQuery = supabase
+        .from("candidates" as never)
+        .select("id,full_name,status,candidate_code,employee_code")
+        .eq("mobile", normalizedMobile)
+        .neq("status", "inactive")
+        .limit(1);
+      if (editing?.id) duplicateQuery.neq("id", editing.id);
+      const { data: duplicateMobileRows, error: duplicateMobileError } = await duplicateQuery;
+      if (duplicateMobileError) throw duplicateMobileError;
+      const duplicate = ((duplicateMobileRows as unknown) as Array<{
+        id: string;
+        full_name: string | null;
+        status: string | null;
+        candidate_code: string | null;
+        employee_code: string | null;
+      }> | null)?.[0];
+      if (duplicate) {
+        const recordCode = duplicate.employee_code || duplicate.candidate_code || "existing record";
+        throw new Error(`Mobile ${normalizedMobile} is already linked to ${duplicate.full_name || recordCode} (${recordCode}, ${duplicate.status || "active"}). Open that profile or use a different mobile number.`);
+      }
+    }
     let createdCandidateId: string | null = null;
     if (editing) {
       const wasRejected = editing.status === "rejected";
@@ -4429,7 +4464,7 @@ function CandidateWizard({
       await persist(editing && editing.status !== "draft" ? form.status : "draft", "Draft saved");
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not save draft");
+      toast.error(getMutationErrorMessage(e, "Could not save draft"));
     } finally {
       setSavingDraft(false);
     }
@@ -4468,7 +4503,7 @@ function CandidateWizard({
       await persist(nextStatus, successMsg);
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+      toast.error(getMutationErrorMessage(e, "Save failed"));
     } finally {
       setSubmitting(false);
     }
