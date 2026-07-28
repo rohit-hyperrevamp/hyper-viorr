@@ -4134,7 +4134,8 @@ function CandidateWizard({
   /** Replace the candidate's entries in candidate_units with the current form selection. */
   const syncCandidateUnits = async (candidateId: string) => {
     // Wipe existing rows then re-insert. Simpler & atomic enough for typical 1-5 units.
-    await supabase.from("candidate_units" as never).delete().eq("candidate_id", candidateId);
+    const { error: deleteError } = await supabase.from("candidate_units" as never).delete().eq("candidate_id", candidateId);
+    if (deleteError) throw new Error(`Unit assignment sync failed: ${deleteError.message}`);
     if (form.unit_ids.length === 0) return;
     const rows = form.unit_ids.map((unit_id, idx) => ({
       candidate_id: candidateId,
@@ -4143,7 +4144,7 @@ function CandidateWizard({
       sort_order: idx,
     }));
     const { error } = await supabase.from("candidate_units" as never).insert(rows as never);
-    if (error) throw error;
+    if (error) throw new Error(`Unit assignment sync failed: ${error.message}`);
   };
 
   const unitAssignmentsChanged = () => {
