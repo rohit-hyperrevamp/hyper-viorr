@@ -353,6 +353,7 @@ type UnitLite = {
   name: string;
   customer_id: string | null;
   branch_id: string | null;
+  uniform_included?: boolean | null;
   customer_name?: string;
 };
 
