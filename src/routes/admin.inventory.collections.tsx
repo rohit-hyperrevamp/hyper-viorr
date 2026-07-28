@@ -257,7 +257,12 @@ function CollectionsPanel({ me }: { me: Candidate }) {
   const activeBalances = openGuard ? balByGuard.get(openGuard) ?? [] : [];
 
   const collectMut = useMutation({
-    mutationFn: async (payload: { guard: Candidate; rows: { item_id: string; size_value: string; qty: number }[] }) => {
+    mutationFn: async (payload: {
+      guard: Candidate;
+      rows: { item_id: string; size_value: string; qty: number }[];
+      docs?: ExitDocumentRecord[];
+      notes?: ExitAssetNote[];
+    }) => {
       const movs = payload.rows.flatMap((r) => ([
         {
           movement_type: "COLLECT_GUARD_OUT",
@@ -274,53 +279,46 @@ function CollectionsPanel({ me }: { me: Candidate }) {
           reference_type: "collection", reference_id: payload.guard.id,
         },
       ]));
-      await postMovements(movs);
+      if (movs.length) await postMovements(movs);
 
       // Offboarding handshake — if this guard was flagged pending-offboarding for me,
-      // check that no stock remains at the guard, then finalise the offboarding.
+      // record the exit-document checklist and finalise the offboarding.
       const od = payload.guard.offboarding_details ?? null;
       const isPendingOffboarding =
         od?.collection_status === "pending" && od?.pending_collection_fo_id === me.id;
       let finalisedOffboarding = false;
-      if (isPendingOffboarding) {
-        const { data: remainingRows, error: remErr } = await supabase
-          .from("inv_stock_balances" as never)
-          .select("qty")
-          .eq("location_type", "guard")
-          .eq("location_id", payload.guard.id)
-          .gt("qty", 0);
-        if (remErr) throw remErr;
-        const remaining = ((remainingRows as unknown as { qty: number }[]) ?? []).reduce(
-          (s, r) => s + Number(r.qty || 0),
-          0,
-        );
-        if (remaining === 0) {
-          const nowIso = new Date().toISOString();
-          const nextDetails: OffboardingDetails = {
-            ...od,
-            collection_status: "completed",
-            collection_requested_at: od?.collection_requested_at ?? nowIso,
-          };
-          const { error: upErr } = await supabase
-            .from("candidates" as never)
-            .update({
-              is_enabled: false,
-              status: "inactive",
-              offboarded_at: nowIso,
-              offboarding_details: { ...nextDetails, collection_completed_at: nowIso, collection_completed_by: me.id },
-            } as unknown as never)
-            .eq("id", payload.guard.id);
-          if (upErr) throw upErr;
-          finalisedOffboarding = true;
-          void logActivity({
-            module: "Employees",
-            action: "offboard",
-            entityType: "candidate",
-            entityId: payload.guard.id,
-            entityLabel: `${payload.guard.full_name} finalised on FO collection`,
-            details: { collected_by: me.id },
-          });
-        }
+      if (isPendingOffboarding && payload.docs?.length) {
+        const nowIso = new Date().toISOString();
+        const nextDetails: OffboardingDetails = {
+          ...od,
+          collection_status: "completed",
+          collection_requested_at: od?.collection_requested_at ?? nowIso,
+          exit_documents: payload.docs,
+          exit_asset_notes: payload.notes ?? [],
+        };
+        const { error: upErr } = await supabase
+          .from("candidates" as never)
+          .update({
+            is_enabled: false,
+            status: "inactive",
+            offboarded_at: nowIso,
+            offboarding_details: { ...nextDetails, collection_completed_at: nowIso, collection_completed_by: me.id },
+          } as unknown as never)
+          .eq("id", payload.guard.id);
+        if (upErr) throw upErr;
+        finalisedOffboarding = true;
+        void logActivity({
+          module: "Employees",
+          action: "offboard",
+          entityType: "candidate",
+          entityId: payload.guard.id,
+          entityLabel: `${payload.guard.full_name} finalised on FO collection`,
+          details: {
+            collected_by: me.id,
+            exit_documents: payload.docs,
+            exit_asset_notes: payload.notes ?? [],
+          },
+        });
       }
 
       void logActivity({
