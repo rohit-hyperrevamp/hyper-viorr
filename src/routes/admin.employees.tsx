@@ -5150,9 +5150,8 @@ function CandidateWizard({
                         uniformIncluded={(() => {
                           const ids = form.unit_ids.length > 0 ? form.unit_ids : (form.unit_id ? [form.unit_id] : []);
                           if (ids.length === 0) return true;
-                          // Treat as included only when every assigned unit includes uniforms.
                           return ids.every((id) => {
-                            const u = unitMap.get(id);
+                            const u = units.find((x) => x.id === id);
                             return u ? u.uniform_included !== false : true;
                           });
                         })()}
