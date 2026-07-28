@@ -2371,6 +2371,8 @@ function MusterRollPage() {
                       {periodCells.map((cell) => {
                         const date = cell.date;
                         const isFuture = date > todayStr;
+                        const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
+                        const isBlocked = isFuture || beforeDoj;
                         const entry = entryMap.get(`${mr.key}|${date}`);
                         const hrs = Number(entry?.ot_hours) || 0;
                         const isSelected = otDragRowKey === mr.key && otSelectedDates.has(date);
@@ -2380,15 +2382,15 @@ function MusterRollPage() {
                             className={cn(
                               cellBase,
                               "p-0 select-none transition-colors",
-                              isFuture
-                                ? "bg-slate-100 cursor-not-allowed"
-                                : "cursor-pointer",
-                              hrs > 0 && !isFuture && "bg-amber-50",
+                              isFuture && "bg-slate-100 cursor-not-allowed",
+                              beforeDoj && "bg-slate-50 cursor-not-allowed",
+                              !isBlocked && "cursor-pointer",
+                              hrs > 0 && !isBlocked && "bg-amber-50",
                               isSelected && "ring-2 ring-amber-500 ring-inset bg-amber-100",
                             )}
                             style={{ height: 22, minWidth: 18 }}
                             onMouseDown={(e) => {
-                              if (isFuture || !editable) { e.preventDefault(); return; }
+                              if (isBlocked || !editable) { e.preventDefault(); return; }
                               e.preventDefault();
                               const additive = e.ctrlKey || e.metaKey;
                               if (additive) {
@@ -2407,7 +2409,7 @@ function MusterRollPage() {
                               setOtSelectedDates(new Set([date]));
                             }}
                             onMouseEnter={() => {
-                              if (isFuture) return;
+                              if (isBlocked) return;
                               if (isOtDragging && otDragRowKey === mr.key) {
                                 setOtSelectedDates((prev) => {
                                   if (prev.has(date)) return prev;
@@ -2418,7 +2420,7 @@ function MusterRollPage() {
                               }
                             }}
                             onClick={(e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }}
-                            title={isFuture ? "Future date — cannot mark OT" : `OT for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`}
+                            title={beforeDoj ? `Before joining date (${mr.emp.doj})` : isFuture ? "Future date — cannot mark OT" : `OT for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`}
                           >
                             <div
                               className={cn(
