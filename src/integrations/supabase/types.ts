@@ -4114,6 +4114,154 @@ export type Database = {
           },
         ]
       }
+      rehire_request_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string
+          actor_role_key: string
+          created_at: string
+          id: string
+          notes: string
+          request_id: string
+          step_name: string
+          step_order: number
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string
+          actor_role_key?: string
+          created_at?: string
+          id?: string
+          notes?: string
+          request_id: string
+          step_name?: string
+          step_order?: number
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string
+          actor_role_key?: string
+          created_at?: string
+          id?: string
+          notes?: string
+          request_id?: string
+          step_name?: string
+          step_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rehire_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "rehire_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rehire_requests: {
+        Row: {
+          aadhaar_number: string
+          completed_at: string | null
+          created_at: string
+          current_step_order: number
+          full_name: string
+          id: string
+          id_card_url: string
+          mobile: string
+          new_candidate_id: string | null
+          new_employee_code: string
+          notes: string
+          previous_candidate_id: string | null
+          rejection_reason: string
+          request_number: string | null
+          requested_by: string | null
+          requested_by_candidate_id: string | null
+          resignation_url: string
+          status: string
+          unit_id: string | null
+          updated_at: string
+          workflow_key: string
+        }
+        Insert: {
+          aadhaar_number: string
+          completed_at?: string | null
+          created_at?: string
+          current_step_order?: number
+          full_name?: string
+          id?: string
+          id_card_url?: string
+          mobile?: string
+          new_candidate_id?: string | null
+          new_employee_code?: string
+          notes?: string
+          previous_candidate_id?: string | null
+          rejection_reason?: string
+          request_number?: string | null
+          requested_by?: string | null
+          requested_by_candidate_id?: string | null
+          resignation_url?: string
+          status?: string
+          unit_id?: string | null
+          updated_at?: string
+          workflow_key?: string
+        }
+        Update: {
+          aadhaar_number?: string
+          completed_at?: string | null
+          created_at?: string
+          current_step_order?: number
+          full_name?: string
+          id?: string
+          id_card_url?: string
+          mobile?: string
+          new_candidate_id?: string | null
+          new_employee_code?: string
+          notes?: string
+          previous_candidate_id?: string | null
+          rejection_reason?: string
+          request_number?: string | null
+          requested_by?: string | null
+          requested_by_candidate_id?: string | null
+          resignation_url?: string
+          status?: string
+          unit_id?: string | null
+          updated_at?: string
+          workflow_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rehire_requests_new_candidate_id_fkey"
+            columns: ["new_candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rehire_requests_previous_candidate_id_fkey"
+            columns: ["previous_candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rehire_requests_requested_by_candidate_id_fkey"
+            columns: ["requested_by_candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rehire_requests_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           can_approve: boolean
@@ -4899,6 +5047,92 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_definitions: {
+        Row: {
+          created_at: string
+          description: string
+          entity_type: string
+          id: string
+          is_active: boolean
+          key: string
+          name: string
+          route_path: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          name: string
+          route_path?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          name?: string
+          route_path?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      workflow_steps: {
+        Row: {
+          action_label: string
+          approver_role_key: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          key: string
+          name: string
+          step_order: number
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          action_label?: string
+          approver_role_key: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          name: string
+          step_order: number
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          action_label?: string
+          approver_role_key?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          name?: string
+          step_order?: number
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_steps_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -4916,6 +5150,10 @@ export type Database = {
       current_user_assigned_guard_ids: { Args: never; Returns: string[] }
       current_user_branch_id: { Args: never; Returns: string }
       current_user_branch_scope_ids: { Args: never; Returns: string[] }
+      current_user_can_action_rehire: {
+        Args: { _request_id: string }
+        Returns: boolean
+      }
       current_user_can_approve_onboarding: { Args: never; Returns: boolean }
       current_user_can_edit_organizations: { Args: never; Returns: boolean }
       current_user_can_manage_attendance_unit: {
@@ -4954,6 +5192,7 @@ export type Database = {
         Returns: boolean
       }
       current_user_is_inventory_manager: { Args: never; Returns: boolean }
+      current_user_is_rehire_participant: { Args: never; Returns: boolean }
       current_user_mobile: { Args: never; Returns: string }
       current_user_owns_onboarding_candidate: {
         Args: { _candidate_id: string }
@@ -5062,6 +5301,10 @@ export type Database = {
           token_count: number
           token_suffix: string
         }[]
+      }
+      rehire_current_step_role: {
+        Args: { _request_id: string }
+        Returns: string
       }
       resolve_candidate_issuance_field_officer: {
         Args: { _candidate_id: string; _reports_to: string; _unit_id: string }
