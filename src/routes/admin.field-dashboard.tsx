@@ -496,17 +496,17 @@ function FieldOfficerDashboard() {
 
 
       {/* Units list */}
-      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/90 shadow-sm backdrop-blur-xl sm:rounded-[28px]">
-        <div className="flex items-center justify-between border-b border-border/60 px-3.5 py-3 sm:px-6 sm:py-5">
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">New objects ({units.length})</div>
-            <h2 className="mt-0.5 font-display text-lg font-bold text-foreground sm:text-xl">My units</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">Tap to see the team and take action.</p>
+      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
+        <div className="flex items-center justify-between border-b border-border/60 px-3.5 py-2.5 sm:px-4 sm:py-3">
+          <div className="min-w-0">
+            <h2 className="font-display text-sm font-bold text-foreground sm:text-base">My units</h2>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">Tap a row to see the team.</p>
           </div>
-          <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-muted-foreground">
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
             {units.length} unit{units.length === 1 ? "" : "s"}
           </span>
         </div>
+
         <div className="divide-y divide-border/50">
           {isLoading ? (
             <ListSkeleton rows={3} />
