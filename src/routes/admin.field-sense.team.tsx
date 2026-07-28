@@ -35,10 +35,11 @@ type Row = {
   last_lng: number | null;
   last_seen_at: string | null;
   in_meeting_unit: string | null;
-  work_ms: number;
+  work_ms: number | null;
   km_today: number;
-  status: "in_meeting" | "in_transit" | "punched_in" | "not_punched";
+  status: "in_meeting" | "in_transit" | "punched_in" | "not_punched" | "checkout_missing";
 };
+
 
 function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const toRad = (x: number) => (x * Math.PI) / 180;
