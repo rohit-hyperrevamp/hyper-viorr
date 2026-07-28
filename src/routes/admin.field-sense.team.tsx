@@ -230,7 +230,11 @@ function MyTeamPage() {
           <div className="ml-auto flex flex-wrap items-center gap-x-6 gap-y-2">
             <Counter label="Punched-In" value={`${punchedIn}/${total}`} tone="sky" />
             <Counter label="In Meeting" value={inMeeting} tone="emerald" />
-            <Counter label="In Transit" value={inTransit} tone="amber" />
+            {isPast ? (
+              <Counter label="Checkout missing" value={checkoutMissing} tone="amber" />
+            ) : (
+              <Counter label="In Transit" value={inTransit} tone="amber" />
+            )}
           </div>
         </div>
       </section>
