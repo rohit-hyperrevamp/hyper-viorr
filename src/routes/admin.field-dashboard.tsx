@@ -38,6 +38,7 @@ export const Route = createFileRoute("/admin/field-dashboard")({
 });
 
 type Guard = { id: string; full_name: string; designation: string };
+type CoFo = { id: string; full_name: string; employee_code: string | null };
 type UnitNode = {
   id: string;
   code: string;
@@ -45,6 +46,7 @@ type UnitNode = {
   customer_name: string;
   is_primary: boolean;
   guards: Guard[];
+  co_field_officers: CoFo[];
   pending_onboarding: number;
   open_demands: number;
   inventory_items: number;
