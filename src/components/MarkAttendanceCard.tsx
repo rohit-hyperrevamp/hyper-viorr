@@ -196,7 +196,7 @@ export function MarkAttendanceCard({
 
   const gated = Array.isArray(allowedUnits);
 
-  const performCheckIn = async (unitId: string | null, geo: import("@/lib/self-attendance").Geo, face: boolean) => {
+  const performCheckIn = async (unitId: string | null, geo: import("@/lib/self-attendance").Geo | null, face: boolean) => {
     if (!candidateId) throw new Error("Profile not ready.");
     const [row, battery, network] = await Promise.allSettled([
       checkIn(candidateId, geo, face, unitId),
