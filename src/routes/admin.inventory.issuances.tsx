@@ -344,7 +344,7 @@ function IssuancesPage() {
 
 
 
-      <IssuanceDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setActive(null); setPendingCandidateId(""); } }} initial={active} initialCandidateId={pendingCandidateId} warehouses={warehouses} branches={branches} fos={fos} guards={guards} candidates={candidates} items={items} onSaved={invalidate} me={me} isFieldOfficer={isFieldOfficer} isBranchManager={isBranchManager} branchScopeId={scope.branchId} openDemands={openDemands} />
+      <IssuanceDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setActive(null); setPendingCandidateId(""); } }} initial={active} initialCandidateId={pendingCandidateId} currentUserId={userId} warehouses={warehouses} branches={branches} fos={fos} guards={guards} candidates={candidates} items={items} onSaved={invalidate} me={me} isFieldOfficer={isFieldOfficer} isBranchManager={isBranchManager} branchScopeId={scope.branchId} openDemands={openDemands} />
     </div>
   );
 }
@@ -406,9 +406,10 @@ const ISSUANCE_TYPES = [
   { key: "warehouse_to_guard", label: "Warehouse → Guard", source: "warehouse", dest: "guard" },
 ] as const;
 
-function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, warehouses, branches, fos, guards, candidates, items, onSaved, me, isFieldOfficer, isBranchManager, branchScopeId, openDemands }: {
+function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, currentUserId, warehouses, branches, fos, guards, candidates, items, onSaved, me, isFieldOfficer, isBranchManager, branchScopeId, openDemands }: {
   open: boolean; onOpenChange: (o: boolean) => void; initial: Issuance | null;
   initialCandidateId: string;
+  currentUserId: string | null;
   warehouses: Warehouse[]; branches: Branch[]; fos: Candidate[]; guards: Candidate[]; candidates: Candidate[]; items: Item[];
   onSaved: () => void;
   me: Candidate | null;
@@ -438,8 +439,12 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, wareh
   // FO scoping for guards
   const foScopedGuards = useMemo(() => {
     if (!isFieldOfficer || !me) return guards;
-    return guards.filter((g) => g.reports_to === me.id || (me.unit_id && g.unit_id === me.unit_id));
-  }, [guards, isFieldOfficer, me]);
+    return guards.filter((g) =>
+      g.reports_to === me.id ||
+      (me.unit_id && g.unit_id === me.unit_id) ||
+      (!!currentUserId && g.onboarding_details?.pending_issuance_fo_id === currentUserId),
+    );
+  }, [guards, isFieldOfficer, me, currentUserId]);
 
   // Available stock at the source location
   const { data: stockMap = new Map<string, number>() } = useQuery({

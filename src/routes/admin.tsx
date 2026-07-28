@@ -330,7 +330,7 @@ function AdminLayout() {
     }
     const hit = pathToModule.find((p) => pathname === p.prefix || pathname.startsWith(p.prefix + "/"));
     if (!hit) return;
-    if (hit.module === "inventory" && roleKey === "field_officer" && pathname.startsWith("/admin/inventory/collections")) {
+    if (hit.module === "inventory" && roleKey === "field_officer" && (pathname.startsWith("/admin/inventory/collections") || pathname.startsWith("/admin/inventory/issuances"))) {
       return;
     }
     if (!can(hit.module)) {
@@ -342,7 +342,7 @@ function AdminLayout() {
     // Sub-module gating: enforce canSub for any known sub-module path.
     const subHit = subPathList.find((p) => pathname === p.prefix || pathname.startsWith(p.prefix + "/"));
     if (subHit) {
-      if (subHit.module === "inventory" && subHit.sub === "collections" && roleKey === "field_officer") return;
+      if (subHit.module === "inventory" && (subHit.sub === "collections" || subHit.sub === "issuances") && roleKey === "field_officer") return;
       if (!canSub(subHit.module, subHit.sub)) {
         // Fall back to the module hub or first allowed path.
         const modulePath = pathToModule.find((p) => p.module === subHit.module)?.prefix;
@@ -439,8 +439,9 @@ function AdminLayout() {
       if (isSuperAdmin) return visibleInventoryChildren.filter((c) => !c.adminOnly || isInvAdmin);
       const list = inventoryChildren.filter((c) => {
         if (c.adminOnly) return isInvAdmin;
-        // Collections is field-officer only — bypass sub-permission gating for FOs.
+        // Collections and guard issuances are field-officer workflows — bypass sub-permission gating for FOs.
         if (c.to === "/admin/inventory/collections") return isFO;
+        if (c.to === "/admin/inventory/issuances" && isFO) return true;
         return !c.sub || canSub("inventory", c.sub);
       });
       // Field officers do not see the Inventory Command Center dashboard.
