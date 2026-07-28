@@ -51,11 +51,13 @@ function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: numb
   return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-function fmtDur(ms: number) {
+function fmtDur(ms: number | null) {
+  if (ms == null) return "—";
   if (ms <= 0) return "0:00 hrs";
   const mins = Math.round(ms / 60000);
   return `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")} hrs`;
 }
+
 
 function timeShort(iso: string | null) {
   if (!iso) return "—";
