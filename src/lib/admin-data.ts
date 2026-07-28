@@ -578,6 +578,7 @@ export type Unit = {
   longitude: number | null;
   enablePt: boolean;
   enableLwf: boolean;
+  uniformIncluded: boolean;
 };
 
 export function nextUnitCode(units: { code: string }[]) {
@@ -640,6 +641,7 @@ type UnitRow = {
   longitude: number | string | null;
   enable_pt: boolean | null;
   enable_lwf: boolean | null;
+  uniform_included: boolean | null;
 };
 
 function rowToUnit(r: UnitRow): Unit {
@@ -701,6 +703,7 @@ function rowToUnit(r: UnitRow): Unit {
     longitude: r.longitude == null ? null : Number(r.longitude),
     enablePt: Boolean(r.enable_pt),
     enableLwf: Boolean(r.enable_lwf),
+    uniformIncluded: r.uniform_included == null ? true : Boolean(r.uniform_included),
   };
 }
 
@@ -761,6 +764,7 @@ function unitToRow(data: Omit<Unit, "id">) {
     longitude: data.longitude,
     enable_pt: data.enablePt,
     enable_lwf: data.enableLwf,
+    uniform_included: data.uniformIncluded,
   };
 }
 

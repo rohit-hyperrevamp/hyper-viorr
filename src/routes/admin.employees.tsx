@@ -353,6 +353,7 @@ type UnitLite = {
   name: string;
   customer_id: string | null;
   branch_id: string | null;
+  uniform_included?: boolean | null;
   customer_name?: string;
 };
 
@@ -507,7 +508,7 @@ function useUnits() {
       const { data, error } = await runWithQueryTimeout("Units", async (signal) =>
         await supabase
           .from("units" as never)
-          .select("id,code,name,customer_id,branch_id")
+          .select("id,code,name,customer_id,branch_id,uniform_included")
           .order("name", { ascending: true })
           .limit(2000)
           .abortSignal(signal),
@@ -695,7 +696,7 @@ function EmployeesPage() {
       const [assetsRes, balRes, invItemsRes, invCatsRes] = await Promise.all([
         supabase
           .from("assets" as never)
-          .select("id,name,category,enabled")
+          .select("id,name,category,enabled,unit_price")
           .eq("enabled", true)
           .order("name", { ascending: true })
           .limit(500),
@@ -704,7 +705,7 @@ function EmployeesPage() {
           .select("qty,item_id,inv_items:item_id(name,enabled)"),
         supabase
           .from("inv_items" as never)
-          .select("id,name,category_id,enabled")
+          .select("id,name,category_id,enabled,standard_issue_price,standard_cost")
           .eq("enabled", true)
           .order("name", { ascending: true })
           .limit(1000),
@@ -717,7 +718,7 @@ function EmployeesPage() {
       if (invItemsRes.error) throw invItemsRes.error;
       if (invCatsRes.error) throw invCatsRes.error;
 
-      const rows = ((assetsRes.data as unknown) as Array<{ id: string; name: string; category: string }>) ?? [];
+      const rows = ((assetsRes.data as unknown) as Array<{ id: string; name: string; category: string; unit_price: number | string | null }>) ?? [];
       const availByName = new Map<string, number>();
       const availByItemId = new Map<string, number>();
       type BalRow = { qty: number | string; item_id: string; inv_items: { name: string; enabled: boolean } | null };
@@ -735,18 +736,20 @@ function EmployeesPage() {
         (((invCatsRes.data as unknown) as Array<{ id: string; name: string }>) ?? []).map((c) => [c.id, c.name]),
       );
       const assetNameSet = new Set(rows.map((r) => (r.name ?? "").trim().toLowerCase()));
-      const invRows = (((invItemsRes.data as unknown) as Array<{ id: string; name: string; category_id: string | null }>) ?? [])
+      const invRows = (((invItemsRes.data as unknown) as Array<{ id: string; name: string; category_id: string | null; standard_issue_price: number | string | null; standard_cost: number | string | null }>) ?? [])
         .filter((it) => !assetNameSet.has((it.name ?? "").trim().toLowerCase()))
         .map((it) => ({
           id: it.id,
           name: it.name,
           category: (it.category_id && catNameById.get(it.category_id)) || "Inventory",
           available_qty: availByItemId.get(it.id) ?? 0,
+          unit_price: Number(it.standard_issue_price ?? it.standard_cost ?? 0) || 0,
         }));
 
       const merged = rows.map((a) => ({
         ...a,
         available_qty: availByName.get((a.name ?? "").trim().toLowerCase()) ?? 0,
+        unit_price: Number(a.unit_price ?? 0) || 0,
       }));
       return [...merged, ...invRows];
     },
@@ -3616,6 +3619,8 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
 type CandidateForm = Omit<Candidate, "id"> & {
   /** All units assigned to this candidate. First entry is the primary unit (mirrored to candidates.unit_id). */
   unit_ids: string[];
+  /** Primary reporting manager (mirrored to candidates.reports_to). */
+  reports_to?: string | null;
 };
 
 function emptyForm(): CandidateForm {
@@ -5053,6 +5058,16 @@ function CandidateWizard({
                       />
                     </div>
                   )}
+                  {editing && !['guard','security_guard','admin','super_admin'].includes((editing as { role_key?: string })?.role_key ?? '') && (
+                    <div className="sm:col-span-2">
+                      <ReportsToPicker
+                        value={form.reports_to ?? null}
+                        selfId={editing.id}
+                        onChange={(id) => setForm((f) => ({ ...f, reports_to: id }))}
+                      />
+                    </div>
+                  )}
+
                   <div className="sm:col-span-2">
                     <Field label={`Organizations${(() => {
                       const orgs = Array.from(new Set(form.unit_ids.map((id) => units.find((u) => u.id === id)?.customer_name).filter(Boolean) as string[]));
@@ -5144,9 +5159,18 @@ function CandidateWizard({
                         onChange={(ids) => setForm((f) => ({ ...f, assigned_asset_ids: ids }))}
                         sizes={(form.other_info?.uniform_sizes ?? {}) as Record<string, string>}
                         onSizesChange={(next) => setForm((f) => ({ ...f, other_info: { ...(f.other_info ?? {}), uniform_sizes: next } }))}
+                        uniformIncluded={(() => {
+                          const ids = form.unit_ids.length > 0 ? form.unit_ids : (form.unit_id ? [form.unit_id] : []);
+                          if (ids.length === 0) return true;
+                          return ids.every((id) => {
+                            const u = units.find((x) => x.id === id);
+                            return u ? u.uniform_included !== false : true;
+                          });
+                        })()}
                       />
                     </Field>
                   </div>
+
                   {isEmployeeMode && (
                     <div className="sm:col-span-2 flex items-start justify-between gap-3 rounded-md border border-border bg-secondary/30 p-3">
                       <div className="min-w-0 flex-1">
@@ -6219,18 +6243,85 @@ function OffboardingDialog({
   );
 }
 
+function ReportsToPicker({
+  value,
+  selfId,
+  onChange,
+}: {
+  value: string | null;
+  selfId: string;
+  onChange: (id: string | null) => void;
+}) {
+  const managersQuery = useQuery({
+    queryKey: ["employees", "eligible-managers"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("candidates" as never)
+        .select("id,full_name,employee_code,role_key,status,is_enabled")
+        .in("role_key", ["field_officer", "hr", "leadership", "admin", "super_admin", "branch_manager", "branch_admin"])
+        .in("status", ["approved", "active"])
+        .order("full_name", { ascending: true })
+        .limit(500);
+      if (error) throw error;
+      return ((data as unknown) as Array<{ id: string; full_name: string; employee_code: string; role_key: string; is_enabled: boolean }> ?? [])
+        .filter((c) => c.is_enabled !== false && c.id !== selfId);
+    },
+  });
+  const managers = managersQuery.data ?? [];
+  const selected = value ? managers.find((m) => m.id === value) : null;
+  return (
+    <Field label="Reporting Manager">
+      <Select
+        value={value ?? "__none__"}
+        onValueChange={(v) => onChange(v === "__none__" ? null : v)}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder={managersQuery.isLoading ? "Loading…" : "Select a reporting manager"}>
+            {selected ? (
+              <span className="truncate">
+                {selected.full_name}
+                <span className="ml-1 text-[10px] text-muted-foreground">
+                  · {selected.role_key.replace(/_/g, " ")}
+                </span>
+              </span>
+            ) : null}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none__" className="text-xs">— No reporting manager —</SelectItem>
+          {managers.map((m) => (
+            <SelectItem key={m.id} value={m.id} className="text-xs">
+              {m.full_name}
+              <span className="ml-1 text-[10px] text-muted-foreground">
+                · {m.role_key.replace(/_/g, " ")}{m.employee_code ? ` · ${m.employee_code}` : ""}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        Used for approvals, escalations, and the dashboard "reports to" chip.
+      </p>
+    </Field>
+  );
+}
+
+
 function AssetMultiPicker({
   assets,
   value,
   onChange,
   sizes,
   onSizesChange,
+  uniformIncluded = true,
 }: {
-  assets: { id: string; name: string; category: string; available_qty?: number }[];
+  assets: { id: string; name: string; category: string; available_qty?: number; unit_price?: number }[];
   value: string[];
   onChange: (ids: string[]) => void;
   sizes?: Record<string, string>;
   onSizesChange?: (next: Record<string, string>) => void;
+  uniformIncluded?: boolean;
 }) {
   const [open, setOpen] = useState(true);
   const [query, setQuery] = useState("");
@@ -6277,7 +6368,13 @@ function AssetMultiPicker({
   const isUniform = (a: { category: string; name: string }) =>
     /uniform/i.test(a.category ?? "") || /uniform/i.test(a.name ?? "");
 
+  const priceFor = (a: { category: string; name: string; unit_price?: number }) =>
+    isUniform(a) && uniformIncluded ? 0 : Number(a.unit_price ?? 0) || 0;
+
+  const inr = (n: number) => `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+
   const uniformSelected = selected.filter(isUniform);
+  const totalRecoverable = selected.reduce((sum, a) => sum + priceFor(a), 0);
 
   useEffect(() => {
     if (!open) {
@@ -6290,27 +6387,56 @@ function AssetMultiPicker({
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5 rounded-md border border-input bg-background p-2 min-h-[44px]">
-        {selected.length === 0 && (
-          <span className="self-center px-1 text-sm text-muted-foreground">
-            No assets assigned — click "Add asset" to assign company assets.
-          </span>
+      <div className="rounded-md border border-input bg-background">
+        <div className="flex flex-wrap gap-1.5 p-2 min-h-[44px]">
+          {selected.length === 0 && (
+            <span className="self-center px-1 text-sm text-muted-foreground">
+              No assets assigned — click "Add asset" to assign company assets.
+            </span>
+          )}
+          {selected.map((a) => {
+            const uni = isUniform(a);
+            const price = priceFor(a);
+            return (
+              <Badge key={a.id} variant="secondary" className="flex items-center gap-1.5 pl-2 pr-1 py-1 text-xs font-normal">
+                <span className="font-medium">{a.name}</span>
+                <span className="opacity-60 text-[10px]">· {a.category}</span>
+                {uni && uniformIncluded ? (
+                  <span className="rounded bg-emerald-500/15 px-1 py-[1px] text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                    ₹0 · Included
+                  </span>
+                ) : price > 0 ? (
+                  <span className="rounded bg-amber-500/15 px-1 py-[1px] text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                    {inr(price)}
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  className="ml-1 rounded p-0.5 opacity-70 hover:bg-background/30 hover:opacity-100"
+                  title="Remove"
+                  onClick={(e) => { e.preventDefault(); toggle(a.id); }}
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            );
+          })}
+        </div>
+        {selected.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-2.5 py-1.5 text-[11px]">
+            <span className="text-muted-foreground">
+              {uniformSelected.length > 0 && uniformIncluded
+                ? "Uniform items are included in this unit's contract (₹0 to the staff member)."
+                : uniformSelected.length > 0
+                  ? "Uniform is not included — value shown will be recoverable from the staff member."
+                  : "Values shown are recoverable against the staff member."}
+            </span>
+            <span className="font-semibold text-foreground">
+              Recoverable total: {inr(totalRecoverable)}
+            </span>
+          </div>
         )}
-        {selected.map((a) => (
-          <Badge key={a.id} variant="secondary" className="flex items-center gap-1.5 pl-2 pr-1 py-1 text-xs font-normal">
-            <span className="font-medium">{a.name}</span>
-            <span className="opacity-60 text-[10px]">· {a.category}</span>
-            <button
-              type="button"
-              className="ml-1 rounded p-0.5 opacity-70 hover:bg-background/30 hover:opacity-100"
-              title="Remove"
-              onClick={(e) => { e.preventDefault(); toggle(a.id); }}
-              onMouseDown={(e) => e.preventDefault()}
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </Badge>
-        ))}
       </div>
 
       {onSizesChange && uniformSelected.length > 0 && (
@@ -6389,6 +6515,25 @@ function AssetMultiPicker({
                               <Check className={cn("h-4 w-4 shrink-0", checked ? "opacity-100" : "opacity-0")} />
                               <span className="flex-1 truncate">{a.name}</span>
                               <span className="text-[10px] text-muted-foreground">{a.category}</span>
+                              {(() => {
+                                const uni = isUniform(a);
+                                const price = priceFor(a);
+                                if (uni && uniformIncluded) {
+                                  return (
+                                    <span className="ml-1 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                                      ₹0 · Free
+                                    </span>
+                                  );
+                                }
+                                if (price > 0) {
+                                  return (
+                                    <span className="ml-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                                      {inr(price)}
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
                               <span className={cn(
                                 "ml-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
                                 (a.available_qty ?? 0) > 0
@@ -6397,6 +6542,7 @@ function AssetMultiPicker({
                               )}>
                                 {(a.available_qty ?? 0) > 0 ? `${a.available_qty} in stock` : "Out of stock"}
                               </span>
+
 
                             </button>
                           );

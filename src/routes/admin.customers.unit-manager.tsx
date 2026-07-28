@@ -125,6 +125,7 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     longitude: null,
     enablePt: false,
     enableLwf: false,
+    uniformIncluded: true,
   };
 }
 
@@ -1050,6 +1051,37 @@ function UnitFormDialog({
             />
           </Section>
 
+          {/* CONTRACT INCLUSIONS */}
+          <Section title="Contract inclusions">
+            <div className="rounded-xl border border-border/60 bg-background p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-semibold">Uniform included in contract</div>
+                    <Badge
+                      className={cn(
+                        "border-0 text-[10px] font-semibold uppercase tracking-wide",
+                        form.uniformIncluded
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                          : "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+                      )}
+                    >
+                      {form.uniformIncluded ? "Included" : "Not included"}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+                    {form.uniformIncluded
+                      ? "When on, uniforms issued to staff on this unit are billed to the client — the staff member is not charged. Uniform items will show ₹0 · Included on their profile."
+                      : "When off, the value of uniforms issued to staff is charged to the staff member. Their profile will show the recoverable rupee value against each uniform item."}
+                  </p>
+                </div>
+                <Switch
+                  checked={form.uniformIncluded}
+                  onCheckedChange={(v) => set("uniformIncluded", v)}
+                />
+              </div>
+            </div>
+          </Section>
 
 
           {/* OTHER */}
