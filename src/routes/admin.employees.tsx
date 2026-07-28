@@ -6243,6 +6243,71 @@ function OffboardingDialog({
   );
 }
 
+function ReportsToPicker({
+  value,
+  selfId,
+  onChange,
+}: {
+  value: string | null;
+  selfId: string;
+  onChange: (id: string | null) => void;
+}) {
+  const managersQuery = useQuery({
+    queryKey: ["employees", "eligible-managers"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("candidates" as never)
+        .select("id,full_name,employee_code,role_key,status,is_enabled")
+        .in("role_key", ["field_officer", "hr", "leadership", "admin", "super_admin", "branch_manager", "branch_admin"])
+        .in("status", ["approved", "active"])
+        .order("full_name", { ascending: true })
+        .limit(500);
+      if (error) throw error;
+      return ((data as unknown) as Array<{ id: string; full_name: string; employee_code: string; role_key: string; is_enabled: boolean }> ?? [])
+        .filter((c) => c.is_enabled !== false && c.id !== selfId);
+    },
+  });
+  const managers = managersQuery.data ?? [];
+  const selected = value ? managers.find((m) => m.id === value) : null;
+  return (
+    <Field label="Reporting Manager">
+      <Select
+        value={value ?? "__none__"}
+        onValueChange={(v) => onChange(v === "__none__" ? null : v)}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder={managersQuery.isLoading ? "Loading…" : "Select a reporting manager"}>
+            {selected ? (
+              <span className="truncate">
+                {selected.full_name}
+                <span className="ml-1 text-[10px] text-muted-foreground">
+                  · {selected.role_key.replace(/_/g, " ")}
+                </span>
+              </span>
+            ) : null}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none__" className="text-xs">— No reporting manager —</SelectItem>
+          {managers.map((m) => (
+            <SelectItem key={m.id} value={m.id} className="text-xs">
+              {m.full_name}
+              <span className="ml-1 text-[10px] text-muted-foreground">
+                · {m.role_key.replace(/_/g, " ")}{m.employee_code ? ` · ${m.employee_code}` : ""}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        Used for approvals, escalations, and the dashboard "reports to" chip.
+      </p>
+    </Field>
+  );
+}
+
+
 function AssetMultiPicker({
   assets,
   value,
