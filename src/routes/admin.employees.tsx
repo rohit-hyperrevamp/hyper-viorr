@@ -1700,16 +1700,69 @@ function EmployeesPage() {
 
   const approveMut = useMutation({
     mutationFn: async (c: CandidateListItem) => {
+      // Onboarding-issuance handshake (mirrors offboarding-collection):
+      // If the candidate has assets to be issued and a Field Officer we can
+      // resolve, we mark them "approved" with a pending-issuance flag. The FO
+      // then confirms hand-over in Uniform Manager → Collections → Issuances,
+      // which flips the row to "active".
+      const guardRoles = new Set(["guard", "security_guard"]);
+      const hasAssets = Array.isArray(c.assigned_asset_ids) && c.assigned_asset_ids.length > 0;
+      const isGuardRole = guardRoles.has((c.role_key || "").toLowerCase());
+
+      let foCandidateId: string | null = c.reports_to;
+      if (!foCandidateId && c.unit_id) {
+        try {
+          const { data: cu } = await supabase
+            .from("candidate_units" as never)
+            .select("candidate_id, candidates:candidate_id(role_key,status)")
+            .eq("unit_id", c.unit_id);
+          const first = ((cu as unknown) as Array<{ candidate_id: string; candidates: { role_key?: string; status?: string } | null }> | null)
+            ?.find((r) => r.candidates?.role_key === "field_officer" && ["active", "approved"].includes(String(r.candidates?.status ?? "")));
+          foCandidateId = first?.candidate_id ?? null;
+        } catch { /* ignore */ }
+      }
+
+      let foUserId: string | null = null;
+      let foName = "";
+      if (foCandidateId) {
+        try {
+          const { data: uid } = await supabase.rpc("get_user_id_by_candidate" as never, { _candidate_id: foCandidateId } as never);
+          foUserId = uid ? String(uid) : null;
+        } catch { /* ignore */ }
+        try {
+          const { data: foRow } = await supabase
+            .from("candidates" as never)
+            .select("full_name")
+            .eq("id", foCandidateId)
+            .maybeSingle();
+          foName = String(((foRow as { full_name?: string } | null)?.full_name) ?? "");
+        } catch { /* ignore */ }
+      }
+
+      const deferForIssuance = hasAssets && isGuardRole && !!foUserId;
+
+      const nextStatus = deferForIssuance ? "approved" : "active";
+      const nextOnboardingDetails: OnboardingDetails = deferForIssuance
+        ? {
+            pending_issuance_fo_id: foUserId,
+            pending_issuance_fo_name: foName || null,
+            issuance_status: "pending",
+            issuance_requested_at: new Date().toISOString(),
+            issuance_asset_ids: c.assigned_asset_ids ?? [],
+          }
+        : {};
+
       const { data, error } = await supabase
         .from("candidates" as never)
         .update({
-          status: "active",
+          status: nextStatus,
           is_enabled: true,
           rejection_reason: "",
           rejected_at: null,
           offboarding_reason_id: null,
           offboarded_at: null,
           offboarding_details: {},
+          onboarding_details: nextOnboardingDetails,
         } as unknown as never)
         .eq("id", c.id)
         .select("id,employee_code,full_name")
@@ -1720,20 +1773,12 @@ function EmployeesPage() {
       // Fire-and-forget: activity log + notifications should not block the UI.
       void (async () => {
         try {
-          // Resolve rich context for a warm welcome notification.
           const unit = c.unit_id ? unitMap.get(c.unit_id) : undefined;
           const unitName = unit?.name ?? "";
           const clientName = unit?.customer_name ?? "";
           const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
           const desigName = desig?.name ?? "";
           const joinDate = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
-          let foName = "";
-          if (c.created_by) {
-            try {
-              const { data: fo } = await supabase.rpc("get_user_display_name" as never, { _user_id: c.created_by } as never);
-              foName = String((fo as string | null) ?? "");
-            } catch { /* ignore */ }
-          }
           let empUserId: string | null = null;
           try {
             const { data: uid } = await supabase.rpc("get_user_id_by_candidate" as never, { _candidate_id: c.id } as never);
@@ -1749,17 +1794,16 @@ function EmployeesPage() {
             empCode ? `• Employee ID: ${empCode}` : null,
             desigName ? `• Designation: ${desigName}` : null,
             unitName ? `• Job Location: ${unitName}${clientName ? ` (${clientName})` : ""}` : null,
-            unitName ? `• Unit: ${unitName}` : null,
             `• Date of Joining: ${joinDate}`,
             foName ? `• Field Officer: ${foName}` : null,
             "",
             "Thank you for choosing to grow with us — wishing you a proud, safe, and successful journey ahead. 🎉",
           ].filter(Boolean).join("\n");
 
-          await Promise.allSettled([
+          const tasks: Array<Promise<unknown>> = [
             logActivity({
               module: "Employees",
-              action: "approve",
+              action: deferForIssuance ? "approve_awaiting_issuance" : "approve",
               entityType: "candidate",
               entityId: c.id,
               entityLabel: c.full_name || c.aadhaar_number,
@@ -1767,8 +1811,10 @@ function EmployeesPage() {
             }),
             notifyOnboardingApprovers({
               type: "candidate_approved",
-              title: "Candidate approved",
-              message: `${label} was approved${empCode ? ` (${empCode})` : ""}.`,
+              title: deferForIssuance ? "Candidate approved — awaiting issuance" : "Candidate approved",
+              message: deferForIssuance
+                ? `${label} approved${empCode ? ` (${empCode})` : ""} — waiting for ${foName || "Field Officer"} to issue assets.`
+                : `${label} was approved${empCode ? ` (${empCode})` : ""}.`,
               link: "/admin/employees",
               entityType: "candidate",
               entityId: c.id,
@@ -1776,33 +1822,55 @@ function EmployeesPage() {
             c.created_by
               ? notifyUser(c.created_by, {
                   type: "candidate_approved",
-                  title: "Your candidate was approved",
-                  message: `${label} was approved${empCode ? ` — Employee Code ${empCode}` : ""}.`,
-                  link: "/admin/employees",
+                  title: deferForIssuance ? "Candidate approved — awaiting your issuance" : "Your candidate was approved",
+                  message: deferForIssuance
+                    ? `${label} approved${empCode ? ` — ${empCode}` : ""}. Issue assets in Uniform Manager → Collections → Issuances to activate.`
+                    : `${label} was approved${empCode ? ` — Employee Code ${empCode}` : ""}.`,
+                  link: deferForIssuance ? "/admin/inventory/collections" : "/admin/employees",
                   entityType: "candidate",
                   entityId: c.id,
                 })
               : Promise.resolve(),
-            empUserId
-              ? createNotification({
-                  userId: empUserId,
-                  type: "welcome_onboarded",
-                  title: welcomeTitle,
-                  message: welcomeLines,
-                  link: "/admin/employee-dashboard",
-                  entityType: "candidate",
-                  entityId: c.id,
-                })
-              : Promise.resolve(),
-          ]);
+          ];
+
+          if (deferForIssuance && foUserId) {
+            tasks.push(
+              notifyUser(foUserId, {
+                type: "candidate_issuance_pending",
+                title: "Issue assets to new employee",
+                message: `${label}${empCode ? ` (${empCode})` : ""} is approved. Please issue the assigned assets to activate their account.`,
+                link: "/admin/inventory/collections",
+                entityType: "candidate",
+                entityId: c.id,
+              }),
+            );
+          } else if (empUserId) {
+            tasks.push(
+              createNotification({
+                userId: empUserId,
+                type: "welcome_onboarded",
+                title: welcomeTitle,
+                message: welcomeLines,
+                link: "/admin/employee-dashboard",
+                entityType: "candidate",
+                entityId: c.id,
+              }),
+            );
+          }
+
+          await Promise.allSettled(tasks);
         } catch (e) {
           console.error("post-approve side effects failed", e);
         }
       })();
-      return data as { employee_code: string };
+      return { ...(data as { employee_code: string }), deferForIssuance, foName };
     },
     onSuccess: (data) => {
-      toast.success(`Approved — ${data?.employee_code ?? "Employee code assigned"}`);
+      if (data?.deferForIssuance) {
+        toast.success(`Approved — awaiting ${data.foName || "Field Officer"} to issue assets`);
+      } else {
+        toast.success(`Approved — ${data?.employee_code ?? "Employee code assigned"}`);
+      }
       qc.invalidateQueries({ queryKey: QK });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Approve failed"),
