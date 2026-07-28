@@ -406,7 +406,11 @@ function CollectionsPanel({ me }: { me: Candidate }) {
           balances={activeBalances}
           itemMap={itemMap}
           submitting={collectMut.isPending}
-          onConfirm={(rows) => collectMut.mutate({ guard: activeGuard, rows })}
+          isOffboarding={
+            activeGuard.offboarding_details?.collection_status === "pending" &&
+            activeGuard.offboarding_details?.pending_collection_fo_id === me.id
+          }
+          onConfirm={(rows, docs, notes) => collectMut.mutate({ guard: activeGuard, rows, docs, notes })}
         />
       )}
     </div>
