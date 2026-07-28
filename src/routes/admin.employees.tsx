@@ -5056,6 +5056,16 @@ function CandidateWizard({
                       />
                     </div>
                   )}
+                  {editing && !['guard','security_guard','admin','super_admin'].includes((editing as { role_key?: string })?.role_key ?? '') && (
+                    <div className="sm:col-span-2">
+                      <ReportsToPicker
+                        value={form.reports_to ?? null}
+                        selfId={editing.id}
+                        onChange={(id) => setForm((f) => ({ ...f, reports_to: id }))}
+                      />
+                    </div>
+                  )}
+
                   <div className="sm:col-span-2">
                     <Field label={`Organizations${(() => {
                       const orgs = Array.from(new Set(form.unit_ids.map((id) => units.find((u) => u.id === id)?.customer_name).filter(Boolean) as string[]));
