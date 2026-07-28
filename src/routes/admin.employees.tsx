@@ -695,7 +695,7 @@ function EmployeesPage() {
       const [assetsRes, balRes, invItemsRes, invCatsRes] = await Promise.all([
         supabase
           .from("assets" as never)
-          .select("id,name,category,enabled")
+          .select("id,name,category,enabled,unit_price")
           .eq("enabled", true)
           .order("name", { ascending: true })
           .limit(500),
@@ -704,7 +704,7 @@ function EmployeesPage() {
           .select("qty,item_id,inv_items:item_id(name,enabled)"),
         supabase
           .from("inv_items" as never)
-          .select("id,name,category_id,enabled")
+          .select("id,name,category_id,enabled,standard_issue_price,standard_cost")
           .eq("enabled", true)
           .order("name", { ascending: true })
           .limit(1000),
@@ -717,7 +717,7 @@ function EmployeesPage() {
       if (invItemsRes.error) throw invItemsRes.error;
       if (invCatsRes.error) throw invCatsRes.error;
 
-      const rows = ((assetsRes.data as unknown) as Array<{ id: string; name: string; category: string }>) ?? [];
+      const rows = ((assetsRes.data as unknown) as Array<{ id: string; name: string; category: string; unit_price: number | string | null }>) ?? [];
       const availByName = new Map<string, number>();
       const availByItemId = new Map<string, number>();
       type BalRow = { qty: number | string; item_id: string; inv_items: { name: string; enabled: boolean } | null };
@@ -735,18 +735,20 @@ function EmployeesPage() {
         (((invCatsRes.data as unknown) as Array<{ id: string; name: string }>) ?? []).map((c) => [c.id, c.name]),
       );
       const assetNameSet = new Set(rows.map((r) => (r.name ?? "").trim().toLowerCase()));
-      const invRows = (((invItemsRes.data as unknown) as Array<{ id: string; name: string; category_id: string | null }>) ?? [])
+      const invRows = (((invItemsRes.data as unknown) as Array<{ id: string; name: string; category_id: string | null; standard_issue_price: number | string | null; standard_cost: number | string | null }>) ?? [])
         .filter((it) => !assetNameSet.has((it.name ?? "").trim().toLowerCase()))
         .map((it) => ({
           id: it.id,
           name: it.name,
           category: (it.category_id && catNameById.get(it.category_id)) || "Inventory",
           available_qty: availByItemId.get(it.id) ?? 0,
+          unit_price: Number(it.standard_issue_price ?? it.standard_cost ?? 0) || 0,
         }));
 
       const merged = rows.map((a) => ({
         ...a,
         available_qty: availByName.get((a.name ?? "").trim().toLowerCase()) ?? 0,
+        unit_price: Number(a.unit_price ?? 0) || 0,
       }));
       return [...merged, ...invRows];
     },
