@@ -508,7 +508,7 @@ function FieldOfficerDashboard() {
               </p>
             </div>
             <Button asChild size="sm" className="h-9 shrink-0 rounded-full px-3 text-xs">
-              <Link to="/admin/inventory/collections">Issue</Link>
+              <Link to="/admin/inventory/issuances">Issue</Link>
             </Button>
           </div>
         </section>

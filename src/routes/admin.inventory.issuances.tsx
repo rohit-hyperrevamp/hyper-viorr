@@ -36,7 +36,21 @@ type Issuance = {
 };
 type Warehouse = { id: string; name: string };
 type Branch = { id: string; name: string };
-type Candidate = { id: string; full_name: string; employee_code: string; role_key: string; unit_id: string | null; reports_to: string | null };
+type Candidate = {
+  id: string;
+  full_name: string;
+  employee_code: string | null;
+  role_key: string;
+  status: string;
+  unit_id: string | null;
+  reports_to: string | null;
+  assigned_asset_ids?: string[] | string | null;
+  onboarding_details?: {
+    issuance_status?: string | null;
+    pending_issuance_fo_id?: string | null;
+    issuance_asset_ids?: string[] | string | null;
+  } | null;
+};
 type Item = { id: string; name: string; item_code: string; is_sized: boolean };
 type Line = { id?: string; item_id: string; size_value: string; qty: number; requested_qty: number };
 type OpenDemand = {
@@ -73,9 +87,13 @@ function IssuancesPage() {
     },
   });
   const { data: candidates = [] } = useQuery({
-    queryKey: ["candidates-active-min"],
+    queryKey: ["candidates-active-and-pending-issuance-min"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("candidates" as never).select("id,full_name,employee_code,role_key,unit_id,reports_to").eq("status", "active").order("full_name");
+      const { data, error } = await supabase
+        .from("candidates" as never)
+        .select("id,full_name,employee_code,role_key,status,unit_id,reports_to,assigned_asset_ids,onboarding_details")
+        .in("status", ["active", "approved"])
+        .order("full_name");
       if (error) throw error;
       return (data as unknown as Candidate[]) ?? [];
     },
@@ -98,7 +116,7 @@ function IssuancesPage() {
     queryKey: ["candidate-by-phone", myPhone],
     enabled: !!myPhone && !isSuperAdmin,
     queryFn: async () => {
-      const { data, error } = await supabase.from("candidates" as never).select("id,full_name,employee_code,role_key,unit_id,reports_to").eq("mobile", myPhone).maybeSingle();
+      const { data, error } = await supabase.from("candidates" as never).select("id,full_name,employee_code,role_key,status,unit_id,reports_to").eq("mobile", myPhone).maybeSingle();
       if (error) throw error;
       return (data as unknown as Candidate) ?? null;
     },
@@ -129,8 +147,12 @@ function IssuancesPage() {
   });
 
 
-  const fos = useMemo(() => candidates.filter((c) => /field|fo|supervisor|officer/i.test(c.role_key)), [candidates]);
-  const guards = useMemo(() => candidates.filter((c) => !/field|fo|supervisor|officer|manager|head/i.test(c.role_key)), [candidates]);
+  const fos = useMemo(() => candidates.filter((c) => c.status === "active" && /field|fo|supervisor|officer/i.test(c.role_key)), [candidates]);
+  const guards = useMemo(() => candidates.filter((c) => {
+    if (/field|fo|supervisor|officer|manager|head/i.test(c.role_key)) return false;
+    if (c.status === "active") return true;
+    return c.status === "approved" && c.onboarding_details?.issuance_status === "pending";
+  }), [candidates]);
   const candMap = useMemo(() => new Map(candidates.map((c) => [c.id, c])), [candidates]);
   const whMap = useMemo(() => new Map(warehouses.map((w) => [w.id, w.name])), [warehouses]);
   const brMap = useMemo(() => new Map(branches.map((b) => [b.id, b.name])), [branches]);
@@ -360,6 +382,24 @@ function IssuanceDialog({ open, onOpenChange, initial, warehouses, branches, fos
     if (meta.dest === "guard") return isFieldOfficer ? foScopedGuards : guards;
     return [];
   }
+
+  useEffect(() => {
+    if (!open || initial || !isDraft || demandId || meta.dest !== "guard" || !destId) return;
+    const guard = candById.get(destId);
+    if (!guard || guard.status !== "approved" || guard.onboarding_details?.issuance_status !== "pending") return;
+    const ids = normalizeIdArray(guard.onboarding_details.issuance_asset_ids ?? guard.assigned_asset_ids)
+      .filter((id) => itemMap.has(id));
+    if (ids.length === 0) return;
+    setLines(ids.map((id) => {
+      const inStock = stockMap.get(`${id}|`) ?? 0;
+      return {
+        item_id: id,
+        size_value: "",
+        qty: inStock > 0 ? 1 : 0,
+        requested_qty: 1,
+      };
+    }));
+  }, [open, initial, isDraft, demandId, meta.dest, destId, candById, itemMap, stockMap]);
 
   useResetOnOpen(open, async () => {
     setDemandId("");
@@ -722,6 +762,23 @@ async function bumpDemandFulfilled(demandId: string, lines: Line[]) {
 function useResetOnOpen(open: boolean, reset: () => void) {
   const [last, setLast] = useState(false);
   if (open !== last) { setLast(open); if (open) reset(); }
+}
+
+function normalizeIdArray(value: string[] | string | null | undefined): string[] {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value !== "string") return [];
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    return trimmed.slice(1, -1).split(",").map((part) => part.trim().replace(/^"|"$/g, "")).filter(Boolean);
+  }
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+  } catch {
+    return [trimmed];
+  }
+  return [trimmed];
 }
 
 
