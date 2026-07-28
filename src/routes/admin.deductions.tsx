@@ -384,6 +384,15 @@ function DeductionList() {
                             Auto · Issued
                           </span>
                         )}
+                        {i.source_kind === "unit_fee" && (
+                          <span
+                            title={i.description}
+                            className="rounded-md bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-800 dark:bg-sky-500/15 dark:text-sky-300"
+                          >
+                            Auto · Unit
+                          </span>
+                        )}
+
                       </span>
                     </td>
                     <td className="px-5 py-3 text-right tabular-nums">{fmtINR(Number(i.amount))}</td>
