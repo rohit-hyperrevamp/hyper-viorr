@@ -27,9 +27,9 @@ export const sanitizeGstin = (v: string) => upperAlnum(v, 15);
 export const isValidGstin = (v: string) =>
   /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test((v ?? "").trim().toUpperCase());
 
-// UAN — 12 digits (EPFO Universal Account Number)
+// UAN — 12 digits (EPFO Universal Account Number), always starts with 1
 export const sanitizeUan = (v: string) => digitsOnly(v, 12);
-export const isValidUan = (v: string) => /^\d{12}$/.test((v ?? "").trim());
+export const isValidUan = (v: string) => /^1\d{11}$/.test((v ?? "").trim());
 
 // ESIC insurance number — 17 digits
 export const sanitizeEsic = (v: string) => digitsOnly(v, 17);

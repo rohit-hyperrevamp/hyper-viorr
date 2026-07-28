@@ -167,14 +167,16 @@ export function ComplianceSection({
     <div>
       <SectionHeader title="Compliance" desc="Statutory contributions applicable to the candidate" />
       <div className="space-y-3">
+        <Field label="UAN (Universal Account Number) *">
+          <Input format="uan" value={c.uan ?? ""} onChange={(e) => setSection("compliance", { uan: e.target.value })} />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Mandatory · 12 digits and must start with 1.
+            {c.uan && !/^1\d{11}$/.test(String(c.uan).trim()) ? (
+              <span className="ml-1 font-medium text-rose-500">Invalid UAN</span>
+            ) : null}
+          </p>
+        </Field>
         {toggleRow("Provident Fund (PF)", "Enable PF contributions for this candidate", pf, (v) => setSection("compliance", { pf_enabled: v }))}
-        {pf && (
-          <div className="ml-3 border-l-2 border-primary/30 pl-4">
-            <Field label="UAN (Universal Account Number)">
-              <Input format="uan" value={c.uan ?? ""} onChange={(e) => setSection("compliance", { uan: e.target.value })} />
-            </Field>
-          </div>
-        )}
         {toggleRow("Employees' Pension Scheme (EPS)", "Enable EPS contributions", eps, (v) => setSection("compliance", { eps_enabled: v }))}
         {toggleRow("Employees' State Insurance (ESIC)", "Enable ESIC coverage", esic, (v) => setSection("compliance", { esic_enabled: v }))}
         {esic && (

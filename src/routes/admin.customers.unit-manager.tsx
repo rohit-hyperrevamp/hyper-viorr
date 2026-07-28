@@ -126,6 +126,10 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     enablePt: false,
     enableLwf: false,
     uniformIncluded: true,
+    recruitmentFeeEnabled: false,
+    recruitmentFeeAmount: 0,
+    gpaipEnabled: false,
+    gpaipAmount: 0,
   };
 }
 
@@ -1080,6 +1084,86 @@ function UnitFormDialog({
                   onCheckedChange={(v) => set("uniformIncluded", v)}
                 />
               </div>
+            </div>
+
+            <div className="mt-3 rounded-xl border border-border/60 bg-background p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-semibold">Recruitment fee</div>
+                    <Badge
+                      className={cn(
+                        "border-0 text-[10px] font-semibold uppercase tracking-wide",
+                        form.recruitmentFeeEnabled
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {form.recruitmentFeeEnabled ? "Applicable" : "Off"}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+                    Turn on if a recruitment fee is chargeable for this unit, then enter the amount in rupees.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.recruitmentFeeEnabled}
+                  onCheckedChange={(v) => set("recruitmentFeeEnabled", v)}
+                />
+              </div>
+              {form.recruitmentFeeEnabled && (
+                <div className="mt-3 max-w-xs">
+                  <Field label="Recruitment fee amount (₹)">
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={String(form.recruitmentFeeAmount ?? 0)}
+                      onChange={(e) => set("recruitmentFeeAmount", Math.max(0, Number(e.target.value) || 0))}
+                    />
+                  </Field>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 rounded-xl border border-border/60 bg-background p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-semibold">GPAIP</div>
+                    <Badge
+                      className={cn(
+                        "border-0 text-[10px] font-semibold uppercase tracking-wide",
+                        form.gpaipEnabled
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {form.gpaipEnabled ? "Applicable" : "Off"}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+                    Group Personal Accident Insurance Policy. Turn on to charge this unit, then enter the amount in rupees.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.gpaipEnabled}
+                  onCheckedChange={(v) => set("gpaipEnabled", v)}
+                />
+              </div>
+              {form.gpaipEnabled && (
+                <div className="mt-3 max-w-xs">
+                  <Field label="GPAIP amount (₹)">
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={String(form.gpaipAmount ?? 0)}
+                      onChange={(e) => set("gpaipAmount", Math.max(0, Number(e.target.value) || 0))}
+                    />
+                  </Field>
+                </div>
+              )}
             </div>
           </Section>
 

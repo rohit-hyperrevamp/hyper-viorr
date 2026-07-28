@@ -19,12 +19,31 @@ export const Route = createFileRoute("/admin/inventory/collections")({ component
 const MODULE = "Inventory Collections";
 const ENTITY = "inv_stock_movements";
 
+export type ExitDocumentRecord = {
+  key: "resignation_letter" | "id_card_photo";
+  label: string;
+  collected: boolean;
+  file_url?: string | null;
+  reason?: string;
+};
+
+export type ExitAssetNote = {
+  item_id: string;
+  size_value: string;
+  item_name: string;
+  held: number;
+  collected: number;
+  reason?: string;
+};
+
 type OffboardingDetails = {
   pending_collection_fo_id?: string | null;
   collection_status?: "pending" | "completed" | null;
   collection_requested_at?: string | null;
   reason_text?: string;
   date_of_offboarding?: string | null;
+  exit_documents?: ExitDocumentRecord[];
+  exit_asset_notes?: ExitAssetNote[];
 };
 type Candidate = { id: string; full_name: string; employee_code: string | null; mobile: string | null; role_key: string; unit_id: string | null; reports_to: string | null; offboarding_details?: OffboardingDetails | null };
 
@@ -238,7 +257,12 @@ function CollectionsPanel({ me }: { me: Candidate }) {
   const activeBalances = openGuard ? balByGuard.get(openGuard) ?? [] : [];
 
   const collectMut = useMutation({
-    mutationFn: async (payload: { guard: Candidate; rows: { item_id: string; size_value: string; qty: number }[] }) => {
+    mutationFn: async (payload: {
+      guard: Candidate;
+      rows: { item_id: string; size_value: string; qty: number }[];
+      docs?: ExitDocumentRecord[];
+      notes?: ExitAssetNote[];
+    }) => {
       const movs = payload.rows.flatMap((r) => ([
         {
           movement_type: "COLLECT_GUARD_OUT",
@@ -255,53 +279,46 @@ function CollectionsPanel({ me }: { me: Candidate }) {
           reference_type: "collection", reference_id: payload.guard.id,
         },
       ]));
-      await postMovements(movs);
+      if (movs.length) await postMovements(movs);
 
       // Offboarding handshake — if this guard was flagged pending-offboarding for me,
-      // check that no stock remains at the guard, then finalise the offboarding.
+      // record the exit-document checklist and finalise the offboarding.
       const od = payload.guard.offboarding_details ?? null;
       const isPendingOffboarding =
         od?.collection_status === "pending" && od?.pending_collection_fo_id === me.id;
       let finalisedOffboarding = false;
-      if (isPendingOffboarding) {
-        const { data: remainingRows, error: remErr } = await supabase
-          .from("inv_stock_balances" as never)
-          .select("qty")
-          .eq("location_type", "guard")
-          .eq("location_id", payload.guard.id)
-          .gt("qty", 0);
-        if (remErr) throw remErr;
-        const remaining = ((remainingRows as unknown as { qty: number }[]) ?? []).reduce(
-          (s, r) => s + Number(r.qty || 0),
-          0,
-        );
-        if (remaining === 0) {
-          const nowIso = new Date().toISOString();
-          const nextDetails: OffboardingDetails = {
-            ...od,
-            collection_status: "completed",
-            collection_requested_at: od?.collection_requested_at ?? nowIso,
-          };
-          const { error: upErr } = await supabase
-            .from("candidates" as never)
-            .update({
-              is_enabled: false,
-              status: "inactive",
-              offboarded_at: nowIso,
-              offboarding_details: { ...nextDetails, collection_completed_at: nowIso, collection_completed_by: me.id },
-            } as unknown as never)
-            .eq("id", payload.guard.id);
-          if (upErr) throw upErr;
-          finalisedOffboarding = true;
-          void logActivity({
-            module: "Employees",
-            action: "offboard",
-            entityType: "candidate",
-            entityId: payload.guard.id,
-            entityLabel: `${payload.guard.full_name} finalised on FO collection`,
-            details: { collected_by: me.id },
-          });
-        }
+      if (isPendingOffboarding && payload.docs?.length) {
+        const nowIso = new Date().toISOString();
+        const nextDetails: OffboardingDetails = {
+          ...od,
+          collection_status: "completed",
+          collection_requested_at: od?.collection_requested_at ?? nowIso,
+          exit_documents: payload.docs,
+          exit_asset_notes: payload.notes ?? [],
+        };
+        const { error: upErr } = await supabase
+          .from("candidates" as never)
+          .update({
+            is_enabled: false,
+            status: "inactive",
+            offboarded_at: nowIso,
+            offboarding_details: { ...nextDetails, collection_completed_at: nowIso, collection_completed_by: me.id },
+          } as unknown as never)
+          .eq("id", payload.guard.id);
+        if (upErr) throw upErr;
+        finalisedOffboarding = true;
+        void logActivity({
+          module: "Employees",
+          action: "offboard",
+          entityType: "candidate",
+          entityId: payload.guard.id,
+          entityLabel: `${payload.guard.full_name} finalised on FO collection`,
+          details: {
+            collected_by: me.id,
+            exit_documents: payload.docs,
+            exit_asset_notes: payload.notes ?? [],
+          },
+        });
       }
 
       void logActivity({
@@ -389,7 +406,11 @@ function CollectionsPanel({ me }: { me: Candidate }) {
           balances={activeBalances}
           itemMap={itemMap}
           submitting={collectMut.isPending}
-          onConfirm={(rows) => collectMut.mutate({ guard: activeGuard, rows })}
+          isOffboarding={
+            activeGuard.offboarding_details?.collection_status === "pending" &&
+            activeGuard.offboarding_details?.pending_collection_fo_id === me.id
+          }
+          onConfirm={(rows, docs, notes) => collectMut.mutate({ guard: activeGuard, rows, docs, notes })}
         />
       )}
     </div>
@@ -492,15 +513,25 @@ function UnitBlock({ unit, guards, balByGuard, itemMap, onCollect }: {
   );
 }
 
-function CollectDialog({ open, onOpenChange, guard, unit, balances, itemMap, onConfirm, submitting }: {
+const EXIT_DOCS: { key: ExitDocumentRecord["key"]; label: string; hint: string }[] = [
+  { key: "resignation_letter", label: "Resignation letter", hint: "Signed resignation letter from the employee (image or PDF)." },
+  { key: "id_card_photo", label: "Identity card photo", hint: "Photo of the company identity card being surrendered." },
+];
+
+function CollectDialog({ open, onOpenChange, guard, unit, balances, itemMap, onConfirm, submitting, isOffboarding }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   guard: Candidate;
   unit: Unit | null;
   balances: Balance[];
   itemMap: Map<string, Item>;
-  onConfirm: (rows: { item_id: string; size_value: string; qty: number }[]) => void;
+  onConfirm: (
+    rows: { item_id: string; size_value: string; qty: number }[],
+    docs?: ExitDocumentRecord[],
+    notes?: ExitAssetNote[],
+  ) => void;
   submitting: boolean;
+  isOffboarding: boolean;
 }) {
   // Default: take everything back
   const [qtyMap, setQtyMap] = useState<Record<string, number>>(() => {
@@ -513,6 +544,31 @@ function CollectDialog({ open, onOpenChange, guard, unit, balances, itemMap, onC
     for (const b of balances) m[`${b.item_id}|${b.size_value}`] = Number(b.qty || 0) > 0;
     return m;
   });
+  const [reasonMap, setReasonMap] = useState<Record<string, string>>({});
+  const [docState, setDocState] = useState<Record<string, { collected: boolean | null; url: string | null; fileName: string; reason: string; uploading: boolean }>>(
+    () => Object.fromEntries(EXIT_DOCS.map((d) => [d.key, { collected: null, url: null, fileName: "", reason: "", uploading: false }])),
+  );
+
+  const uploadDoc = async (key: string, file: File | null) => {
+    if (!file) return;
+    setDocState((s) => ({ ...s, [key]: { ...s[key], uploading: true } }));
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `offboarding/${guard.id}/${key}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("candidate-files")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("candidate-files")
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (signErr) throw signErr;
+      setDocState((s) => ({ ...s, [key]: { ...s[key], url: signed.signedUrl, fileName: file.name, uploading: false } }));
+    } catch (e) {
+      setDocState((s) => ({ ...s, [key]: { ...s[key], uploading: false } }));
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    }
+  };
 
   const setAll = (mode: "all" | "none") => {
     const q: Record<string, number> = {};
@@ -531,105 +587,228 @@ function CollectDialog({ open, onOpenChange, guard, unit, balances, itemMap, onC
     return s + (checkedMap[key] ? Number(qtyMap[key] || 0) : 0);
   }, 0);
 
+  // Which asset lines are short (not fully recovered) and therefore need a reason
+  const shortKeys = balances
+    .map((b) => {
+      const key = `${b.item_id}|${b.size_value}`;
+      const taken = checkedMap[key] ? Number(qtyMap[key] || 0) : 0;
+      return taken < Number(b.qty || 0) ? key : null;
+    })
+    .filter(Boolean) as string[];
+
+  const docsAnswered = EXIT_DOCS.every((d) => {
+    const st = docState[d.key];
+    if (st.collected === null) return false;
+    return st.collected ? !!st.url : st.reason.trim().length >= 3;
+  });
+  const reasonsGiven = shortKeys.every((k) => (reasonMap[k] ?? "").trim().length >= 3);
+  const canSubmit = isOffboarding ? docsAnswered && reasonsGiven : totalSelected > 0;
+
   const handleConfirm = async () => {
     const rows = balances
       .map((b) => ({ item_id: b.item_id, size_value: b.size_value, qty: Math.min(Number(qtyMap[`${b.item_id}|${b.size_value}`] || 0), Number(b.qty || 0)) }))
       .filter((r) => checkedMap[`${r.item_id}|${r.size_value}`] && r.qty > 0);
-    if (!rows.length) return toast.error("Select at least one item");
+
+    if (!isOffboarding && !rows.length) return toast.error("Select at least one item");
+
+    if (isOffboarding) {
+      if (!docsAnswered) return toast.error("Answer both exit documents — upload the file or give a reason");
+      if (!reasonsGiven) return toast.error("Give a reason for every asset that was not fully recovered");
+    }
+
     const allFull = rows.length === balances.length && rows.every((r) => {
       const b = balances.find((x) => x.item_id === r.item_id && x.size_value === r.size_value);
       return b && r.qty === Number(b.qty || 0);
     });
     if (!(await confirmAction({
-      title: "Confirm collection",
-      description: allFull
-        ? `Recover everything from ${guard.full_name}? It will be removed from the guard and added to your field-officer stock.`
-        : `Recover ${rows.length} selected item${rows.length === 1 ? "" : "s"} from ${guard.full_name}?`,
-      confirmText: "Mark Recovered",
+      title: isOffboarding ? "Confirm exit collection" : "Confirm collection",
+      description: isOffboarding
+        ? `Finalise the exit collection for ${guard.full_name}? The employee will be deactivated once you confirm.`
+        : allFull
+          ? `Recover everything from ${guard.full_name}? It will be removed from the guard and added to your field-officer stock.`
+          : `Recover ${rows.length} selected item${rows.length === 1 ? "" : "s"} from ${guard.full_name}?`,
+      confirmText: isOffboarding ? "Confirm exit" : "Mark Recovered",
     }))) return;
-    onConfirm(rows);
+
+    if (!isOffboarding) {
+      onConfirm(rows);
+      return;
+    }
+
+    const docs: ExitDocumentRecord[] = EXIT_DOCS.map((d) => ({
+      key: d.key,
+      label: d.label,
+      collected: docState[d.key].collected === true,
+      file_url: docState[d.key].url,
+      reason: docState[d.key].collected ? "" : docState[d.key].reason.trim(),
+    }));
+    const notes: ExitAssetNote[] = balances.map((b) => {
+      const key = `${b.item_id}|${b.size_value}`;
+      const taken = checkedMap[key] ? Number(qtyMap[key] || 0) : 0;
+      return {
+        item_id: b.item_id,
+        size_value: b.size_value,
+        item_name: itemMap.get(b.item_id)?.name ?? "",
+        held: Number(b.qty || 0),
+        collected: taken,
+        reason: taken < Number(b.qty || 0) ? (reasonMap[key] ?? "").trim() : "",
+      };
+    });
+    onConfirm(rows, docs, notes);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Recover stock from {guard.full_name}</DialogTitle>
+          <DialogTitle>{isOffboarding ? "Exit collection" : "Recover stock"} — {guard.full_name}</DialogTitle>
           <div className="text-xs text-muted-foreground">
             {guard.employee_code ?? "—"}{unit ? ` · ${unit.code} · ${unit.name}` : ""}
           </div>
         </DialogHeader>
 
-        <div className="flex items-center justify-between">
-          <div className="text-xs text-muted-foreground">Tick the items being recovered, then set the quantity.</div>
-          <div className="flex gap-2">
-            <Button type="button" size="sm" variant="outline" className="h-7 rounded-md text-xs" onClick={() => setAll("all")}>Recover all</Button>
-            <Button type="button" size="sm" variant="ghost" className="h-7 rounded-md text-xs" onClick={() => setAll("none")}>Clear</Button>
-          </div>
-        </div>
-
-        <div className="max-h-[55vh] space-y-2 overflow-y-auto rounded-xl border border-border/70 bg-background p-3">
-          {balances.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">Nothing assigned to this guard.</div>
-          ) : balances.map((b) => {
-            const key = `${b.item_id}|${b.size_value}`;
-            const item = itemMap.get(b.item_id);
-            const max = Number(b.qty || 0);
-            const val = qtyMap[key] ?? 0;
-            const checked = checkedMap[key] ?? false;
-            return (
-              <div key={key} className={`flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-3 py-2 transition ${checked ? "ring-1 ring-emerald-500/25" : "opacity-60"}`}>
-                <Checkbox
-                  checked={checked}
-                  onCheckedChange={(next) => {
-                    const isChecked = next === true;
-                    setCheckedMap((m) => ({ ...m, [key]: isChecked }));
-                    if (isChecked && Number(qtyMap[key] || 0) === 0) {
-                      setQtyMap((m) => ({ ...m, [key]: max }));
-                    }
-                  }}
-                  aria-label={`Recover ${item?.name ?? "item"}`}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium text-foreground">{item?.name ?? "—"}</div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {item?.item_code ?? ""}{b.size_value ? ` · Size ${b.size_value}` : ""} · Held: {max}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button type="button" size="sm" variant="outline" disabled={!checked} className="h-8 w-8 rounded-md p-0" onClick={() => setQtyMap((m) => ({ ...m, [key]: Math.max(0, (m[key] ?? 0) - 1) }))}>−</Button>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={max}
-                    value={val}
-                    disabled={!checked}
-                    onChange={(e) => {
-                      const n = Math.max(0, Math.min(max, Number(e.target.value) || 0));
-                      setQtyMap((m) => ({ ...m, [key]: n }));
-                      setCheckedMap((m) => ({ ...m, [key]: n > 0 }));
-                    }}
-                    className="h-8 w-16 rounded-md text-center"
-                  />
-                  <Button type="button" size="sm" variant="outline" disabled={!checked} className="h-8 w-8 rounded-md p-0" onClick={() => setQtyMap((m) => ({ ...m, [key]: Math.min(max, (m[key] ?? 0) + 1) }))}>+</Button>
-                  <span className="ml-1 text-[11px] text-muted-foreground">/ {max}</span>
-                </div>
+        <div className="max-h-[62vh] space-y-3 overflow-y-auto pr-1">
+          {isOffboarding && (
+            <div className="space-y-2 rounded-xl border border-amber-300/70 bg-amber-50/70 p-3 dark:border-amber-500/30 dark:bg-amber-500/10">
+              <div className="text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
+                Mandatory exit documents
               </div>
-            );
-          })}
+              {EXIT_DOCS.map((d) => {
+                const st = docState[d.key];
+                return (
+                  <div key={d.key} className="rounded-lg border border-border/60 bg-card p-3">
+                    <div className="text-sm font-medium text-foreground">{d.label}</div>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{d.hint}</p>
+                    <div className="mt-2 flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={st.collected === true ? "default" : "outline"}
+                        className="h-7 rounded-md text-xs"
+                        onClick={() => setDocState((s) => ({ ...s, [d.key]: { ...s[d.key], collected: true } }))}
+                      >
+                        Collected
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={st.collected === false ? "default" : "outline"}
+                        className="h-7 rounded-md text-xs"
+                        onClick={() => setDocState((s) => ({ ...s, [d.key]: { ...s[d.key], collected: false } }))}
+                      >
+                        Not collected
+                      </Button>
+                    </div>
+                    {st.collected === true && (
+                      <div className="mt-2 space-y-1">
+                        <Input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="h-9 rounded-md text-xs"
+                          onChange={(e) => void uploadDoc(d.key, e.target.files?.[0] ?? null)}
+                        />
+                        <div className="text-[11px] text-muted-foreground">
+                          {st.uploading ? "Uploading…" : st.url ? `Uploaded: ${st.fileName}` : "Upload is mandatory when marked collected."}
+                        </div>
+                      </div>
+                    )}
+                    {st.collected === false && (
+                      <Input
+                        placeholder="Reason for not collecting (mandatory)"
+                        value={st.reason}
+                        className="mt-2 h-9 rounded-md text-sm"
+                        onChange={(e) => setDocState((s) => ({ ...s, [d.key]: { ...s[d.key], reason: e.target.value } }))}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-muted-foreground">Tick the items being recovered, then set the quantity.</div>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" variant="outline" className="h-7 rounded-md text-xs" onClick={() => setAll("all")}>Recover all</Button>
+              <Button type="button" size="sm" variant="ghost" className="h-7 rounded-md text-xs" onClick={() => setAll("none")}>Clear</Button>
+            </div>
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-border/70 bg-background p-3">
+            {balances.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">Nothing assigned to this guard.</div>
+            ) : balances.map((b) => {
+              const key = `${b.item_id}|${b.size_value}`;
+              const item = itemMap.get(b.item_id);
+              const max = Number(b.qty || 0);
+              const val = qtyMap[key] ?? 0;
+              const checked = checkedMap[key] ?? false;
+              const short = (checked ? val : 0) < max;
+              return (
+                <div key={key} className={`rounded-lg border border-border/60 bg-card px-3 py-2 transition ${checked ? "ring-1 ring-emerald-500/25" : "opacity-70"}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(next) => {
+                        const isChecked = next === true;
+                        setCheckedMap((m) => ({ ...m, [key]: isChecked }));
+                        if (isChecked && Number(qtyMap[key] || 0) === 0) {
+                          setQtyMap((m) => ({ ...m, [key]: max }));
+                        }
+                      }}
+                      aria-label={`Recover ${item?.name ?? "item"}`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-foreground">{item?.name ?? "—"}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {item?.item_code ?? ""}{b.size_value ? ` · Size ${b.size_value}` : ""} · Held: {max}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button type="button" size="sm" variant="outline" disabled={!checked} className="h-8 w-8 rounded-md p-0" onClick={() => setQtyMap((m) => ({ ...m, [key]: Math.max(0, (m[key] ?? 0) - 1) }))}>−</Button>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={max}
+                        value={val}
+                        disabled={!checked}
+                        onChange={(e) => {
+                          const n = Math.max(0, Math.min(max, Number(e.target.value) || 0));
+                          setQtyMap((m) => ({ ...m, [key]: n }));
+                          setCheckedMap((m) => ({ ...m, [key]: n > 0 }));
+                        }}
+                        className="h-8 w-16 rounded-md text-center"
+                      />
+                      <Button type="button" size="sm" variant="outline" disabled={!checked} className="h-8 w-8 rounded-md p-0" onClick={() => setQtyMap((m) => ({ ...m, [key]: Math.min(max, (m[key] ?? 0) + 1) }))}>+</Button>
+                      <span className="ml-1 text-[11px] text-muted-foreground">/ {max}</span>
+                    </div>
+                  </div>
+                  {isOffboarding && short && (
+                    <Input
+                      placeholder="Reason for not collecting this item (mandatory)"
+                      value={reasonMap[key] ?? ""}
+                      className="mt-2 h-9 rounded-md text-sm"
+                      onChange={(e) => setReasonMap((m) => ({ ...m, [key]: e.target.value }))}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2">
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-9 rounded-md">
             <X className="mr-1.5 h-4 w-4" /> Cancel
           </Button>
-          <Button type="button" onClick={handleConfirm} disabled={submitting || totalSelected === 0} className="h-9 rounded-md">
+          <Button type="button" onClick={handleConfirm} disabled={submitting || !canSubmit} className="h-9 rounded-md">
             <PackageCheck className="mr-1.5 h-4 w-4" />
-            {submitting ? "Recovering…" : `Mark recovered (${totalSelected})`}
+            {submitting ? "Saving…" : isOffboarding ? "Confirm exit collection" : `Mark recovered (${totalSelected})`}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
 

@@ -4411,6 +4411,8 @@ export type Database = {
           emergency_contact_name: string
           enable_lwf: boolean
           enable_pt: boolean
+          gpaip_amount: number
+          gpaip_enabled: boolean
           gst_number: string
           gst_payable: boolean
           gst_type: string | null
@@ -4423,6 +4425,8 @@ export type Database = {
           nearby_hospital_name: string
           onboarding_date: string | null
           pan_number: string
+          recruitment_fee_amount: number
+          recruitment_fee_enabled: boolean
           reporting_officers: Json
           security_service_mobile: string
           security_service_name: string
@@ -4465,6 +4469,8 @@ export type Database = {
           emergency_contact_name?: string
           enable_lwf?: boolean
           enable_pt?: boolean
+          gpaip_amount?: number
+          gpaip_enabled?: boolean
           gst_number?: string
           gst_payable?: boolean
           gst_type?: string | null
@@ -4477,6 +4483,8 @@ export type Database = {
           nearby_hospital_name?: string
           onboarding_date?: string | null
           pan_number?: string
+          recruitment_fee_amount?: number
+          recruitment_fee_enabled?: boolean
           reporting_officers?: Json
           security_service_mobile?: string
           security_service_name?: string
@@ -4519,6 +4527,8 @@ export type Database = {
           emergency_contact_name?: string
           enable_lwf?: boolean
           enable_pt?: boolean
+          gpaip_amount?: number
+          gpaip_enabled?: boolean
           gst_number?: string
           gst_payable?: boolean
           gst_type?: string | null
@@ -4531,6 +4541,8 @@ export type Database = {
           nearby_hospital_name?: string
           onboarding_date?: string | null
           pan_number?: string
+          recruitment_fee_amount?: number
+          recruitment_fee_enabled?: boolean
           reporting_officers?: Json
           security_service_mobile?: string
           security_service_name?: string
