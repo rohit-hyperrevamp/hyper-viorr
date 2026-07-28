@@ -2471,7 +2471,7 @@ function EmployeesPage() {
               <div className="mt-2 flex items-center justify-end gap-1.5 border-t border-border/50 pt-2">
                 {mode === "candidate" && c.status === "pending" && canApproveOnboarding && (
                   <>
-                    <Button size="icon" data-variant="success" onClick={() => approveMut.mutate(c)} disabled={approveMut.isPending} className="h-8 w-8 rounded-full bg-emerald-600 text-white hover:bg-emerald-700" title="Approve" aria-label="Approve">
+                    <Button size="icon" data-variant="success" onClick={() => setApprovePreview(c)} disabled={approveMut.isPending} className="h-8 w-8 rounded-full bg-emerald-600 text-white hover:bg-emerald-700" title="Review & approve" aria-label="Review & approve">
                       <Check className="h-4 w-4" />
                     </Button>
                     <Button size="icon" data-variant="danger" variant="outline" onClick={() => { setRejectTarget(c); setRejectReason(""); }} className="h-8 w-8 rounded-full border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100" title="Reject" aria-label="Reject">
