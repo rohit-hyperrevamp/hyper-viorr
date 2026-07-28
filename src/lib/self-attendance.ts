@@ -127,16 +127,16 @@ export async function checkIn(candidateId: string, geo: Geo | null, faceVerified
 
 export async function checkOut(
   id: string,
-  geo: Geo,
+  geo: Geo | null,
   faceVerified: boolean,
 ): Promise<SelfPunch> {
   const { data, error } = await supabase
     .from("self_attendance_punches" as never)
     .update({
       check_out_at: new Date().toISOString(),
-      check_out_lat: geo.lat,
-      check_out_lng: geo.lng,
-      check_out_accuracy: geo.accuracy,
+      check_out_lat: geo?.lat ?? null,
+      check_out_lng: geo?.lng ?? null,
+      check_out_accuracy: geo?.accuracy ?? null,
       check_out_face_verified: faceVerified,
     } as never)
     .eq("id", id)
