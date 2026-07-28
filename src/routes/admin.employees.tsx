@@ -6543,13 +6543,8 @@ function AssetMultiPicker({
                                 }
                                 return null;
                               })()}
-                              <span className={cn(
-                                "ml-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
-                                (a.available_qty ?? 0) > 0
-                                  ? "bg-emerald-500/10 text-emerald-700"
-                                  : "bg-amber-500/10 text-amber-700",
-                              )}>
-                                {(a.available_qty ?? 0) > 0 ? `${a.available_qty} in stock` : "Out of stock"}
+                              <span className="ml-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                                {a.available_qty} in stock
                               </span>
 
 
