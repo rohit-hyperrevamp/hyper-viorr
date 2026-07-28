@@ -5504,6 +5504,7 @@ function CandidateWizard({
               );
             })()}
           </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
