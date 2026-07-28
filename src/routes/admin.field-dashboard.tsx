@@ -270,11 +270,17 @@ function FieldOfficerDashboard() {
       const UNASSIGNED = "__unassigned__";
       const guardIdToUnit = new Map<string, string>();
       for (const g of guardList) {
-        const uid = g.unit_id ?? guardScopeUnit.get(g.id) ?? UNASSIGNED;
-        guardIdToUnit.set(g.id, uid);
-        const arr = guardsByUnit.get(uid) ?? [];
-        arr.push({ id: g.id, full_name: g.full_name, designation: (g.designation_id && desigMap.get(g.designation_id)) || "—" });
-        guardsByUnit.set(uid, arr);
+        const primary = g.unit_id ?? guardScopeUnit.get(g.id) ?? UNASSIGNED;
+        const placements = new Set<string>([primary]);
+        const extras = guardExtraUnits.get(g.id);
+        if (extras) for (const uid of extras) placements.add(uid);
+        guardIdToUnit.set(g.id, primary);
+        const entry = { id: g.id, full_name: g.full_name, designation: (g.designation_id && desigMap.get(g.designation_id)) || "—" };
+        for (const uid of placements) {
+          const arr = guardsByUnit.get(uid) ?? [];
+          if (!arr.some((x) => x.id === entry.id)) arr.push(entry);
+          guardsByUnit.set(uid, arr);
+        }
       }
 
       const today = isoDaysAgo(0);
