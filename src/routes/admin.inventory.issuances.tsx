@@ -23,7 +23,13 @@ import { useDocItemSummaries } from "@/lib/inv-doc-summary";
 
 
 
-export const Route = createFileRoute("/admin/inventory/issuances")({ component: IssuancesPage });
+export const Route = createFileRoute("/admin/inventory/issuances")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    candidate: typeof search.candidate === "string" ? search.candidate : "",
+    action: search.action === "issue" ? "issue" : "",
+  }),
+  component: IssuancesPage,
+});
 
 const MODULE = "Inventory Issuances";
 const ENTITY = "inv_issuances";
@@ -62,6 +68,9 @@ type OpenDemand = {
 
 function IssuancesPage() {
   const qc = useQueryClient();
+  const search = Route.useSearch();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [pendingCandidateId, setPendingCandidateId] = useState("");
   const { data: issuances = [] } = useQuery({
     queryKey: ["inv", "issuances"],
     queryFn: async () => {
@@ -125,6 +134,30 @@ function IssuancesPage() {
   const isBranchManager = role.isBranchManager;
   const scope = useUserBranchScope();
 
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+  }, []);
+
+  const { data: pendingOnboarding = [] } = useQuery({
+    queryKey: ["inv", "pending-onboarding-issuance", userId, isSuperAdmin],
+    enabled: !!userId || isSuperAdmin,
+    refetchInterval: 15_000,
+    queryFn: async () => {
+      let q = supabase
+        .from("candidates" as never)
+        .select("id,full_name,employee_code,role_key,status,unit_id,reports_to,assigned_asset_ids,onboarding_details")
+        .eq("status", "approved")
+        .eq("onboarding_details->>issuance_status", "pending")
+        .order("updated_at", { ascending: false });
+      if (!isSuperAdmin && userId) {
+        q = q.eq("onboarding_details->>pending_issuance_fo_id", userId);
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data as unknown as Candidate[]) ?? [];
+    },
+  });
+
   // Open demands available to fulfil via an issuance.
   // Branch managers see branch-bound demands for their branch.
   // Warehouse-side users (admin / inventory manager / non-branch-scoped) see warehouse-bound demands.
@@ -168,6 +201,15 @@ function IssuancesPage() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<Issuance | null>(null);
+
+  useEffect(() => {
+    if (search.action !== "issue" || !search.candidate || pendingOnboarding.length === 0 || active || open) return;
+    const target = pendingOnboarding.find((c) => c.id === search.candidate);
+    if (!target) return;
+    setPendingCandidateId(target.id);
+    setActive(null);
+    setOpen(true);
+  }, [search.action, search.candidate, pendingOnboarding, active, open]);
 
   const myGuardIds = useMemo(
     () => new Set(
@@ -230,6 +272,18 @@ function IssuancesPage() {
         </Button>
       </div>
 
+      {pendingOnboarding.length > 0 && (
+        <PendingOnboardingIssuancePanel
+          pending={pendingOnboarding}
+          items={items}
+          onIssue={(candidateId) => {
+            setPendingCandidateId(candidateId);
+            setActive(null);
+            setOpen(true);
+          }}
+        />
+      )}
+
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="overflow-x-clip">
           <table className="ios-table w-full text-sm">
@@ -270,7 +324,7 @@ function IssuancesPage() {
                   <td className="px-5 py-3"><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${statusBadgeClass(i.status)}`}>{i.status === "completed" ? "completed" : i.status}</span></td>
                   <td className="px-5 py-3 text-right">
                     <div className="inline-flex gap-1">
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setActive(i); setOpen(true); }}><Eye className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setPendingCandidateId(""); setActive(i); setOpen(true); }}><Eye className="h-4 w-4" /></Button>
                       {i.status === "draft" && (
                         <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:text-destructive" onClick={async () => {
                           if (!(await confirmAction({ title: "Delete?", description: `Delete ${i.issuance_number}?`, confirmText: "Delete" }))) return;
@@ -290,8 +344,57 @@ function IssuancesPage() {
 
 
 
-      <IssuanceDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setActive(null); }} initial={active} warehouses={warehouses} branches={branches} fos={fos} guards={guards} candidates={candidates} items={items} onSaved={invalidate} me={me} isFieldOfficer={isFieldOfficer} isBranchManager={isBranchManager} branchScopeId={scope.branchId} openDemands={openDemands} />
+      <IssuanceDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setActive(null); setPendingCandidateId(""); } }} initial={active} initialCandidateId={pendingCandidateId} currentUserId={userId} warehouses={warehouses} branches={branches} fos={fos} guards={guards} candidates={candidates} items={items} onSaved={invalidate} me={me} isFieldOfficer={isFieldOfficer} isBranchManager={isBranchManager} branchScopeId={scope.branchId} openDemands={openDemands} />
     </div>
+  );
+}
+
+function PendingOnboardingIssuancePanel({
+  pending,
+  items,
+  onIssue,
+}: {
+  pending: Candidate[];
+  items: Item[];
+  onIssue: (candidateId: string) => void;
+}) {
+  const itemMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+  const totalAssets = pending.reduce((sum, c) => {
+    const ids = normalizeIdArray(c.onboarding_details?.issuance_asset_ids ?? c.assigned_asset_ids);
+    return sum + ids.length;
+  }, 0);
+
+  return (
+    <section className="mb-4 overflow-hidden rounded-2xl border border-amber-500/30 bg-amber-500/10 shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-amber-500/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-200">Issuance pending</div>
+          <div className="mt-0.5 text-sm font-bold text-foreground">
+            {pending.length} approved guard{pending.length === 1 ? "" : "s"} awaiting {totalAssets} asset{totalAssets === 1 ? "" : "s"}
+          </div>
+          <div className="text-xs text-muted-foreground">Use the standard Field Officer → Guard issuance. The guard must confirm with OTP before activation.</div>
+        </div>
+      </div>
+      <div className="divide-y divide-amber-500/15">
+        {pending.map((c) => {
+          const ids = normalizeIdArray(c.onboarding_details?.issuance_asset_ids ?? c.assigned_asset_ids);
+          const assetNames = ids.map((id) => itemMap.get(id)?.name ?? "Assigned asset");
+          return (
+            <div key={c.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-foreground">{c.full_name || "New guard"}</div>
+                <div className="mt-0.5 text-[11px] text-muted-foreground">
+                  {c.employee_code ? `${c.employee_code} · ` : ""}{assetNames.slice(0, 3).join(", ")}{assetNames.length > 3 ? ` +${assetNames.length - 3}` : ""}
+                </div>
+              </div>
+              <Button size="sm" className="h-8 shrink-0 rounded-full px-3 text-xs" onClick={() => onIssue(c.id)}>
+                Issue via OTP
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -303,8 +406,10 @@ const ISSUANCE_TYPES = [
   { key: "warehouse_to_guard", label: "Warehouse → Guard", source: "warehouse", dest: "guard" },
 ] as const;
 
-function IssuanceDialog({ open, onOpenChange, initial, warehouses, branches, fos, guards, candidates, items, onSaved, me, isFieldOfficer, isBranchManager, branchScopeId, openDemands }: {
+function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, currentUserId, warehouses, branches, fos, guards, candidates, items, onSaved, me, isFieldOfficer, isBranchManager, branchScopeId, openDemands }: {
   open: boolean; onOpenChange: (o: boolean) => void; initial: Issuance | null;
+  initialCandidateId: string;
+  currentUserId: string | null;
   warehouses: Warehouse[]; branches: Branch[]; fos: Candidate[]; guards: Candidate[]; candidates: Candidate[]; items: Item[];
   onSaved: () => void;
   me: Candidate | null;
@@ -334,8 +439,12 @@ function IssuanceDialog({ open, onOpenChange, initial, warehouses, branches, fos
   // FO scoping for guards
   const foScopedGuards = useMemo(() => {
     if (!isFieldOfficer || !me) return guards;
-    return guards.filter((g) => g.reports_to === me.id || (me.unit_id && g.unit_id === me.unit_id));
-  }, [guards, isFieldOfficer, me]);
+    return guards.filter((g) =>
+      g.reports_to === me.id ||
+      (me.unit_id && g.unit_id === me.unit_id) ||
+      (!!currentUserId && g.onboarding_details?.pending_issuance_fo_id === currentUserId),
+    );
+  }, [guards, isFieldOfficer, me, currentUserId]);
 
   // Available stock at the source location
   const { data: stockMap = new Map<string, number>() } = useQuery({
@@ -428,7 +537,7 @@ function IssuanceDialog({ open, onOpenChange, initial, warehouses, branches, fos
         };
       }));
     } else if (isFieldOfficer && me) {
-      setType("fo_to_guard"); setSourceId(me.id); setDestId("");
+      setType("fo_to_guard"); setSourceId(me.id); setDestId(initialCandidateId);
       setIssDate(new Date().toISOString().slice(0, 10));
       setNotes(""); setLines([]);
     } else if (isBranchManager && branchScopeId) {

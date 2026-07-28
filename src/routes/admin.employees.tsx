@@ -1754,8 +1754,8 @@ function EmployeesPage() {
       // Onboarding-issuance handshake (mirrors offboarding-collection):
       // If the candidate has assets to be issued and a Field Officer we can
       // resolve, we mark them "approved" with a pending-issuance flag. The FO
-      // then confirms hand-over in Uniform Manager → Collections → Issuances,
-      // which flips the row to "active".
+      // then uses the standard Issuances flow, and guard OTP acknowledgement
+      // flips the row to "active".
       const guardRoles = new Set(["guard", "security_guard"]);
       const assignedAssetIds = normalizeIdArray(c.assigned_asset_ids);
       const hasAssets = assignedAssetIds.length > 0;
@@ -1820,7 +1820,7 @@ function EmployeesPage() {
         .from("candidates" as never)
         .update({
           status: nextStatus,
-          is_enabled: true,
+          is_enabled: !deferForIssuance,
           rejection_reason: "",
           rejected_at: null,
           offboarding_reason_id: null,
@@ -1888,27 +1888,16 @@ function EmployeesPage() {
                   type: "candidate_approved",
                   title: deferForIssuance ? "Candidate approved — awaiting your issuance" : "Your candidate was approved",
                   message: deferForIssuance
-                    ? `${label} approved${empCode ? ` — ${empCode}` : ""}. Issue assets in Uniform Manager → Collections → Issuances to activate.`
+                    ? `${label} approved${empCode ? ` — ${empCode}` : ""}. Issue assets in Uniform Manager → Issuances to activate.`
                     : `${label} was approved${empCode ? ` — Employee Code ${empCode}` : ""}.`,
-                  link: deferForIssuance ? "/admin/inventory/collections" : "/admin/employees",
+                  link: deferForIssuance ? `/admin/inventory/issuances?candidate=${c.id}&action=issue` : "/admin/employees",
                   entityType: "candidate",
                   entityId: c.id,
                 })
               : Promise.resolve(),
           ];
 
-          if (deferForIssuance && foUserId) {
-            tasks.push(
-              notifyUser(foUserId, {
-                type: "candidate_issuance_pending",
-                title: "Issue assets to new employee",
-                message: `${label}${empCode ? ` (${empCode})` : ""} is approved. Please issue the assigned assets to activate their account.`,
-                link: "/admin/inventory/collections",
-                entityType: "candidate",
-                entityId: c.id,
-              }),
-            );
-          } else {
+          if (!deferForIssuance) {
             if (foUserId) {
               tasks.push(
                 notifyUser(foUserId, {
