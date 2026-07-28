@@ -1075,7 +1075,12 @@ function ManageGuardUnitsDialog({
         )}
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button onClick={save} disabled={saving || loading} className="bg-emerald-600 text-white hover:bg-emerald-700">
+          <Button
+            onClick={save}
+            disabled={saving || loading}
+            data-force-enabled="true"
+            className="bg-emerald-600 text-white hover:bg-emerald-700"
+          >
             {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
             Save mapping
           </Button>
