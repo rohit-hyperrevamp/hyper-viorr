@@ -447,7 +447,7 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
   }, [guards, isFieldOfficer, me, currentUserId]);
 
   // Available stock at the source location
-  const { data: stockMap = new Map<string, number>() } = useQuery({
+  const { data: stockMap = EMPTY_STOCK_MAP } = useQuery({
     queryKey: ["inv", "stock-balances", meta.source, sourceId],
     enabled: !!sourceId && isDraft,
     queryFn: async () => {
