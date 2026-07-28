@@ -821,13 +821,8 @@ function IssuancesPanel({ me }: { me: Candidate }) {
               entityId: payload.candidate.id,
             });
           }
-          await notifyUser(null, {
-            type: "candidate_activated",
-            title: "Candidate activated",
-            message: `${payload.candidate.full_name}${empCode ? ` (${empCode})` : ""} is now active — assets issued.`,
-            entityType: "candidate",
-            entityId: payload.candidate.id,
-          });
+          // approver-side notification already emitted at approval time
+
         } catch (e) {
           console.error("post-issue notifications failed", e);
         }
