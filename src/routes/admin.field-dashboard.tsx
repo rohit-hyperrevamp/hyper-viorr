@@ -868,33 +868,30 @@ function UnitRow({ unit, allUnits }: { unit: UnitNode; allUnits: UnitNode[] }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition hover:bg-secondary/40 sm:gap-4 sm:px-6 sm:py-4"
+        className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left transition hover:bg-secondary/40 sm:px-4"
       >
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent sm:h-8 sm:w-8 sm:rounded-xl">
-            {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-accent/10 text-accent">
+            {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
           </span>
           <div className="min-w-0">
-            <div className="flex items-center gap-2 truncate text-[13px] font-semibold sm:text-sm">
+            <div className="flex items-center gap-1.5 truncate text-[13px] font-semibold">
               {unit.name}
               {unit.is_primary && (
-                <span className="inline-flex rounded-full bg-emerald-500/15 dark:bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Primary</span>
+                <span className="inline-flex rounded-full bg-emerald-500/15 dark:bg-emerald-400/20 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Primary</span>
               )}
             </div>
-            <div className="truncate text-[11px] text-muted-foreground sm:text-xs">{unit.customer_name} · <span className="font-mono">{unit.code}</span></div>
+            <div className="truncate text-[11px] text-muted-foreground">{unit.customer_name} · <span className="font-mono">{unit.code}</span></div>
           </div>
         </div>
-        <div className="hidden shrink-0 items-center gap-2 text-[11px] font-medium sm:flex">
-          <Pill tone="slate" value={total} label="team" />
-        </div>
+        <span className="shrink-0 rounded-full bg-secondary/70 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
+          {total} team
+        </span>
       </button>
       {open && (
-        <div className="space-y-3 border-t border-border/40 bg-secondary/20 px-3.5 py-3 sm:px-6 sm:py-4">
-          <div className="flex gap-2 sm:hidden">
-            <Pill tone="slate" value={total} label="team" />
-          </div>
+        <div className="space-y-2.5 border-t border-border/40 bg-secondary/20 px-3.5 py-3 sm:px-4">
           {unit.co_field_officers.length > 0 && (
-            <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-2">
+            <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-2.5 py-1.5">
               <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
                 <UserCog className="h-3 w-3" /> Also on this unit ({unit.co_field_officers.length})
               </div>
@@ -911,34 +908,30 @@ function UnitRow({ unit, allUnits }: { unit: UnitNode; allUnits: UnitNode[] }) {
             </div>
           )}
           {unit.guards.length === 0 ? (
-            <div className="py-2 text-sm text-muted-foreground">No active employees on this unit yet.</div>
+            <div className="py-1 text-[12px] text-muted-foreground">No active employees on this unit yet.</div>
           ) : (
-            <table className="ios-table min-w-full table-auto text-sm">
-              <thead className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-                <tr><th className="py-2 pr-4">Name</th><th className="py-2 pr-4">Designation</th><th className="py-2 text-right">Units</th></tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {unit.guards.map((g) => (
-                  <tr key={g.id}>
-                    <td className="py-2 pr-4 font-medium">{g.full_name}</td>
-                    <td className="py-2 pr-4 text-muted-foreground">{g.designation}</td>
-                    <td className="py-2 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 gap-1 rounded-full px-2 text-[11px]"
-                        onClick={() => setManageGuard(g)}
-                      >
-                        <MoveRight className="h-3 w-3" /> Manage units
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ul className="divide-y divide-border/40 overflow-hidden rounded-lg border border-border/50 bg-card">
+              {unit.guards.map((g) => (
+                <li key={g.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-semibold text-foreground">{g.full_name}</div>
+                    <div className="truncate text-[11px] text-muted-foreground">{g.designation}</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 shrink-0 gap-1 rounded-full px-2 text-[11px]"
+                    onClick={() => setManageGuard(g)}
+                  >
+                    <MoveRight className="h-3 w-3" /> Manage
+                  </Button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}
+
       <ManageGuardUnitsDialog
         guard={manageGuard}
         currentUnitId={unit.id}
