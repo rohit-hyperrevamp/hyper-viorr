@@ -764,6 +764,23 @@ function useResetOnOpen(open: boolean, reset: () => void) {
   if (open !== last) { setLast(open); if (open) reset(); }
 }
 
+function normalizeIdArray(value: string[] | string | null | undefined): string[] {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value !== "string") return [];
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    return trimmed.slice(1, -1).split(",").map((part) => part.trim().replace(/^"|"$/g, "")).filter(Boolean);
+  }
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+  } catch {
+    return [trimmed];
+  }
+  return [trimmed];
+}
+
 
 function IssuanceDemandSelect({ openDemands, candById, value, onChange }: { openDemands: OpenDemand[]; candById: Map<string, Candidate>; value: string; onChange: (v: string) => void }) {
   const { data: summaries = new Map<string, string>() } = useDocItemSummaries("inv_demand_lines", openDemands.map((d) => d.id));
