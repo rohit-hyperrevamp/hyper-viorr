@@ -384,15 +384,27 @@ const QK_ESIC_BRANCHES = ["admin", "esic-branches-lite"] as const;
 const QK_SIGNED_DOCS = ["admin", "signed-docs-summary"] as const;
 
 function getMutationErrorMessage(error: unknown, fallback: string) {
+  const parts: string[] = [];
   if (error instanceof Error && error.message.trim()) return error.message;
   if (error && typeof error === "object") {
     const record = error as Record<string, unknown>;
     for (const key of ["message", "details", "hint", "code"]) {
       const value = record[key];
-      if (typeof value === "string" && value.trim()) return value;
+      if (typeof value === "string" && value.trim()) parts.push(value.trim());
     }
   }
-  if (typeof error === "string" && error.trim()) return error;
+  if (typeof error === "string" && error.trim()) parts.push(error.trim());
+  const raw = parts.join(" · ");
+  if (/candidates_mobile_unique|Key \(mobile\)=/i.test(raw)) {
+    return "This mobile number is already used by an active candidate or employee. Open the existing profile or use a different number.";
+  }
+  if (/candidates_candidate_code_key|Key \(candidate_code\)=/i.test(raw)) {
+    return "Candidate number generation collided with an existing record. Please retry once; the next number will be allocated automatically.";
+  }
+  if (/candidate_units|row-level security|infinite recursion/i.test(raw)) {
+    return `Unit assignment failed: ${raw}`;
+  }
+  if (raw) return raw;
   return fallback;
 }
 
