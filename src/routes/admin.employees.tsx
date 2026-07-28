@@ -3931,6 +3931,7 @@ function CandidateWizard({
 
   useEffect(() => {
     if (!open) return;
+    setSaveError(null);
     if (editing) {
       const { id: _id, ...rest } = editing;
       void _id;
