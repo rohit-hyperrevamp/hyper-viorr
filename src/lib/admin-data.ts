@@ -641,6 +641,7 @@ type UnitRow = {
   longitude: number | string | null;
   enable_pt: boolean | null;
   enable_lwf: boolean | null;
+  uniform_included: boolean | null;
 };
 
 function rowToUnit(r: UnitRow): Unit {
