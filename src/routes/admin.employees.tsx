@@ -5424,7 +5424,33 @@ function CandidateWizard({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border bg-card/95 px-3 py-3 pb-[calc(1rem+env(safe-area-inset-bottom)+5.5rem)] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-row sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border bg-card/95 px-3 py-3 pb-[calc(1rem+env(safe-area-inset-bottom)+5.5rem)] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-col sm:items-stretch sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
+          {saveError && (
+            <div
+              role="alert"
+              className="w-full rounded-xl border border-rose-200 bg-rose-50/80 px-3 py-2 text-sm text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-semibold">{saveError.title}</div>
+                  {saveError.detail && (
+                    <div className="mt-0.5 whitespace-pre-wrap break-words text-xs leading-relaxed opacity-90">
+                      {saveError.detail}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSaveError(null)}
+                  className="shrink-0 rounded-md p-1 text-rose-600/70 hover:bg-rose-100 hover:text-rose-700 dark:hover:bg-rose-500/20"
+                  aria-label="Dismiss error"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
           <div className="flex flex-wrap items-center gap-2 sm:mr-auto">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="h-11 flex-1 sm:h-10 sm:flex-none">
               Cancel
