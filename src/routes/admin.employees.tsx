@@ -3921,6 +3921,7 @@ function CandidateWizard({
   const [form, setForm] = useState<CandidateForm>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [saveError, setSaveError] = useState<{ title: string; detail?: string } | null>(null);
   const [scanning, setScanning] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
@@ -3930,6 +3931,7 @@ function CandidateWizard({
 
   useEffect(() => {
     if (!open) return;
+    setSaveError(null);
     if (editing) {
       const { id: _id, ...rest } = editing;
       void _id;
@@ -4459,36 +4461,45 @@ function CandidateWizard({
 
   const saveDraft = async () => {
     setSavingDraft(true);
+    setSaveError(null);
     try {
       // Drafts have no strict validation — let user save partial work.
       await persist(editing && editing.status !== "draft" ? form.status : "draft", "Draft saved");
       onOpenChange(false);
     } catch (e) {
-      toast.error(getMutationErrorMessage(e, "Could not save draft"));
+      const msg = getMutationErrorMessage(e, "Could not save draft");
+      setSaveError({ title: "Draft not saved", detail: msg });
+      toast.error(msg);
     } finally {
       setSavingDraft(false);
     }
   };
 
+  const failValidation = (message: string) => {
+    setSaveError({ title: "Missing required information", detail: message });
+    toast.error(message);
+  };
+
   const submit = async () => {
+    setSaveError(null);
     if (!isEditingEmployeeProfile) {
-      if (!form.photo_url) return toast.error("Photograph is required");
-      if (!form.aadhaar_image_url) return toast.error("Aadhaar upload is required");
-      if (!form.signature_url) return toast.error("Signature is required");
-      if (!form.pan_image_url) return toast.error("PAN card upload is required");
-      if (!form.full_name.trim()) return toast.error("Name is required");
-      if (!form.mobile.trim()) return toast.error("Mobile is required");
+      if (!form.photo_url) return failValidation("Photograph is required");
+      if (!form.aadhaar_image_url) return failValidation("Aadhaar upload is required");
+      if (!form.signature_url) return failValidation("Signature is required");
+      if (!form.pan_image_url) return failValidation("PAN card upload is required");
+      if (!form.full_name.trim()) return failValidation("Name is required");
+      if (!form.mobile.trim()) return failValidation("Mobile is required");
       const compliance = (form.compliance ?? {}) as Record<string, unknown>;
       const esicEnabled = compliance.esic_enabled !== false; // default true
       if (esicEnabled && !compliance.esic_branch_id) {
-        return toast.error("ESIC Branch is missing. Please map a branch from ESIC Branch Manager (Compliance section).");
+        return failValidation("ESIC Branch is missing. Please map a branch from ESIC Branch Manager (Compliance section).");
       }
       if (form.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(form.pan_number.trim().toUpperCase()))
-        return toast.error("PAN number format is invalid (e.g. ABCDE1234F)");
+        return failValidation("PAN number format is invalid (e.g. ABCDE1234F)");
       if (form.bank_ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(form.bank_ifsc.trim().toUpperCase()))
-        return toast.error("IFSC code format is invalid (e.g. SBIN0001234)");
+        return failValidation("IFSC code format is invalid (e.g. SBIN0001234)");
       if (form.bank_account_number && !/^\d{6,18}$/.test(form.bank_account_number.trim()))
-        return toast.error("Bank account number must be 6–18 digits");
+        return failValidation("Bank account number must be 6–18 digits");
     }
     setSubmitting(true);
     try {
@@ -4503,11 +4514,14 @@ function CandidateWizard({
       await persist(nextStatus, successMsg);
       onOpenChange(false);
     } catch (e) {
-      toast.error(getMutationErrorMessage(e, "Save failed"));
+      const msg = getMutationErrorMessage(e, "Save failed");
+      setSaveError({ title: "Could not save candidate", detail: msg });
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
   };
+
 
 
   const wizardScrollRef = useRef<HTMLDivElement>(null);
@@ -5410,7 +5424,33 @@ function CandidateWizard({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border bg-card/95 px-3 py-3 pb-[calc(1rem+env(safe-area-inset-bottom)+5.5rem)] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-row sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border bg-card/95 px-3 py-3 pb-[calc(1rem+env(safe-area-inset-bottom)+5.5rem)] backdrop-blur-md sm:sticky sm:bottom-0 sm:z-10 sm:flex-col sm:items-stretch sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
+          {saveError && (
+            <div
+              role="alert"
+              className="w-full rounded-xl border border-rose-200 bg-rose-50/80 px-3 py-2 text-sm text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-semibold">{saveError.title}</div>
+                  {saveError.detail && (
+                    <div className="mt-0.5 whitespace-pre-wrap break-words text-xs leading-relaxed opacity-90">
+                      {saveError.detail}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSaveError(null)}
+                  className="shrink-0 rounded-md p-1 text-rose-600/70 hover:bg-rose-100 hover:text-rose-700 dark:hover:bg-rose-500/20"
+                  aria-label="Dismiss error"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
           <div className="flex flex-wrap items-center gap-2 sm:mr-auto">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="h-11 flex-1 sm:h-10 sm:flex-none">
               Cancel
@@ -5463,6 +5503,7 @@ function CandidateWizard({
                 </Button>
               );
             })()}
+          </div>
           </div>
         </DialogFooter>
       </DialogContent>
