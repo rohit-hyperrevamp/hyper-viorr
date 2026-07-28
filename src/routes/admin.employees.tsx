@@ -6301,27 +6301,56 @@ function AssetMultiPicker({
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5 rounded-md border border-input bg-background p-2 min-h-[44px]">
-        {selected.length === 0 && (
-          <span className="self-center px-1 text-sm text-muted-foreground">
-            No assets assigned — click "Add asset" to assign company assets.
-          </span>
+      <div className="rounded-md border border-input bg-background">
+        <div className="flex flex-wrap gap-1.5 p-2 min-h-[44px]">
+          {selected.length === 0 && (
+            <span className="self-center px-1 text-sm text-muted-foreground">
+              No assets assigned — click "Add asset" to assign company assets.
+            </span>
+          )}
+          {selected.map((a) => {
+            const uni = isUniform(a);
+            const price = priceFor(a);
+            return (
+              <Badge key={a.id} variant="secondary" className="flex items-center gap-1.5 pl-2 pr-1 py-1 text-xs font-normal">
+                <span className="font-medium">{a.name}</span>
+                <span className="opacity-60 text-[10px]">· {a.category}</span>
+                {uni && uniformIncluded ? (
+                  <span className="rounded bg-emerald-500/15 px-1 py-[1px] text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                    ₹0 · Included
+                  </span>
+                ) : price > 0 ? (
+                  <span className="rounded bg-amber-500/15 px-1 py-[1px] text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                    {inr(price)}
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  className="ml-1 rounded p-0.5 opacity-70 hover:bg-background/30 hover:opacity-100"
+                  title="Remove"
+                  onClick={(e) => { e.preventDefault(); toggle(a.id); }}
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            );
+          })}
+        </div>
+        {selected.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-2.5 py-1.5 text-[11px]">
+            <span className="text-muted-foreground">
+              {uniformSelected.length > 0 && uniformIncluded
+                ? "Uniform items are included in this unit's contract (₹0 to the staff member)."
+                : uniformSelected.length > 0
+                  ? "Uniform is not included — value shown will be recoverable from the staff member."
+                  : "Values shown are recoverable against the staff member."}
+            </span>
+            <span className="font-semibold text-foreground">
+              Recoverable total: {inr(totalRecoverable)}
+            </span>
+          </div>
         )}
-        {selected.map((a) => (
-          <Badge key={a.id} variant="secondary" className="flex items-center gap-1.5 pl-2 pr-1 py-1 text-xs font-normal">
-            <span className="font-medium">{a.name}</span>
-            <span className="opacity-60 text-[10px]">· {a.category}</span>
-            <button
-              type="button"
-              className="ml-1 rounded p-0.5 opacity-70 hover:bg-background/30 hover:opacity-100"
-              title="Remove"
-              onClick={(e) => { e.preventDefault(); toggle(a.id); }}
-              onMouseDown={(e) => e.preventDefault()}
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </Badge>
-        ))}
       </div>
 
       {onSizesChange && uniformSelected.length > 0 && (
