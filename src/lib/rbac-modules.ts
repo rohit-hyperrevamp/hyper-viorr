@@ -20,6 +20,7 @@ import {
   FileText,
   Files,
   Fuel,
+  GitBranch,
   HandCoins,
   LayoutDashboard,
   Languages,
@@ -196,7 +197,9 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "language_manager",         label: "Language Manager",         path: "/admin/language-manager",         icon: Languages },
       { key: "company_documents",        label: "Company Documents",        path: "/admin/company-documents",        icon: FileSignature },
       { key: "roles_manager",            label: "Roles Manager",            path: "/admin/roles-manager",            icon: ShieldCheck },
+      { key: "workflows",                label: "Workflow",                 path: "/admin/workflows",                icon: GitBranch },
       { key: "system_logs",              label: "System Logs",              path: "/admin/system-logs",              icon: ClipboardList },
+
     ],
   },
 
@@ -257,7 +260,7 @@ export const PERMISSION_ACTIONS: PermissionAction[] = ["view", "edit", "delete",
 // Keep this list as the single source of truth — the RBAC editor reads it to
 // decide which rows show the Approve checkbox, and runtime checks call
 // `moduleSupportsApprove` before evaluating an approval permission.
-export const APPROVE_CAPABLE_MODULES: ReadonlySet<string> = new Set(["contracts", "attendance", "payroll", "invoice", "employees"]);
+export const APPROVE_CAPABLE_MODULES: ReadonlySet<string> = new Set(["contracts", "attendance", "payroll", "invoice", "employees", "control_center"]);
 
 export function moduleSupportsApprove(moduleKey: string): boolean {
   return APPROVE_CAPABLE_MODULES.has(moduleKey);

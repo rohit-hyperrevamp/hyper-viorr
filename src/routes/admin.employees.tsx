@@ -58,6 +58,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
+import { findCandidateByAadhaar } from "@/lib/workflows";
+import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/RehireRequestDialog";
+
 import { extractAadhaar, type AadhaarExtraction } from "@/lib/aadhaar.functions";
 import { logActivity } from "@/lib/activity-log";
 import { PageHeader } from "@/components/PageHeader";
@@ -3951,6 +3954,28 @@ function CandidateWizard({
   const [saveError, setSaveError] = useState<{ title: string; detail?: string } | null>(null);
   const [scanning, setScanning] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
+  // Aadhaar is the unique person key — a hit here means this person already
+  // exists and must go through the configurable rehire approval chain.
+  const [aadhaarChecking, setAadhaarChecking] = useState(false);
+  const [rehireOpen, setRehireOpen] = useState(false);
+  const [rehireMatch, setRehireMatch] = useState<ExistingCandidateMatch | null>(null);
+  const checkAadhaarForRehire = async (value: string) => {
+    const clean = (value ?? "").replace(/\D/g, "");
+    if (clean.length !== 12) return;
+    if (editing && (editing as any).aadhaar_number === clean) return;
+    setAadhaarChecking(true);
+    try {
+      const found = await findCandidateByAadhaar(clean);
+      if (!found || (editing && found.id === editing.id)) return;
+      setRehireMatch(found as ExistingCandidateMatch);
+      setRehireOpen(true);
+    } catch (e) {
+      console.error("aadhaar duplicate check failed", e);
+    } finally {
+      setAadhaarChecking(false);
+    }
+  };
+
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
   const [homeBranchId, setHomeBranchId] = useState<string>(DEFAULT_HOME_BRANCH_ID);
   const isEditingEmployeeProfile =
@@ -4886,8 +4911,23 @@ function CandidateWizard({
                     <Input value={form.birthplace} onChange={(e) => set("birthplace", e.target.value)} />
                   </Field>
                   <Field label="Aadhaar Number">
-                    <Input format="aadhaar" value={form.aadhaar_number} onChange={(e) => set("aadhaar_number", e.target.value.replace(/\D/g, "").slice(0, 12))} />
+                    <Input
+                      format="aadhaar"
+                      value={form.aadhaar_number}
+                      onChange={(e) => set("aadhaar_number", e.target.value.replace(/\D/g, "").slice(0, 12))}
+                      onBlur={() => void checkAadhaarForRehire(form.aadhaar_number)}
+                    />
+                    {aadhaarChecking && (
+                      <div className="mt-1 text-[11px] text-muted-foreground">Checking existing records…</div>
+                    )}
+                    <RehireRequestDialog
+                      open={rehireOpen}
+                      match={rehireMatch}
+                      onOpenChange={setRehireOpen}
+                      onSubmitted={() => onOpenChange(false)}
+                    />
                   </Field>
+
                   <Field label={isEmployeeMode ? "Employee Code" : "Candidate Number"}>
                     <Input
                       value={isEmployeeMode ? form.employee_code : form.candidate_code}
