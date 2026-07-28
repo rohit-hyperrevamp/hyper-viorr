@@ -1860,18 +1860,32 @@ function EmployeesPage() {
                 entityId: c.id,
               }),
             );
-          } else if (empUserId) {
-            tasks.push(
-              createNotification({
-                userId: empUserId,
-                type: "welcome_onboarded",
-                title: welcomeTitle,
-                message: welcomeLines,
-                link: "/admin/employee-dashboard",
-                entityType: "candidate",
-                entityId: c.id,
-              }),
-            );
+          } else {
+            if (foUserId) {
+              tasks.push(
+                notifyUser(foUserId, {
+                  type: "candidate_approved_for_fo",
+                  title: "New team member approved",
+                  message: `${label}${empCode ? ` (${empCode})` : ""} is now active under you${unitName ? ` at ${unitName}` : ""}.`,
+                  link: "/admin/field-dashboard",
+                  entityType: "candidate",
+                  entityId: c.id,
+                }),
+              );
+            }
+            if (empUserId) {
+              tasks.push(
+                createNotification({
+                  userId: empUserId,
+                  type: "welcome_onboarded",
+                  title: welcomeTitle,
+                  message: welcomeLines,
+                  link: "/admin/employee-dashboard",
+                  entityType: "candidate",
+                  entityId: c.id,
+                }),
+              );
+            }
           }
 
           await Promise.allSettled(tasks);
