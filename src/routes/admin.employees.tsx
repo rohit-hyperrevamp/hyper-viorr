@@ -1820,7 +1820,9 @@ function EmployeesPage() {
         .from("candidates" as never)
         .update({
           status: nextStatus,
-          is_enabled: !deferForIssuance,
+          // Keep the account enabled while awaiting issuance so the guard can log in
+          // and acknowledge the hand-over (OTP) to complete the cycle.
+          is_enabled: true,
           rejection_reason: "",
           rejected_at: null,
           offboarding_reason_id: null,
