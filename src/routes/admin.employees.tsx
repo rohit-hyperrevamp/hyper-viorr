@@ -6228,12 +6228,14 @@ function AssetMultiPicker({
   onChange,
   sizes,
   onSizesChange,
+  uniformIncluded = true,
 }: {
-  assets: { id: string; name: string; category: string; available_qty?: number }[];
+  assets: { id: string; name: string; category: string; available_qty?: number; unit_price?: number }[];
   value: string[];
   onChange: (ids: string[]) => void;
   sizes?: Record<string, string>;
   onSizesChange?: (next: Record<string, string>) => void;
+  uniformIncluded?: boolean;
 }) {
   const [open, setOpen] = useState(true);
   const [query, setQuery] = useState("");
