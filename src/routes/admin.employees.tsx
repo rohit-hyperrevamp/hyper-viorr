@@ -2205,6 +2205,15 @@ function EmployeesPage() {
                     <span className="hidden sm:inline">Awaiting collection</span>
                   </span>
                 )}
+                {isPendingIssuance && (
+                  <span
+                    className="inline-flex shrink-0 cursor-help items-center gap-1 rounded-full border border-sky-300/70 bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-300"
+                    title={`Approved — awaiting Field Officer${pendingIssuanceFoName ? ` (${pendingIssuanceFoName})` : ""} to issue assets. Activates once issuance is confirmed.`}
+                  >
+                    <Clock className="h-3 w-3" />
+                    <span className="hidden sm:inline">Awaiting issuance</span>
+                  </span>
+                )}
                 {mode === "employee" && columnsVisible.active && (
                   <Switch
                     className="2xl:hidden"
