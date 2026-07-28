@@ -33,6 +33,9 @@ export const Route = createFileRoute("/admin/inventory/issuances")({
 
 const MODULE = "Inventory Issuances";
 const ENTITY = "inv_issuances";
+// Stable empty fallback: a fresh `new Map()` default would change identity on
+// every render and re-trigger effects that depend on it (infinite update loop).
+const EMPTY_STOCK_MAP: Map<string, number> = new Map();
 
 type Issuance = {
   id: string; issuance_number: string; issuance_type: string; issuance_date: string; status: string;
