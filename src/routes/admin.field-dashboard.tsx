@@ -685,91 +685,91 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
 
   return (
     <section>
-      <div className="mb-2 flex items-end justify-between sm:mb-3">
-        <div>
-          <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Field Sense</div>
-          <h2 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-2xl">My site visits</h2>
-        </div>
-        <Link to="/admin/field-sense" className="text-[11px] font-bold text-primary underline-offset-2 hover:underline">
+      <div className="mb-2 flex items-end justify-between">
+        <h2 className="font-display text-sm font-bold tracking-tight text-foreground sm:text-base">My site visits</h2>
+        <Link to="/admin/field-sense" className="text-[11px] font-semibold text-primary underline-offset-2 hover:underline">
           Open Field Sense →
         </Link>
       </div>
 
       {/* Today strip */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Link
           to="/admin/field-sense"
           search={{ range: "today" }}
-          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-sky-200/60"
+          className="rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-sky-200/50 dark:ring-sky-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Hours today</div>
-          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{hoursLabel}</div>
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Hours today</div>
+          <div className="mt-1 font-display text-base font-bold tabular-nums leading-none text-foreground sm:text-lg">{hoursLabel}</div>
         </Link>
         <Link
           to="/admin/field-sense"
           search={{ range: "today" }}
-          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-violet-200/60"
+          className="rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-violet-200/50 dark:ring-violet-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Km today</div>
-          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{kmLabel}</div>
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Km today</div>
+          <div className="mt-1 font-display text-base font-bold tabular-nums leading-none text-foreground sm:text-lg">{kmLabel}</div>
         </Link>
         <Link
           {...monthLink}
-          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-emerald-200/60"
+          className="rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-emerald-200/50 dark:ring-emerald-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Visits this month</div>
-          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{monthCount}</div>
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Visits (mo)</div>
+          <div className="mt-1 font-display text-base font-bold tabular-nums leading-none text-foreground sm:text-lg">{monthCount}</div>
         </Link>
         <Link
           {...monthLink}
-          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-amber-200/60"
+          className="rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-amber-200/50 dark:ring-amber-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Client rating (mo)</div>
-          <div className="mt-1 inline-flex items-baseline gap-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Rating (mo)</div>
+          <div className="mt-1 inline-flex items-baseline gap-1 font-display text-base font-bold tabular-nums leading-none text-foreground sm:text-lg">
             {rated.length ? avgRating.toFixed(1) : "—"}
             {rated.length ? <span className="text-amber-500">★</span> : null}
+            {rated.length ? <span className="text-[9px] font-medium text-muted-foreground">·{rated.length}</span> : null}
           </div>
-          <div className="text-[10px] text-muted-foreground">{rated.length} rated</div>
         </Link>
       </div>
 
       {/* Client insights this month */}
-      <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-4">
+      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
         <Link
           to="/admin/field-sense"
           search={{ range: "this_month", highlight: "most" }}
-          className="group rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-emerald-200/60"
+          className="group rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-emerald-200/50 dark:ring-emerald-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Most visited (mo)</div>
-          <div className="mt-1 truncate text-sm font-semibold text-foreground">{most?.u.customer_name ?? "—"}</div>
-          <div className="text-[11px] text-muted-foreground">
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Most visited</div>
+          <div className="mt-0.5 truncate text-[13px] font-semibold text-foreground">{most?.u.customer_name ?? "—"}</div>
+          <div className="text-[10px] text-muted-foreground">
             {most ? `${most.count} visit${most.count === 1 ? "" : "s"}` : "no visits yet"}
           </div>
         </Link>
         <Link
           to="/admin/field-sense"
           search={{ range: "this_month", highlight: "least" }}
-          className="group rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-rose-200/60"
+          className="group rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-rose-200/50 dark:ring-rose-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Least visited (mo)</div>
-          <div className="mt-1 truncate text-sm font-semibold text-foreground">{least?.u.customer_name ?? "—"}</div>
-          <div className="text-[11px] text-muted-foreground">
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Least visited</div>
+          <div className="mt-0.5 truncate text-[13px] font-semibold text-foreground">{least?.u.customer_name ?? "—"}</div>
+          <div className="text-[10px] text-muted-foreground">
             {least ? `${least.count} visit${least.count === 1 ? "" : "s"}` : "no visits yet"}
           </div>
         </Link>
         <Link
           to="/admin/field-sense"
           search={{ range: "this_month", highlight: "unvisited" }}
-          className="group rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-slate-200/60"
+          className="group rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-slate-200/60 dark:ring-slate-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Not visited (mo)</div>
-          <div className="mt-1 font-display text-xl font-bold tabular-nums text-foreground">{unvisitedCount}</div>
-          <div className="text-[11px] text-muted-foreground">of {scopedUnits.length} units</div>
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Not visited</div>
+          <div className="mt-0.5 font-display text-base font-bold tabular-nums text-foreground sm:text-lg">
+            {unvisitedCount}
+            <span className="ml-1 text-[10px] font-medium text-muted-foreground">of {scopedUnits.length}</span>
+          </div>
         </Link>
       </div>
     </section>
   );
 }
+
 
 
 
