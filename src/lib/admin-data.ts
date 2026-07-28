@@ -579,6 +579,10 @@ export type Unit = {
   enablePt: boolean;
   enableLwf: boolean;
   uniformIncluded: boolean;
+  recruitmentFeeEnabled: boolean;
+  recruitmentFeeAmount: number;
+  gpaipEnabled: boolean;
+  gpaipAmount: number;
 };
 
 export function nextUnitCode(units: { code: string }[]) {
@@ -642,6 +646,10 @@ type UnitRow = {
   enable_pt: boolean | null;
   enable_lwf: boolean | null;
   uniform_included: boolean | null;
+  recruitment_fee_enabled?: boolean | null;
+  recruitment_fee_amount?: number | string | null;
+  gpaip_enabled?: boolean | null;
+  gpaip_amount?: number | string | null;
 };
 
 function rowToUnit(r: UnitRow): Unit {
@@ -704,6 +712,10 @@ function rowToUnit(r: UnitRow): Unit {
     enablePt: Boolean(r.enable_pt),
     enableLwf: Boolean(r.enable_lwf),
     uniformIncluded: r.uniform_included == null ? true : Boolean(r.uniform_included),
+    recruitmentFeeEnabled: Boolean(r.recruitment_fee_enabled),
+    recruitmentFeeAmount: Number(r.recruitment_fee_amount ?? 0),
+    gpaipEnabled: Boolean(r.gpaip_enabled),
+    gpaipAmount: Number(r.gpaip_amount ?? 0),
   };
 }
 
@@ -765,6 +777,10 @@ function unitToRow(data: Omit<Unit, "id">) {
     enable_pt: data.enablePt,
     enable_lwf: data.enableLwf,
     uniform_included: data.uniformIncluded,
+    recruitment_fee_enabled: data.recruitmentFeeEnabled,
+    recruitment_fee_amount: data.recruitmentFeeEnabled ? Number(data.recruitmentFeeAmount || 0) : 0,
+    gpaip_enabled: data.gpaipEnabled,
+    gpaip_amount: data.gpaipEnabled ? Number(data.gpaipAmount || 0) : 0,
   };
 }
 

@@ -4276,6 +4276,18 @@ function CandidateWizard({
     { key: "Mobile", ok: !!form.mobile.trim() },
     { key: "Email", ok: !!form.email.trim() },
     { key: "Permanent address", ok: !!form.permanent_address1.trim() && !!form.permanent_pincode },
+    { key: "District", ok: !!form.permanent_district.trim() && (form.same_as_permanent || !!form.present_district.trim()) },
+    {
+      key: "UAN",
+      ok: /^1\d{11}$/.test(String(((form.compliance ?? {}) as Record<string, unknown>).uan ?? "").trim()),
+    },
+    {
+      key: "Emergency contact",
+      ok: (() => {
+        const e = form.contacts.find((c) => c.is_emergency);
+        return !!e && !!e.name.trim() && !!e.relation.trim() && /^[6-9]\d{9}$/.test(e.mobile.trim());
+      })(),
+    },
     { key: "Bank account", ok: !!form.bank_account_number.trim() && !!form.bank_ifsc.trim() },
     { key: "PAN number", ok: /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase()) },
     { key: "Unit assignment", ok: form.unit_ids.length > 0 },
@@ -4514,6 +4526,20 @@ function CandidateWizard({
       if (!form.pan_image_url) return failValidation("PAN card upload is required");
       if (!form.full_name.trim()) return failValidation("Name is required");
       if (!form.mobile.trim()) return failValidation("Mobile is required");
+      if (!form.permanent_district.trim()) return failValidation("District is required in the permanent address");
+      if (!form.same_as_permanent && !form.present_district.trim())
+        return failValidation("District is required in the present address");
+      const uanValue = String(((form.compliance ?? {}) as Record<string, unknown>).uan ?? "").trim();
+      if (!uanValue) return failValidation("UAN is required (Compliance section)");
+      if (!/^1\d{11}$/.test(uanValue))
+        return failValidation("UAN must be 12 digits and must start with 1");
+      const emergency = form.contacts.find((c) => c.is_emergency);
+      if (!emergency)
+        return failValidation("An emergency contact is required — add a contact and tick Emergency");
+      if (!emergency.name.trim() || !emergency.relation.trim() || !emergency.mobile.trim())
+        return failValidation("Emergency contact name, relationship and mobile are all required");
+      if (!/^[6-9]\d{9}$/.test(emergency.mobile.trim()))
+        return failValidation("Emergency contact mobile must be a valid 10-digit number");
       const compliance = (form.compliance ?? {}) as Record<string, unknown>;
       const esicEnabled = compliance.esic_enabled !== false; // default true
       if (esicEnabled && !compliance.esic_branch_id) {
@@ -4887,7 +4913,7 @@ function CandidateWizard({
                 <div className="mt-5 border-t border-border pt-4">
                   <div className="mb-3 flex items-center justify-between">
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                      Contacts
+                      Contacts — emergency contact required *
                     </div>
                     <Button
                       type="button"
@@ -4908,7 +4934,7 @@ function CandidateWizard({
                   </div>
                   {form.contacts.length === 0 ? (
                     <p className="text-xs text-muted-foreground">
-                      No contacts added. Click "Add Contact" to include one. Mark one as Emergency.
+                      An emergency contact is mandatory (it is used for the nominee record). Add a contact with name, relationship and mobile, then tick Emergency.
                     </p>
                   ) : (
                     <div className="space-y-3">
@@ -5615,6 +5641,9 @@ function CandidateAddressFields({
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
+      <Field label="District" required>
+        <Input value={block.district} onChange={(e) => onChange({ district: e.target.value })} />
+      </Field>
       <Field label="Address line 1">
         <Input value={block.address1} onChange={(e) => onChange({ address1: e.target.value })} />
       </Field>
@@ -5634,9 +5663,6 @@ function CandidateAddressFields({
       </Field>
       <Field label="City">
         <Input value={block.city} onChange={(e) => onChange({ city: e.target.value })} />
-      </Field>
-      <Field label="District">
-        <Input value={block.district} onChange={(e) => onChange({ district: e.target.value })} />
       </Field>
       <Field label="State">
         <Input value={block.state} onChange={(e) => onChange({ state: e.target.value })} />
