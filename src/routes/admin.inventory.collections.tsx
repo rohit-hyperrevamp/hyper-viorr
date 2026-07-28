@@ -58,7 +58,7 @@ function CollectionsPage() {
     <div>
       <PageHeader
         title="Collections"
-        description="Collect items back from the guards reporting to you."
+        description="Issue assets to newly-approved candidates, and collect stock back from guards reporting to you."
         crumbs={[{ label: "Uniform Manager", to: "/admin/inventory" }, { label: "Collections" }]}
       />
       {meLoading ? (
@@ -69,7 +69,10 @@ function CollectionsPage() {
           Collections are available to field officers only.
         </div>
       ) : (
-        <CollectionsPanel me={me} />
+        <div className="space-y-6">
+          <IssuancesPanel me={me} />
+          <CollectionsPanel me={me} />
+        </div>
       )}
     </div>
   );
