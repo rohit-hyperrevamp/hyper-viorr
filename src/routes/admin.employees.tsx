@@ -3951,6 +3951,28 @@ function CandidateWizard({
   const [saveError, setSaveError] = useState<{ title: string; detail?: string } | null>(null);
   const [scanning, setScanning] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
+  // Aadhaar is the unique person key — a hit here means this person already
+  // exists and must go through the configurable rehire approval chain.
+  const [aadhaarChecking, setAadhaarChecking] = useState(false);
+  const [rehireOpen, setRehireOpen] = useState(false);
+  const [rehireMatch, setRehireMatch] = useState<ExistingCandidateMatch | null>(null);
+  const checkAadhaarForRehire = async (value: string) => {
+    const clean = (value ?? "").replace(/\D/g, "");
+    if (clean.length !== 12) return;
+    if (editing && (editing as any).aadhaar_number === clean) return;
+    setAadhaarChecking(true);
+    try {
+      const found = await findCandidateByAadhaar(clean);
+      if (!found || (editing && found.id === editing.id)) return;
+      setRehireMatch(found as ExistingCandidateMatch);
+      setRehireOpen(true);
+    } catch (e) {
+      console.error("aadhaar duplicate check failed", e);
+    } finally {
+      setAadhaarChecking(false);
+    }
+  };
+
   const [initialUnitIds, setInitialUnitIds] = useState<string[]>([]);
   const [homeBranchId, setHomeBranchId] = useState<string>(DEFAULT_HOME_BRANCH_ID);
   const isEditingEmployeeProfile =
