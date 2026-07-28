@@ -118,14 +118,35 @@ function FieldOfficerDashboard() {
 
       if (!meId) return empty;
 
-      const [scopeRes, cuRes] = await Promise.all([
-        supabase.from("employee_scope_assignments").select("scope_id,scope_type").eq("candidate_id", meId).eq("scope_type", "unit"),
+      const [scopeRes, cuRes, allUnitsRes] = await Promise.all([
+        supabase.from("employee_scope_assignments").select("scope_id,scope_type").eq("candidate_id", meId),
         supabase.from("candidate_units").select("unit_id,is_primary").eq("candidate_id", meId),
+        supabase.from("units").select("id,code,name,customer_id,branch_id"),
       ]);
-      const scopeUnitIds = ((scopeRes.data ?? []) as Array<{ scope_id: string }>).map((r) => r.scope_id);
+      const scopeRows = ((scopeRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>);
+      const scopeUnitIds = scopeRows.filter((r) => r.scope_type === "unit").map((r) => r.scope_id);
+      const scopeBranchIds = new Set(scopeRows.filter((r) => r.scope_type === "branch").map((r) => r.scope_id));
+      const scopeCustomerIds = new Set(scopeRows.filter((r) => r.scope_type === "customer").map((r) => r.scope_id));
       const legacyUnits = ((cuRes.data ?? []) as Array<{ unit_id: string; is_primary: boolean }>);
       const primaryMap = new Map(legacyUnits.map((r) => [r.unit_id, r.is_primary]));
-      const unitIds = Array.from(new Set([...scopeUnitIds, ...legacyUnits.map((r) => r.unit_id)]));
+      const allUnitsRaw = ((allUnitsRes.data ?? []) as Array<{ id: string; code: string; name: string; customer_id: string | null; branch_id: string | null }>);
+      // Merge every mechanism: candidate.unit_id (home) + candidate_units + esa unit
+      // + esa branch expansion + esa customer expansion. Radiant Pune home unit
+      // is excluded from the "My units" panel since it's a payroll marker, not
+      // an operational client site.
+      const unitIdSet = new Set<string>();
+      const meUnitId = (me as { unit_id?: string | null } | null)?.unit_id ?? null;
+      if (meUnitId) unitIdSet.add(meUnitId);
+      for (const r of legacyUnits) unitIdSet.add(r.unit_id);
+      for (const id of scopeUnitIds) unitIdSet.add(id);
+      if (scopeBranchIds.size || scopeCustomerIds.size) {
+        for (const u of allUnitsRaw) {
+          if (u.branch_id && scopeBranchIds.has(u.branch_id)) unitIdSet.add(u.id);
+          if (u.customer_id && scopeCustomerIds.has(u.customer_id)) unitIdSet.add(u.id);
+        }
+      }
+      unitIdSet.delete(RADIANT_BILLING_UNIT_ID);
+      const unitIds = Array.from(unitIdSet);
 
       let guardQuery = supabase
         .from("candidates")
@@ -149,7 +170,51 @@ function FieldOfficerDashboard() {
       }
       for (const g of guardList) {
         const uid = g.unit_id ?? guardScopeUnit.get(g.id) ?? null;
-        if (uid && !unitIds.includes(uid)) unitIds.push(uid);
+        if (uid && uid !== RADIANT_BILLING_UNIT_ID && !unitIds.includes(uid)) unitIds.push(uid);
+      }
+
+      // Co-field-officers: other FOs mapped to any of our unitIds via candidate_units,
+      // esa unit, esa branch, or esa customer. Used to show peer coverage on each unit.
+      const coFoByUnit = new Map<string, CoFo[]>();
+      if (unitIds.length) {
+        const [foRes, foCuRes, foEsaRes] = await Promise.all([
+          supabase
+            .from("candidates")
+            .select("id,full_name,employee_code,unit_id,role_key,status,is_enabled")
+            .eq("role_key", "field_officer")
+            .in("status", ["active", "approved"])
+            .eq("is_enabled", true),
+          supabase.from("candidate_units").select("candidate_id,unit_id"),
+          supabase.from("employee_scope_assignments").select("candidate_id,scope_id,scope_type"),
+        ]);
+        const fos = ((foRes.data ?? []) as Array<{ id: string; full_name: string; employee_code: string | null; unit_id: string | null }>).filter((f) => f.id !== meId);
+        const foMap = new Map(fos.map((f) => [f.id, f]));
+        const foCu = ((foCuRes.data ?? []) as Array<{ candidate_id: string; unit_id: string }>);
+        const foEsa = ((foEsaRes.data ?? []) as Array<{ candidate_id: string; scope_id: string; scope_type: string }>);
+        const unitById = new Map(allUnitsRaw.map((u) => [u.id, u]));
+        for (const uid of unitIds) {
+          const u = unitById.get(uid);
+          if (!u) continue;
+          const mapped = new Set<string>();
+          for (const f of fos) if (f.unit_id === uid) mapped.add(f.id);
+          for (const r of foCu) if (r.unit_id === uid && foMap.has(r.candidate_id)) mapped.add(r.candidate_id);
+          for (const r of foEsa) {
+            if (!foMap.has(r.candidate_id)) continue;
+            if (r.scope_type === "unit" && r.scope_id === uid) mapped.add(r.candidate_id);
+            if (r.scope_type === "branch" && u.branch_id && r.scope_id === u.branch_id) mapped.add(r.candidate_id);
+            if (r.scope_type === "customer" && u.customer_id && r.scope_id === u.customer_id) mapped.add(r.candidate_id);
+          }
+          if (mapped.size) {
+            coFoByUnit.set(
+              uid,
+              Array.from(mapped)
+                .map((id) => foMap.get(id)!)
+                .filter(Boolean)
+                .map((f) => ({ id: f.id, full_name: f.full_name, employee_code: f.employee_code }))
+                .sort((a, b) => a.full_name.localeCompare(b.full_name)),
+            );
+          }
+        }
       }
 
       const [unitsRes, custRes, mineRes, desigsRes, codesRes] = await Promise.all([
