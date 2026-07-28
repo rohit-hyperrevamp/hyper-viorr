@@ -496,17 +496,17 @@ function FieldOfficerDashboard() {
 
 
       {/* Units list */}
-      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/90 shadow-sm backdrop-blur-xl sm:rounded-[28px]">
-        <div className="flex items-center justify-between border-b border-border/60 px-3.5 py-3 sm:px-6 sm:py-5">
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">New objects ({units.length})</div>
-            <h2 className="mt-0.5 font-display text-lg font-bold text-foreground sm:text-xl">My units</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">Tap to see the team and take action.</p>
+      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/90 shadow-sm backdrop-blur-xl">
+        <div className="flex items-center justify-between border-b border-border/60 px-3.5 py-2.5 sm:px-4 sm:py-3">
+          <div className="min-w-0">
+            <h2 className="font-display text-sm font-bold text-foreground sm:text-base">My units</h2>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">Tap a row to see the team.</p>
           </div>
-          <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-muted-foreground">
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
             {units.length} unit{units.length === 1 ? "" : "s"}
           </span>
         </div>
+
         <div className="divide-y divide-border/50">
           {isLoading ? (
             <ListSkeleton rows={3} />
@@ -685,91 +685,91 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
 
   return (
     <section>
-      <div className="mb-2 flex items-end justify-between sm:mb-3">
-        <div>
-          <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Field Sense</div>
-          <h2 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-2xl">My site visits</h2>
-        </div>
-        <Link to="/admin/field-sense" className="text-[11px] font-bold text-primary underline-offset-2 hover:underline">
+      <div className="mb-2 flex items-end justify-between">
+        <h2 className="font-display text-sm font-bold tracking-tight text-foreground sm:text-base">My site visits</h2>
+        <Link to="/admin/field-sense" className="text-[11px] font-semibold text-primary underline-offset-2 hover:underline">
           Open Field Sense →
         </Link>
       </div>
 
       {/* Today strip */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Link
           to="/admin/field-sense"
           search={{ range: "today" }}
-          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-sky-200/60"
+          className="rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-sky-200/50 dark:ring-sky-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Hours today</div>
-          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{hoursLabel}</div>
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Hours today</div>
+          <div className="mt-1 font-display text-base font-bold tabular-nums leading-none text-foreground sm:text-lg">{hoursLabel}</div>
         </Link>
         <Link
           to="/admin/field-sense"
           search={{ range: "today" }}
-          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-violet-200/60"
+          className="rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-violet-200/50 dark:ring-violet-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Km today</div>
-          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{kmLabel}</div>
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Km today</div>
+          <div className="mt-1 font-display text-base font-bold tabular-nums leading-none text-foreground sm:text-lg">{kmLabel}</div>
         </Link>
         <Link
           {...monthLink}
-          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-emerald-200/60"
+          className="rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-emerald-200/50 dark:ring-emerald-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Visits this month</div>
-          <div className="mt-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">{monthCount}</div>
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Visits (mo)</div>
+          <div className="mt-1 font-display text-base font-bold tabular-nums leading-none text-foreground sm:text-lg">{monthCount}</div>
         </Link>
         <Link
           {...monthLink}
-          className="rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-amber-200/60"
+          className="rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-amber-200/50 dark:ring-amber-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Client rating (mo)</div>
-          <div className="mt-1 inline-flex items-baseline gap-1 font-display text-[20px] font-bold tabular-nums leading-none text-foreground sm:text-2xl">
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Rating (mo)</div>
+          <div className="mt-1 inline-flex items-baseline gap-1 font-display text-base font-bold tabular-nums leading-none text-foreground sm:text-lg">
             {rated.length ? avgRating.toFixed(1) : "—"}
             {rated.length ? <span className="text-amber-500">★</span> : null}
+            {rated.length ? <span className="text-[9px] font-medium text-muted-foreground">·{rated.length}</span> : null}
           </div>
-          <div className="text-[10px] text-muted-foreground">{rated.length} rated</div>
         </Link>
       </div>
 
       {/* Client insights this month */}
-      <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-4">
+      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
         <Link
           to="/admin/field-sense"
           search={{ range: "this_month", highlight: "most" }}
-          className="group rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-emerald-200/60"
+          className="group rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-emerald-200/50 dark:ring-emerald-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Most visited (mo)</div>
-          <div className="mt-1 truncate text-sm font-semibold text-foreground">{most?.u.customer_name ?? "—"}</div>
-          <div className="text-[11px] text-muted-foreground">
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Most visited</div>
+          <div className="mt-0.5 truncate text-[13px] font-semibold text-foreground">{most?.u.customer_name ?? "—"}</div>
+          <div className="text-[10px] text-muted-foreground">
             {most ? `${most.count} visit${most.count === 1 ? "" : "s"}` : "no visits yet"}
           </div>
         </Link>
         <Link
           to="/admin/field-sense"
           search={{ range: "this_month", highlight: "least" }}
-          className="group rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-rose-200/60"
+          className="group rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-rose-200/50 dark:ring-rose-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Least visited (mo)</div>
-          <div className="mt-1 truncate text-sm font-semibold text-foreground">{least?.u.customer_name ?? "—"}</div>
-          <div className="text-[11px] text-muted-foreground">
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Least visited</div>
+          <div className="mt-0.5 truncate text-[13px] font-semibold text-foreground">{least?.u.customer_name ?? "—"}</div>
+          <div className="text-[10px] text-muted-foreground">
             {least ? `${least.count} visit${least.count === 1 ? "" : "s"}` : "no visits yet"}
           </div>
         </Link>
         <Link
           to="/admin/field-sense"
           search={{ range: "this_month", highlight: "unvisited" }}
-          className="group rounded-2xl border border-border/60 bg-card px-3 py-3 shadow-sm ring-1 ring-slate-200/60"
+          className="group rounded-xl border border-border/60 bg-card px-3 py-2.5 shadow-sm ring-1 ring-slate-200/60 dark:ring-slate-400/15"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Not visited (mo)</div>
-          <div className="mt-1 font-display text-xl font-bold tabular-nums text-foreground">{unvisitedCount}</div>
-          <div className="text-[11px] text-muted-foreground">of {scopedUnits.length} units</div>
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Not visited</div>
+          <div className="mt-0.5 font-display text-base font-bold tabular-nums text-foreground sm:text-lg">
+            {unvisitedCount}
+            <span className="ml-1 text-[10px] font-medium text-muted-foreground">of {scopedUnits.length}</span>
+          </div>
         </Link>
       </div>
     </section>
   );
 }
+
 
 
 
@@ -868,33 +868,30 @@ function UnitRow({ unit, allUnits }: { unit: UnitNode; allUnits: UnitNode[] }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition hover:bg-secondary/40 sm:gap-4 sm:px-6 sm:py-4"
+        className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left transition hover:bg-secondary/40 sm:px-4"
       >
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent sm:h-8 sm:w-8 sm:rounded-xl">
-            {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-accent/10 text-accent">
+            {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
           </span>
           <div className="min-w-0">
-            <div className="flex items-center gap-2 truncate text-[13px] font-semibold sm:text-sm">
+            <div className="flex items-center gap-1.5 truncate text-[13px] font-semibold">
               {unit.name}
               {unit.is_primary && (
-                <span className="inline-flex rounded-full bg-emerald-500/15 dark:bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Primary</span>
+                <span className="inline-flex rounded-full bg-emerald-500/15 dark:bg-emerald-400/20 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Primary</span>
               )}
             </div>
-            <div className="truncate text-[11px] text-muted-foreground sm:text-xs">{unit.customer_name} · <span className="font-mono">{unit.code}</span></div>
+            <div className="truncate text-[11px] text-muted-foreground">{unit.customer_name} · <span className="font-mono">{unit.code}</span></div>
           </div>
         </div>
-        <div className="hidden shrink-0 items-center gap-2 text-[11px] font-medium sm:flex">
-          <Pill tone="slate" value={total} label="team" />
-        </div>
+        <span className="shrink-0 rounded-full bg-secondary/70 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
+          {total} team
+        </span>
       </button>
       {open && (
-        <div className="space-y-3 border-t border-border/40 bg-secondary/20 px-3.5 py-3 sm:px-6 sm:py-4">
-          <div className="flex gap-2 sm:hidden">
-            <Pill tone="slate" value={total} label="team" />
-          </div>
+        <div className="space-y-2.5 border-t border-border/40 bg-secondary/20 px-3.5 py-3 sm:px-4">
           {unit.co_field_officers.length > 0 && (
-            <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-2">
+            <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-2.5 py-1.5">
               <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
                 <UserCog className="h-3 w-3" /> Also on this unit ({unit.co_field_officers.length})
               </div>
@@ -911,34 +908,30 @@ function UnitRow({ unit, allUnits }: { unit: UnitNode; allUnits: UnitNode[] }) {
             </div>
           )}
           {unit.guards.length === 0 ? (
-            <div className="py-2 text-sm text-muted-foreground">No active employees on this unit yet.</div>
+            <div className="py-1 text-[12px] text-muted-foreground">No active employees on this unit yet.</div>
           ) : (
-            <table className="ios-table min-w-full table-auto text-sm">
-              <thead className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-                <tr><th className="py-2 pr-4">Name</th><th className="py-2 pr-4">Designation</th><th className="py-2 text-right">Units</th></tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {unit.guards.map((g) => (
-                  <tr key={g.id}>
-                    <td className="py-2 pr-4 font-medium">{g.full_name}</td>
-                    <td className="py-2 pr-4 text-muted-foreground">{g.designation}</td>
-                    <td className="py-2 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 gap-1 rounded-full px-2 text-[11px]"
-                        onClick={() => setManageGuard(g)}
-                      >
-                        <MoveRight className="h-3 w-3" /> Manage units
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ul className="divide-y divide-border/40 overflow-hidden rounded-lg border border-border/50 bg-card">
+              {unit.guards.map((g) => (
+                <li key={g.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-semibold text-foreground">{g.full_name}</div>
+                    <div className="truncate text-[11px] text-muted-foreground">{g.designation}</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 shrink-0 gap-1 rounded-full px-2 text-[11px]"
+                    onClick={() => setManageGuard(g)}
+                  >
+                    <MoveRight className="h-3 w-3" /> Manage
+                  </Button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}
+
       <ManageGuardUnitsDialog
         guard={manageGuard}
         currentUnitId={unit.id}
