@@ -1181,8 +1181,15 @@ function EmployeesPage() {
 
   const deleteMut = useMutation({
     mutationFn: async (c: CandidateListItem) => {
-      const { error } = await supabase.from("candidates" as never).delete().eq("id", c.id);
+      const { data, error } = await supabase
+        .from("candidates" as never)
+        .delete()
+        .eq("id", c.id)
+        .select("id");
       if (error) throw error;
+      if (!data || (data as unknown as { id: string }[]).length === 0) {
+        throw new Error("You don't have permission to delete this candidate.");
+      }
       await logActivity({
         module: "Employees",
         action: "delete",
