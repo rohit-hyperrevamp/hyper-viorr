@@ -281,6 +281,20 @@ export type OffboardingDetails = {
   collection_completed_by?: string | null;
 };
 
+export type OnboardingDetails = {
+  // Onboarding-issuance handshake with the Field Officer.
+  // Mirrors offboarding: on approval, if assets are assigned and a FO is
+  // resolvable, the candidate stays at status='approved' until the FO
+  // confirms issuance in Uniform Manager → Collections → Issuances.
+  pending_issuance_fo_id?: string | null;
+  pending_issuance_fo_name?: string | null;
+  issuance_status?: "pending" | "completed" | null;
+  issuance_requested_at?: string | null;
+  issuance_completed_at?: string | null;
+  issuance_completed_by?: string | null;
+  issuance_asset_ids?: string[];
+};
+
 
 type CandidateExperience = {
   company_name: string;
@@ -332,7 +346,7 @@ type CandidateListItem = Pick<
   | "unit_id"
   | "designation_id"
   | "status"
-> & { employee_code: string; role_key: string; is_enabled: boolean; reports_to: string | null; offboarding_reason_id: string | null; offboarded_at: string | null; assigned_asset_ids: string[]; no_hire: boolean; offboarding_details: OffboardingDetails; date_of_birth: string | null; preferred_joining_date: string | null; approved_at: string | null; created_by: string | null; created_at: string | null; updated_at: string | null };
+> & { employee_code: string; role_key: string; is_enabled: boolean; reports_to: string | null; offboarding_reason_id: string | null; offboarded_at: string | null; assigned_asset_ids: string[]; no_hire: boolean; offboarding_details: OffboardingDetails; onboarding_details: OnboardingDetails; date_of_birth: string | null; preferred_joining_date: string | null; approved_at: string | null; created_by: string | null; created_at: string | null; updated_at: string | null };
 
 type ReactivationResult = {
   id: string;
@@ -487,7 +501,7 @@ function useCandidates() {
       const { data, error } = await runWithQueryTimeout("Employees", async (signal) =>
         await supabase
           .from("candidates" as never)
-          .select("id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,status,role_key,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at")
+          .select("id,candidate_code,employee_code,rejection_reason,aadhaar_number,full_name,photo_url,mobile,email,unit_id,designation_id,status,role_key,is_enabled,reports_to,offboarding_reason_id,offboarded_at,assigned_asset_ids,no_hire,offboarding_details,onboarding_details,date_of_birth,preferred_joining_date,approved_at,created_by,created_at,updated_at")
           .order("created_at", { ascending: false })
           .limit(250)
           .abortSignal(signal),
@@ -1686,16 +1700,69 @@ function EmployeesPage() {
 
   const approveMut = useMutation({
     mutationFn: async (c: CandidateListItem) => {
+      // Onboarding-issuance handshake (mirrors offboarding-collection):
+      // If the candidate has assets to be issued and a Field Officer we can
+      // resolve, we mark them "approved" with a pending-issuance flag. The FO
+      // then confirms hand-over in Uniform Manager → Collections → Issuances,
+      // which flips the row to "active".
+      const guardRoles = new Set(["guard", "security_guard"]);
+      const hasAssets = Array.isArray(c.assigned_asset_ids) && c.assigned_asset_ids.length > 0;
+      const isGuardRole = guardRoles.has((c.role_key || "").toLowerCase());
+
+      let foCandidateId: string | null = c.reports_to;
+      if (!foCandidateId && c.unit_id) {
+        try {
+          const { data: cu } = await supabase
+            .from("candidate_units" as never)
+            .select("candidate_id, candidates:candidate_id(role_key,status)")
+            .eq("unit_id", c.unit_id);
+          const first = ((cu as unknown) as Array<{ candidate_id: string; candidates: { role_key?: string; status?: string } | null }> | null)
+            ?.find((r) => r.candidates?.role_key === "field_officer" && ["active", "approved"].includes(String(r.candidates?.status ?? "")));
+          foCandidateId = first?.candidate_id ?? null;
+        } catch { /* ignore */ }
+      }
+
+      let foUserId: string | null = null;
+      let foName = "";
+      if (foCandidateId) {
+        try {
+          const { data: uid } = await supabase.rpc("get_user_id_by_candidate" as never, { _candidate_id: foCandidateId } as never);
+          foUserId = uid ? String(uid) : null;
+        } catch { /* ignore */ }
+        try {
+          const { data: foRow } = await supabase
+            .from("candidates" as never)
+            .select("full_name")
+            .eq("id", foCandidateId)
+            .maybeSingle();
+          foName = String(((foRow as { full_name?: string } | null)?.full_name) ?? "");
+        } catch { /* ignore */ }
+      }
+
+      const deferForIssuance = hasAssets && isGuardRole && !!foUserId;
+
+      const nextStatus = deferForIssuance ? "approved" : "active";
+      const nextOnboardingDetails: OnboardingDetails = deferForIssuance
+        ? {
+            pending_issuance_fo_id: foUserId,
+            pending_issuance_fo_name: foName || null,
+            issuance_status: "pending",
+            issuance_requested_at: new Date().toISOString(),
+            issuance_asset_ids: c.assigned_asset_ids ?? [],
+          }
+        : {};
+
       const { data, error } = await supabase
         .from("candidates" as never)
         .update({
-          status: "active",
+          status: nextStatus,
           is_enabled: true,
           rejection_reason: "",
           rejected_at: null,
           offboarding_reason_id: null,
           offboarded_at: null,
           offboarding_details: {},
+          onboarding_details: nextOnboardingDetails,
         } as unknown as never)
         .eq("id", c.id)
         .select("id,employee_code,full_name")
@@ -1706,20 +1773,12 @@ function EmployeesPage() {
       // Fire-and-forget: activity log + notifications should not block the UI.
       void (async () => {
         try {
-          // Resolve rich context for a warm welcome notification.
           const unit = c.unit_id ? unitMap.get(c.unit_id) : undefined;
           const unitName = unit?.name ?? "";
           const clientName = unit?.customer_name ?? "";
           const desig = c.designation_id ? desigMap.get(c.designation_id) : undefined;
           const desigName = desig?.name ?? "";
           const joinDate = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
-          let foName = "";
-          if (c.created_by) {
-            try {
-              const { data: fo } = await supabase.rpc("get_user_display_name" as never, { _user_id: c.created_by } as never);
-              foName = String((fo as string | null) ?? "");
-            } catch { /* ignore */ }
-          }
           let empUserId: string | null = null;
           try {
             const { data: uid } = await supabase.rpc("get_user_id_by_candidate" as never, { _candidate_id: c.id } as never);
@@ -1735,17 +1794,16 @@ function EmployeesPage() {
             empCode ? `• Employee ID: ${empCode}` : null,
             desigName ? `• Designation: ${desigName}` : null,
             unitName ? `• Job Location: ${unitName}${clientName ? ` (${clientName})` : ""}` : null,
-            unitName ? `• Unit: ${unitName}` : null,
             `• Date of Joining: ${joinDate}`,
             foName ? `• Field Officer: ${foName}` : null,
             "",
             "Thank you for choosing to grow with us — wishing you a proud, safe, and successful journey ahead. 🎉",
           ].filter(Boolean).join("\n");
 
-          await Promise.allSettled([
+          const tasks: Array<Promise<unknown>> = [
             logActivity({
               module: "Employees",
-              action: "approve",
+              action: deferForIssuance ? "approve_awaiting_issuance" : "approve",
               entityType: "candidate",
               entityId: c.id,
               entityLabel: c.full_name || c.aadhaar_number,
@@ -1753,8 +1811,10 @@ function EmployeesPage() {
             }),
             notifyOnboardingApprovers({
               type: "candidate_approved",
-              title: "Candidate approved",
-              message: `${label} was approved${empCode ? ` (${empCode})` : ""}.`,
+              title: deferForIssuance ? "Candidate approved — awaiting issuance" : "Candidate approved",
+              message: deferForIssuance
+                ? `${label} approved${empCode ? ` (${empCode})` : ""} — waiting for ${foName || "Field Officer"} to issue assets.`
+                : `${label} was approved${empCode ? ` (${empCode})` : ""}.`,
               link: "/admin/employees",
               entityType: "candidate",
               entityId: c.id,
@@ -1762,33 +1822,55 @@ function EmployeesPage() {
             c.created_by
               ? notifyUser(c.created_by, {
                   type: "candidate_approved",
-                  title: "Your candidate was approved",
-                  message: `${label} was approved${empCode ? ` — Employee Code ${empCode}` : ""}.`,
-                  link: "/admin/employees",
+                  title: deferForIssuance ? "Candidate approved — awaiting your issuance" : "Your candidate was approved",
+                  message: deferForIssuance
+                    ? `${label} approved${empCode ? ` — ${empCode}` : ""}. Issue assets in Uniform Manager → Collections → Issuances to activate.`
+                    : `${label} was approved${empCode ? ` — Employee Code ${empCode}` : ""}.`,
+                  link: deferForIssuance ? "/admin/inventory/collections" : "/admin/employees",
                   entityType: "candidate",
                   entityId: c.id,
                 })
               : Promise.resolve(),
-            empUserId
-              ? createNotification({
-                  userId: empUserId,
-                  type: "welcome_onboarded",
-                  title: welcomeTitle,
-                  message: welcomeLines,
-                  link: "/admin/employee-dashboard",
-                  entityType: "candidate",
-                  entityId: c.id,
-                })
-              : Promise.resolve(),
-          ]);
+          ];
+
+          if (deferForIssuance && foUserId) {
+            tasks.push(
+              notifyUser(foUserId, {
+                type: "candidate_issuance_pending",
+                title: "Issue assets to new employee",
+                message: `${label}${empCode ? ` (${empCode})` : ""} is approved. Please issue the assigned assets to activate their account.`,
+                link: "/admin/inventory/collections",
+                entityType: "candidate",
+                entityId: c.id,
+              }),
+            );
+          } else if (empUserId) {
+            tasks.push(
+              createNotification({
+                userId: empUserId,
+                type: "welcome_onboarded",
+                title: welcomeTitle,
+                message: welcomeLines,
+                link: "/admin/employee-dashboard",
+                entityType: "candidate",
+                entityId: c.id,
+              }),
+            );
+          }
+
+          await Promise.allSettled(tasks);
         } catch (e) {
           console.error("post-approve side effects failed", e);
         }
       })();
-      return data as { employee_code: string };
+      return { ...(data as { employee_code: string }), deferForIssuance, foName };
     },
     onSuccess: (data) => {
-      toast.success(`Approved — ${data?.employee_code ?? "Employee code assigned"}`);
+      if (data?.deferForIssuance) {
+        toast.success(`Approved — awaiting ${data.foName || "Field Officer"} to issue assets`);
+      } else {
+        toast.success(`Approved — ${data?.employee_code ?? "Employee code assigned"}`);
+      }
       qc.invalidateQueries({ queryKey: QK });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Approve failed"),
@@ -1925,12 +2007,17 @@ function EmployeesPage() {
         c.offboarding_details?.collection_status === "pending" &&
         !!c.offboarding_details?.pending_collection_fo_id;
       const pendingFoName = c.offboarding_details?.pending_collection_fo_name;
+      const isPendingIssuance =
+        c.onboarding_details?.issuance_status === "pending" &&
+        !!c.onboarding_details?.pending_issuance_fo_id;
+      const pendingIssuanceFoName = c.onboarding_details?.pending_issuance_fo_name;
       return (
         <tr key={c.id} className={cn(
           "group transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-500/5",
           isDisabled && "opacity-60",
-          isPendingOffboarding && "bg-amber-500/[0.04] hover:bg-amber-500/[0.07]"
+          (isPendingOffboarding || isPendingIssuance) && "bg-amber-500/[0.04] hover:bg-amber-500/[0.07]"
         )}>
+
           <td className="px-2.5 py-2.5 align-top">
             <span className="inline-flex items-center whitespace-nowrap rounded-md bg-secondary px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wide tabular-nums text-muted-foreground">
               {code}
@@ -2116,6 +2203,15 @@ function EmployeesPage() {
                   >
                     <Clock className="h-3 w-3" />
                     <span className="hidden sm:inline">Awaiting collection</span>
+                  </span>
+                )}
+                {isPendingIssuance && (
+                  <span
+                    className="inline-flex shrink-0 cursor-help items-center gap-1 rounded-full border border-sky-300/70 bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-300"
+                    title={`Approved — awaiting Field Officer${pendingIssuanceFoName ? ` (${pendingIssuanceFoName})` : ""} to issue assets. Activates once issuance is confirmed.`}
+                  >
+                    <Clock className="h-3 w-3" />
+                    <span className="hidden sm:inline">Awaiting issuance</span>
                   </span>
                 )}
                 {mode === "employee" && columnsVisible.active && (
@@ -2353,6 +2449,10 @@ function EmployeesPage() {
             c.offboarding_details?.collection_status === "pending" &&
             !!c.offboarding_details?.pending_collection_fo_id;
           const pendingFoName = c.offboarding_details?.pending_collection_fo_name;
+          const isPendingIssuance =
+            c.onboarding_details?.issuance_status === "pending" &&
+            !!c.onboarding_details?.pending_issuance_fo_id;
+          const pendingIssuanceFoName = c.onboarding_details?.pending_issuance_fo_name;
           const editLocked = c.status === "inactive" && !canEditInactiveProfile;
           const lockedTitle = "Inactive profile — only leadership or super admin can edit.";
           const roleName = rolesList.find((r) => r.key === c.role_key)?.name ?? c.role_key ?? "No role";
@@ -2431,6 +2531,15 @@ function EmployeesPage() {
                 >
                   <Clock className="h-3 w-3 shrink-0" />
                   <span className="truncate">Awaiting collection{pendingFoName ? ` · ${pendingFoName}` : ""}</span>
+                </div>
+              )}
+              {isPendingIssuance && (
+                <div
+                  className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full border border-sky-300/70 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-300"
+                  title={`Approved — awaiting Field Officer${pendingIssuanceFoName ? ` (${pendingIssuanceFoName})` : ""} to issue assets. Activates once issuance is confirmed.`}
+                >
+                  <Clock className="h-3 w-3 shrink-0" />
+                  <span className="truncate">Awaiting issuance{pendingIssuanceFoName ? ` · ${pendingIssuanceFoName}` : ""}</span>
                 </div>
               )}
 
