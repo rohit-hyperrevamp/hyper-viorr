@@ -33,6 +33,9 @@ export const Route = createFileRoute("/admin/inventory/issuances")({
 
 const MODULE = "Inventory Issuances";
 const ENTITY = "inv_issuances";
+// Stable empty fallback: a fresh `new Map()` default would change identity on
+// every render and re-trigger effects that depend on it (infinite update loop).
+const EMPTY_STOCK_MAP: Map<string, number> = new Map();
 
 type Issuance = {
   id: string; issuance_number: string; issuance_type: string; issuance_date: string; status: string;
@@ -447,7 +450,7 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
   }, [guards, isFieldOfficer, me, currentUserId]);
 
   // Available stock at the source location
-  const { data: stockMap = new Map<string, number>() } = useQuery({
+  const { data: stockMap = EMPTY_STOCK_MAP } = useQuery({
     queryKey: ["inv", "stock-balances", meta.source, sourceId],
     enabled: !!sourceId && isDraft,
     queryFn: async () => {
@@ -499,7 +502,7 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
     const ids = normalizeIdArray(guard.onboarding_details.issuance_asset_ids ?? guard.assigned_asset_ids)
       .filter((id) => itemMap.has(id));
     if (ids.length === 0) return;
-    setLines(ids.map((id) => {
+    const next: Line[] = ids.map((id) => {
       const inStock = stockMap.get(`${id}|`) ?? 0;
       return {
         item_id: id,
@@ -507,7 +510,15 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
         qty: inStock > 0 ? 1 : 0,
         requested_qty: 1,
       };
-    }));
+    });
+    // Bail out when nothing actually changes — otherwise every render would
+    // set a brand-new array and loop forever ("Maximum update depth exceeded").
+    setLines((prev) => {
+      const same =
+        prev.length === next.length &&
+        prev.every((p, idx) => p.item_id === next[idx].item_id && p.qty === next[idx].qty && p.size_value === next[idx].size_value);
+      return same ? prev : next;
+    });
   }, [open, initial, isDraft, demandId, meta.dest, destId, candById, itemMap, stockMap]);
 
   useResetOnOpen(open, async () => {
