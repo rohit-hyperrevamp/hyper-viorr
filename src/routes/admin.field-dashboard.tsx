@@ -30,6 +30,8 @@ import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { MyLiveStatusCard } from "@/components/MyLiveStatusCard";
 import { cn } from "@/lib/utils";
 import { ListSkeleton } from "@/components/Skeletons";
+import { RADIANT_BILLING_UNIT_ID } from "@/lib/business-constants";
+import { UserCog } from "lucide-react";
 
 
 
@@ -38,6 +40,7 @@ export const Route = createFileRoute("/admin/field-dashboard")({
 });
 
 type Guard = { id: string; full_name: string; designation: string };
+type CoFo = { id: string; full_name: string; employee_code: string | null };
 type UnitNode = {
   id: string;
   code: string;
@@ -45,6 +48,7 @@ type UnitNode = {
   customer_name: string;
   is_primary: boolean;
   guards: Guard[];
+  co_field_officers: CoFo[];
   pending_onboarding: number;
   open_demands: number;
   inventory_items: number;
@@ -116,14 +120,35 @@ function FieldOfficerDashboard() {
 
       if (!meId) return empty;
 
-      const [scopeRes, cuRes] = await Promise.all([
-        supabase.from("employee_scope_assignments").select("scope_id,scope_type").eq("candidate_id", meId).eq("scope_type", "unit"),
+      const [scopeRes, cuRes, allUnitsRes] = await Promise.all([
+        supabase.from("employee_scope_assignments").select("scope_id,scope_type").eq("candidate_id", meId),
         supabase.from("candidate_units").select("unit_id,is_primary").eq("candidate_id", meId),
+        supabase.from("units").select("id,code,name,customer_id,branch_id"),
       ]);
-      const scopeUnitIds = ((scopeRes.data ?? []) as Array<{ scope_id: string }>).map((r) => r.scope_id);
+      const scopeRows = ((scopeRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>);
+      const scopeUnitIds = scopeRows.filter((r) => r.scope_type === "unit").map((r) => r.scope_id);
+      const scopeBranchIds = new Set(scopeRows.filter((r) => r.scope_type === "branch").map((r) => r.scope_id));
+      const scopeCustomerIds = new Set(scopeRows.filter((r) => r.scope_type === "customer").map((r) => r.scope_id));
       const legacyUnits = ((cuRes.data ?? []) as Array<{ unit_id: string; is_primary: boolean }>);
       const primaryMap = new Map(legacyUnits.map((r) => [r.unit_id, r.is_primary]));
-      const unitIds = Array.from(new Set([...scopeUnitIds, ...legacyUnits.map((r) => r.unit_id)]));
+      const allUnitsRaw = ((allUnitsRes.data ?? []) as Array<{ id: string; code: string; name: string; customer_id: string | null; branch_id: string | null }>);
+      // Merge every mechanism: candidate.unit_id (home) + candidate_units + esa unit
+      // + esa branch expansion + esa customer expansion. Radiant Pune home unit
+      // is excluded from the "My units" panel since it's a payroll marker, not
+      // an operational client site.
+      const unitIdSet = new Set<string>();
+      const meUnitId = (me as { unit_id?: string | null } | null)?.unit_id ?? null;
+      if (meUnitId) unitIdSet.add(meUnitId);
+      for (const r of legacyUnits) unitIdSet.add(r.unit_id);
+      for (const id of scopeUnitIds) unitIdSet.add(id);
+      if (scopeBranchIds.size || scopeCustomerIds.size) {
+        for (const u of allUnitsRaw) {
+          if (u.branch_id && scopeBranchIds.has(u.branch_id)) unitIdSet.add(u.id);
+          if (u.customer_id && scopeCustomerIds.has(u.customer_id)) unitIdSet.add(u.id);
+        }
+      }
+      unitIdSet.delete(RADIANT_BILLING_UNIT_ID);
+      const unitIds = Array.from(unitIdSet);
 
       let guardQuery = supabase
         .from("candidates")
@@ -147,7 +172,51 @@ function FieldOfficerDashboard() {
       }
       for (const g of guardList) {
         const uid = g.unit_id ?? guardScopeUnit.get(g.id) ?? null;
-        if (uid && !unitIds.includes(uid)) unitIds.push(uid);
+        if (uid && uid !== RADIANT_BILLING_UNIT_ID && !unitIds.includes(uid)) unitIds.push(uid);
+      }
+
+      // Co-field-officers: other FOs mapped to any of our unitIds via candidate_units,
+      // esa unit, esa branch, or esa customer. Used to show peer coverage on each unit.
+      const coFoByUnit = new Map<string, CoFo[]>();
+      if (unitIds.length) {
+        const [foRes, foCuRes, foEsaRes] = await Promise.all([
+          supabase
+            .from("candidates")
+            .select("id,full_name,employee_code,unit_id,role_key,status,is_enabled")
+            .eq("role_key", "field_officer")
+            .in("status", ["active", "approved"])
+            .eq("is_enabled", true),
+          supabase.from("candidate_units").select("candidate_id,unit_id"),
+          supabase.from("employee_scope_assignments").select("candidate_id,scope_id,scope_type"),
+        ]);
+        const fos = ((foRes.data ?? []) as Array<{ id: string; full_name: string; employee_code: string | null; unit_id: string | null }>).filter((f) => f.id !== meId);
+        const foMap = new Map(fos.map((f) => [f.id, f]));
+        const foCu = ((foCuRes.data ?? []) as Array<{ candidate_id: string; unit_id: string }>);
+        const foEsa = ((foEsaRes.data ?? []) as Array<{ candidate_id: string; scope_id: string; scope_type: string }>);
+        const unitById = new Map(allUnitsRaw.map((u) => [u.id, u]));
+        for (const uid of unitIds) {
+          const u = unitById.get(uid);
+          if (!u) continue;
+          const mapped = new Set<string>();
+          for (const f of fos) if (f.unit_id === uid) mapped.add(f.id);
+          for (const r of foCu) if (r.unit_id === uid && foMap.has(r.candidate_id)) mapped.add(r.candidate_id);
+          for (const r of foEsa) {
+            if (!foMap.has(r.candidate_id)) continue;
+            if (r.scope_type === "unit" && r.scope_id === uid) mapped.add(r.candidate_id);
+            if (r.scope_type === "branch" && u.branch_id && r.scope_id === u.branch_id) mapped.add(r.candidate_id);
+            if (r.scope_type === "customer" && u.customer_id && r.scope_id === u.customer_id) mapped.add(r.candidate_id);
+          }
+          if (mapped.size) {
+            coFoByUnit.set(
+              uid,
+              Array.from(mapped)
+                .map((id) => foMap.get(id)!)
+                .filter(Boolean)
+                .map((f) => ({ id: f.id, full_name: f.full_name, employee_code: f.employee_code }))
+                .sort((a, b) => a.full_name.localeCompare(b.full_name)),
+            );
+          }
+        }
       }
 
       const [unitsRes, custRes, mineRes, desigsRes, codesRes] = await Promise.all([
@@ -249,6 +318,7 @@ function FieldOfficerDashboard() {
         customer_name: (u.customer_id && custMap.get(u.customer_id)) || "—",
         is_primary: primaryMap.get(u.id) ?? false,
         guards: guardsByUnit.get(u.id) ?? [],
+        co_field_officers: coFoByUnit.get(u.id) ?? [],
         pending_onboarding: pendingByUnit.get(u.id) ?? 0,
         open_demands: demandsByUnit.get(u.id) ?? 0,
         inventory_items: inventoryByUnit.get(u.id) ?? 0,
@@ -259,7 +329,7 @@ function FieldOfficerDashboard() {
       if (orphaned.length || orphPending) {
         units.push({
           id: UNASSIGNED, code: "—", name: "Unassigned", customer_name: "Map these to a unit",
-          is_primary: false, guards: orphaned, pending_onboarding: orphPending,
+          is_primary: false, guards: orphaned, co_field_officers: [], pending_onboarding: orphPending,
           open_demands: demandsByUnit.get(UNASSIGNED) ?? 0, inventory_items: inventoryByUnit.get(UNASSIGNED) ?? 0,
         });
       }
@@ -816,6 +886,23 @@ function UnitRow({ unit }: { unit: UnitNode }) {
           <div className="flex gap-2 sm:hidden">
             <Pill tone="slate" value={total} label="team" />
           </div>
+          {unit.co_field_officers.length > 0 && (
+            <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-2">
+              <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
+                <UserCog className="h-3 w-3" /> Also on this unit ({unit.co_field_officers.length})
+              </div>
+              <ul className="space-y-0.5">
+                {unit.co_field_officers.map((f) => (
+                  <li key={f.id} className="flex items-center gap-2 text-[12px]">
+                    <span className="font-medium text-foreground">{f.full_name}</span>
+                    {f.employee_code && (
+                      <span className="font-mono text-[10px] text-muted-foreground">{f.employee_code}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {unit.guards.length === 0 ? (
             <div className="py-2 text-sm text-muted-foreground">No active employees on this unit yet.</div>
           ) : (
