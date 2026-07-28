@@ -1699,7 +1699,23 @@ function EmployeesPage() {
   const [scopeTarget, setScopeTarget] = useState<CandidateListItem | null>(null);
 
   const approveMut = useMutation({
-    mutationFn: async (c: CandidateListItem) => {
+    mutationFn: async (cIn: CandidateListItem) => {
+      // Refetch the candidate live — the list snapshot can be stale on
+      // assigned_asset_ids / reports_to / unit_id, which silently skipped
+      // the issuance handshake and the FO push.
+      let c: CandidateListItem = cIn;
+      try {
+        const { data: fresh } = await supabase
+          .from("candidates" as never)
+          .select("id,full_name,role_key,unit_id,reports_to,assigned_asset_ids,aadhaar_number,designation_id,created_by")
+          .eq("id", cIn.id)
+          .maybeSingle();
+        if (fresh) {
+          const f = fresh as Partial<CandidateListItem>;
+          c = { ...cIn, ...f, assigned_asset_ids: (f.assigned_asset_ids as string[]) ?? cIn.assigned_asset_ids ?? [] };
+        }
+      } catch { /* fall back to snapshot */ }
+
       // Onboarding-issuance handshake (mirrors offboarding-collection):
       // If the candidate has assets to be issued and a Field Officer we can
       // resolve, we mark them "approved" with a pending-issuance flag. The FO
