@@ -1409,6 +1409,8 @@ export type Database = {
           min_duty: number
           per_day_amount: number | null
           qty: number | null
+          source_kind: string
+          source_ref: string
           status: string
           updated_at: string
         }
@@ -1432,6 +1434,8 @@ export type Database = {
           min_duty?: number
           per_day_amount?: number | null
           qty?: number | null
+          source_kind?: string
+          source_ref?: string
           status?: string
           updated_at?: string
         }
@@ -1455,6 +1459,8 @@ export type Database = {
           min_duty?: number
           per_day_amount?: number | null
           qty?: number | null
+          source_kind?: string
+          source_ref?: string
           status?: string
           updated_at?: string
         }

@@ -57,6 +57,7 @@ type Deduction = {
   max_duty?: number;
   description: string;
   status: Status;
+  source_kind?: string | null;
   entry_mode?: EntryMode;
   days?: number | null;
   per_day_amount?: number | null;
@@ -241,7 +242,7 @@ function DeductionList() {
     queryFn: async (): Promise<Deduction[]> => {
       const { data, error } = await supabase
         .from("deductions" as never)
-        .select("id,candidate_id,deduction_type_id,deduction_date,deduction_name,calculation_type,amount,installments,description,status,min_duty,max_duty")
+        .select("id,candidate_id,deduction_type_id,deduction_date,deduction_name,calculation_type,amount,installments,description,status,min_duty,max_duty,source_kind")
         .order("deduction_date", { ascending: false });
       if (error) throw error;
       return (data as unknown) as Deduction[];
@@ -372,7 +373,19 @@ function DeductionList() {
                     </td>
                     <td className="px-5 py-3"><span className="inline-flex items-center gap-1.5"><Coins className="h-3.5 w-3.5 text-muted-foreground" />{type?.name ?? "—"}</span></td>
                     <td className="px-5 py-3 text-muted-foreground">{i.deduction_date}</td>
-                    <td className="px-5 py-3">{i.deduction_name}</td>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex items-center gap-1.5">
+                        {i.deduction_name}
+                        {i.source_kind === "issuance" && (
+                          <span
+                            title={i.description}
+                            className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                          >
+                            Auto · Issued
+                          </span>
+                        )}
+                      </span>
+                    </td>
                     <td className="px-5 py-3 text-right tabular-nums">{fmtINR(Number(i.amount))}</td>
                     <td className="px-5 py-3 text-right tabular-nums">{i.installments}</td>
                     <td className="px-5 py-3">
