@@ -104,14 +104,14 @@ export async function fetchTodayPunch(candidateId: string): Promise<SelfPunch | 
   return (data as SelfPunch | null) ?? null;
 }
 
-export async function checkIn(candidateId: string, geo: Geo, faceVerified: boolean, unitId?: string | null): Promise<SelfPunch> {
+export async function checkIn(candidateId: string, geo: Geo | null, faceVerified: boolean, unitId?: string | null): Promise<SelfPunch> {
   const row: Record<string, unknown> = {
     candidate_id: candidateId,
     punch_date: today(),
     check_in_at: new Date().toISOString(),
-    check_in_lat: geo.lat,
-    check_in_lng: geo.lng,
-    check_in_accuracy: geo.accuracy,
+    check_in_lat: geo?.lat ?? null,
+    check_in_lng: geo?.lng ?? null,
+    check_in_accuracy: geo?.accuracy ?? null,
     check_in_face_verified: faceVerified,
   };
   if (unitId) row.unit_id = unitId;
