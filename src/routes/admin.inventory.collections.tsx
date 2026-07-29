@@ -112,7 +112,10 @@ function CollectionsPanel({ me }: { me: Candidate }) {
         .eq("status", "active")
         .order("full_name");
       if (error) throw error;
-      return (data as unknown as Candidate[]) ?? [];
+      const rows = (data as unknown as Candidate[]) ?? [];
+      // One row per guard, even if the underlying query ever returns repeats.
+      return Array.from(new Map(rows.map((r) => [r.id, r])).values());
+
     },
   });
 
@@ -214,10 +217,13 @@ function CollectionsPanel({ me }: { me: Candidate }) {
     return m;
   }, [balances]);
 
-  // Group by unit
+  // Group by unit — a guard appears in exactly ONE block (their primary unit),
+  // never duplicated across unit groups.
   const grouped = useMemo(() => {
     const s = q.trim().toLowerCase();
-    const filteredGuards = guards.filter((g) => {
+    // Dedupe guards by id first (defensive: multi-unit joins can return repeats)
+    const uniqueGuards = Array.from(new Map(guards.map((g) => [g.id, g])).values());
+    const filteredGuards = uniqueGuards.filter((g) => {
       if (!s) return true;
       return g.full_name.toLowerCase().includes(s) || (g.employee_code ?? "").toLowerCase().includes(s) || (g.mobile ?? "").includes(s);
     });
@@ -226,7 +232,10 @@ function CollectionsPanel({ me }: { me: Candidate }) {
     if (!s) {
       for (const uid of coveredUnitIds) m.set(uid, []);
     }
+    const placed = new Set<string>();
     for (const g of filteredGuards) {
+      if (placed.has(g.id)) continue;
+      placed.add(g.id);
       const uid = guardUnitMap.get(g.id) ?? UNASSIGNED;
       const arr = m.get(uid) ?? [];
       arr.push(g);
@@ -239,6 +248,7 @@ function CollectionsPanel({ me }: { me: Candidate }) {
     out.sort((a, b) => (a.unit?.name ?? "zzz").localeCompare(b.unit?.name ?? "zzz"));
     return out;
   }, [guards, guardUnitMap, unitMap, q, coveredUnitIds]);
+
 
   const totalGuards = guards.length;
   const guardsWithStock = useMemo(() => guards.filter((g) => (balByGuard.get(g.id)?.length ?? 0) > 0).length, [guards, balByGuard]);
