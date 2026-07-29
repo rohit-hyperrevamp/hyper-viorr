@@ -32,7 +32,7 @@ import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
-import { RehirePipelineCard } from "@/components/RehirePipelineCard";
+import { RehirePipelineCard, RehireApprovalsCard } from "@/components/RehirePipelineCard";
 
 function PeopleInsightsSection() {
   const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights();
@@ -660,6 +660,8 @@ function DashboardPage() {
           ))
         )}
       </div>
+
+      <RehireApprovalsCard />
 
       {can("employees") && <RehirePipelineCard />}
 

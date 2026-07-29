@@ -1,8 +1,9 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { RefreshCw, UserCheck } from "lucide-react";
+import { RefreshCw, ShieldCheck, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUserRole } from "@/lib/use-current-user-role";
 import {
   fetchRehireRequests,
   fetchWorkflowByKey,
@@ -134,6 +135,74 @@ export function RehirePipelineCard({
             );
           })
         )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Requests whose CURRENT workflow step is assigned to the signed-in user's
+ * role — i.e. "this is sitting with you right now".
+ */
+export function useMyRehireApprovals() {
+  const { roleKey, isSuperAdmin, isLoading: roleLoading } = useCurrentUserRole();
+  const q = useRehirePipeline();
+  const steps = q.data?.steps ?? [];
+  const mine = (q.data?.pending ?? []).filter((r) => {
+    const step = stepByOrder(steps, r.current_step_order);
+    if (!step) return false;
+    return isSuperAdmin || (!!roleKey && step.approver_role_key === roleKey);
+  });
+  return { ...q, steps, mine, count: mine.length, isLoading: q.isLoading || roleLoading };
+}
+
+/** Amber "action required" card — only renders when something is with you. */
+export function RehireApprovalsCard() {
+  const { mine, steps, isLoading } = useMyRehireApprovals();
+  if (isLoading || mine.length === 0) return null;
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-amber-500/40 bg-amber-500/5 shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-amber-500/25 px-3.5 py-2.5 sm:px-4 sm:py-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-300">
+            <ShieldCheck className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="font-display text-sm font-bold text-foreground sm:text-base">Requires your approval</h2>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Rehire requests waiting on you right now.
+            </p>
+          </div>
+        </div>
+        <span className="shrink-0 rounded-full bg-amber-500/20 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-500/40 dark:text-amber-200">
+          {mine.length} pending
+        </span>
+      </div>
+
+      <div className="divide-y divide-amber-500/15">
+        {mine.map((r) => {
+          const step = stepByOrder(steps, r.current_step_order);
+          return (
+            <Link
+              key={r.id}
+              to="/admin/workflows/rehire"
+              search={{ request: r.id } as never}
+              className="flex items-center justify-between gap-3 px-3.5 py-2.5 transition-colors hover:bg-amber-500/10 sm:px-4"
+            >
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-foreground">{r.full_name || "—"}</div>
+                <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                  {r.request_number ? `${r.request_number} · ` : ""}
+                  {step?.name ?? `Step ${r.current_step_order}`}
+                </div>
+              </div>
+              <span className="shrink-0 rounded-full bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-white">
+                Review &amp; approve
+              </span>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

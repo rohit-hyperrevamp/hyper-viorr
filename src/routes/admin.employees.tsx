@@ -63,6 +63,7 @@ import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/R
 
 import { extractAadhaar, type AadhaarExtraction } from "@/lib/aadhaar.functions";
 import { logActivity } from "@/lib/activity-log";
+import { RehireApprovalsCard } from "@/components/RehirePipelineCard";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -2786,6 +2787,8 @@ function EmployeesPage() {
         description="Onboard and manage candidates joining client units."
         crumbs={[{ label: "Employees" }]}
       />
+
+      <RehireApprovalsCard />
 
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
         {(tab === "employee" && !isFieldOfficer
