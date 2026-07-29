@@ -6,6 +6,10 @@
 // Explicit full-type overrides (highest priority).
 const REDIRECT_TYPES = new Set<string>([
   "candidate_pending_approval",
+  "rehire_request_pending",
+  "rehire_request_progress",
+  "rehire_request_completed",
+  "rehire_request_rejected",
   "candidate_issuance_pending",
   "candidate_approved",
   "candidate_rejected",

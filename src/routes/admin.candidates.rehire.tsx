@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { confirmAction } from "@/components/ConfirmProvider";
+import { RehireEnableDialog } from "@/components/RehireEnableDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchRoles } from "@/lib/rbac";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
@@ -555,6 +556,8 @@ function RequestDialog({
   const isFinalStep =
     !!currentStep && steps.filter((s) => s.step_order > currentStep.step_order).length === 0;
 
+  const [enableOpen, setEnableOpen] = useState(false);
+
   const mut = useMutation({
     mutationFn: async (action: "approve" | "reject") => {
       if (!request) return;
@@ -707,13 +710,29 @@ function RequestDialog({
               >
                 Reject
               </Button>
-              <Button disabled={mut.isPending} onClick={() => mut.mutate("approve")}>
+              <Button
+                disabled={mut.isPending}
+                onClick={() => {
+                  if (isFinalStep) setEnableOpen(true);
+                  else mut.mutate("approve");
+                }}
+              >
                 {isFinalStep ? currentStep?.action_label || "Enable" : currentStep?.action_label || "Approve"}
               </Button>
             </>
           )}
         </DialogFooter>
       </DialogContent>
+
+      <RehireEnableDialog
+        request={enableOpen ? request : null}
+        notes={notes.trim()}
+        onClose={() => setEnableOpen(false)}
+        onDone={() => {
+          onDone();
+          onClose();
+        }}
+      />
     </Dialog>
   );
 }

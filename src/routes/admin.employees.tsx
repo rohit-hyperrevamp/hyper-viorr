@@ -64,7 +64,8 @@ import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/R
 import { extractAadhaar, type AadhaarExtraction } from "@/lib/aadhaar.functions";
 import { logActivity } from "@/lib/activity-log";
 import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
-import { actOnRehireRequest, type RehireRequest } from "@/lib/workflows";
+import { RehireEnableDialog } from "@/components/RehireEnableDialog";
+import { type RehireRequest } from "@/lib/workflows";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -2009,15 +2010,7 @@ function EmployeesPage() {
   // Rehire requests in flight, keyed by candidate — surfaced as a status chip
   // and (at the final workflow step) an inline "Enable" action.
   const { map: rehireByCandidate } = useRehireByCandidate();
-  const enableRehireMut = useMutation({
-    mutationFn: async (request: RehireRequest) => actOnRehireRequest({ request, action: "approve" }),
-    onSuccess: (res) => {
-      toast.success(res.employeeCode ? `Enabled · new employee ID ${res.employeeCode}` : "Rehire enabled");
-      qc.invalidateQueries({ queryKey: QK });
-      qc.invalidateQueries({ queryKey: ["rehire-pipeline"] });
-    },
-    onError: (e) => toast.error(getMutationErrorMessage(e, "Could not enable this rehire")),
-  });
+  const [enableRehireTarget, setEnableRehireTarget] = useState<RehireRequest | null>(null);
 
   const openEditor = async (candidateId: string) => {
     setOpeningCandidateId(candidateId);
@@ -2381,8 +2374,7 @@ function EmployeesPage() {
               {rehire?.isFinal && rehire.canAct && (
                 <Button
                   size="sm"
-                  onClick={() => enableRehireMut.mutate(rehire.request)}
-                  disabled={enableRehireMut.isPending}
+                  onClick={() => setEnableRehireTarget(rehire.request)}
                   className="h-8 rounded-full bg-violet-600 px-3 text-[11px] font-semibold text-white hover:bg-violet-700"
                   title="Enable this rehire and issue a new employee ID"
                 >
@@ -2638,8 +2630,7 @@ function EmployeesPage() {
                   {rehire.isFinal && rehire.canAct && (
                     <Button
                       size="sm"
-                      onClick={() => enableRehireMut.mutate(rehire.request)}
-                      disabled={enableRehireMut.isPending}
+                      onClick={() => setEnableRehireTarget(rehire.request)}
                       className="h-7 rounded-full bg-violet-600 px-3 text-[11px] font-semibold text-white hover:bg-violet-700"
                     >
                       Enable
@@ -2845,6 +2836,15 @@ function EmployeesPage() {
       />
 
       <RehireApprovalsCard />
+
+      <RehireEnableDialog
+        request={enableRehireTarget}
+        onClose={() => setEnableRehireTarget(null)}
+        onDone={() => {
+          qc.invalidateQueries({ queryKey: QK });
+          qc.invalidateQueries({ queryKey: ["rehire-pipeline"] });
+        }}
+      />
 
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
         {(tab === "employee" && !isFieldOfficer

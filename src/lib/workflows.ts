@@ -388,16 +388,30 @@ export async function createRehireRequest(input: {
   return request;
 }
 
-/** HR enablement — reactivates the person and stamps a brand new employee ID. */
-async function enableRehiredCandidate(request: RehireRequest): Promise<string> {
+/** HR enablement — reactivates the person, either keeping the old employee ID or stamping a new one. */
+async function enableRehiredCandidate(
+  request: RehireRequest,
+  keepEmployeeCode: boolean,
+): Promise<string> {
   const candidateId = request.new_candidate_id || request.previous_candidate_id;
   if (!candidateId) throw new Error("No employee record is linked to this rehire request.");
 
-  const { data: seq, error: seqErr } = await supabase.rpc("nextval" as never, {
-    sequence_name: "employee_code_seq",
-  } as never);
-  if (seqErr) throw seqErr;
-  const code = `EMP-${String(seq as unknown as number).padStart(3, "0")}`;
+  const { data: prev, error: prevErr } = await supabase
+    .from("candidates")
+    .select("employee_code")
+    .eq("id", candidateId)
+    .maybeSingle();
+  if (prevErr) throw prevErr;
+  const existingCode = ((prev as { employee_code?: string | null } | null)?.employee_code ?? "").trim();
+
+  let code = existingCode;
+  if (!keepEmployeeCode || !existingCode) {
+    const { data: seq, error: seqErr } = await supabase.rpc("nextval" as never, {
+      sequence_name: "employee_code_seq",
+    } as never);
+    if (seqErr) throw seqErr;
+    code = `EMP-${String(seq as unknown as number).padStart(3, "0")}`;
+  }
 
   const { error } = await supabase
     .from("candidates")
@@ -420,7 +434,10 @@ export async function actOnRehireRequest(input: {
   request: RehireRequest;
   action: "approve" | "reject";
   notes?: string;
+  /** Final (HR enablement) step only — reuse the previous employee ID instead of issuing a new one. */
+  keepEmployeeCode?: boolean;
 }): Promise<{ status: string; employeeCode?: string }> {
+
   const steps = await loadRehireSteps();
   const current = stepByOrder(steps, input.request.current_step_order);
   if (!current) throw new Error("This request's current step no longer exists in the workflow.");
@@ -471,7 +488,7 @@ export async function actOnRehireRequest(input: {
 
   // The last step is the enablement step — it materialises the new employee ID.
   if (isFinal) {
-    employeeCode = await enableRehiredCandidate(input.request);
+    employeeCode = await enableRehiredCandidate(input.request, !!input.keepEmployeeCode);
   }
 
   const { error } = await supabase
