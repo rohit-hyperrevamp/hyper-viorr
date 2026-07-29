@@ -58,6 +58,63 @@ export function RehireRequestDialog({
   const [resignation, setResignation] = useState<File | null>(null);
   const [idCard, setIdCard] = useState<File | null>(null);
   const [notes, setNotes] = useState("");
+  const [unitId, setUnitId] = useState("");
+  const [roleKey, setRoleKey] = useState("");
+  const [designationId, setDesignationId] = useState("");
+
+  const { isFieldOfficer, unitIds } = useFieldOfficerUnitScope();
+
+  const unitsQ = useQuery({
+    queryKey: ["rehire", "units-lite"],
+    enabled: open,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("units" as never)
+        .select("id,name,code")
+        .order("name");
+      if (error) throw error;
+      return ((data as unknown) as Array<{ id: string; name: string; code: string | null }>) ?? [];
+    },
+  });
+
+  const rolesQ = useQuery({
+    queryKey: ["rehire", "roles-lite"],
+    enabled: open,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("roles").select("key,name").order("name");
+      if (error) throw error;
+      return ((data as unknown) as Array<{ key: string; name: string }>) ?? [];
+    },
+  });
+
+  const desigQ = useQuery({
+    queryKey: ["rehire", "designations-lite"],
+    enabled: open,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("designations" as never)
+        .select("id,name")
+        .order("name");
+      if (error) throw error;
+      return ((data as unknown) as Array<{ id: string; name: string }>) ?? [];
+    },
+  });
+
+  const unitOptions = useMemo(() => {
+    const all = unitsQ.data ?? [];
+    if (!isFieldOfficer) return all;
+    return all.filter((u) => unitIds.has(u.id));
+  }, [unitsQ.data, isFieldOfficer, unitIds]);
+
+  const roleOptions = useMemo(() => {
+    const all = rolesQ.data ?? [];
+    // Field officers can only bring people back as frontline guards.
+    if (!isFieldOfficer) return all;
+    return all.filter((r) => r.key === "guard" || r.key === "security_guard");
+  }, [rolesQ.data, isFieldOfficer]);
 
   const existingResignation = match?.resignation_url || "";
   const existingIdCard = match?.id_card_url || "";
@@ -68,11 +125,22 @@ export function RehireRequestDialog({
     setResignation(null);
     setIdCard(null);
     setNotes("");
+    setUnitId("");
+    setRoleKey("");
+    setDesignationId("");
   };
 
   useEffect(() => {
     if (!open) reset();
   }, [open]);
+
+  // Pre-select the unit the person previously worked at when it's in reach.
+  useEffect(() => {
+    if (!open || unitId) return;
+    const prev = match?.unit_id ?? "";
+    if (prev && unitOptions.some((u) => u.id === prev)) setUnitId(prev);
+    else if (unitOptions.length === 1) setUnitId(unitOptions[0].id);
+  }, [open, unitId, match?.unit_id, unitOptions]);
 
   const docSummary = useMemo(() => {
     if (missingCount === 0)
@@ -87,6 +155,8 @@ export function RehireRequestDialog({
   const mut = useMutation({
     mutationFn: async () => {
       if (!match) throw new Error("No matching employee");
+      if (!unitId) throw new Error("Select the unit for this rehire");
+      if (!roleKey) throw new Error("Select the role for this rehire");
       if (!existingResignation && !resignation) throw new Error("Resignation copy is required");
       if (!existingIdCard && !idCard) throw new Error("ID card copy is required");
       const aadhaar = (match.aadhaar_number ?? "").replace(/\D/g, "");
@@ -99,7 +169,9 @@ export function RehireRequestDialog({
         aadhaarNumber: aadhaar,
         fullName: match.full_name,
         mobile: match.mobile ?? "",
-        unitId: match.unit_id ?? null,
+        unitId,
+        roleKey,
+        designationId: designationId || null,
         resignationUrl,
         idCardUrl,
         notes,
