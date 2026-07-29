@@ -894,12 +894,12 @@ function HeroStat({ label, value, tint }: { label: string; value: number | strin
 
 
 function PastelTile({
-  palette, label, value, hint, delta, deltaSuffix, invertColor, icon: Icon, to,
+  palette, label, value, hint, delta, deltaSuffix, invertColor, icon: Icon, to, search,
 }: {
   palette: "lime" | "teal" | "rose" | "amber" | "violet";
   label: string; value: number | string; hint: string;
   delta: number; deltaSuffix: string; invertColor?: boolean;
-  icon: React.ComponentType<{ className?: string }>; to?: string;
+  icon: React.ComponentType<{ className?: string }>; to?: string; search?: Record<string, unknown>;
 }) {
   const bg = {
     lime: "bg-[color-mix(in_oklab,oklch(0.75_0.16_140)_18%,var(--card))]",
@@ -953,7 +953,7 @@ function PastelTile({
       </div>
     </div>
   );
-  return to ? <Link to={to} className="block">{inner}</Link> : inner;
+  return to ? <Link to={to} search={search as never} className="block">{inner}</Link> : inner;
 }
 
 function UnitRow({ unit, allUnits }: { unit: UnitNode; allUnits: UnitNode[] }) {
