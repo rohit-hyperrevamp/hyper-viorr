@@ -335,7 +335,7 @@ export function EmployeeDocumentsExportDialog({
 
         doc.setDrawColor(220, 222, 228);
         doc.setFillColor(250, 250, 252);
-        doc.roundedRect(M, 96, pw - M * 2, 96, 6, 6, "FD");
+        doc.roundedRect(M, 96, pw - M * 2, 112, 6, 6, "FD");
         doc.setFont("helvetica", "bold");
         doc.setFontSize(13);
         doc.setTextColor(24, 24, 27);
