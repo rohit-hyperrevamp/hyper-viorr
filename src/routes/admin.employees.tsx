@@ -3529,17 +3529,24 @@ function EmployeesPage() {
       <EmployeeDocumentsExportDialog
         open={docsExportOpen}
         onOpenChange={setDocsExportOpen}
-        people={(tab === "employee" ? employees : candidateRows).map((c) => ({
-          id: c.id,
-          full_name: c.full_name,
-          employee_code: c.employee_code,
-          candidate_code: c.candidate_code,
-          mobile: c.mobile,
-          role_key: c.role_key,
-          designation_id: c.designation_id,
-          unit_id: c.unit_id,
-          reports_to: c.reports_to,
-        }))}
+        people={candidates
+          .filter((c) =>
+            tab === "employee" ? isEmployeeStatus(c.status) && !supersededEmployeeIds.has(c.id) : !isEmployeeStatus(c.status),
+          )
+          .filter((c) => (isFieldOfficer ? !!c.unit_id && scopedUnitIdSet.has(c.unit_id) : true))
+          .map((c) => ({
+            id: c.id,
+            full_name: c.full_name,
+            employee_code: c.employee_code,
+            candidate_code: c.candidate_code,
+            mobile: c.mobile,
+            role_key: c.role_key,
+            designation_id: c.designation_id,
+            unit_id: c.unit_id,
+            reports_to: c.reports_to,
+            status: c.status,
+            is_enabled: c.is_enabled,
+          }))}
         roles={rolesList.map((r) => ({ value: r.key, label: r.name }))}
         designations={designations.map((d) => ({ value: d.id, label: d.name }))}
         organizations={customers.map((c) => ({ value: c.id, label: c.name }))}

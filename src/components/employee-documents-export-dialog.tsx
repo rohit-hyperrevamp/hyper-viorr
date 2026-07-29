@@ -28,6 +28,8 @@ export type DocExportPerson = {
   designation_id?: string | null;
   unit_id?: string | null;
   reports_to?: string | null;
+  status?: string | null;
+  is_enabled?: boolean | null;
 };
 
 type Option = { value: string; label: string };
@@ -56,6 +58,10 @@ type DocItem = { label: string; url: string };
 
 const ALL = "__all__";
 
+function isActivePerson(p: { status?: string | null; is_enabled?: boolean | null }) {
+  return (p.is_enabled ?? true) && (p.status ?? "") !== "inactive";
+}
+
 function collectDocs(row: Record<string, any>): DocItem[] {
   const out: DocItem[] = [];
   const push = (label: string, url: unknown) => {
@@ -73,12 +79,33 @@ function collectDocs(row: Record<string, any>): DocItem[] {
   const docs = Array.isArray(row.documents) ? row.documents : [];
   for (const d of docs) push(d?.name || d?.type || "Document", d?.url);
   const off = row.offboarding_details && typeof row.offboarding_details === "object" ? row.offboarding_details : null;
-  const exitDocs = off && Array.isArray(off.exit_documents) ? off.exit_documents : [];
-  for (const d of exitDocs) push(`Exit · ${d?.label || d?.key || "Document"}`, d?.file_url);
+  if (off) {
+    const exitDocs = Array.isArray(off.exit_documents) ? off.exit_documents : [];
+    for (const d of exitDocs) push(`Exit · ${d?.label || d?.key || "Document"}`, d?.file_url ?? d?.url);
+    // Deep-scan for any other stored file/screenshot URLs anywhere in the exit payload
+    const walk = (node: unknown, trail: string[]) => {
+      if (!node) return;
+      if (typeof node === "string") {
+        if (/^https?:\/\//i.test(node)) push(`Exit · ${trail.slice(-2).join(" · ") || "File"}`, node);
+        return;
+      }
+      if (Array.isArray(node)) {
+        node.forEach((v, i) => walk(v, [...trail, String(i + 1)]));
+        return;
+      }
+      if (typeof node === "object") {
+        for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+          walk(v, [...trail, k.replace(/_/g, " ")]);
+        }
+      }
+    };
+    walk(off, []);
+  }
   // de-duplicate by url
   const seen = new Set<string>();
   return out.filter((d) => (seen.has(d.url) ? false : (seen.add(d.url), true)));
 }
+
 
 async function fetchImage(url: string): Promise<{ dataUrl: string; w: number; h: number } | null> {
   try {
@@ -138,6 +165,7 @@ export function EmployeeDocumentsExportDialog({
   const [organization, setOrganization] = useState(ALL);
   const [unit, setUnit] = useState(ALL);
   const [manager, setManager] = useState(ALL);
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
@@ -156,13 +184,19 @@ export function EmployeeDocumentsExportDialog({
       if (unit !== ALL && (p.unit_id ?? "") !== unit) return false;
       if (organization !== ALL && organizationOfUnit(p.unit_id) !== organization) return false;
       if (manager !== ALL && (p.reports_to ?? "") !== manager) return false;
+      if (statusFilter !== "all") {
+        const active = isActivePerson(p);
+        if (statusFilter === "active" && !active) return false;
+        if (statusFilter === "inactive" && active) return false;
+      }
       if (q) {
         const hay = `${p.full_name ?? ""} ${p.employee_code ?? ""} ${p.candidate_code ?? ""} ${p.mobile ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [people, role, designation, unit, organization, manager, search, organizationOfUnit]);
+  }, [people, role, designation, unit, organization, manager, statusFilter, search, organizationOfUnit]);
+
 
   const selectedIds = useMemo(() => filtered.filter((p) => selected[p.id]).map((p) => p.id), [filtered, selected]);
   const allChecked = filtered.length > 0 && selectedIds.length === filtered.length;
@@ -181,6 +215,7 @@ export function EmployeeDocumentsExportDialog({
     setOrganization(ALL);
     setUnit(ALL);
     setManager(ALL);
+    setStatusFilter("all");
     setSearch("");
   };
 
@@ -198,7 +233,7 @@ export function EmployeeDocumentsExportDialog({
         const { data, error } = await supabase
           .from("candidates" as never)
           .select(
-            "id,full_name,employee_code,candidate_code,mobile,email,aadhaar_number,pan_number,photo_url,aadhaar_image_url,pan_image_url,signature_url,identification_proofs,documents,offboarding_details,unit_id,designation_id,role_key,reports_to",
+            "id,full_name,employee_code,candidate_code,mobile,email,aadhaar_number,pan_number,photo_url,aadhaar_image_url,pan_image_url,signature_url,identification_proofs,documents,offboarding_details,offboarded_at,status,is_enabled,unit_id,designation_id,role_key,reports_to",
           )
           .in("id", ids.slice(i, i + 200));
         if (error) throw error;
@@ -300,7 +335,7 @@ export function EmployeeDocumentsExportDialog({
 
         doc.setDrawColor(220, 222, 228);
         doc.setFillColor(250, 250, 252);
-        doc.roundedRect(M, 96, pw - M * 2, 96, 6, 6, "FD");
+        doc.roundedRect(M, 96, pw - M * 2, 112, 6, 6, "FD");
         doc.setFont("helvetica", "bold");
         doc.setFontSize(13);
         doc.setTextColor(24, 24, 27);
@@ -308,15 +343,66 @@ export function EmployeeDocumentsExportDialog({
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(40, 40, 45);
+        const active = (row.is_enabled ?? true) && (row.status ?? "") !== "inactive";
         const lines = [
           `Role: ${meta.role || "—"}    Designation: ${meta.designation || "—"}`,
           `Organization: ${meta.organization || "—"}    Unit: ${meta.unit || "—"}`,
           `Reports to: ${meta.manager || "—"}    Mobile: ${row.mobile || "—"}`,
           `Aadhaar: ${row.aadhaar_number || "—"}    PAN: ${row.pan_number || "—"}    Documents: ${docs.length}`,
+          `Status: ${active ? "Active" : "Inactive / offboarded"}`,
         ];
         lines.forEach((l, i) => doc.text(l, M + 12, 140 + i * 13));
 
         let y = 216;
+
+        const off =
+          row.offboarding_details && typeof row.offboarding_details === "object"
+            ? (row.offboarding_details as Record<string, any>)
+            : null;
+        const hasExit = !!off && Object.keys(off).length > 0;
+        if (hasExit) {
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8);
+          doc.setTextColor(...muted);
+          doc.text("OFFBOARDING RECORD", M, y);
+          y += 14;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(30, 30, 30);
+          const exitLines = [
+            `Resignation date: ${off!.date_of_resignation || "—"}    Last working day: ${off!.date_of_last_working || "—"}`,
+            `Offboarded on: ${off!.date_of_offboarding || (row.offboarded_at ? String(row.offboarded_at).slice(0, 10) : "—")}    Collection: ${off!.collection_status || "—"}`,
+            `PF updated: ${off!.date_of_pf_update || "—"}    ESIC updated: ${off!.date_of_esic_update || "—"}`,
+            `Reason: ${off!.reason_text || "—"}`,
+            `Review: ${off!.review || "—"}    Rating: ${off!.rating ?? "—"}`,
+          ];
+          for (const l of exitLines) {
+            for (const wrapped of doc.splitTextToSize(l, pw - M * 2) as string[]) {
+              if (y > ph - M - 20) { newPage(subtitle, code); y = 100; }
+              doc.text(wrapped, M, y);
+              y += 12;
+            }
+          }
+          const returns = Array.isArray(off!.inventory_returns) ? off!.inventory_returns : [];
+          if (returns.length) {
+            y += 4;
+            doc.setFont("helvetica", "bold");
+            doc.text("Assets recovered", M, y);
+            doc.setFont("helvetica", "normal");
+            y += 12;
+            for (const r of returns) {
+              if (y > ph - M - 20) { newPage(subtitle, code); y = 100; }
+              doc.text(
+                `• ${r?.item_name || "Item"}${r?.size_value ? ` (${r.size_value})` : ""} — qty ${r?.qty_returned ?? 0} → ${r?.destination_label || "—"}`,
+                M,
+                y,
+              );
+              y += 12;
+            }
+          }
+          y += 8;
+        }
+
         doc.setFont("helvetica", "bold");
         doc.setFontSize(8);
         doc.setTextColor(...muted);
@@ -440,6 +526,14 @@ export function EmployeeDocumentsExportDialog({
               {managers.map((m) => <SelectItem key={m.value} value={m.value} className="text-xs">{m.label}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "active" | "inactive")}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All statuses" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">Active &amp; inactive</SelectItem>
+              <SelectItem value="active" className="text-xs">Active only</SelectItem>
+              <SelectItem value="inactive" className="text-xs">Inactive / offboarded only</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -475,6 +569,7 @@ export function EmployeeDocumentsExportDialog({
                   <th className="px-3 py-2">Organization</th>
                   <th className="px-3 py-2">Unit</th>
                   <th className="px-3 py-2">Reports to</th>
+                  <th className="px-3 py-2">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -498,6 +593,11 @@ export function EmployeeDocumentsExportDialog({
                       <td className="px-3 py-2 text-muted-foreground">{meta.organization || "—"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{meta.unit || "—"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{meta.manager || "—"}</td>
+                      <td className="px-3 py-2">
+                        <Badge variant={isActivePerson(p) ? "secondary" : "outline"} className="text-[10px]">
+                          {isActivePerson(p) ? "Active" : "Inactive"}
+                        </Badge>
+                      </td>
                     </tr>
                   );
                 })}
