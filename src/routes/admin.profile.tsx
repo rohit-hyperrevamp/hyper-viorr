@@ -60,6 +60,7 @@ import {
 } from "@/lib/company-documents";
 import { logActivity } from "@/lib/activity-log";
 import { AppleNativeSetupCard } from "@/components/AppleNativeSetupCard";
+import { OffboardingRecordsSection } from "@/components/offboarding-records-section";
 
 export const Route = createFileRoute("/admin/profile")({
   component: ProfilePage,
@@ -215,6 +216,7 @@ type ProfileData = {
   criminal_history: { has_history?: boolean; incidents?: Array<{ description?: string; year?: string }> };
   physical_health_full: Record<string, string>;
   other_info: Record<string, string>;
+  offboarding_details: Record<string, any> | null;
 };
 
 type LookupRow = { id: string; name: string };
@@ -314,7 +316,7 @@ function ProfilePage() {
       const { data, error } = await supabase
         .from("candidates")
         .select(
-          "id,full_name,employee_code,candidate_code,status,role_key,photo_url,aadhaar_image_url,pan_image_url,signature_url,aadhaar_number,pan_number,mobile,email,date_of_birth,gender,marital_status,present_address1,present_address2,present_city,present_state,present_pincode,permanent_address1,permanent_city,permanent_state,permanent_pincode,bank_account_holder,bank_account_number,bank_ifsc,bank_name,bank_branch,bank_account_type,emergency_contact_name,emergency_contact_relation,emergency_contact_mobile,preferred_joining_date,approved_at,unit_id,designation_id,reports_to,documents,identification_proofs,assigned_asset_ids,physical_health,contacts,nominations,references,languages,experiences,educations,extra_curricular,criminal_history,other_info",
+          "id,full_name,employee_code,candidate_code,status,role_key,photo_url,aadhaar_image_url,pan_image_url,signature_url,aadhaar_number,pan_number,mobile,email,date_of_birth,gender,marital_status,present_address1,present_address2,present_city,present_state,present_pincode,permanent_address1,permanent_city,permanent_state,permanent_pincode,bank_account_holder,bank_account_number,bank_ifsc,bank_name,bank_branch,bank_account_type,emergency_contact_name,emergency_contact_relation,emergency_contact_mobile,preferred_joining_date,approved_at,unit_id,designation_id,reports_to,documents,identification_proofs,assigned_asset_ids,physical_health,contacts,nominations,references,languages,experiences,educations,extra_curricular,criminal_history,other_info,offboarding_details",
         )
         .eq("mobile", phone)
         .order("created_at", { ascending: false })
@@ -329,6 +331,7 @@ function ProfilePage() {
         blood_group: row.physical_health?.blood_group ?? "",
         physical_health_full: row.physical_health ?? {},
         other_info: row.other_info ?? {},
+        offboarding_details: row.offboarding_details && typeof row.offboarding_details === "object" ? row.offboarding_details : null,
         documents: arr(row.documents),
         identification_proofs: arr(row.identification_proofs),
         assigned_asset_ids: arr(row.assigned_asset_ids),
@@ -1524,6 +1527,12 @@ function ProfilePage() {
             </ul>
           )}
         </Section>
+
+        {profile.offboarding_details && Object.keys(profile.offboarding_details).length > 0 && (
+          <Section title="Offboarding Documents" icon={FileSignature}>
+            <OffboardingRecordsSection details={profile.offboarding_details} hideHeader />
+          </Section>
+        )}
       </div>
 
       <Section title="Salary Structure" icon={Wallet}>
