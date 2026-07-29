@@ -2374,8 +2374,7 @@ function EmployeesPage() {
               {rehire?.isFinal && rehire.canAct && (
                 <Button
                   size="sm"
-                  onClick={() => enableRehireMut.mutate(rehire.request)}
-                  disabled={enableRehireMut.isPending}
+                  onClick={() => setEnableRehireTarget(rehire.request)}
                   className="h-8 rounded-full bg-violet-600 px-3 text-[11px] font-semibold text-white hover:bg-violet-700"
                   title="Enable this rehire and issue a new employee ID"
                 >
@@ -2631,8 +2630,7 @@ function EmployeesPage() {
                   {rehire.isFinal && rehire.canAct && (
                     <Button
                       size="sm"
-                      onClick={() => enableRehireMut.mutate(rehire.request)}
-                      disabled={enableRehireMut.isPending}
+                      onClick={() => setEnableRehireTarget(rehire.request)}
                       className="h-7 rounded-full bg-violet-600 px-3 text-[11px] font-semibold text-white hover:bg-violet-700"
                     >
                       Enable
