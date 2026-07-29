@@ -771,6 +771,12 @@ function UnitFormDialog({
           onSubmit={async (e) => {
             e.preventDefault();
             setError(null);
+            if (!form.uniformIncluded && !(Number(form.uniformFeeAmount) > 0)) {
+              const msg = "Enter the uniform fee (₹) — uniform is not included in this unit's contract.";
+              setError(msg);
+              toast.error(msg);
+              return;
+            }
             const result = await onSubmit(form);
             if (result.error) {
               setError(result.error);
