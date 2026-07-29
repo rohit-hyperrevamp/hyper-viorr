@@ -492,7 +492,7 @@ function DeductionForm() {
     setCandidateIds([d.candidate_id]);
     setTypeId(d.deduction_type_id);
     setDate(d.deduction_date);
-    setCalc(d.calculation_type);
+    setCalc(d.calculation_type === "emi" ? "emi" : "lumpsum");
     setAmount(String(d.amount));
     setInstallments(String(d.installments));
     setDescription(d.description ?? "");
@@ -537,6 +537,7 @@ function DeductionForm() {
       if (!typeId) throw new Error("Select a deduction type");
       const amt = computedAmount;
       if (!Number.isFinite(amt) || amt < 0) throw new Error("Enter a valid amount");
+      const isEmi = entryMode === "lumpsum" && calc === "emi";
       const inst = Math.max(1, parseInt(installments, 10) || 1);
       const typePart = type?.name || "Deduction";
       const extras = {
@@ -546,43 +547,121 @@ function DeductionForm() {
         include_in_total_days: entryMode === "days_x_per_day" ? includeInTotalDays : false,
         affects_days_for: entryMode === "days_x_per_day" && includeInTotalDays ? affectsDaysFor : [],
       };
+      const base = {
+        deduction_type_id: typeId,
+        description: description.trim(),
+        status,
+        min_duty: Math.max(0, Number(minDuty) || 0),
+        max_duty: Math.max(0, Number(maxDuty) || 0),
+        ...extras,
+      };
+
       if (isEdit && search.id) {
-        const payload = {
-          candidate_id: candidateIds[0],
-          deduction_type_id: typeId,
-          deduction_date: date,
-          deduction_name: autoName,
-          calculation_type: calc,
-          amount: amt,
-          installments: inst,
-          description: description.trim(),
-          status,
-          min_duty: Math.max(0, Number(minDuty) || 0),
-          max_duty: Math.max(0, Number(maxDuty) || 0),
-          ...extras,
-        };
-        const { error } = await supabase.from("deductions" as never).update(payload as never).eq("id", search.id);
-        if (error) throw error;
-        void logActivity({ module: "Deductions", action: "update", entityType: "deductions", entityId: search.id, entityLabel: autoName });
+        if (isEmi && inst > 1) {
+          const groupId = existing.data?.emi_group_id ?? crypto.randomUUID();
+          // Remove previously generated sibling instalments (keep the row being edited)
+          const { error: delErr } = await supabase
+            .from("deductions" as never)
+            .delete()
+            .eq("emi_group_id", groupId)
+            .neq("id", search.id);
+          if (delErr) throw delErr;
+
+          const parts = splitEmi(amt, inst);
+          const codePart = firstEmp?.employee_code || firstEmp?.full_name || "EMP";
+          const { error } = await supabase
+            .from("deductions" as never)
+            .update({
+              ...base,
+              candidate_id: candidateIds[0],
+              deduction_date: date,
+              deduction_name: `${codePart} - ${typePart} - ${date} (EMI 1/${inst})`,
+              calculation_type: "emi",
+              amount: parts[0],
+              computed_amount: parts[0],
+              installments: 1,
+              emi_group_id: groupId,
+              emi_index: 1,
+              emi_total: inst,
+            } as never)
+            .eq("id", search.id);
+          if (error) throw error;
+
+          const rest = parts.slice(1).map((p, i) => {
+            const d = addMonths(date, i + 1);
+            return {
+              ...base,
+              candidate_id: candidateIds[0],
+              deduction_date: d,
+              deduction_name: `${codePart} - ${typePart} - ${d} (EMI ${i + 2}/${inst})`,
+              calculation_type: "emi",
+              amount: p,
+              computed_amount: p,
+              installments: 1,
+              emi_group_id: groupId,
+              emi_index: i + 2,
+              emi_total: inst,
+            };
+          });
+          if (rest.length) {
+            const { error: insErr } = await supabase.from("deductions" as never).insert(rest as never);
+            if (insErr) throw insErr;
+          }
+          void logActivity({ module: "Deductions", action: "update", entityType: "deductions", entityId: search.id, entityLabel: `${autoName} — EMI ×${inst}` });
+        } else {
+          const payload = {
+            ...base,
+            candidate_id: candidateIds[0],
+            deduction_date: date,
+            deduction_name: autoName,
+            calculation_type: "lumpsum",
+            amount: amt,
+            computed_amount: amt,
+            installments: 1,
+            emi_group_id: null,
+            emi_index: null,
+            emi_total: null,
+          };
+          const { error } = await supabase.from("deductions" as never).update(payload as never).eq("id", search.id);
+          if (error) throw error;
+          void logActivity({ module: "Deductions", action: "update", entityType: "deductions", entityId: search.id, entityLabel: autoName });
+        }
       } else {
-        const rows = candidateIds.map((cid) => {
+        const rows: Record<string, unknown>[] = [];
+        for (const cid of candidateIds) {
           const e = (emps.data ?? []).find((x) => x.id === cid);
           const codePart = e?.employee_code || e?.full_name || "EMP";
-          return {
-            candidate_id: cid,
-            deduction_type_id: typeId,
-            deduction_date: date,
-            deduction_name: `${codePart} - ${typePart} - ${date}`,
-            calculation_type: calc,
-            amount: amt,
-            installments: inst,
-            description: description.trim(),
-            status,
-            min_duty: Math.max(0, Number(minDuty) || 0),
-            max_duty: Math.max(0, Number(maxDuty) || 0),
-            ...extras,
-          };
-        });
+          if (isEmi && inst > 1) {
+            const groupId = crypto.randomUUID();
+            splitEmi(amt, inst).forEach((p, i) => {
+              const d = addMonths(date, i);
+              rows.push({
+                ...base,
+                candidate_id: cid,
+                deduction_date: d,
+                deduction_name: `${codePart} - ${typePart} - ${d} (EMI ${i + 1}/${inst})`,
+                calculation_type: "emi",
+                amount: p,
+                computed_amount: p,
+                installments: 1,
+                emi_group_id: groupId,
+                emi_index: i + 1,
+                emi_total: inst,
+              });
+            });
+          } else {
+            rows.push({
+              ...base,
+              candidate_id: cid,
+              deduction_date: date,
+              deduction_name: `${codePart} - ${typePart} - ${date}`,
+              calculation_type: "lumpsum",
+              amount: amt,
+              computed_amount: amt,
+              installments: 1,
+            });
+          }
+        }
         const { error } = await supabase.from("deductions" as never).insert(rows as never);
         if (error) throw error;
         void logActivity({ module: "Deductions", action: "create", entityType: "deductions", entityLabel: `${rows.length} deduction(s)` });
