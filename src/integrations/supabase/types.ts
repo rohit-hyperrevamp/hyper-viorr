@@ -5220,7 +5220,9 @@ export type Database = {
           employee_code: string
           full_name: string
           id: string
+          id_card_url: string
           mobile: string
+          resignation_url: string
           status: string
           unit_id: string
         }[]
