@@ -932,11 +932,12 @@ function EmployeesPage() {
     const unitIds = new Set(
       mine.filter((s) => s.scope_type === "unit").map((s) => s.scope_id),
     );
-    // Branch scope grants onboarding across every unit inside the branch —
-    // FOs commonly cover a whole branch and must be able to onboard into any
-    // of its units, not only ones directly assigned.
-    const branchIds = new Set(
-      mine.filter((s) => s.scope_type === "branch").map((s) => s.scope_id),
+    // NOTE: `scope_type='branch'` on a field officer is their **Home Branch**
+    // (payroll/employment marker — always Radiant's own branch). It is NOT an
+    // operational scope and must never be expanded into every unit of that
+    // branch, otherwise the FO sees the whole organisation's units.
+    const customerIds = new Set(
+      mine.filter((s) => s.scope_type === "customer").map((s) => s.scope_id),
     );
     // Legacy: candidate_units mappings also count as direct unit scope.
     for (const cu of candidateUnitsQuery.data ?? []) {
@@ -945,7 +946,10 @@ function EmployeesPage() {
     // Always include "No Man's Land" as a fallback unit for FO onboarding.
     unitIds.add(NOMANS_UNIT_ID);
     return units.filter(
-      (u) => unitIds.has(u.id) || (u.branch_id != null && branchIds.has(u.branch_id)),
+      (u) =>
+        unitIds.has(u.id) ||
+        ((u as { customer_id?: string | null }).customer_id != null &&
+          customerIds.has((u as { customer_id?: string | null }).customer_id as string)),
     );
   }, [isFieldOfficer, currentCandidateId, scopeAssignments, units, candidateUnitsQuery.data]);
   const scopedUnitIdSet = useMemo(
