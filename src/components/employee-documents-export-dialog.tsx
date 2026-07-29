@@ -215,6 +215,7 @@ export function EmployeeDocumentsExportDialog({
     setOrganization(ALL);
     setUnit(ALL);
     setManager(ALL);
+    setStatusFilter("all");
     setSearch("");
   };
 
