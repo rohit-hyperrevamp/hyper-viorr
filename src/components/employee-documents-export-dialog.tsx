@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
+import radiantLogo from "@/assets/radiant-logo-v2.png";
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -102,6 +104,22 @@ async function fetchImage(url: string): Promise<{ dataUrl: string; w: number; h:
   }
 }
 
+async function loadDataUrl(src: string): Promise<string | null> {
+  try {
+    const res = await fetch(src);
+    const blob = await res.blob();
+    return await new Promise<string | null>((resolve) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => resolve(null);
+      r.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+
 export function EmployeeDocumentsExportDialog({
   open,
   onOpenChange,
@@ -197,14 +215,72 @@ export function EmployeeDocumentsExportDialog({
       let first = true;
       let totalDocs = 0;
 
+      const brand: [number, number, number] = [24, 24, 27];
+      const gold: [number, number, number] = [201, 162, 39];
+      const muted: [number, number, number] = [110, 116, 129];
+      const logoData = await loadDataUrl(radiantLogo);
+
+      const drawChrome = (subtitle: string, rightTop?: string, rightSub?: string) => {
+        doc.setFillColor(...brand);
+        doc.rect(0, 0, pw, 70, "F");
+        doc.setFillColor(...gold);
+        doc.rect(0, 70, pw, 3, "F");
+        if (logoData) {
+          try {
+            doc.addImage(logoData, "PNG", M, 12, 46, 46);
+          } catch {
+            /* ignore */
+          }
+        }
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(15);
+        doc.text("RADIANT GUARD SERVICES", M + 56, 32);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(220, 220, 220);
+        doc.text(subtitle, M + 56, 48);
+        if (rightTop) {
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.setTextColor(255, 255, 255);
+          doc.text(rightTop, pw - M, 30, { align: "right" });
+        }
+        if (rightSub) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.setTextColor(255, 210, 120);
+          doc.text(rightSub, pw - M, 46, { align: "right" });
+        }
+        // Footer
+        const fy = ph - 22;
+        doc.setDrawColor(220, 222, 228);
+        doc.line(M, fy - 8, pw - M, fy - 8);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...muted);
+        doc.text("Radiant Guard Services · Confidential — internal HR record.", M, fy);
+        doc.text(`Page ${doc.getNumberOfPages()}`, pw - M, fy, { align: "right" });
+        doc.setTextColor(0, 0, 0);
+      };
+
+      const newPage = (subtitle: string, rightTop?: string, rightSub?: string) => {
+        doc.addPage();
+        drawChrome(subtitle, rightTop, rightSub);
+      };
+
       // Cover
+      drawChrome("Employee Document Pack", `${ordered.length} employee${ordered.length === 1 ? "" : "s"}`);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(20);
-      doc.text("Employee Document Pack", M, 70);
+      doc.setTextColor(24, 24, 27);
+      doc.text("Employee Document Pack", M, 122);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.text(`Generated ${new Date().toLocaleString("en-IN")}`, M, 90);
-      doc.text(`Employees included: ${ordered.length}`, M, 106);
+      doc.setTextColor(...muted);
+      doc.text(`Generated ${new Date().toLocaleString("en-IN")}`, M, 142);
+      doc.text(`Employees included: ${ordered.length}`, M, 158);
+      doc.setTextColor(0, 0, 0);
       first = false;
 
       for (let idx = 0; idx < ordered.length; idx++) {
@@ -217,42 +293,45 @@ export function EmployeeDocumentsExportDialog({
         totalDocs += docs.length;
         setProgress(`Employee ${idx + 1} of ${ordered.length} — ${docs.length} document(s)`);
 
-        if (!first) doc.addPage();
+        const code = row.employee_code || row.candidate_code || "—";
+        const subtitle = `Employee Document Pack · ${row.full_name || "Unnamed"}`;
+        if (!first) newPage(subtitle, code);
         first = false;
 
-        doc.setFillColor(241, 245, 249);
-        doc.rect(M, 50, pw - M * 2, 96, "F");
+        doc.setDrawColor(220, 222, 228);
+        doc.setFillColor(250, 250, 252);
+        doc.roundedRect(M, 96, pw - M * 2, 96, 6, 6, "FD");
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
-        doc.text(
-          `${idx + 1}. ${row.full_name || "Unnamed"} — ${row.employee_code || row.candidate_code || "—"}`,
-          M + 12,
-          74,
-        );
+        doc.setFontSize(13);
+        doc.setTextColor(24, 24, 27);
+        doc.text(`${idx + 1}. ${row.full_name || "Unnamed"} — ${code}`, M + 12, 120);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
+        doc.setTextColor(40, 40, 45);
         const lines = [
           `Role: ${meta.role || "—"}    Designation: ${meta.designation || "—"}`,
           `Organization: ${meta.organization || "—"}    Unit: ${meta.unit || "—"}`,
           `Reports to: ${meta.manager || "—"}    Mobile: ${row.mobile || "—"}`,
           `Aadhaar: ${row.aadhaar_number || "—"}    PAN: ${row.pan_number || "—"}    Documents: ${docs.length}`,
         ];
-        lines.forEach((l, i) => doc.text(l, M + 12, 94 + i * 13));
+        lines.forEach((l, i) => doc.text(l, M + 12, 140 + i * 13));
 
-        let y = 168;
+        let y = 216;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.text("Document index", M, y);
+        doc.setFontSize(8);
+        doc.setTextColor(...muted);
+        doc.text("DOCUMENT INDEX", M, y);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
-        y += 14;
+        doc.setTextColor(30, 30, 30);
+        y += 16;
         if (docs.length === 0) {
           doc.text("No documents on record.", M, y);
         } else {
           for (const [i, d] of docs.entries()) {
-            if (y > ph - M) {
-              doc.addPage();
-              y = M + 10;
+            if (y > ph - M - 20) {
+              newPage(subtitle, code);
+              y = 100;
             }
             doc.text(`${i + 1}. ${d.label}`, M, y);
             y += 12;
@@ -261,33 +340,32 @@ export function EmployeeDocumentsExportDialog({
 
         for (const [i, d] of docs.entries()) {
           const img = await fetchImage(d.url);
-          doc.addPage();
+          newPage(subtitle, code, `DOC ${i + 1} / ${docs.length}`);
           doc.setFont("helvetica", "bold");
           doc.setFontSize(10);
-          doc.text(
-            `${row.full_name || "Unnamed"} (${row.employee_code || row.candidate_code || "—"}) · Doc ${i + 1}/${docs.length}`,
-            M,
-            50,
-          );
+          doc.setTextColor(24, 24, 27);
+          doc.text(`${row.full_name || "Unnamed"} (${code}) · Doc ${i + 1}/${docs.length}`, M, 100);
           doc.setFont("helvetica", "normal");
           doc.setFontSize(9);
-          doc.text(d.label, M, 64);
+          doc.setTextColor(...muted);
+          doc.text(d.label, M, 114);
+          doc.setTextColor(0, 0, 0);
           if (img) {
             const maxW = pw - M * 2;
-            const maxH = ph - 100 - M;
+            const maxH = ph - 150 - M;
             const scale = Math.min(maxW / img.w, maxH / img.h);
             const w = img.w * scale;
             const h = img.h * scale;
             try {
-              doc.addImage(img.dataUrl, M + (maxW - w) / 2, 80, w, h, undefined, "FAST");
+              doc.addImage(img.dataUrl, M + (maxW - w) / 2, 130, w, h, undefined, "FAST");
             } catch {
-              doc.text("Could not render this file.", M, 100);
+              doc.text("Could not render this file.", M, 150);
             }
           } else {
             doc.setTextColor(120);
-            doc.text("Preview not available (non-image file). Source link:", M, 96);
+            doc.text("Preview not available (non-image file). Source link:", M, 146);
             doc.setTextColor(30, 64, 175);
-            doc.textWithLink("Open document", M, 112, { url: d.url });
+            doc.textWithLink("Open document", M, 162, { url: d.url });
             doc.setTextColor(0);
           }
         }
@@ -296,9 +374,10 @@ export function EmployeeDocumentsExportDialog({
       const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
       const name =
         ordered.length === 1
-          ? `documents-${(ordered[0].employee_code || ordered[0].full_name || "employee").toString().replace(/\s+/g, "-")}-${stamp}.pdf`
-          : `employee-documents-${ordered.length}-${stamp}.pdf`;
+          ? `radiant-documents-${(ordered[0].employee_code || ordered[0].full_name || "employee").toString().replace(/\s+/g, "-")}-${stamp}.pdf`
+          : `radiant-employee-documents-${ordered.length}-${stamp}.pdf`;
       doc.save(name);
+
       toast.success(`Exported ${totalDocs} document(s) for ${ordered.length} employee(s)`);
       onExported?.(ordered.length);
       onOpenChange(false);
