@@ -647,6 +647,7 @@ type UnitRow = {
   enable_pt: boolean | null;
   enable_lwf: boolean | null;
   uniform_included: boolean | null;
+  uniform_fee_amount?: number | string | null;
   recruitment_fee_enabled?: boolean | null;
   recruitment_fee_amount?: number | string | null;
   gpaip_enabled?: boolean | null;
@@ -713,6 +714,7 @@ function rowToUnit(r: UnitRow): Unit {
     enablePt: Boolean(r.enable_pt),
     enableLwf: Boolean(r.enable_lwf),
     uniformIncluded: r.uniform_included == null ? true : Boolean(r.uniform_included),
+    uniformFeeAmount: Number(r.uniform_fee_amount ?? 0),
     recruitmentFeeEnabled: Boolean(r.recruitment_fee_enabled),
     recruitmentFeeAmount: Number(r.recruitment_fee_amount ?? 0),
     gpaipEnabled: Boolean(r.gpaip_enabled),
@@ -778,6 +780,7 @@ function unitToRow(data: Omit<Unit, "id">) {
     enable_pt: data.enablePt,
     enable_lwf: data.enableLwf,
     uniform_included: data.uniformIncluded,
+    uniform_fee_amount: data.uniformIncluded ? 0 : Number(data.uniformFeeAmount || 0),
     recruitment_fee_enabled: data.recruitmentFeeEnabled,
     recruitment_fee_amount: data.recruitmentFeeEnabled ? Number(data.recruitmentFeeAmount || 0) : 0,
     gpaip_enabled: data.gpaipEnabled,

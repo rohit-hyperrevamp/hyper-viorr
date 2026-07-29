@@ -126,6 +126,7 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     enablePt: false,
     enableLwf: false,
     uniformIncluded: true,
+    uniformFeeAmount: 0,
     recruitmentFeeEnabled: false,
     recruitmentFeeAmount: 0,
     gpaipEnabled: false,
@@ -1081,9 +1082,29 @@ function UnitFormDialog({
                 </div>
                 <Switch
                   checked={form.uniformIncluded}
-                  onCheckedChange={(v) => set("uniformIncluded", v)}
+                  onCheckedChange={(v) => {
+                    set("uniformIncluded", v);
+                    if (v) set("uniformFeeAmount", 0);
+                  }}
                 />
               </div>
+              {!form.uniformIncluded && (
+                <div className="mt-3 max-w-xs">
+                  <Field label="Uniform fee (₹) *">
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      autoFocus
+                      value={String(form.uniformFeeAmount ?? 0)}
+                      onChange={(e) => set("uniformFeeAmount", Math.max(0, Number(e.target.value) || 0))}
+                    />
+                  </Field>
+                  <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                    This amount is charged to every staff member on this unit as an automatic uniform deduction once they acknowledge issuance. It can be edited or split into instalments later in Payroll → Deductions.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="mt-3 rounded-xl border border-border/60 bg-background p-3.5">
