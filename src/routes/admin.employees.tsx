@@ -2787,6 +2787,8 @@ function EmployeesPage() {
         crumbs={[{ label: "Employees" }]}
       />
 
+      <RehireApprovalsCard />
+
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
         {(tab === "employee" && !isFieldOfficer
           ? [
