@@ -27,6 +27,7 @@ import {
   Trash2,
   Briefcase,
   Undo2,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
