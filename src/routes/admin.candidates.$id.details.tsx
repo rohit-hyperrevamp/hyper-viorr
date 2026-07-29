@@ -421,6 +421,9 @@ function CandidateDetailsPage() {
           {active === "office_assets" && (
             <OfficeAssetsSection candidateId={id} candidate={form} onToggleNonBillable={(v: boolean) => set("non_billable", v)} />
           )}
+          {active === "offboarding" && (
+            <OffboardingRecordsSection details={form.offboarding_details} />
+          )}
         </section>
       </div>
 
