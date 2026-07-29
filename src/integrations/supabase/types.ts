@@ -4176,6 +4176,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           current_step_order: number
+          designation_id: string | null
           full_name: string
           id: string
           id_card_url: string
@@ -4189,6 +4190,7 @@ export type Database = {
           requested_by: string | null
           requested_by_candidate_id: string | null
           resignation_url: string
+          role_key: string
           status: string
           unit_id: string | null
           updated_at: string
@@ -4199,6 +4201,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           current_step_order?: number
+          designation_id?: string | null
           full_name?: string
           id?: string
           id_card_url?: string
@@ -4212,6 +4215,7 @@ export type Database = {
           requested_by?: string | null
           requested_by_candidate_id?: string | null
           resignation_url?: string
+          role_key?: string
           status?: string
           unit_id?: string | null
           updated_at?: string
@@ -4222,6 +4226,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           current_step_order?: number
+          designation_id?: string | null
           full_name?: string
           id?: string
           id_card_url?: string
@@ -4235,12 +4240,20 @@ export type Database = {
           requested_by?: string | null
           requested_by_candidate_id?: string | null
           resignation_url?: string
+          role_key?: string
           status?: string
           unit_id?: string | null
           updated_at?: string
           workflow_key?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "rehire_requests_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
+            referencedRelation: "designations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rehire_requests_new_candidate_id_fkey"
             columns: ["new_candidate_id"]
