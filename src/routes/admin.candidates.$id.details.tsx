@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useRouter, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -124,7 +124,7 @@ export const Route = createFileRoute("/admin/candidates/$id/details")({
 
 function CandidateDetailsPage() {
   const { id } = Route.useParams();
-  const search = useSearch({ from: "/admin/candidates/$id/details" });
+  const search = Route.useSearch();
   const navigate = useNavigate();
   const router = useRouter();
   const initialSection = SECTIONS.some((s) => s.id === search.section) ? (search.section as SectionId) : "basic";
