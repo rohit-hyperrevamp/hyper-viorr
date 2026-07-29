@@ -39,6 +39,8 @@ export type RehireRequest = {
   full_name: string;
   mobile: string;
   unit_id: string | null;
+  role_key: string | null;
+  designation_id: string | null;
   requested_by: string | null;
   requested_by_candidate_id: string | null;
   resignation_url: string;
@@ -319,6 +321,8 @@ export async function createRehireRequest(input: {
   fullName: string;
   mobile?: string;
   unitId?: string | null;
+  roleKey?: string | null;
+  designationId?: string | null;
   resignationUrl: string;
   idCardUrl: string;
   notes?: string;
@@ -346,6 +350,8 @@ export async function createRehireRequest(input: {
       full_name: input.fullName ?? "",
       mobile: input.mobile ?? "",
       unit_id: input.unitId ?? null,
+      role_key: input.roleKey ?? "",
+      designation_id: input.designationId ?? null,
       requested_by: actor.uid,
       requested_by_candidate_id: (myCandidateId as unknown as string) ?? null,
       resignation_url: input.resignationUrl,
@@ -423,6 +429,9 @@ async function enableRehiredCandidate(
       is_enabled: true,
       no_hire: false,
       employee_code: code,
+      ...(request.unit_id ? { unit_id: request.unit_id } : {}),
+      ...(request.role_key ? { role_key: request.role_key } : {}),
+      ...(request.designation_id ? { designation_id: request.designation_id } : {}),
       offboarded_at: null,
       offboarding_reason_id: null,
       rejection_reason: "",
@@ -430,6 +439,17 @@ async function enableRehiredCandidate(
     } as never)
     .eq("id", candidateId);
   if (error) throw error;
+
+  // Keep the multi-unit mapping in sync with the unit chosen at request time.
+  if (request.unit_id) {
+    const { error: cuErr } = await supabase
+      .from("candidate_units" as never)
+      .upsert({ candidate_id: candidateId, unit_id: request.unit_id } as never, {
+        onConflict: "candidate_id,unit_id",
+      } as never);
+    if (cuErr) console.error("rehire candidate_units upsert", cuErr);
+  }
+
   return code;
 }
 
