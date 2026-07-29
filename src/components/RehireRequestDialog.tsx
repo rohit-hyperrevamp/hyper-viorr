@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { AlertTriangle, Loader2, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -24,12 +24,15 @@ export type ExistingCandidateMatch = {
   status: string | null;
   aadhaar_number: string | null;
   unit_id?: string | null;
+  /** Already-on-file exit documents pulled from the previous offboarding record. */
+  resignation_url?: string | null;
+  id_card_url?: string | null;
 };
 
 /**
  * Shown when a Field Officer types an Aadhaar that already exists in the
- * system. Collects the resignation + ID card copy and kicks off the
- * configurable rehire approval chain.
+ * system. Any resignation / ID card copy already captured during the previous
+ * offboarding is reused — the officer only uploads what is genuinely missing.
  */
 export function RehireRequestDialog({
   open,
@@ -47,6 +50,10 @@ export function RehireRequestDialog({
   const [idCard, setIdCard] = useState<File | null>(null);
   const [notes, setNotes] = useState("");
 
+  const existingResignation = match?.resignation_url || "";
+  const existingIdCard = match?.id_card_url || "";
+  const missingCount = (existingResignation ? 0 : 1) + (existingIdCard ? 0 : 1);
+
   const reset = () => {
     setStage("confirm");
     setResignation(null);
@@ -54,15 +61,29 @@ export function RehireRequestDialog({
     setNotes("");
   };
 
+  useEffect(() => {
+    if (!open) reset();
+  }, [open]);
+
+  const docSummary = useMemo(() => {
+    if (missingCount === 0)
+      return "Both the resignation copy and the ID card photo are already on file from the previous exit — just send this for approval.";
+    if (missingCount === 2)
+      return "No resignation copy or ID card photo is on file. Upload both to continue.";
+    return existingResignation
+      ? "The resignation copy is already on file. Only the ID card photo is missing — upload it to continue."
+      : "The ID card photo is already on file. Only the resignation copy is missing — upload it to continue.";
+  }, [missingCount, existingResignation]);
+
   const mut = useMutation({
     mutationFn: async () => {
       if (!match) throw new Error("No matching employee");
-      if (!resignation) throw new Error("Resignation copy is required");
-      if (!idCard) throw new Error("ID card copy is required");
+      if (!existingResignation && !resignation) throw new Error("Resignation copy is required");
+      if (!existingIdCard && !idCard) throw new Error("ID card copy is required");
       const aadhaar = (match.aadhaar_number ?? "").replace(/\D/g, "");
       const [resignationUrl, idCardUrl] = await Promise.all([
-        uploadRehireDocument(resignation, "resignation", aadhaar),
-        uploadRehireDocument(idCard, "id-card", aadhaar),
+        resignation ? uploadRehireDocument(resignation, "resignation", aadhaar) : Promise.resolve(existingResignation),
+        idCard ? uploadRehireDocument(idCard, "id-card", aadhaar) : Promise.resolve(existingIdCard),
       ]);
       return createRehireRequest({
         previousCandidateId: match.id,
@@ -110,13 +131,22 @@ export function RehireRequestDialog({
 
         {stage === "docs" && (
           <div className="space-y-3">
-            <FilePick
-              label="Resignation copy"
-              file={resignation}
-              onPick={setResignation}
-              required
-            />
-            <FilePick label="ID card copy" file={idCard} onPick={setIdCard} required />
+            <p className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              {docSummary}
+            </p>
+
+            {existingResignation ? (
+              <OnFile label="Resignation copy" url={existingResignation} />
+            ) : (
+              <FilePick label="Resignation copy" file={resignation} onPick={setResignation} required />
+            )}
+
+            {existingIdCard ? (
+              <OnFile label="ID card copy" url={existingIdCard} />
+            ) : (
+              <FilePick label="ID card copy" file={idCard} onPick={setIdCard} required />
+            )}
+
             <div>
               <Label>Remarks for the approver</Label>
               <Textarea
@@ -137,12 +167,32 @@ export function RehireRequestDialog({
           ) : (
             <Button disabled={mut.isPending} onClick={() => mut.mutate()}>
               {mut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Send for approval
+              {missingCount === 0 ? "Send for approval" : "Upload & send for approval"}
             </Button>
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function OnFile({ label, url }: { label: string; url: string }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="mt-1 flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2.5 text-sm">
+        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+        <span className="truncate text-foreground">Already on file from previous exit</span>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="ml-auto inline-flex items-center gap-1 text-xs text-primary hover:underline"
+        >
+          View <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+    </div>
   );
 }
 
