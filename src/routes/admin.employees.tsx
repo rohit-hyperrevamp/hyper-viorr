@@ -5004,7 +5004,10 @@ function CandidateWizard({
                     <RehireRequestDialog
                       open={rehireOpen}
                       match={rehireMatch}
-                      onOpenChange={setRehireOpen}
+                      onOpenChange={(nextOpen) => {
+                        if (!nextOpen) lastAadhaarLookupRef.current = "";
+                        setRehireOpen(nextOpen);
+                      }}
                       onSubmitted={() => onOpenChange(false)}
                     />
                   </Field>
