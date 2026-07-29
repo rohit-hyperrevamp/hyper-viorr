@@ -440,8 +440,16 @@ async function enableRehiredCandidate(
     .eq("id", candidateId);
   if (error) throw error;
 
-  // Keep the multi-unit mapping in sync with the unit chosen at request time.
+  // Replace (not merge) the old deployment mapping — a rehire moves the person
+  // to the unit chosen at request time; stale rows from the previous stint are
+  // what made the old unit keep showing up on the profile.
   if (request.unit_id) {
+    const { error: delErr } = await supabase
+      .from("candidate_units" as never)
+      .delete()
+      .eq("candidate_id", candidateId)
+      .neq("unit_id", request.unit_id);
+    if (delErr) console.error("rehire candidate_units cleanup", delErr);
     const { error: cuErr } = await supabase
       .from("candidate_units" as never)
       .upsert({ candidate_id: candidateId, unit_id: request.unit_id } as never, {
@@ -449,6 +457,26 @@ async function enableRehiredCandidate(
       } as never);
     if (cuErr) console.error("rehire candidate_units upsert", cuErr);
   }
+
+  // Same for designations: candidate_designations drives candidates.designation_id
+  // via a DB trigger, so leaving the previous designation row behind resurrects
+  // the old (contract-invalid) designation.
+  if (request.designation_id) {
+    const { error: dDelErr } = await supabase
+      .from("candidate_designations" as never)
+      .delete()
+      .eq("candidate_id", candidateId);
+    if (dDelErr) console.error("rehire candidate_designations cleanup", dDelErr);
+    const { error: dInsErr } = await supabase
+      .from("candidate_designations" as never)
+      .insert({
+        candidate_id: candidateId,
+        designation_id: request.designation_id,
+        is_primary: true,
+      } as never);
+    if (dInsErr) console.error("rehire candidate_designations insert", dInsErr);
+  }
+
 
   return code;
 }
