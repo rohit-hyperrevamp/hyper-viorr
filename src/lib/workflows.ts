@@ -139,6 +139,8 @@ export async function findCandidateByAadhaar(aadhaar: string) {
     status: string | null;
     aadhaar_number: string | null;
     unit_id: string | null;
+    resignation_url: string | null;
+    id_card_url: string | null;
   }> | null)?.[0]) ?? null;
 }
 
