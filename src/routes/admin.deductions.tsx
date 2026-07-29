@@ -513,8 +513,9 @@ function DeductionForm() {
     setTypeId(d.deduction_type_id);
     setDate(d.deduction_date);
     setCalc(d.calculation_type === "emi" ? "emi" : "lumpsum");
-    setAmount(String(d.amount));
-    setInstallments(String(d.installments));
+    const emiTotal = d.calculation_type === "emi" ? Math.max(1, d.emi_total ?? 1) : 1;
+    setAmount(String(d.calculation_type === "emi" ? Math.round(d.amount * emiTotal * 100) / 100 : d.amount));
+    setInstallments(String(d.calculation_type === "emi" ? emiTotal : d.installments));
     setDescription(d.description ?? "");
     setStatus(d.status);
     setMinDuty(String(d.min_duty ?? 0));
