@@ -94,7 +94,6 @@ import { Route as AdminCustomersStateManagerRouteImport } from './routes/admin.c
 import { Route as AdminCustomersCustomerManagerRouteImport } from './routes/admin.customers.customer-manager'
 import { Route as AdminCustomersBranchManagerRouteImport } from './routes/admin.customers.branch-manager'
 import { Route as AdminContractsClientContractsRouteImport } from './routes/admin.contracts.client-contracts'
-import { Route as AdminCandidatesRehireRouteImport } from './routes/admin.candidates.rehire'
 import { Route as AdminAttendanceUnitIdRouteImport } from './routes/admin.attendance.$unitId'
 import { Route as AdminAssetsLoanManagerRouteImport } from './routes/admin.assets.loan-manager'
 import { Route as AdminAssetsInventoryRouteImport } from './routes/admin.assets.inventory'
@@ -550,11 +549,6 @@ const AdminContractsClientContractsRoute =
     path: '/contracts/client-contracts',
     getParentRoute: () => AdminRoute,
   } as any)
-const AdminCandidatesRehireRoute = AdminCandidatesRehireRouteImport.update({
-  id: '/candidates/rehire',
-  path: '/candidates/rehire',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminAttendanceUnitIdRoute = AdminAttendanceUnitIdRouteImport.update({
   id: '/$unitId',
   path: '/$unitId',
@@ -651,7 +645,6 @@ export interface FileRoutesByFullPath {
   '/admin/assets/inventory': typeof AdminAssetsInventoryRoute
   '/admin/assets/loan-manager': typeof AdminAssetsLoanManagerRoute
   '/admin/attendance/$unitId': typeof AdminAttendanceUnitIdRoute
-  '/admin/candidates/rehire': typeof AdminCandidatesRehireRoute
   '/admin/contracts/client-contracts': typeof AdminContractsClientContractsRoute
   '/admin/customers/branch-manager': typeof AdminCustomersBranchManagerRoute
   '/admin/customers/customer-manager': typeof AdminCustomersCustomerManagerRoute
@@ -744,7 +737,6 @@ export interface FileRoutesByTo {
   '/admin/assets/inventory': typeof AdminAssetsInventoryRoute
   '/admin/assets/loan-manager': typeof AdminAssetsLoanManagerRoute
   '/admin/attendance/$unitId': typeof AdminAttendanceUnitIdRoute
-  '/admin/candidates/rehire': typeof AdminCandidatesRehireRoute
   '/admin/contracts/client-contracts': typeof AdminContractsClientContractsRoute
   '/admin/customers/branch-manager': typeof AdminCustomersBranchManagerRoute
   '/admin/customers/customer-manager': typeof AdminCustomersCustomerManagerRoute
@@ -841,7 +833,6 @@ export interface FileRoutesById {
   '/admin/assets/inventory': typeof AdminAssetsInventoryRoute
   '/admin/assets/loan-manager': typeof AdminAssetsLoanManagerRoute
   '/admin/attendance/$unitId': typeof AdminAttendanceUnitIdRoute
-  '/admin/candidates/rehire': typeof AdminCandidatesRehireRoute
   '/admin/contracts/client-contracts': typeof AdminContractsClientContractsRoute
   '/admin/customers/branch-manager': typeof AdminCustomersBranchManagerRoute
   '/admin/customers/customer-manager': typeof AdminCustomersCustomerManagerRoute
@@ -939,7 +930,6 @@ export interface FileRouteTypes {
     | '/admin/assets/inventory'
     | '/admin/assets/loan-manager'
     | '/admin/attendance/$unitId'
-    | '/admin/candidates/rehire'
     | '/admin/contracts/client-contracts'
     | '/admin/customers/branch-manager'
     | '/admin/customers/customer-manager'
@@ -1032,7 +1022,6 @@ export interface FileRouteTypes {
     | '/admin/assets/inventory'
     | '/admin/assets/loan-manager'
     | '/admin/attendance/$unitId'
-    | '/admin/candidates/rehire'
     | '/admin/contracts/client-contracts'
     | '/admin/customers/branch-manager'
     | '/admin/customers/customer-manager'
@@ -1128,7 +1117,6 @@ export interface FileRouteTypes {
     | '/admin/assets/inventory'
     | '/admin/assets/loan-manager'
     | '/admin/attendance/$unitId'
-    | '/admin/candidates/rehire'
     | '/admin/contracts/client-contracts'
     | '/admin/customers/branch-manager'
     | '/admin/customers/customer-manager'
@@ -1780,13 +1768,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminContractsClientContractsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/candidates/rehire': {
-      id: '/admin/candidates/rehire'
-      path: '/candidates/rehire'
-      fullPath: '/admin/candidates/rehire'
-      preLoaderRoute: typeof AdminCandidatesRehireRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/attendance/$unitId': {
       id: '/admin/attendance/$unitId'
       path: '/$unitId'
@@ -2044,7 +2025,6 @@ interface AdminRouteChildren {
   AdminServiceTypeManagerRoute: typeof AdminServiceTypeManagerRoute
   AdminSystemLogsRoute: typeof AdminSystemLogsRoute
   AdminVehiclesRoute: typeof AdminVehiclesRouteWithChildren
-  AdminCandidatesRehireRoute: typeof AdminCandidatesRehireRoute
   AdminContractsClientContractsRoute: typeof AdminContractsClientContractsRoute
   AdminFieldSenseExpensesRoute: typeof AdminFieldSenseExpensesRoute
   AdminFieldSenseReportsRoute: typeof AdminFieldSenseReportsRoute
@@ -2097,7 +2077,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminServiceTypeManagerRoute: AdminServiceTypeManagerRoute,
   AdminSystemLogsRoute: AdminSystemLogsRoute,
   AdminVehiclesRoute: AdminVehiclesRouteWithChildren,
-  AdminCandidatesRehireRoute: AdminCandidatesRehireRoute,
   AdminContractsClientContractsRoute: AdminContractsClientContractsRoute,
   AdminFieldSenseExpensesRoute: AdminFieldSenseExpensesRoute,
   AdminFieldSenseReportsRoute: AdminFieldSenseReportsRoute,
@@ -2120,13 +2099,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

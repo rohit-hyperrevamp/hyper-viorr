@@ -567,7 +567,8 @@ function FieldOfficerDashboard() {
             hint={rehireHint}
             delta={0} deltaSuffix=""
             icon={UserCheck}
-            to="/admin/candidates/rehire"
+            to="/admin/employees"
+            search={{ tab: "candidate" }}
           />
           <PastelTile
             palette="amber"
