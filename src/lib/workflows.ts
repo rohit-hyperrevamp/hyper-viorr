@@ -488,7 +488,7 @@ export async function actOnRehireRequest(input: {
 
   // The last step is the enablement step — it materialises the new employee ID.
   if (isFinal) {
-    employeeCode = await enableRehiredCandidate(input.request);
+    employeeCode = await enableRehiredCandidate(input.request, !!input.keepEmployeeCode);
   }
 
   const { error } = await supabase
