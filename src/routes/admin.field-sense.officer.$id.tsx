@@ -14,7 +14,7 @@ export const Route = createFileRoute("/admin/field-sense/officer/$id")({
   }),
   head: () => ({
     meta: [
-      { title: "Field Sense — Officer view" },
+      { title: "Radar — Officer view" },
       { name: "description", content: "Live map, visits and trajectory for a field officer." },
     ],
   }),
@@ -59,7 +59,7 @@ function OfficerViewPage() {
         }
         crumbs={[
           { label: "Admin", to: "/admin/dashboard" },
-          { label: "Field Sense", to: "/admin/field-sense" },
+          { label: "Radar", to: "/admin/field-sense" },
           { label: crumbLabel, to: backTo },
           { label: q.data?.full_name ?? "Officer" },
         ]}

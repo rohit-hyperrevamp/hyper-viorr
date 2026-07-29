@@ -763,7 +763,7 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
       <div className="mb-2 flex items-end justify-between">
         <h2 className="font-display text-sm font-bold tracking-tight text-foreground sm:text-base">My site visits</h2>
         <Link to="/admin/field-sense" className="text-[11px] font-semibold text-primary underline-offset-2 hover:underline">
-          Open Field Sense →
+          Open Radar →
         </Link>
       </div>
 

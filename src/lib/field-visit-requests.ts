@@ -69,7 +69,7 @@ export async function createFieldVisitRequest(input: {
 
   try {
     await logActivity({
-      module: "Field Sense",
+      module: "Radar",
       action: "request",
       entityType: "field_visit_request",
       entityId: row.id,

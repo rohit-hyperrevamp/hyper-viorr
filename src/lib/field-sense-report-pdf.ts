@@ -98,7 +98,7 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
   doc.setTextColor(220, 220, 220);
-  doc.text("Field Sense · Site Visit Report", margin + 62, 52);
+  doc.text("Radar · Site Visit Report", margin + 62, 52);
 
   // Right side: organization + units
   const rightX = pageW - margin;

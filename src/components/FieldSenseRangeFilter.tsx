@@ -15,7 +15,7 @@ export type FieldSenseRangeFilterProps = {
 };
 
 /**
- * Canonical date-range filter for every Field Sense surface.
+ * Canonical date-range filter for every Radar surface.
  * Match this look and feel exactly — do not create bespoke variants.
  */
 export function FieldSenseRangeFilter({

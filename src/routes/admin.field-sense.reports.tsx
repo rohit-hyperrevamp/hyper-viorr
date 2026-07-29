@@ -13,9 +13,9 @@ export const Route = createFileRoute("/admin/field-sense/reports")({
   component: () => (<FieldSenseAdminGuard sub="reports"><ReportsPage /></FieldSenseAdminGuard>),
   head: () => ({
     meta: [
-      { title: "Field Sense Reports — Radiant Guard" },
+      { title: "Radar Reports — Radiant Guard" },
       { name: "description", content: "Branded, downloadable visit reports for any organization or unit across any date range." },
-      { property: "og:title", content: "Field Sense Reports" },
+      { property: "og:title", content: "Radar Reports" },
       { property: "og:description", content: "Branded, downloadable visit reports for any organization or unit across any date range." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -210,7 +210,7 @@ function ReportsPage() {
         description="Branded visit reports for any customer or unit. Filter by date range and download a client-ready PDF."
         crumbs={[
           { label: "Admin", to: "/admin/dashboard" },
-          { label: "Field Sense", to: "/admin/field-sense" },
+          { label: "Radar", to: "/admin/field-sense" },
           { label: "Reports" },
         ]}
       />
