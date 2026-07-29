@@ -63,7 +63,8 @@ import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/R
 
 import { extractAadhaar, type AadhaarExtraction } from "@/lib/aadhaar.functions";
 import { logActivity } from "@/lib/activity-log";
-import { RehireApprovalsCard } from "@/components/RehirePipelineCard";
+import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
+import { actOnRehireRequest, type RehireRequest } from "@/lib/workflows";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -2005,6 +2006,19 @@ function EmployeesPage() {
 
   const canEditInactiveProfile = isSuperAdmin || roleKey === "leadership" || roleKey === "super_admin";
 
+  // Rehire requests in flight, keyed by candidate — surfaced as a status chip
+  // and (at the final workflow step) an inline "Enable" action.
+  const { map: rehireByCandidate } = useRehireByCandidate();
+  const enableRehireMut = useMutation({
+    mutationFn: async (request: RehireRequest) => actOnRehireRequest({ request, action: "approve" }),
+    onSuccess: (res) => {
+      toast.success(res.employeeCode ? `Enabled · new employee ID ${res.employeeCode}` : "Rehire enabled");
+      qc.invalidateQueries({ queryKey: QK });
+      qc.invalidateQueries({ queryKey: ["rehire-pipeline"] });
+    },
+    onError: (e) => toast.error(getMutationErrorMessage(e, "Could not enable this rehire")),
+  });
+
   const openEditor = async (candidateId: string) => {
     setOpeningCandidateId(candidateId);
     try {
@@ -2086,6 +2100,7 @@ function EmployeesPage() {
         c.onboarding_details?.issuance_status === "pending" &&
         !!c.onboarding_details?.pending_issuance_fo_id;
       const pendingIssuanceFoName = c.onboarding_details?.pending_issuance_fo_name;
+      const rehire = rehireByCandidate.get(c.id);
       return (
         <tr key={c.id} className={cn(
           "group transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-500/5",
@@ -2271,6 +2286,17 @@ function EmployeesPage() {
             <div className="flex flex-col items-end gap-1.5">
               <div className="flex flex-nowrap items-center justify-end gap-2">
                 <StatusBadge status={c.status} />
+                {rehire && (
+                  <span
+                    className="inline-flex shrink-0 cursor-help items-center gap-1 rounded-full border border-violet-300/70 bg-violet-50 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:border-violet-500/40 dark:bg-violet-500/10 dark:text-violet-300"
+                    title={rehire.isFinal
+                      ? "Rehire approved — awaiting enablement. Enable to issue a new employee ID."
+                      : `Rehire in progress · ${rehire.stepName}`}
+                  >
+                    <Clock className="h-3 w-3" />
+                    <span className="hidden sm:inline">{rehire.isFinal ? "Awaiting enablement" : "Rehire in progress"}</span>
+                  </span>
+                )}
                 {isPendingOffboarding && (
                   <span
                     className="inline-flex shrink-0 cursor-help items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"
@@ -2352,6 +2378,17 @@ function EmployeesPage() {
 
 
 
+              {rehire?.isFinal && rehire.canAct && (
+                <Button
+                  size="sm"
+                  onClick={() => enableRehireMut.mutate(rehire.request)}
+                  disabled={enableRehireMut.isPending}
+                  className="h-8 rounded-full bg-violet-600 px-3 text-[11px] font-semibold text-white hover:bg-violet-700"
+                  title="Enable this rehire and issue a new employee ID"
+                >
+                  Enable
+                </Button>
+              )}
               {mode === "candidate" && c.status === "pending" && canApproveOnboarding && (
                 <>
                   <Button
@@ -2522,6 +2559,7 @@ function EmployeesPage() {
           const pendingIssuanceFoName = c.onboarding_details?.pending_issuance_fo_name;
           const editLocked = c.status === "inactive" && !canEditInactiveProfile;
           const lockedTitle = "Inactive profile — only leadership or super admin can edit.";
+          const rehire = rehireByCandidate.get(c.id);
           const roleName = rolesList.find((r) => r.key === c.role_key)?.name ?? c.role_key ?? "No role";
 
           return (
@@ -2591,6 +2629,24 @@ function EmployeesPage() {
                 </div>
               </div>
 
+              {rehire && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-violet-300/70 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:border-violet-500/40 dark:bg-violet-500/10 dark:text-violet-300">
+                    <Clock className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{rehire.isFinal ? "Awaiting enablement" : `Rehire · ${rehire.stepName}`}</span>
+                  </span>
+                  {rehire.isFinal && rehire.canAct && (
+                    <Button
+                      size="sm"
+                      onClick={() => enableRehireMut.mutate(rehire.request)}
+                      disabled={enableRehireMut.isPending}
+                      className="h-7 rounded-full bg-violet-600 px-3 text-[11px] font-semibold text-white hover:bg-violet-700"
+                    >
+                      Enable
+                    </Button>
+                  )}
+                </div>
+              )}
               {isPendingOffboarding && (
                 <div
                   className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"
