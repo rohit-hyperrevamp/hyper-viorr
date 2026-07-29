@@ -211,10 +211,66 @@ export function RehireRequestDialog({
         </DialogHeader>
 
         {stage === "docs" && (
-          <div className="space-y-3">
+          <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
             <p className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
               {docSummary}
             </p>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>
+                  Unit<span className="text-rose-500"> *</span>
+                </Label>
+                <Select value={unitId} onValueChange={setUnitId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[160]">
+                    {unitOptions.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                        {u.code ? ` (${u.code})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>
+                  Role<span className="text-rose-500"> *</span>
+                </Label>
+                <Select value={roleKey} onValueChange={setRoleKey}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[160]">
+                    {roleOptions.map((r) => (
+                      <SelectItem key={r.key} value={r.key}>
+                        {r.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="sm:col-span-2">
+                <Label>Designation</Label>
+                <Select value={designationId} onValueChange={setDesignationId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select designation (optional)" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[160]">
+                    {(desigQ.data ?? []).map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
 
             {existingResignation ? (
               <OnFile label="Resignation copy" url={existingResignation} />
