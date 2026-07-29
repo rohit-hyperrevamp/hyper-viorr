@@ -475,6 +475,14 @@ export function EmployeeDocumentsExportDialog({
               {managers.map((m) => <SelectItem key={m.value} value={m.value} className="text-xs">{m.label}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "active" | "inactive")}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="All statuses" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">Active &amp; inactive</SelectItem>
+              <SelectItem value="active" className="text-xs">Active only</SelectItem>
+              <SelectItem value="inactive" className="text-xs">Inactive / offboarded only</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
