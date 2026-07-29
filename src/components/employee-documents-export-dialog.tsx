@@ -343,15 +343,66 @@ export function EmployeeDocumentsExportDialog({
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(40, 40, 45);
+        const active = (row.is_enabled ?? true) && (row.status ?? "") !== "inactive";
         const lines = [
           `Role: ${meta.role || "—"}    Designation: ${meta.designation || "—"}`,
           `Organization: ${meta.organization || "—"}    Unit: ${meta.unit || "—"}`,
           `Reports to: ${meta.manager || "—"}    Mobile: ${row.mobile || "—"}`,
           `Aadhaar: ${row.aadhaar_number || "—"}    PAN: ${row.pan_number || "—"}    Documents: ${docs.length}`,
+          `Status: ${active ? "Active" : "Inactive / offboarded"}`,
         ];
         lines.forEach((l, i) => doc.text(l, M + 12, 140 + i * 13));
 
         let y = 216;
+
+        const off =
+          row.offboarding_details && typeof row.offboarding_details === "object"
+            ? (row.offboarding_details as Record<string, any>)
+            : null;
+        const hasExit = !!off && Object.keys(off).length > 0;
+        if (hasExit) {
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8);
+          doc.setTextColor(...muted);
+          doc.text("OFFBOARDING RECORD", M, y);
+          y += 14;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(30, 30, 30);
+          const exitLines = [
+            `Resignation date: ${off!.date_of_resignation || "—"}    Last working day: ${off!.date_of_last_working || "—"}`,
+            `Offboarded on: ${off!.date_of_offboarding || (row.offboarded_at ? String(row.offboarded_at).slice(0, 10) : "—")}    Collection: ${off!.collection_status || "—"}`,
+            `PF updated: ${off!.date_of_pf_update || "—"}    ESIC updated: ${off!.date_of_esic_update || "—"}`,
+            `Reason: ${off!.reason_text || "—"}`,
+            `Review: ${off!.review || "—"}    Rating: ${off!.rating ?? "—"}`,
+          ];
+          for (const l of exitLines) {
+            for (const wrapped of doc.splitTextToSize(l, pw - M * 2) as string[]) {
+              if (y > ph - M - 20) { newPage(subtitle, code); y = 100; }
+              doc.text(wrapped, M, y);
+              y += 12;
+            }
+          }
+          const returns = Array.isArray(off!.inventory_returns) ? off!.inventory_returns : [];
+          if (returns.length) {
+            y += 4;
+            doc.setFont("helvetica", "bold");
+            doc.text("Assets recovered", M, y);
+            doc.setFont("helvetica", "normal");
+            y += 12;
+            for (const r of returns) {
+              if (y > ph - M - 20) { newPage(subtitle, code); y = 100; }
+              doc.text(
+                `• ${r?.item_name || "Item"}${r?.size_value ? ` (${r.size_value})` : ""} — qty ${r?.qty_returned ?? 0} → ${r?.destination_label || "—"}`,
+                M,
+                y,
+              );
+              y += 12;
+            }
+          }
+          y += 8;
+        }
+
         doc.setFont("helvetica", "bold");
         doc.setFontSize(8);
         doc.setTextColor(...muted);
