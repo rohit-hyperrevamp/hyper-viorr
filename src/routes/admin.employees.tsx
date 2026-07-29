@@ -1427,7 +1427,6 @@ function EmployeesPage() {
       stripped.no_hire = false;
       stripped.offboarding_reason_id = null;
       stripped.offboarded_at = null;
-      stripped.offboarding_details = {};
       stripped.application_date = today;
       stripped.preferred_joining_date = today;
       stripped.employee_code = "";
