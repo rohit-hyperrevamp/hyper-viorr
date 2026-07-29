@@ -555,6 +555,8 @@ function RequestDialog({
   const isFinalStep =
     !!currentStep && steps.filter((s) => s.step_order > currentStep.step_order).length === 0;
 
+  const [enableOpen, setEnableOpen] = useState(false);
+
   const mut = useMutation({
     mutationFn: async (action: "approve" | "reject") => {
       if (!request) return;
