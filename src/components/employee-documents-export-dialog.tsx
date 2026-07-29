@@ -542,6 +542,11 @@ export function EmployeeDocumentsExportDialog({
                       <td className="px-3 py-2 text-muted-foreground">{meta.organization || "—"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{meta.unit || "—"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{meta.manager || "—"}</td>
+                      <td className="px-3 py-2">
+                        <Badge variant={isActivePerson(p) ? "secondary" : "outline"} className="text-[10px]">
+                          {isActivePerson(p) ? "Active" : "Inactive"}
+                        </Badge>
+                      </td>
                     </tr>
                   );
                 })}
