@@ -124,10 +124,14 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
+type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+  overlayClassName?: string;
+};
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => {
+  DialogContentProps
+>(({ className, overlayClassName, children, ...props }, ref) => {
   const [contentElement, setContentElement] = React.useState<HTMLElement | null>(null);
   const [pristine, setPristine] = React.useState(true);
   const dirtyCtx = React.useContext(DialogDirtyContext);
@@ -229,7 +233,7 @@ const DialogContent = React.forwardRef<
 
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay className={overlayClassName} />
       <DialogPortalContainerContext.Provider value={contentElement}>
         <DialogPrimitive.Content
           ref={handleRef}
