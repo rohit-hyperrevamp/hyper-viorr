@@ -63,7 +63,27 @@ type Deduction = {
   per_day_amount?: number | null;
   include_in_total_days?: boolean;
   affects_days_for?: DayBucket[];
+  emi_group_id?: string | null;
+  emi_index?: number | null;
+  emi_total?: number | null;
 };
+
+/** Split a total into n monthly instalments; the last one absorbs rounding. */
+function splitEmi(total: number, n: number): number[] {
+  const per = Math.round((total / n) * 100) / 100;
+  const parts = Array.from({ length: n }, () => per);
+  parts[n - 1] = Math.round((total - per * (n - 1)) * 100) / 100;
+  return parts;
+}
+
+/** Add whole months to a yyyy-mm-dd date, clamping to the end of shorter months. */
+function addMonths(dateStr: string, months: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const target = new Date(Date.UTC(y, m - 1 + months, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(d, lastDay));
+  return target.toISOString().slice(0, 10);
+}
 
 const DAY_BUCKETS: { value: DayBucket; label: string }[] = [
   { value: "present", label: "Present Duties" },
