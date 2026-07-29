@@ -300,20 +300,31 @@ export function RehireRequestDialog({
               </div>
 
               <div className="sm:col-span-2">
-                <Label>Designation</Label>
-                <Select value={designationId} onValueChange={setDesignationId}>
+                <Label>
+                  Designation
+                  {unitId ? ` — ${designationOptions.length} in this unit's contract` : ""}
+                </Label>
+                <Select value={designationId} onValueChange={setDesignationId} disabled={!unitId}>
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select designation (optional)" />
+                    <SelectValue
+                      placeholder={unitId ? "Select designation (optional)" : "Select a unit first"}
+                    />
                   </SelectTrigger>
                   <SelectContent className="z-[160]">
-                    {(desigQ.data ?? []).map((d) => (
+                    {designationOptions.map((d) => (
                       <SelectItem key={d.id} value={d.id}>
                         {d.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {unitId && !contractDesigQ.isLoading && designationOptions.length === 0 && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    This unit has no active contract designations — HR can set one at enablement.
+                  </p>
+                )}
               </div>
+
             </div>
 
 
