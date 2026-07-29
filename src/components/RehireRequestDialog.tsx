@@ -202,6 +202,8 @@ export function RehireRequestDialog({
       if (!match) throw new Error("No matching employee");
       if (!unitId) throw new Error("Select the unit for this rehire");
       if (!roleKey) throw new Error("Select the role for this rehire");
+      if (!designationId && designationOptions.length > 0)
+        throw new Error("Select the designation from this unit's contract");
       if (!existingResignation && !resignation) throw new Error("Resignation copy is required");
       if (!existingIdCard && !idCard) throw new Error("ID card copy is required");
       const aadhaar = (match.aadhaar_number ?? "").replace(/\D/g, "");
@@ -307,7 +309,7 @@ export function RehireRequestDialog({
                 <Select value={designationId} onValueChange={setDesignationId} disabled={!unitId}>
                   <SelectTrigger className="mt-1">
                     <SelectValue
-                      placeholder={unitId ? "Select designation (optional)" : "Select a unit first"}
+                      placeholder={unitId ? "Select designation" : "Select a unit first"}
                     />
                   </SelectTrigger>
                   <SelectContent className="z-[160]">

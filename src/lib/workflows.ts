@@ -449,24 +449,24 @@ async function enableRehiredCandidate(
       .delete()
       .eq("candidate_id", candidateId)
       .neq("unit_id", request.unit_id);
-    if (delErr) console.error("rehire candidate_units cleanup", delErr);
+    if (delErr) throw new Error(`Could not clear the previous unit mapping: ${delErr.message}`);
     const { error: cuErr } = await supabase
       .from("candidate_units" as never)
       .upsert({ candidate_id: candidateId, unit_id: request.unit_id } as never, {
         onConflict: "candidate_id,unit_id",
       } as never);
-    if (cuErr) console.error("rehire candidate_units upsert", cuErr);
+    if (cuErr) throw new Error(`Could not assign the rehire unit: ${cuErr.message}`);
   }
 
   // Same for designations: candidate_designations drives candidates.designation_id
   // via a DB trigger, so leaving the previous designation row behind resurrects
   // the old (contract-invalid) designation.
+  const { error: dDelErr } = await supabase
+    .from("candidate_designations" as never)
+    .delete()
+    .eq("candidate_id", candidateId);
+  if (dDelErr) throw new Error(`Could not clear the previous designation: ${dDelErr.message}`);
   if (request.designation_id) {
-    const { error: dDelErr } = await supabase
-      .from("candidate_designations" as never)
-      .delete()
-      .eq("candidate_id", candidateId);
-    if (dDelErr) console.error("rehire candidate_designations cleanup", dDelErr);
     const { error: dInsErr } = await supabase
       .from("candidate_designations" as never)
       .insert({
@@ -474,12 +474,42 @@ async function enableRehiredCandidate(
         designation_id: request.designation_id,
         is_primary: true,
       } as never);
-    if (dInsErr) console.error("rehire candidate_designations insert", dInsErr);
+    if (dInsErr) throw new Error(`Could not apply the rehire designation: ${dInsErr.message}`);
+  } else {
+    // No designation captured — make sure the stale one doesn't linger on the profile.
+    await supabase.from("candidates").update({ designation_id: null } as never).eq("id", candidateId);
   }
 
+  // The field officer who raised the rehire becomes the reporting manager.
+  if (request.requested_by_candidate_id) {
+    const { error: mDelErr } = await supabase
+      .from("candidate_reporting_managers" as never)
+      .delete()
+      .eq("candidate_id", candidateId)
+      .neq("manager_id", request.requested_by_candidate_id);
+    if (mDelErr) console.error("rehire reporting manager cleanup", mDelErr);
+    const { error: mErr } = await supabase
+      .from("candidate_reporting_managers" as never)
+      .upsert(
+        {
+          candidate_id: candidateId,
+          manager_id: request.requested_by_candidate_id,
+          unit_id: request.unit_id ?? null,
+          is_primary: true,
+          source: "rehire",
+        } as never,
+        { onConflict: "candidate_id,manager_id" } as never,
+      );
+    if (mErr) throw new Error(`Could not set the reporting manager: ${mErr.message}`);
+    await supabase
+      .from("candidates")
+      .update({ reports_to: request.requested_by_candidate_id } as never)
+      .eq("id", candidateId);
+  }
 
   return code;
 }
+
 
 export async function actOnRehireRequest(input: {
   request: RehireRequest;
