@@ -2837,6 +2837,15 @@ function EmployeesPage() {
 
       <RehireApprovalsCard />
 
+      <RehireEnableDialog
+        request={enableRehireTarget}
+        onClose={() => setEnableRehireTarget(null)}
+        onDone={() => {
+          qc.invalidateQueries({ queryKey: QK });
+          qc.invalidateQueries({ queryKey: ["rehire-pipeline"] });
+        }}
+      />
+
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
         {(tab === "employee" && !isFieldOfficer
           ? [
