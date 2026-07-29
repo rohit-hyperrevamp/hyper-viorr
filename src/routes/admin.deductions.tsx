@@ -480,7 +480,7 @@ function DeductionForm() {
     queryFn: async (): Promise<Deduction | null> => {
       const { data, error } = await supabase
         .from("deductions" as never)
-        .select("id,candidate_id,deduction_type_id,deduction_date,deduction_name,calculation_type,amount,installments,description,status,min_duty,max_duty,entry_mode,days,per_day_amount,include_in_total_days,affects_days_for")
+        .select("id,candidate_id,deduction_type_id,deduction_date,deduction_name,calculation_type,amount,installments,description,status,min_duty,max_duty,entry_mode,days,per_day_amount,include_in_total_days,affects_days_for,emi_group_id,emi_index,emi_total")
         .eq("id", search.id!)
         .maybeSingle();
       if (error) throw error;
