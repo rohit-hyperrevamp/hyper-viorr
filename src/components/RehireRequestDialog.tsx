@@ -309,7 +309,7 @@ export function RehireRequestDialog({
                 <Select value={designationId} onValueChange={setDesignationId} disabled={!unitId}>
                   <SelectTrigger className="mt-1">
                     <SelectValue
-                      placeholder={unitId ? "Select designation (optional)" : "Select a unit first"}
+                      placeholder={unitId ? "Select designation" : "Select a unit first"}
                     />
                   </SelectTrigger>
                   <SelectContent className="z-[160]">
