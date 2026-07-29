@@ -114,8 +114,7 @@ function RehireWorkflowPage() {
         title="Rehire Workflow"
         description="Field Officer raises a rehire against an existing Aadhaar; approvals travel through the configured chain before HR enables the employee with a new employee ID."
         crumbs={[
-          { label: "Control Center", to: "/admin/control-center" },
-          { label: "Workflow", to: "/admin/workflows" },
+          { label: "Employees", to: "/admin/employees" },
           { label: "Rehire" },
         ]}
       />

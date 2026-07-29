@@ -129,12 +129,6 @@ const tiles: Tile[] = [
     icon: FileSignature,
   },
   {
-    to: "/admin/workflows",
-    label: "Workflow",
-    description: "Configure multi-step approval chains such as rehire — steps, roles and order are all editable.",
-    icon: GitBranch,
-  },
-  {
     to: "/admin/roles-manager",
     label: "Roles",
     description: "Add, rename or remove roles. Updates RBAC role chips automatically.",
