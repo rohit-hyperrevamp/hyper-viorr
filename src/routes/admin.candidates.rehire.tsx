@@ -707,7 +707,13 @@ function RequestDialog({
               >
                 Reject
               </Button>
-              <Button disabled={mut.isPending} onClick={() => mut.mutate("approve")}>
+              <Button
+                disabled={mut.isPending}
+                onClick={() => {
+                  if (isFinalStep) setEnableOpen(true);
+                  else mut.mutate("approve");
+                }}
+              >
                 {isFinalStep ? currentStep?.action_label || "Enable" : currentStep?.action_label || "Approve"}
               </Button>
             </>
