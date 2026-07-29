@@ -16,7 +16,7 @@ import { actOnRehireRequest, type RehireRequest } from "@/lib/workflows";
 
 /**
  * HR enablement prompt for a rehire: keep the previous employee ID, or issue a
- * brand new one. Shared by the Candidates list and the Rehire workspace so the
+ * brand new one. Shared by every Candidates entry point so the
  * decision is always explicit — never silent.
  */
 export function RehireEnableDialog({

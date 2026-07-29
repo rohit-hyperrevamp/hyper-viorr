@@ -3,9 +3,8 @@ import { logActivity } from "@/lib/activity-log";
 
 // ---------------------------------------------------------------------------
 // Generic, DB-driven workflow engine.
-// Definitions + steps live in `workflow_definitions` / `workflow_steps`, so
-// approval chains can be re-ordered or re-assigned to other roles at runtime
-// from Control Center → Workflow without any code change.
+// Definitions + steps live in `workflow_definitions` / `workflow_steps`, while
+// rehire approvals are surfaced from Employees → Candidates.
 // ---------------------------------------------------------------------------
 
 export type WorkflowDefinition = {
@@ -69,8 +68,12 @@ export type RehireEvent = {
 
 export const REHIRE_WORKFLOW_KEY = "rehire";
 
-const REHIRE_LINK = "/admin/candidates/rehire";
+const REHIRE_LINK = "/admin/employees";
 const ACTIVITY_MODULE = "Rehire Workflow";
+
+function rehireNotificationLink(entityId: string) {
+  return `${REHIRE_LINK}?tab=candidate&rehire=${entityId}`;
+}
 
 // ---------------------------------- reads ----------------------------------
 
@@ -229,7 +232,7 @@ async function notifyRole(
     type: input.type,
     title: input.title,
     message: input.message,
-    link: `${REHIRE_LINK}?request=${input.entityId}`,
+    link: rehireNotificationLink(input.entityId),
     entity_type: "rehire_request",
     entity_id: input.entityId,
   }));
@@ -251,7 +254,7 @@ async function notifyUserIds(
     type: input.type,
     title: input.title,
     message: input.message,
-    link: `${REHIRE_LINK}?request=${input.entityId}`,
+    link: rehireNotificationLink(input.entityId),
     entity_type: "rehire_request",
     entity_id: input.entityId,
   }));

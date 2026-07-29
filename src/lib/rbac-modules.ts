@@ -20,7 +20,6 @@ import {
   FileText,
   Files,
   Fuel,
-  GitBranch,
   HandCoins,
   LayoutDashboard,
   Languages,
@@ -84,9 +83,7 @@ export const RBAC_MODULES: ModuleDef[] = [
     label: "Employees",
     path: "/admin/employees",
     icon: UserPlus,
-    subModules: [
-      { key: "rehire", label: "Rehire", path: "/admin/candidates/rehire", icon: GitBranch },
-    ],
+    subModules: [],
   },
   {
     key: "vehicles",
