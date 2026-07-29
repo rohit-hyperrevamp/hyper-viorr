@@ -37,7 +37,8 @@ import { MyLiveStatusCard } from "@/components/MyLiveStatusCard";
 import { cn } from "@/lib/utils";
 import { ListSkeleton } from "@/components/Skeletons";
 import { RADIANT_BILLING_UNIT_ID } from "@/lib/business-constants";
-import { UserCog } from "lucide-react";
+import { UserCog, UserCheck } from "lucide-react";
+import { RehirePipelineCard, useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelineCard";
 
 
 
@@ -412,6 +413,12 @@ function FieldOfficerDashboard() {
     0,
   );
 
+  const rehireQ = useRehirePipeline({ mineOnly: true, requestedByCandidateId: data?.meId ?? null });
+  const rehirePending = rehireQ.data?.pending ?? [];
+  const rehireHint = rehirePending.length
+    ? rehireHolderLabel(rehirePending[0], rehireQ.data?.steps ?? [], rehireQ.data?.roleName ?? new Map())
+    : `${rehireQ.data?.completedCount ?? 0} completed`;
+
   const primaryUnit = units.find((u) => u.is_primary) ?? units[0];
   const teamDelta = (data?.joinedThisWeek ?? 0) - (data?.joinedLastWeek ?? 0);
   const attnDelta = (data?.attendanceRateToday ?? 0) - (data?.attendanceRateYesterday ?? 0);
@@ -527,7 +534,7 @@ function FieldOfficerDashboard() {
             <h2 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-2xl">My Summary</h2>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-5">
           <PastelTile
             palette="lime"
             label="Team size"
@@ -554,6 +561,15 @@ function FieldOfficerDashboard() {
             to="/admin/employees"
           />
           <PastelTile
+            palette="violet"
+            label="Pending rehire"
+            value={rehirePending.length}
+            hint={rehireHint}
+            delta={0} deltaSuffix=""
+            icon={UserCheck}
+            to="/admin/workflows/rehire"
+          />
+          <PastelTile
             palette="amber"
             label="My stock available"
             value={data?.myStockQty ?? 0}
@@ -565,7 +581,11 @@ function FieldOfficerDashboard() {
         </div>
       </section>
 
+      <RehirePipelineCard mineOnly requestedByCandidateId={data?.meId ?? null} title="My rehire requests" />
+
       {data?.meId && <FieldSenseSummary candidateId={data.meId} />}
+
+
 
 
 
@@ -875,7 +895,7 @@ function HeroStat({ label, value, tint }: { label: string; value: number | strin
 function PastelTile({
   palette, label, value, hint, delta, deltaSuffix, invertColor, icon: Icon, to,
 }: {
-  palette: "lime" | "teal" | "rose" | "amber";
+  palette: "lime" | "teal" | "rose" | "amber" | "violet";
   label: string; value: number | string; hint: string;
   delta: number; deltaSuffix: string; invertColor?: boolean;
   icon: React.ComponentType<{ className?: string }>; to?: string;
@@ -885,12 +905,14 @@ function PastelTile({
     teal: "bg-[color-mix(in_oklab,oklch(0.75_0.12_195)_18%,var(--card))]",
     rose: "bg-[color-mix(in_oklab,oklch(0.72_0.16_20)_18%,var(--card))]",
     amber: "bg-[color-mix(in_oklab,oklch(0.82_0.14_75)_20%,var(--card))]",
+    violet: "bg-[color-mix(in_oklab,oklch(0.72_0.15_300)_18%,var(--card))]",
   }[palette];
   const ring = {
     lime: "ring-[color-mix(in_oklab,oklch(0.75_0.16_140)_35%,transparent)]",
     teal: "ring-[color-mix(in_oklab,oklch(0.75_0.12_195)_35%,transparent)]",
     rose: "ring-[color-mix(in_oklab,oklch(0.72_0.16_20)_35%,transparent)]",
     amber: "ring-[color-mix(in_oklab,oklch(0.82_0.14_75)_40%,transparent)]",
+    violet: "ring-[color-mix(in_oklab,oklch(0.72_0.15_300)_35%,transparent)]",
   }[palette];
 
   const positive = invertColor ? delta < 0 : delta > 0;
