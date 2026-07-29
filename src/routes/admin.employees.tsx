@@ -4008,18 +4008,26 @@ function CandidateWizard({
   const [aadhaarChecking, setAadhaarChecking] = useState(false);
   const [rehireOpen, setRehireOpen] = useState(false);
   const [rehireMatch, setRehireMatch] = useState<ExistingCandidateMatch | null>(null);
+  const lastAadhaarLookupRef = useRef("");
   const checkAadhaarForRehire = async (value: string) => {
     const clean = (value ?? "").replace(/\D/g, "");
     if (clean.length !== 12) return;
     if (editing && (editing as any).aadhaar_number === clean) return;
+    if (lastAadhaarLookupRef.current === clean) return;
+    lastAadhaarLookupRef.current = clean;
     setAadhaarChecking(true);
     try {
       const found = await findCandidateByAadhaar(clean);
-      if (!found || (editing && found.id === editing.id)) return;
+      if (!found || (editing && found.id === editing.id)) {
+        setRehireMatch(null);
+        return;
+      }
       setRehireMatch(found as ExistingCandidateMatch);
       setRehireOpen(true);
     } catch (e) {
       console.error("aadhaar duplicate check failed", e);
+      lastAadhaarLookupRef.current = "";
+      toast.error("Could not check Aadhaar against existing records. Please retry.");
     } finally {
       setAadhaarChecking(false);
     }
@@ -4033,6 +4041,9 @@ function CandidateWizard({
   useEffect(() => {
     if (!open) return;
     setSaveError(null);
+    lastAadhaarLookupRef.current = "";
+    setRehireMatch(null);
+    setRehireOpen(false);
     if (editing) {
       const { id: _id, ...rest } = editing;
       void _id;
@@ -4248,6 +4259,8 @@ function CandidateWizard({
               : extraction;
 
           applyExtraction(finalExtraction);
+          const extractedAadhaar = (finalExtraction.aadhaar_number || "").replace(/\D/g, "");
+          if (extractedAadhaar.length === 12) void checkAadhaarForRehire(extractedAadhaar);
           const filled = clientOcr.countExtractedFields(finalExtraction);
           if (filled === 0) {
             toast.warning("Scan complete but no fields could be read. Please fill manually or upload a clearer scan.");
@@ -4431,6 +4444,15 @@ function CandidateWizard({
 
   const persist = async (status: string, successMsg: string) => {
     const payload = buildPayload(status);
+    const normalizedAadhaar = String((payload as { aadhaar_number?: unknown }).aadhaar_number ?? "").replace(/\D/g, "");
+    if (!editing && normalizedAadhaar.length === 12) {
+      const existingCandidate = await findCandidateByAadhaar(normalizedAadhaar);
+      if (existingCandidate) {
+        setRehireMatch(existingCandidate as ExistingCandidateMatch);
+        setRehireOpen(true);
+        throw new Error("This Aadhaar already exists. Please continue through the rehire approval process.");
+      }
+    }
     const normalizedMobile = String((payload as { mobile?: unknown }).mobile ?? "").replace(/\D/g, "");
     if (normalizedMobile) {
       const duplicateQuery = supabase
@@ -4963,7 +4985,17 @@ function CandidateWizard({
                     <Input
                       format="aadhaar"
                       value={form.aadhaar_number}
-                      onChange={(e) => set("aadhaar_number", e.target.value.replace(/\D/g, "").slice(0, 12))}
+                      onChange={(e) => {
+                        const clean = e.target.value.replace(/\D/g, "").slice(0, 12);
+                        set("aadhaar_number", clean);
+                        if (clean.length < 12) {
+                          lastAadhaarLookupRef.current = "";
+                          setRehireMatch(null);
+                          setRehireOpen(false);
+                        } else {
+                          void checkAadhaarForRehire(clean);
+                        }
+                      }}
                       onBlur={() => void checkAadhaarForRehire(form.aadhaar_number)}
                     />
                     {aadhaarChecking && (

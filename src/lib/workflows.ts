@@ -126,17 +126,20 @@ export async function fetchRehireEvents(requestId: string): Promise<RehireEvent[
 export async function findCandidateByAadhaar(aadhaar: string) {
   const clean = (aadhaar ?? "").replace(/\D/g, "");
   if (clean.length !== 12) return null;
-  const { data, error } = await supabase
-    .from("candidates")
-    .select(
-      "id,full_name,employee_code,candidate_code,mobile,status,is_enabled,role_key,unit_id,designation_id,offboarded_at,offboarding_reason_id,no_hire,aadhaar_number,photo_url",
-    )
-    .eq("aadhaar_number", clean)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("find_rehire_candidate_by_aadhaar" as never, {
+    _aadhaar: clean,
+  } as never);
   if (error) throw error;
-  return data ?? null;
+  return (((data as unknown) as Array<{
+    id: string;
+    full_name: string;
+    employee_code: string | null;
+    candidate_code: string | null;
+    mobile: string | null;
+    status: string | null;
+    aadhaar_number: string | null;
+    unit_id: string | null;
+  }> | null)?.[0]) ?? null;
 }
 
 export async function fetchOpenRehireForAadhaar(aadhaar: string): Promise<RehireRequest | null> {
