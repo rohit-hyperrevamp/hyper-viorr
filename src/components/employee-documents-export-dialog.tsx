@@ -28,6 +28,8 @@ export type DocExportPerson = {
   designation_id?: string | null;
   unit_id?: string | null;
   reports_to?: string | null;
+  status?: string | null;
+  is_enabled?: boolean | null;
 };
 
 type Option = { value: string; label: string };
