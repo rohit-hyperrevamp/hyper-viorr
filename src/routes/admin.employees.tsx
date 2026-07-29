@@ -2946,6 +2946,15 @@ function EmployeesPage() {
                         <span className="text-[11px] text-muted-foreground">Full record incl. nested</span>
                       </div>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setDocsExportOpen(true)} className="gap-2">
+                      <FileText className="h-4 w-4 text-violet-600" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">Documents</span>
+                        <span className="text-[11px] text-muted-foreground">Aadhaar, PAN & all files as one PDF</span>
+                      </div>
+                    </DropdownMenuItem>
+
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <DropdownMenu>
