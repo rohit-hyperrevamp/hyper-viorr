@@ -121,6 +121,8 @@ import {
 import { useBranches, useCustomers, useStates } from "@/lib/admin-data";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmployeeDocumentsExportDialog } from "@/components/employee-documents-export-dialog";
+
 
 
 export const Route = createFileRoute("/admin/employees")({
@@ -1027,6 +1029,8 @@ function EmployeesPage() {
 
   // ---------------- Export ---------------- //
   const [exporting, setExporting] = useState(false);
+  const [docsExportOpen, setDocsExportOpen] = useState(false);
+
   const roleNameOf = (key: string | null | undefined) =>
     rolesList.find((r) => r.key === key)?.name ?? key ?? "";
   const unitLabel = (id: string | null | undefined) => {
@@ -2942,6 +2946,15 @@ function EmployeesPage() {
                         <span className="text-[11px] text-muted-foreground">Full record incl. nested</span>
                       </div>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setDocsExportOpen(true)} className="gap-2">
+                      <FileText className="h-4 w-4 text-violet-600" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">Documents</span>
+                        <span className="text-[11px] text-muted-foreground">Aadhaar, PAN & all files as one PDF</span>
+                      </div>
+                    </DropdownMenuItem>
+
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <DropdownMenu>
@@ -3508,7 +3521,47 @@ function EmployeesPage() {
         docType={signTarget?.docType ?? "nda"}
       />
 
+      <EmployeeDocumentsExportDialog
+        open={docsExportOpen}
+        onOpenChange={setDocsExportOpen}
+        people={(tab === "employee" ? employees : candidateRows).map((c) => ({
+          id: c.id,
+          full_name: c.full_name,
+          employee_code: c.employee_code,
+          candidate_code: c.candidate_code,
+          mobile: c.mobile,
+          role_key: c.role_key,
+          designation_id: c.designation_id,
+          unit_id: c.unit_id,
+          reports_to: c.reports_to,
+        }))}
+        roles={rolesList.map((r) => ({ value: r.key, label: r.name }))}
+        designations={designations.map((d) => ({ value: d.id, label: d.name }))}
+        organizations={customers.map((c) => ({ value: c.id, label: c.name }))}
+        units={units.map((u) => ({ value: u.id, label: `${u.code} — ${u.name}`, customerId: u.customer_id }))}
+        managers={candidates
+          .filter((c) => candidates.some((x) => x.reports_to === c.id))
+          .map((c) => ({ value: c.id, label: `${c.full_name ?? "—"}${c.employee_code ? ` · ${c.employee_code}` : ""}` }))}
+        organizationOfUnit={(unitId) => (unitId ? unitMap.get(unitId)?.customer_id ?? "" : "")}
+        labelFor={(p) => ({
+          role: roleNameOf(p.role_key),
+          designation: desigName(p.designation_id),
+          organization: customerNameOfUnit(p.unit_id),
+          unit: unitLabel(p.unit_id),
+          manager: managerName(p.reports_to),
+        })}
+        onExported={(count) => {
+          void logActivity({
+            module: "Employees",
+            action: "export",
+            entityType: "candidate",
+            entityLabel: `${count} employee document pack (PDF)`,
+          });
+        }}
+      />
+
       <ScopeAddDialog
+
         target={scopeTarget}
         onClose={() => setScopeTarget(null)}
         customers={customers}
