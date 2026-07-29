@@ -1401,6 +1401,9 @@ export type Database = {
           deduction_name: string
           deduction_type_id: string
           description: string
+          emi_group_id: string | null
+          emi_index: number | null
+          emi_total: number | null
           entry_mode: string
           id: string
           include_in_total_days: boolean
@@ -1426,6 +1429,9 @@ export type Database = {
           deduction_name: string
           deduction_type_id: string
           description?: string
+          emi_group_id?: string | null
+          emi_index?: number | null
+          emi_total?: number | null
           entry_mode?: string
           id?: string
           include_in_total_days?: boolean
@@ -1451,6 +1457,9 @@ export type Database = {
           deduction_name?: string
           deduction_type_id?: string
           description?: string
+          emi_group_id?: string | null
+          emi_index?: number | null
+          emi_total?: number | null
           entry_mode?: string
           id?: string
           include_in_total_days?: boolean
