@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, BadgeCheck, GitBranch, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowRight, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 
 export const Route = createFileRoute("/admin/control-center")({
@@ -127,12 +127,6 @@ const tiles: Tile[] = [
     label: "Company Documents",
     description: "Manage NDA and Appointment Letter master templates.",
     icon: FileSignature,
-  },
-  {
-    to: "/admin/workflows",
-    label: "Workflow",
-    description: "Configure multi-step approval chains such as rehire — steps, roles and order are all editable.",
-    icon: GitBranch,
   },
   {
     to: "/admin/roles-manager",

@@ -50,7 +50,7 @@ import {
 
 type Search = { request?: string };
 
-export const Route = createFileRoute("/admin/workflows/rehire")({
+export const Route = createFileRoute("/admin/candidates/rehire")({
   validateSearch: (s: Record<string, unknown>): Search => ({
     request: typeof s.request === "string" ? s.request : undefined,
   }),
@@ -70,7 +70,7 @@ function statusChip(status: string) {
 }
 
 function RehireWorkflowPage() {
-  const search = useSearch({ from: "/admin/workflows/rehire" });
+  const search = useSearch({ from: "/admin/candidates/rehire" });
   const qc = useQueryClient();
   const { roleKey, isSuperAdmin } = useCurrentUserRole();
 
@@ -114,8 +114,7 @@ function RehireWorkflowPage() {
         title="Rehire Workflow"
         description="Field Officer raises a rehire against an existing Aadhaar; approvals travel through the configured chain before HR enables the employee with a new employee ID."
         crumbs={[
-          { label: "Control Center", to: "/admin/control-center" },
-          { label: "Workflow", to: "/admin/workflows" },
+          { label: "Employees", to: "/admin/employees" },
           { label: "Rehire" },
         ]}
       />
