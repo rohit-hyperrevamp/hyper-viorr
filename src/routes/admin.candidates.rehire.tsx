@@ -722,6 +722,16 @@ function RequestDialog({
           )}
         </DialogFooter>
       </DialogContent>
+
+      <RehireEnableDialog
+        request={enableOpen ? request : null}
+        notes={notes.trim()}
+        onClose={() => setEnableOpen(false)}
+        onDone={() => {
+          onDone();
+          onClose();
+        }}
+      />
     </Dialog>
   );
 }
