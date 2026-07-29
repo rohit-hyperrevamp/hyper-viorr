@@ -201,14 +201,11 @@ function AdminLayout() {
   // Users with NO role_key at all (freshly onboarded frontline staff) are
   // treated as frontline too — otherwise they'd land on the admin dashboard
   // with an empty sidebar.
-  const ADMIN_CONSOLE_ROLES = new Set([
-    "admin","super_admin","hr","leadership","branch_manager","branch_admin",
-    "inventory_manager","inventory","accounts","finance","operations","field_officer",
-  ]);
   const isGuardRole =
     !isSuperAdmin &&
     !permsLoading &&
-    (!roleKey || !ADMIN_CONSOLE_ROLES.has(roleKey));
+    (!roleKey || !(isAdminConsoleRole(roleKey) || isFieldOfficerRole(roleKey)));
+
   const dashboardHref =
     isGuardRole
       ? "/admin/employee-dashboard"
