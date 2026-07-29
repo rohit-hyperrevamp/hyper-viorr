@@ -413,6 +413,12 @@ function FieldOfficerDashboard() {
     0,
   );
 
+  const rehireQ = useRehirePipeline({ mineOnly: true, requestedByCandidateId: data?.meId ?? null });
+  const rehirePending = rehireQ.data?.pending ?? [];
+  const rehireHint = rehirePending.length
+    ? rehireHolderLabel(rehirePending[0], rehireQ.data?.steps ?? [], rehireQ.data?.roleName ?? new Map())
+    : `${rehireQ.data?.completedCount ?? 0} completed`;
+
   const primaryUnit = units.find((u) => u.is_primary) ?? units[0];
   const teamDelta = (data?.joinedThisWeek ?? 0) - (data?.joinedLastWeek ?? 0);
   const attnDelta = (data?.attendanceRateToday ?? 0) - (data?.attendanceRateYesterday ?? 0);
@@ -889,7 +895,7 @@ function HeroStat({ label, value, tint }: { label: string; value: number | strin
 function PastelTile({
   palette, label, value, hint, delta, deltaSuffix, invertColor, icon: Icon, to,
 }: {
-  palette: "lime" | "teal" | "rose" | "amber";
+  palette: "lime" | "teal" | "rose" | "amber" | "violet";
   label: string; value: number | string; hint: string;
   delta: number; deltaSuffix: string; invertColor?: boolean;
   icon: React.ComponentType<{ className?: string }>; to?: string;
@@ -899,12 +905,14 @@ function PastelTile({
     teal: "bg-[color-mix(in_oklab,oklch(0.75_0.12_195)_18%,var(--card))]",
     rose: "bg-[color-mix(in_oklab,oklch(0.72_0.16_20)_18%,var(--card))]",
     amber: "bg-[color-mix(in_oklab,oklch(0.82_0.14_75)_20%,var(--card))]",
+    violet: "bg-[color-mix(in_oklab,oklch(0.72_0.15_300)_18%,var(--card))]",
   }[palette];
   const ring = {
     lime: "ring-[color-mix(in_oklab,oklch(0.75_0.16_140)_35%,transparent)]",
     teal: "ring-[color-mix(in_oklab,oklch(0.75_0.12_195)_35%,transparent)]",
     rose: "ring-[color-mix(in_oklab,oklch(0.72_0.16_20)_35%,transparent)]",
     amber: "ring-[color-mix(in_oklab,oklch(0.82_0.14_75)_40%,transparent)]",
+    violet: "ring-[color-mix(in_oklab,oklch(0.72_0.15_300)_35%,transparent)]",
   }[palette];
 
   const positive = invertColor ? delta < 0 : delta > 0;
