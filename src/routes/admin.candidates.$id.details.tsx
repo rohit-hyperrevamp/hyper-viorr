@@ -116,14 +116,19 @@ function buildCandidatePayload(form: any) {
 }
 
 export const Route = createFileRoute("/admin/candidates/$id/details")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    section: typeof search.section === "string" ? search.section : undefined,
+  }),
   component: CandidateDetailsPage,
 });
 
 function CandidateDetailsPage() {
   const { id } = Route.useParams();
+  const search = Route.useSearch();
   const navigate = useNavigate();
   const router = useRouter();
-  const [active, setActive] = useState<SectionId>("basic");
+  const initialSection = SECTIONS.some((s) => s.id === search.section) ? (search.section as SectionId) : "basic";
+  const [active, setActive] = useState<SectionId>(initialSection);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<any>(null);
   const [baselinePayload, setBaselinePayload] = useState<string>("");
