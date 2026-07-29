@@ -518,6 +518,7 @@ export function EmployeeDocumentsExportDialog({
                   <th className="px-3 py-2">Organization</th>
                   <th className="px-3 py-2">Unit</th>
                   <th className="px-3 py-2">Reports to</th>
+                  <th className="px-3 py-2">Status</th>
                 </tr>
               </thead>
               <tbody>
