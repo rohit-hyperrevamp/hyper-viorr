@@ -112,7 +112,10 @@ function CollectionsPanel({ me }: { me: Candidate }) {
         .eq("status", "active")
         .order("full_name");
       if (error) throw error;
-      return (data as unknown as Candidate[]) ?? [];
+      const rows = (data as unknown as Candidate[]) ?? [];
+      // One row per guard, even if the underlying query ever returns repeats.
+      return Array.from(new Map(rows.map((r) => [r.id, r])).values());
+
     },
   });
 
