@@ -58,6 +58,10 @@ type DocItem = { label: string; url: string };
 
 const ALL = "__all__";
 
+function isActivePerson(p: { status?: string | null; is_enabled?: boolean | null }) {
+  return (p.is_enabled ?? true) && (p.status ?? "") !== "inactive";
+}
+
 function collectDocs(row: Record<string, any>): DocItem[] {
   const out: DocItem[] = [];
   const push = (label: string, url: unknown) => {
@@ -75,12 +79,33 @@ function collectDocs(row: Record<string, any>): DocItem[] {
   const docs = Array.isArray(row.documents) ? row.documents : [];
   for (const d of docs) push(d?.name || d?.type || "Document", d?.url);
   const off = row.offboarding_details && typeof row.offboarding_details === "object" ? row.offboarding_details : null;
-  const exitDocs = off && Array.isArray(off.exit_documents) ? off.exit_documents : [];
-  for (const d of exitDocs) push(`Exit · ${d?.label || d?.key || "Document"}`, d?.file_url);
+  if (off) {
+    const exitDocs = Array.isArray(off.exit_documents) ? off.exit_documents : [];
+    for (const d of exitDocs) push(`Exit · ${d?.label || d?.key || "Document"}`, d?.file_url ?? d?.url);
+    // Deep-scan for any other stored file/screenshot URLs anywhere in the exit payload
+    const walk = (node: unknown, trail: string[]) => {
+      if (!node) return;
+      if (typeof node === "string") {
+        if (/^https?:\/\//i.test(node)) push(`Exit · ${trail.slice(-2).join(" · ") || "File"}`, node);
+        return;
+      }
+      if (Array.isArray(node)) {
+        node.forEach((v, i) => walk(v, [...trail, String(i + 1)]));
+        return;
+      }
+      if (typeof node === "object") {
+        for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+          walk(v, [...trail, k.replace(/_/g, " ")]);
+        }
+      }
+    };
+    walk(off, []);
+  }
   // de-duplicate by url
   const seen = new Set<string>();
   return out.filter((d) => (seen.has(d.url) ? false : (seen.add(d.url), true)));
 }
+
 
 async function fetchImage(url: string): Promise<{ dataUrl: string; w: number; h: number } | null> {
   try {
