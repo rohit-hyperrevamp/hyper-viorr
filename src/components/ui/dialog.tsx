@@ -161,7 +161,11 @@ const DialogContent = React.forwardRef<
     requestAnimationFrame(() => contentElement.scrollTo?.({ top: 0, left: 0 }));
     // Note: action words like "add"/"import" are intentionally excluded because
     // dialogs also contain secondary controls such as "Add component" pickers.
-    const SAVE_RX = /^(save|update|create|submit|confirm|apply|generate|send|approve|sign|next|continue|finish|done)\b/i;
+    const SAVE_RX = /^(save|update|create|submit|confirm|apply|generate|send|sign|next|continue|finish|done)\b/i;
+    // Decision/action buttons (approval chains, workflow actions) never depend
+    // on the user editing a field first — they must stay clickable when pristine.
+    const ACTION_RX = /^(approve|reject|decline|acknowledge|enable|open)\b/i;
+
 
     const markDirty = (e: Event) => {
       // Programmatic value changes (React-driven prefill) shouldn't dirty.
@@ -195,6 +199,7 @@ const DialogContent = React.forwardRef<
       if (!btn) return;
       const txt = (btn.textContent || "").trim();
       if (txt === "Close" || txt === "Cancel") closeDialog();
+      if (ACTION_RX.test(txt)) { markPristine(); return; }
       if (btn.type === "submit" || SAVE_RX.test(txt)) markPristine();
     };
 
@@ -203,7 +208,7 @@ const DialogContent = React.forwardRef<
     const scan = () => {
       contentElement.querySelectorAll("button").forEach((b) => {
         const txt = (b.textContent || "").trim();
-        const isSave = b.type === "submit" || SAVE_RX.test(txt);
+        const isSave = !ACTION_RX.test(txt) && (b.type === "submit" || SAVE_RX.test(txt));
         if (isSave) b.setAttribute("data-save-intent", "true");
         else b.removeAttribute("data-save-intent");
       });

@@ -14,6 +14,8 @@ export const ROLE_KEYS = {
   ACCOUNTS: "accounts",
   FINANCE: "finance",
   OPERATIONS: "operations",
+  OPERATIONS_MANAGER: "operations_manager",
+  VP_OPERATIONS: "vp_operations",
   FIELD_OFFICER: "field_officer",
   GUARD: "guard",
   SECURITY_GUARD: "security_guard",
@@ -34,6 +36,8 @@ export const ADMIN_CONSOLE_ROLES: ReadonlySet<string> = new Set([
   ROLE_KEYS.ACCOUNTS,
   ROLE_KEYS.FINANCE,
   ROLE_KEYS.OPERATIONS,
+  ROLE_KEYS.OPERATIONS_MANAGER,
+  ROLE_KEYS.VP_OPERATIONS,
 ]);
 
 /** Frontline / mobile-first roles. */
