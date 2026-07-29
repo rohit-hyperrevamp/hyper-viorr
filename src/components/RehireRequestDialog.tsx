@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, ExternalLink, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +20,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { createRehireRequest, uploadRehireDocument } from "@/lib/workflows";
 
 export type ExistingCandidateMatch = {
