@@ -233,7 +233,7 @@ export function EmployeeDocumentsExportDialog({
         const { data, error } = await supabase
           .from("candidates" as never)
           .select(
-            "id,full_name,employee_code,candidate_code,mobile,email,aadhaar_number,pan_number,photo_url,aadhaar_image_url,pan_image_url,signature_url,identification_proofs,documents,offboarding_details,unit_id,designation_id,role_key,reports_to",
+            "id,full_name,employee_code,candidate_code,mobile,email,aadhaar_number,pan_number,photo_url,aadhaar_image_url,pan_image_url,signature_url,identification_proofs,documents,offboarding_details,offboarded_at,status,is_enabled,unit_id,designation_id,role_key,reports_to",
           )
           .in("id", ids.slice(i, i + 200));
         if (error) throw error;
