@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { confirmAction } from "@/components/ConfirmProvider";
+import { RehireEnableDialog } from "@/components/RehireEnableDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchRoles } from "@/lib/rbac";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
