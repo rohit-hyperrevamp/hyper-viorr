@@ -5212,6 +5212,19 @@ export type Database = {
       }
       current_user_role_key: { Args: never; Returns: string }
       current_user_unit_ids: { Args: never; Returns: string[] }
+      find_rehire_candidate_by_aadhaar: {
+        Args: { _aadhaar: string }
+        Returns: {
+          aadhaar_number: string
+          candidate_code: string
+          employee_code: string
+          full_name: string
+          id: string
+          mobile: string
+          status: string
+          unit_id: string
+        }[]
+      }
       get_admin_user_ids: {
         Args: never
         Returns: {
