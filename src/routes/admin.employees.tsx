@@ -63,6 +63,7 @@ import { RehireRequestDialog, type ExistingCandidateMatch } from "@/components/R
 
 import { extractAadhaar, type AadhaarExtraction } from "@/lib/aadhaar.functions";
 import { logActivity } from "@/lib/activity-log";
+import { RehireApprovalsCard } from "@/components/RehirePipelineCard";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
