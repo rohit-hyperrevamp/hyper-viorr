@@ -1029,6 +1029,8 @@ function EmployeesPage() {
 
   // ---------------- Export ---------------- //
   const [exporting, setExporting] = useState(false);
+  const [docsExportOpen, setDocsExportOpen] = useState(false);
+
   const roleNameOf = (key: string | null | undefined) =>
     rolesList.find((r) => r.key === key)?.name ?? key ?? "";
   const unitLabel = (id: string | null | undefined) => {
