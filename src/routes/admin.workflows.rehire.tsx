@@ -569,7 +569,15 @@ function RequestDialog({
       onDone();
       onClose();
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Action failed"),
+    onError: (e) => {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : typeof e === "object" && e && "message" in e
+            ? String((e as { message?: unknown }).message)
+            : "Action failed";
+      toast.error(msg || "Action failed");
+    },
   });
 
   return (
