@@ -165,6 +165,7 @@ export function EmployeeDocumentsExportDialog({
   const [organization, setOrganization] = useState(ALL);
   const [unit, setUnit] = useState(ALL);
   const [manager, setManager] = useState(ALL);
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
@@ -183,13 +184,19 @@ export function EmployeeDocumentsExportDialog({
       if (unit !== ALL && (p.unit_id ?? "") !== unit) return false;
       if (organization !== ALL && organizationOfUnit(p.unit_id) !== organization) return false;
       if (manager !== ALL && (p.reports_to ?? "") !== manager) return false;
+      if (statusFilter !== "all") {
+        const active = isActivePerson(p);
+        if (statusFilter === "active" && !active) return false;
+        if (statusFilter === "inactive" && active) return false;
+      }
       if (q) {
         const hay = `${p.full_name ?? ""} ${p.employee_code ?? ""} ${p.candidate_code ?? ""} ${p.mobile ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [people, role, designation, unit, organization, manager, search, organizationOfUnit]);
+  }, [people, role, designation, unit, organization, manager, statusFilter, search, organizationOfUnit]);
+
 
   const selectedIds = useMemo(() => filtered.filter((p) => selected[p.id]).map((p) => p.id), [filtered, selected]);
   const allChecked = filtered.length > 0 && selectedIds.length === filtered.length;
