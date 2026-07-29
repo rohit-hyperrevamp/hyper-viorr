@@ -55,6 +55,25 @@ export function RehireReviewDialog({
     },
   });
 
+  const targetQ = useQuery({
+    queryKey: ["workflows", "rehire", "target", request?.unit_id, request?.designation_id],
+    enabled: !!request,
+    queryFn: async () => {
+      const [unitRes, desigRes] = await Promise.all([
+        request?.unit_id
+          ? supabase.from("units" as never).select("name,code").eq("id", request.unit_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        request?.designation_id
+          ? supabase.from("designations" as never).select("name").eq("id", request.designation_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
+      return {
+        unit: (unitRes.data as { name?: string; code?: string } | null)?.name ?? "",
+        designation: (desigRes.data as { name?: string } | null)?.name ?? "",
+      };
+    },
+  });
+
   const prevQ = useQuery({
     queryKey: ["workflows", "rehire", "prev-candidate", request?.previous_candidate_id],
     enabled: !!request?.previous_candidate_id,
@@ -120,6 +139,12 @@ export function RehireReviewDialog({
                 <Field label="Mobile" value={request.mobile || "—"} />
                 <Field label="Previous employee ID" value={prevQ.data?.employee_code || prevQ.data?.candidate_code || "—"} />
                 <Field label="New employee ID" value={request.new_employee_code || "Pending HR"} />
+                <Field label="Rehire unit" value={targetQ.data?.unit || "—"} />
+                <Field
+                  label="Rehire role"
+                  value={(request.role_key || "").replace(/_/g, " ") || "—"}
+                />
+                <Field label="Designation" value={targetQ.data?.designation || "—"} />
               </div>
 
               <div className="flex flex-wrap gap-2">

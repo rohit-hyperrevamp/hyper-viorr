@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, ExternalLink, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +20,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { createRehireRequest, uploadRehireDocument } from "@/lib/workflows";
 
 export type ExistingCandidateMatch = {
@@ -49,6 +58,63 @@ export function RehireRequestDialog({
   const [resignation, setResignation] = useState<File | null>(null);
   const [idCard, setIdCard] = useState<File | null>(null);
   const [notes, setNotes] = useState("");
+  const [unitId, setUnitId] = useState("");
+  const [roleKey, setRoleKey] = useState("");
+  const [designationId, setDesignationId] = useState("");
+
+  const { isFieldOfficer, unitIds } = useFieldOfficerUnitScope();
+
+  const unitsQ = useQuery({
+    queryKey: ["rehire", "units-lite"],
+    enabled: open,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("units" as never)
+        .select("id,name,code")
+        .order("name");
+      if (error) throw error;
+      return ((data as unknown) as Array<{ id: string; name: string; code: string | null }>) ?? [];
+    },
+  });
+
+  const rolesQ = useQuery({
+    queryKey: ["rehire", "roles-lite"],
+    enabled: open,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("roles").select("key,name").order("name");
+      if (error) throw error;
+      return ((data as unknown) as Array<{ key: string; name: string }>) ?? [];
+    },
+  });
+
+  const desigQ = useQuery({
+    queryKey: ["rehire", "designations-lite"],
+    enabled: open,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("designations" as never)
+        .select("id,name")
+        .order("name");
+      if (error) throw error;
+      return ((data as unknown) as Array<{ id: string; name: string }>) ?? [];
+    },
+  });
+
+  const unitOptions = useMemo(() => {
+    const all = unitsQ.data ?? [];
+    if (!isFieldOfficer) return all;
+    return all.filter((u) => unitIds.has(u.id));
+  }, [unitsQ.data, isFieldOfficer, unitIds]);
+
+  const roleOptions = useMemo(() => {
+    const all = rolesQ.data ?? [];
+    // Field officers can only bring people back as frontline guards.
+    if (!isFieldOfficer) return all;
+    return all.filter((r) => r.key === "guard" || r.key === "security_guard");
+  }, [rolesQ.data, isFieldOfficer]);
 
   const existingResignation = match?.resignation_url || "";
   const existingIdCard = match?.id_card_url || "";
@@ -59,11 +125,22 @@ export function RehireRequestDialog({
     setResignation(null);
     setIdCard(null);
     setNotes("");
+    setUnitId("");
+    setRoleKey("");
+    setDesignationId("");
   };
 
   useEffect(() => {
     if (!open) reset();
   }, [open]);
+
+  // Pre-select the unit the person previously worked at when it's in reach.
+  useEffect(() => {
+    if (!open || unitId) return;
+    const prev = match?.unit_id ?? "";
+    if (prev && unitOptions.some((u) => u.id === prev)) setUnitId(prev);
+    else if (unitOptions.length === 1) setUnitId(unitOptions[0].id);
+  }, [open, unitId, match?.unit_id, unitOptions]);
 
   const docSummary = useMemo(() => {
     if (missingCount === 0)
@@ -78,6 +155,8 @@ export function RehireRequestDialog({
   const mut = useMutation({
     mutationFn: async () => {
       if (!match) throw new Error("No matching employee");
+      if (!unitId) throw new Error("Select the unit for this rehire");
+      if (!roleKey) throw new Error("Select the role for this rehire");
       if (!existingResignation && !resignation) throw new Error("Resignation copy is required");
       if (!existingIdCard && !idCard) throw new Error("ID card copy is required");
       const aadhaar = (match.aadhaar_number ?? "").replace(/\D/g, "");
@@ -90,7 +169,9 @@ export function RehireRequestDialog({
         aadhaarNumber: aadhaar,
         fullName: match.full_name,
         mobile: match.mobile ?? "",
-        unitId: match.unit_id ?? null,
+        unitId,
+        roleKey,
+        designationId: designationId || null,
         resignationUrl,
         idCardUrl,
         notes,
@@ -130,10 +211,66 @@ export function RehireRequestDialog({
         </DialogHeader>
 
         {stage === "docs" && (
-          <div className="space-y-3">
+          <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
             <p className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
               {docSummary}
             </p>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>
+                  Unit<span className="text-rose-500"> *</span>
+                </Label>
+                <Select value={unitId} onValueChange={setUnitId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[160]">
+                    {unitOptions.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                        {u.code ? ` (${u.code})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>
+                  Role<span className="text-rose-500"> *</span>
+                </Label>
+                <Select value={roleKey} onValueChange={setRoleKey}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[160]">
+                    {roleOptions.map((r) => (
+                      <SelectItem key={r.key} value={r.key}>
+                        {r.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="sm:col-span-2">
+                <Label>Designation</Label>
+                <Select value={designationId} onValueChange={setDesignationId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select designation (optional)" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[160]">
+                    {(desigQ.data ?? []).map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
 
             {existingResignation ? (
               <OnFile label="Resignation copy" url={existingResignation} />
