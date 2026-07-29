@@ -54,6 +54,39 @@ export function useRehirePipeline(opts?: { mineOnly?: boolean; requestedByCandid
   });
 }
 
+/** candidate id → open rehire request info, for badges in the employee/candidate lists. */
+export function useRehireByCandidate() {
+  const { roleKey, isSuperAdmin } = useCurrentUserRole();
+  const q = useRehirePipeline();
+  const steps = q.data?.steps ?? [];
+  const pending = q.data?.pending ?? [];
+
+  const map = React.useMemo(() => {
+    const maxOrder = steps.length ? Math.max(...steps.map((s) => s.step_order)) : 0;
+    const m = new Map<string, {
+      request: RehireRequest;
+      stepName: string;
+      isFinal: boolean;
+      canAct: boolean;
+    }>();
+    for (const r of pending) {
+      const step = stepByOrder(steps, r.current_step_order);
+      const info = {
+        request: r,
+        stepName: step?.name ?? `Step ${r.current_step_order}`,
+        isFinal: !!step && step.step_order === maxOrder,
+        canAct: !!step && (isSuperAdmin || (!!roleKey && step.approver_role_key === roleKey)),
+      };
+      for (const id of [r.previous_candidate_id, r.new_candidate_id]) {
+        if (id) m.set(id, info);
+      }
+    }
+    return m;
+  }, [steps, pending, roleKey, isSuperAdmin]);
+
+  return { map, isLoading: q.isLoading };
+}
+
 export function rehireHolderLabel(
   req: RehireRequest,
   steps: WorkflowStep[],
