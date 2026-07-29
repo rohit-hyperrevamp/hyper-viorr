@@ -567,7 +567,7 @@ function FieldOfficerDashboard() {
             hint={rehireHint}
             delta={0} deltaSuffix=""
             icon={UserCheck}
-            to="/admin/workflows/rehire"
+            to="/admin/candidates/rehire"
           />
           <PastelTile
             palette="amber"

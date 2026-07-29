@@ -50,7 +50,7 @@ import {
 
 type Search = { request?: string };
 
-export const Route = createFileRoute("/admin/workflows/rehire")({
+export const Route = createFileRoute("/admin/candidates/rehire")({
   validateSearch: (s: Record<string, unknown>): Search => ({
     request: typeof s.request === "string" ? s.request : undefined,
   }),
@@ -70,7 +70,7 @@ function statusChip(status: string) {
 }
 
 function RehireWorkflowPage() {
-  const search = useSearch({ from: "/admin/workflows/rehire" });
+  const search = useSearch({ from: "/admin/candidates/rehire" });
   const qc = useQueryClient();
   const { roleKey, isSuperAdmin } = useCurrentUserRole();
 

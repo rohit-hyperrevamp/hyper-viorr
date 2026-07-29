@@ -69,7 +69,7 @@ export type RehireEvent = {
 
 export const REHIRE_WORKFLOW_KEY = "rehire";
 
-const REHIRE_LINK = "/admin/workflows/rehire";
+const REHIRE_LINK = "/admin/candidates/rehire";
 const ACTIVITY_MODULE = "Rehire Workflow";
 
 // ---------------------------------- reads ----------------------------------
