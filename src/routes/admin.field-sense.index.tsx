@@ -24,9 +24,9 @@ export const Route = createFileRoute("/admin/field-sense/")({
   }),
   head: () => ({
     meta: [
-      { title: "Field Sense — Live field officers on India map" },
+      { title: "Radar — Live field officers on India map" },
       { name: "description", content: "Live map of on-duty field officers with battery and network telemetry." },
-      { property: "og:title", content: "Field Sense — Live field officers" },
+      { property: "og:title", content: "Radar — Live field officers" },
       { property: "og:description", content: "Live map of on-duty field officers with battery and network telemetry." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -106,9 +106,9 @@ function FieldSensePage() {
     return (
       <div className="space-y-4">
         <PageHeader
-          title="Field Sense"
+          title="Radar"
           description="Your live map — visits, distances traveled and check-in tracking for the day."
-          crumbs={[{ label: "Admin", to: "/admin/field-dashboard" }, { label: "Field Sense" }]}
+          crumbs={[{ label: "Admin", to: "/admin/field-dashboard" }, { label: "Radar" }]}
         />
         <FieldOfficerFieldSense candidateId={candidateId} />
       </div>
@@ -308,9 +308,9 @@ function AdminFieldSense() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Field Sense"
+        title="Radar"
         description="Live map of on-duty field officers with battery and network telemetry."
-        crumbs={[{ label: "Admin", to: "/admin/dashboard" }, { label: "Field Sense" }]}
+        crumbs={[{ label: "Admin", to: "/admin/dashboard" }, { label: "Radar" }]}
       />
 
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>

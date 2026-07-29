@@ -4,7 +4,7 @@ import { useCurrentPermissions } from "@/lib/rbac";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 
 /**
- * Gate wrapper for Field Sense admin sub-pages (Day Patrol, Expense Manager,
+ * Gate wrapper for Radar admin sub-pages (Day Patrol, Expense Manager,
  * Reports, Officer detail). Field officers are redirected to their own
  * Day Patrol dashboard; other roles must have RBAC access to the given
  * `field_sense` sub-module.

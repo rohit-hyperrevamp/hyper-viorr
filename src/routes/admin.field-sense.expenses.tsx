@@ -19,7 +19,7 @@ export const Route = createFileRoute("/admin/field-sense/expenses")({
     meta: [
       { title: "Expense Manager — Field officer travel distance" },
       { name: "description", content: "Cumulative kilometers traveled by every field officer over any date range, with per-day breakdown and map trail." },
-      { property: "og:title", content: "Expense Manager — Field Sense" },
+      { property: "og:title", content: "Expense Manager — Radar" },
       { property: "og:description", content: "Cumulative kilometers traveled by every field officer over any date range." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -268,7 +268,7 @@ function ExpenseManagerPage() {
       <PageHeader
         title="Expense Manager"
         description="Cumulative kilometers traveled by each field officer across any date range. Drill into a date to see their exact trail."
-        crumbs={[{ label: "Admin", to: "/admin/dashboard" }, { label: "Field Sense", to: "/admin/field-sense" }, { label: "Expense Manager" }]}
+        crumbs={[{ label: "Admin", to: "/admin/dashboard" }, { label: "Radar", to: "/admin/field-sense" }, { label: "Expense Manager" }]}
       />
 
       {/* Filter bar */}

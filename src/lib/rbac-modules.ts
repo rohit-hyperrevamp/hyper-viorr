@@ -205,7 +205,7 @@ export const RBAC_MODULES: ModuleDef[] = [
 
   {
     key: "field_sense",
-    label: "Field Sense",
+    label: "Radar",
     path: "/admin/field-sense",
     icon: MapPin,
     subModules: [
