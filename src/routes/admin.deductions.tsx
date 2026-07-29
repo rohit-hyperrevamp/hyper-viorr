@@ -262,8 +262,9 @@ function DeductionList() {
     queryFn: async (): Promise<Deduction[]> => {
       const { data, error } = await supabase
         .from("deductions" as never)
-        .select("id,candidate_id,deduction_type_id,deduction_date,deduction_name,calculation_type,amount,installments,description,status,min_duty,max_duty,source_kind")
-        .order("deduction_date", { ascending: false });
+        .select("id,candidate_id,deduction_type_id,deduction_date,deduction_name,calculation_type,amount,installments,description,status,min_duty,max_duty,source_kind,created_at")
+        .order("deduction_date", { ascending: false })
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return (data as unknown) as Deduction[];
     },
