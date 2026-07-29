@@ -371,6 +371,7 @@ type UnitLite = {
   customer_id: string | null;
   branch_id: string | null;
   uniform_included?: boolean | null;
+  uniform_fee_amount?: number | string | null;
   customer_name?: string;
 };
 
@@ -560,7 +561,7 @@ function useUnits() {
       const { data, error } = await runWithQueryTimeout("Units", async (signal) =>
         await supabase
           .from("units" as never)
-          .select("id,code,name,customer_id,branch_id,uniform_included")
+          .select("id,code,name,customer_id,branch_id,uniform_included,uniform_fee_amount")
           .order("name", { ascending: true })
           .limit(2000)
           .abortSignal(signal),
@@ -5466,6 +5467,17 @@ function CandidateWizard({
                             return u ? u.uniform_included !== false : true;
                           });
                         })()}
+                        uniformFeeAmount={(() => {
+                          const ids = form.unit_ids.length > 0 ? form.unit_ids : (form.unit_id ? [form.unit_id] : []);
+                          let max = 0;
+                          for (const id of ids) {
+                            const u = units.find((x) => x.id === id);
+                            if (u && u.uniform_included === false) {
+                              max = Math.max(max, Number(u.uniform_fee_amount ?? 0) || 0);
+                            }
+                          }
+                          return max;
+                        })()}
                       />
                     </Field>
                   </div>
@@ -6688,6 +6700,7 @@ function AssetMultiPicker({
   sizes,
   onSizesChange,
   uniformIncluded = true,
+  uniformFeeAmount = 0,
 }: {
   assets: { id: string; name: string; category: string; available_qty?: number; unit_price?: number }[];
   value: string[];
@@ -6695,6 +6708,7 @@ function AssetMultiPicker({
   sizes?: Record<string, string>;
   onSizesChange?: (next: Record<string, string>) => void;
   uniformIncluded?: boolean;
+  uniformFeeAmount?: number;
 }) {
   const [open, setOpen] = useState(true);
   const [query, setQuery] = useState("");
@@ -6743,13 +6757,22 @@ function AssetMultiPicker({
   const isUniform = (a: { category: string; name: string }) =>
     /uniform/i.test(a.category ?? "") || /uniform/i.test(a.name ?? "");
 
-  const priceFor = (a: { category: string; name: string; unit_price?: number }) =>
-    isUniform(a) && uniformIncluded ? 0 : Number(a.unit_price ?? 0) || 0;
+  const flatUniformFee = !uniformIncluded && uniformFeeAmount > 0 ? uniformFeeAmount : 0;
+
+  const priceFor = (a: { category: string; name: string; unit_price?: number }) => {
+    if (isUniform(a)) {
+      // Uniform included in the contract, or charged as a single unit-level flat fee.
+      if (uniformIncluded || flatUniformFee > 0) return 0;
+    }
+    return Number(a.unit_price ?? 0) || 0;
+  };
 
   const inr = (n: number) => `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
   const uniformSelected = selected.filter(isUniform);
-  const totalRecoverable = selected.reduce((sum, a) => sum + priceFor(a), 0);
+  const totalRecoverable =
+    selected.reduce((sum, a) => sum + priceFor(a), 0) +
+    (uniformSelected.length > 0 ? flatUniformFee : 0);
 
   useEffect(() => {
     if (!open) {
@@ -6803,9 +6826,11 @@ function AssetMultiPicker({
             <span className="text-muted-foreground">
               {uniformSelected.length > 0 && uniformIncluded
                 ? "Uniform items are included in this unit's contract (₹0 to the staff member)."
-                : uniformSelected.length > 0
-                  ? "Uniform is not included — value shown will be recoverable from the staff member."
-                  : "Values shown are recoverable against the staff member."}
+                : uniformSelected.length > 0 && flatUniformFee > 0
+                  ? `Uniform is not included — a flat uniform fee of ${inr(flatUniformFee)} set on this unit will be recovered from the staff member.`
+                  : uniformSelected.length > 0
+                    ? "Uniform is not included — value shown will be recoverable from the staff member."
+                    : "Values shown are recoverable against the staff member."}
             </span>
             <span className="font-semibold text-foreground">
               Recoverable total: {inr(totalRecoverable)}

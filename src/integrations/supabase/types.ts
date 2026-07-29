@@ -4596,6 +4596,7 @@ export type Database = {
           shipping_same_as_org: boolean
           shipping_state: string
           status: Database["public"]["Enums"]["customer_status"]
+          uniform_fee_amount: number
           uniform_included: boolean
           updated_at: string
         }
@@ -4654,6 +4655,7 @@ export type Database = {
           shipping_same_as_org?: boolean
           shipping_state?: string
           status?: Database["public"]["Enums"]["customer_status"]
+          uniform_fee_amount?: number
           uniform_included?: boolean
           updated_at?: string
         }
@@ -4712,6 +4714,7 @@ export type Database = {
           shipping_same_as_org?: boolean
           shipping_state?: string
           status?: Database["public"]["Enums"]["customer_status"]
+          uniform_fee_amount?: number
           uniform_included?: boolean
           updated_at?: string
         }
