@@ -661,6 +661,8 @@ function DashboardPage() {
         )}
       </div>
 
+      <RehireApprovalsCard />
+
       {can("employees") && <RehirePipelineCard />}
 
       {/* Insights — gradient chart + speedometer (each gated by RBAC) */}
