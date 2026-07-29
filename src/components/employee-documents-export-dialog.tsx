@@ -104,6 +104,22 @@ async function fetchImage(url: string): Promise<{ dataUrl: string; w: number; h:
   }
 }
 
+async function loadDataUrl(src: string): Promise<string | null> {
+  try {
+    const res = await fetch(src);
+    const blob = await res.blob();
+    return await new Promise<string | null>((resolve) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => resolve(null);
+      r.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+
 export function EmployeeDocumentsExportDialog({
   open,
   onOpenChange,
