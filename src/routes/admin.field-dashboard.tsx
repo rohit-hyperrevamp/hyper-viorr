@@ -37,7 +37,8 @@ import { MyLiveStatusCard } from "@/components/MyLiveStatusCard";
 import { cn } from "@/lib/utils";
 import { ListSkeleton } from "@/components/Skeletons";
 import { RADIANT_BILLING_UNIT_ID } from "@/lib/business-constants";
-import { UserCog } from "lucide-react";
+import { UserCog, UserCheck } from "lucide-react";
+import { RehirePipelineCard, useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelineCard";
 
 
 
