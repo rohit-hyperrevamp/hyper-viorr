@@ -704,12 +704,13 @@ function EmployeesPage() {
   const candidatesError = candidatesQuery.error;
   const qc = useQueryClient();
 
-  const { roleKey, isSuperAdmin, can } = useCurrentPermissions();
+  const { roleKey, isSuperAdmin, can, canSub } = useCurrentPermissions();
   const isFieldOfficer = roleKey === "field_officer" && !isSuperAdmin;
   const canAddEmployee = isSuperAdmin || ["admin", "super_admin", "hr", "leadership"].includes(roleKey ?? "");
-  // Approval capability is now driven entirely by RBAC (Employees → Approve).
-  // Super admin implicitly gets true via useCurrentPermissions.
-  const canApproveOnboarding = can("employees", "approve");
+  // Onboarding approval is scoped to the Employees → Approvals sub-module only.
+  // Using the module-level `can("employees","approve")` leaked the button to any
+  // role holding approve on ANY sub-module (e.g. Field Officers with Rehire approve).
+  const canApproveOnboarding = isSuperAdmin || canSub("employees", "approvals", "approve");
   const { map: rehireByCandidate } = useRehireByCandidate();
   const [enableRehireTarget, setEnableRehireTarget] = useState<RehireRequest | null>(null);
   const [rehireReviewTarget, setRehireReviewTarget] = useState<RehireRequest | null>(null);
