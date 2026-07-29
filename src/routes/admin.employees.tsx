@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import {
   ComplianceSection,
   KnowledgeSection,
@@ -65,7 +65,9 @@ import { extractAadhaar, type AadhaarExtraction } from "@/lib/aadhaar.functions"
 import { logActivity } from "@/lib/activity-log";
 import { RehireApprovalsCard, useRehireByCandidate } from "@/components/RehirePipelineCard";
 import { RehireEnableDialog } from "@/components/RehireEnableDialog";
+import { RehireReviewDialog } from "@/components/RehireReviewDialog";
 import { type RehireRequest } from "@/lib/workflows";
+import { fetchWorkflowByKey, fetchWorkflowSteps, REHIRE_WORKFLOW_KEY } from "@/lib/workflows";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,7 +130,13 @@ import { EmployeeDocumentsExportDialog } from "@/components/employee-documents-e
 
 
 
+type EmployeesSearch = { tab?: "employee" | "candidate"; rehire?: string };
+
 export const Route = createFileRoute("/admin/employees")({
+  validateSearch: (search: Record<string, unknown>): EmployeesSearch => ({
+    tab: search.tab === "candidate" || search.tab === "employee" ? search.tab : undefined,
+    rehire: typeof search.rehire === "string" ? search.rehire : undefined,
+  }),
   component: EmployeesPage,
 });
 
@@ -676,6 +684,7 @@ function useRolesLite() {
 }
 
 function EmployeesPage() {
+  const routeSearch = useSearch({ from: "/admin/employees" });
   const candidatesQuery = useCandidates();
   const unitsQuery = useUnits();
   const designationsQuery = useDesignations();
@@ -701,6 +710,16 @@ function EmployeesPage() {
   // Approval capability is now driven entirely by RBAC (Employees → Approve).
   // Super admin implicitly gets true via useCurrentPermissions.
   const canApproveOnboarding = can("employees", "approve");
+  const { map: rehireByCandidate } = useRehireByCandidate();
+  const [enableRehireTarget, setEnableRehireTarget] = useState<RehireRequest | null>(null);
+  const [rehireReviewTarget, setRehireReviewTarget] = useState<RehireRequest | null>(null);
+  const rehireStepsQ = useQuery({
+    queryKey: ["workflows", "rehire", "steps"],
+    queryFn: async () => {
+      const wf = await fetchWorkflowByKey(REHIRE_WORKFLOW_KEY);
+      return wf ? (await fetchWorkflowSteps(wf.id)).filter((step) => step.is_active) : [];
+    },
+  });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
@@ -709,6 +728,17 @@ function EmployeesPage() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"employee" | "candidate">("employee");
   useEffect(() => { if (isFieldOfficer) setTab("candidate"); }, [isFieldOfficer]);
+  useEffect(() => {
+    if (routeSearch.tab) setTab(routeSearch.tab);
+  }, [routeSearch.tab]);
+  useEffect(() => {
+    if (!routeSearch.rehire) return;
+    const match = Array.from(rehireByCandidate.values()).find((info) => info.request.id === routeSearch.rehire);
+    if (match) {
+      setTab("candidate");
+      setRehireReviewTarget(match.request);
+    }
+  }, [routeSearch.rehire, rehireByCandidate]);
 
   const [empStatusTab, setEmpStatusTab] = useState<"active" | "inactive">("active");
   const [viewMode, setViewMode] = useState<"list" | "tree">("list");
@@ -997,6 +1027,7 @@ function EmployeesPage() {
   const employees = useMemo(
     () => candidates.filter((c) => {
       if (!isEmployeeStatus(c.status)) return false;
+      if (rehireByCandidate.has(c.id)) return false;
       if (supersededEmployeeIds.has(c.id)) return false;
       if (!matchesSearch(c)) return false;
       if (!matchesFilters(c)) return false;
@@ -1010,11 +1041,12 @@ function EmployeesPage() {
       return true;
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [candidates, supersededEmployeeIds, search, filterRole, filterDesignation, filterCustomer, filterUnit, filterManager, filterEnabled, filterBillable, filterOffboardReason, units, designations, isFieldOfficer, scopedUnitIdSet, empStatusTab],
+    [candidates, supersededEmployeeIds, rehireByCandidate, search, filterRole, filterDesignation, filterCustomer, filterUnit, filterManager, filterEnabled, filterBillable, filterOffboardReason, units, designations, isFieldOfficer, scopedUnitIdSet, empStatusTab],
   );
   const candidateRows = useMemo(
     () => candidates.filter((c) => {
-      if (isEmployeeStatus(c.status)) return false;
+      const hasRehire = rehireByCandidate.has(c.id);
+      if (isEmployeeStatus(c.status) && !hasRehire) return false;
       if (!matchesSearch(c)) return false;
       if (isFieldOfficer) {
         // FO sees pending/rejected/draft submissions within his units,
@@ -1022,12 +1054,12 @@ function EmployeesPage() {
         const inMyUnits = !!c.unit_id && scopedUnitIdSet.has(c.unit_id);
         const isMine = !!currentUserId && c.created_by === currentUserId;
         if (!inMyUnits && !isMine) return false;
-        if (c.status === "approved") return false;
+        if (c.status === "approved" && !hasRehire) return false;
       }
       return true;
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [candidates, search, isFieldOfficer, currentUserId, scopedUnitIdSet],
+    [candidates, rehireByCandidate, search, isFieldOfficer, currentUserId, scopedUnitIdSet],
   );
 
   // ---------------- Export ---------------- //
@@ -1219,14 +1251,14 @@ function EmployeesPage() {
 
   const stats = useMemo(() => {
     // Candidate-tab stats (only non-employee status records)
-    const candidateOnly = candidates.filter((c) => !isEmployeeStatus(c.status));
+    const candidateOnly = candidates.filter((c) => !isEmployeeStatus(c.status) || rehireByCandidate.has(c.id));
     const candTotal = candidateOnly.length;
     const candDrafts = candidateOnly.filter((c) => c.status === "draft").length;
     const candPending = candidateOnly.filter((c) => c.status === "pending").length;
     const candRejected = candidateOnly.filter((c) => c.status === "rejected").length;
 
     // Employee-tab stats (employees only)
-    const employeeOnly = candidates.filter((c) => isEmployeeStatus(c.status) && !supersededEmployeeIds.has(c.id));
+    const employeeOnly = candidates.filter((c) => isEmployeeStatus(c.status) && !supersededEmployeeIds.has(c.id) && !rehireByCandidate.has(c.id));
     const empTotal = employeeOnly.length;
     const empActive = employeeOnly.filter((c) => c.is_enabled && c.status !== "inactive").length;
     const empInactive = empTotal - empActive;
@@ -1237,7 +1269,7 @@ function EmployeesPage() {
       candTotal, candDrafts, candPending, candRejected,
       empTotal, empActive, empInactive, empNdaSigned, empAlSigned,
     };
-  }, [candidates, signedByCandidate, supersededEmployeeIds]);
+  }, [candidates, signedByCandidate, supersededEmployeeIds, rehireByCandidate]);
 
   const deleteMut = useMutation({
     mutationFn: async (c: CandidateListItem) => {
@@ -2007,11 +2039,6 @@ function EmployeesPage() {
 
   const canEditInactiveProfile = isSuperAdmin || roleKey === "leadership" || roleKey === "super_admin";
 
-  // Rehire requests in flight, keyed by candidate — surfaced as a status chip
-  // and (at the final workflow step) an inline "Enable" action.
-  const { map: rehireByCandidate } = useRehireByCandidate();
-  const [enableRehireTarget, setEnableRehireTarget] = useState<RehireRequest | null>(null);
-
   const openEditor = async (candidateId: string) => {
     setOpeningCandidateId(candidateId);
     try {
@@ -2371,7 +2398,17 @@ function EmployeesPage() {
 
 
 
-              {rehire?.isFinal && rehire.canAct && (
+              {mode === "candidate" && rehire?.canAct && (
+                <Button
+                  size="sm"
+                  onClick={() => setRehireReviewTarget(rehire.request)}
+                  className="h-8 rounded-full bg-violet-600 px-3 text-[11px] font-semibold text-white hover:bg-violet-700"
+                  title={rehire.isFinal ? "Enable this rehire" : "Review this rehire approval"}
+                >
+                  {rehire.isFinal ? "Enable" : "Review"}
+                </Button>
+              )}
+              {mode === "employee" && rehire?.isFinal && rehire.canAct && (
                 <Button
                   size="sm"
                   onClick={() => setEnableRehireTarget(rehire.request)}
@@ -2627,7 +2664,16 @@ function EmployeesPage() {
                     <Clock className="h-3 w-3 shrink-0" />
                     <span className="truncate">{rehire.isFinal ? "Awaiting enablement" : `Rehire · ${rehire.stepName}`}</span>
                   </span>
-                  {rehire.isFinal && rehire.canAct && (
+                  {mode === "candidate" && rehire.canAct && (
+                    <Button
+                      size="sm"
+                      onClick={() => setRehireReviewTarget(rehire.request)}
+                      className="h-7 rounded-full bg-violet-600 px-3 text-[11px] font-semibold text-white hover:bg-violet-700"
+                    >
+                      {rehire.isFinal ? "Enable" : "Review"}
+                    </Button>
+                  )}
+                  {mode === "employee" && rehire.isFinal && rehire.canAct && (
                     <Button
                       size="sm"
                       onClick={() => setEnableRehireTarget(rehire.request)}
@@ -2835,14 +2881,25 @@ function EmployeesPage() {
         crumbs={[{ label: "Employees" }]}
       />
 
-      <RehireApprovalsCard />
-
       <RehireEnableDialog
         request={enableRehireTarget}
         onClose={() => setEnableRehireTarget(null)}
         onDone={() => {
           qc.invalidateQueries({ queryKey: QK });
           qc.invalidateQueries({ queryKey: ["rehire-pipeline"] });
+        }}
+      />
+
+      <RehireReviewDialog
+        request={rehireReviewTarget}
+        steps={rehireStepsQ.data ?? []}
+        roleKey={roleKey}
+        isSuperAdmin={isSuperAdmin}
+        onClose={() => setRehireReviewTarget(null)}
+        onDone={() => {
+          qc.invalidateQueries({ queryKey: QK });
+          qc.invalidateQueries({ queryKey: ["rehire-pipeline"] });
+          qc.invalidateQueries({ queryKey: ["workflows", "rehire"] });
         }}
       />
 
@@ -3270,6 +3327,9 @@ function EmployeesPage() {
           )}
         </TabsContent>
         <TabsContent value="candidate" className="mt-0">
+          <div className="mb-4">
+            <RehireApprovalsCard onReview={(request) => setRehireReviewTarget(request)} />
+          </div>
           {renderTable(candidateRows, "candidate")}
         </TabsContent>
       </Tabs>

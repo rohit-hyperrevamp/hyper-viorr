@@ -1,4 +1,4 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -72,6 +72,22 @@ function statusChip(status: string) {
 
 function RehireWorkflowPage() {
   const search = useSearch({ from: "/admin/candidates/rehire" });
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigate({
+      to: "/admin/employees",
+      search: { tab: "candidate", ...(search.request ? { rehire: search.request } : {}) },
+      replace: true,
+    });
+  }, [navigate, search.request]);
+
+  return (
+    <div className="p-6 text-sm text-muted-foreground">
+      Opening Candidates…
+    </div>
+  );
+
+  // Legacy implementation retained below only for route-tree compatibility.
   const qc = useQueryClient();
   const { roleKey, isSuperAdmin } = useCurrentUserRole();
 

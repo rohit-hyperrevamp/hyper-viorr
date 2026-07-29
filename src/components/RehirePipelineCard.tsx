@@ -104,10 +104,12 @@ export function RehirePipelineCard({
   mineOnly,
   requestedByCandidateId,
   title = "Rehire pipeline",
+  onReview,
 }: {
   mineOnly?: boolean;
   requestedByCandidateId?: string | null;
   title?: string;
+  onReview?: (request: RehireRequest) => void;
 }) {
   const q = useRehirePipeline({ mineOnly, requestedByCandidateId });
   const data = q.data;
@@ -146,13 +148,8 @@ export function RehirePipelineCard({
           pending.map((r) => {
             const step = stepByOrder(steps, r.current_step_order);
             const total = steps.length || 1;
-            return (
-              <Link
-                key={r.id}
-                to="/admin/candidates/rehire"
-                search={{ request: r.id } as never}
-                className="flex items-center justify-between gap-3 px-3.5 py-2.5 transition-colors hover:bg-accent/5 sm:px-4"
-              >
+            const content = (
+              <>
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-foreground">{r.full_name || "—"}</div>
                   <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
@@ -164,6 +161,28 @@ export function RehirePipelineCard({
                 <span className="shrink-0 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-500/30 dark:text-amber-300">
                   {rehireHolderLabel(r, steps, data?.roleName ?? new Map())}
                 </span>
+              </>
+            );
+            if (onReview) {
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => onReview(r)}
+                  className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-accent/5 sm:px-4"
+                >
+                  {content}
+                </button>
+              );
+            }
+            return (
+              <Link
+                key={r.id}
+                to="/admin/employees"
+                search={{ tab: "candidate", rehire: r.id } as never}
+                className="flex items-center justify-between gap-3 px-3.5 py-2.5 transition-colors hover:bg-accent/5 sm:px-4"
+              >
+                {content}
               </Link>
             );
           })
@@ -190,7 +209,7 @@ export function useMyRehireApprovals() {
 }
 
 /** Amber "action required" card — only renders when something is with you. */
-export function RehireApprovalsCard() {
+export function RehireApprovalsCard({ onReview }: { onReview?: (request: RehireRequest) => void }) {
   const { mine, steps, isLoading } = useMyRehireApprovals();
   if (isLoading || mine.length === 0) return null;
 
@@ -216,13 +235,8 @@ export function RehireApprovalsCard() {
       <div className="divide-y divide-amber-500/15">
         {mine.map((r) => {
           const step = stepByOrder(steps, r.current_step_order);
-          return (
-            <Link
-              key={r.id}
-              to="/admin/candidates/rehire"
-              search={{ request: r.id } as never}
-              className="flex items-center justify-between gap-3 px-3.5 py-2.5 transition-colors hover:bg-amber-500/10 sm:px-4"
-            >
+          const content = (
+            <>
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold text-foreground">{r.full_name || "—"}</div>
                 <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
@@ -233,6 +247,28 @@ export function RehireApprovalsCard() {
               <span className="shrink-0 rounded-full bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-white">
                 Review &amp; approve
               </span>
+            </>
+          );
+          if (onReview) {
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => onReview(r)}
+                className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-amber-500/10 sm:px-4"
+              >
+                {content}
+              </button>
+            );
+          }
+          return (
+            <Link
+              key={r.id}
+              to="/admin/employees"
+              search={{ tab: "candidate", rehire: r.id } as never}
+              className="flex items-center justify-between gap-3 px-3.5 py-2.5 transition-colors hover:bg-amber-500/10 sm:px-4"
+            >
+              {content}
             </Link>
           );
         })}
