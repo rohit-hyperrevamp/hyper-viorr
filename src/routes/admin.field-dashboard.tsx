@@ -528,7 +528,7 @@ function FieldOfficerDashboard() {
             <h2 className="mt-0.5 font-display text-lg font-bold tracking-tight text-foreground sm:text-2xl">My Summary</h2>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-5">
           <PastelTile
             palette="lime"
             label="Team size"
@@ -555,6 +555,15 @@ function FieldOfficerDashboard() {
             to="/admin/employees"
           />
           <PastelTile
+            palette="violet"
+            label="Pending rehire"
+            value={rehirePending.length}
+            hint={rehireHint}
+            delta={0} deltaSuffix=""
+            icon={UserCheck}
+            to="/admin/workflows/rehire"
+          />
+          <PastelTile
             palette="amber"
             label="My stock available"
             value={data?.myStockQty ?? 0}
@@ -566,7 +575,11 @@ function FieldOfficerDashboard() {
         </div>
       </section>
 
+      <RehirePipelineCard mineOnly requestedByCandidateId={data?.meId ?? null} title="My rehire requests" />
+
       {data?.meId && <FieldSenseSummary candidateId={data.meId} />}
+
+
 
 
 
