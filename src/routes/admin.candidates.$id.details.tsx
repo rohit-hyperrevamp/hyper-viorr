@@ -54,6 +54,7 @@ import {
   NomineeSection,
 } from "@/components/candidate-extra-sections";
 import { useCurrentPermissions } from "@/lib/rbac";
+import { OffboardingRecordsSection } from "@/components/offboarding-records-section";
 
 
 const MODULE = "Candidate Details";
