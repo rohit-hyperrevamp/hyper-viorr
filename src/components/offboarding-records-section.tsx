@@ -21,7 +21,7 @@ function InfoRow({ label, value }: { label: string; value: any }) {
   );
 }
 
-export function OffboardingRecordsSection({ details }: { details: any }) {
+export function OffboardingRecordsSection({ details, hideHeader = false }: { details: any; hideHeader?: boolean }) {
   const [preview, setPreview] = useState<{ url: string; label: string } | null>(null);
   const d = details && typeof details === "object" ? details : {};
   const docs: any[] = Array.isArray(d.exit_documents) ? d.exit_documents : [];
@@ -32,7 +32,7 @@ export function OffboardingRecordsSection({ details }: { details: any }) {
   if (!hasAny) {
     return (
       <div className="space-y-4">
-        <SectionHeader title="Offboarding Records" desc="Exit documents and asset collection history." />
+        {!hideHeader && <SectionHeader title="Offboarding Records" desc="Exit documents and asset collection history." />}
         <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
           No offboarding record for this employee.
         </div>
@@ -42,10 +42,12 @@ export function OffboardingRecordsSection({ details }: { details: any }) {
 
   return (
     <div className="space-y-5">
-      <SectionHeader
-        title="Offboarding Records"
-        desc="Exit documents, asset collection and settlement history — retained for re-onboarding."
-      />
+      {!hideHeader && (
+        <SectionHeader
+          title="Offboarding Records"
+          desc="Exit documents, asset collection and settlement history — retained for re-onboarding."
+        />
+      )}
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <InfoRow label="Resignation date" value={fmtDate(d.date_of_resignation)} />
