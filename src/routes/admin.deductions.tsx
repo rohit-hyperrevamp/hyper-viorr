@@ -39,7 +39,7 @@ export const Route = createFileRoute("/admin/deductions")({
   component: DeductionsPage,
 });
 
-type CalcType = "lumpsum" | "per_duty_amount" | "total_amount";
+type CalcType = "lumpsum" | "emi";
 type Status = "active" | "paused" | "completed" | "cancelled";
 type EntryMode = "lumpsum" | "days_x_per_day";
 type DayBucket = "present" | "worked" | "ot" | "ph";
@@ -680,18 +680,23 @@ function DeductionForm() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="lumpsum">Lumpsum Amount</SelectItem>
-                    <SelectItem value="per_duty_amount">Based On Duty And Per Day Amount</SelectItem>
-                    <SelectItem value="total_amount">Based On Duty And Total Amount</SelectItem>
+                    <SelectItem value="emi">EMI (split into monthly instalments)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-1.5">
-                <Label>* Deduction Amount</Label>
+                <Label>{calc === "emi" ? "* Total Amount" : "* Deduction Amount"}</Label>
                 <Input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
               </div>
               <div className="grid gap-1.5">
-                <Label>* Installments</Label>
-                <Input type="number" min="1" step="1" value={installments} onChange={(e) => setInstallments(e.target.value)} disabled={calc !== "lumpsum"} />
+                <Label>{calc === "emi" ? "* Number of EMIs (months)" : "* Installments"}</Label>
+                <Input type="number" min="1" step="1" value={installments} onChange={(e) => setInstallments(e.target.value)} disabled={calc !== "emi"} />
+                {calc === "emi" && (
+                  <p className="text-xs text-muted-foreground">
+                    {fmtINR(Number(amount) || 0)} → {Math.max(1, parseInt(installments, 10) || 1)} monthly entries of{" "}
+                    <span className="font-semibold">{fmtINR(Math.round(((Number(amount) || 0) / Math.max(1, parseInt(installments, 10) || 1)) * 100) / 100)}</span>, starting {date}.
+                  </p>
+                )}
               </div>
             </>
           ) : (
