@@ -103,11 +103,55 @@ export function RehireRequestDialog({
     },
   });
 
+  // Designations valid for the chosen unit come from that unit's ACTIVE
+  // contract resources — never the person's previous designation.
+  const contractDesigQ = useQuery({
+    queryKey: ["rehire", "contract-designations", unitId],
+    enabled: open && !!unitId,
+    staleTime: 30_000,
+    queryFn: async (): Promise<string[]> => {
+      const { data: contracts, error: cErr } = await supabase
+        .from("client_contracts" as never)
+        .select("id")
+        .eq("unit_id", unitId)
+        .eq("status", "active");
+      if (cErr) throw cErr;
+      const ids = ((contracts ?? []) as Array<{ id: string }>).map((c) => c.id);
+      if (!ids.length) return [];
+      const { data: res, error: rErr } = await supabase
+        .from("contract_resources" as never)
+        .select("designation_id")
+        .in("contract_id", ids);
+      if (rErr) throw rErr;
+      return Array.from(
+        new Set(
+          ((res ?? []) as Array<{ designation_id: string | null }>)
+            .map((r) => r.designation_id)
+            .filter((x): x is string => !!x),
+        ),
+      );
+    },
+  });
+
   const unitOptions = useMemo(() => {
     const all = unitsQ.data ?? [];
     if (!isFieldOfficer) return all;
     return all.filter((u) => unitIds.has(u.id));
   }, [unitsQ.data, isFieldOfficer, unitIds]);
+
+  const designationOptions = useMemo(() => {
+    const all = desigQ.data ?? [];
+    if (!unitId || contractDesigQ.isLoading) return all;
+    const allow = new Set(contractDesigQ.data ?? []);
+    return all.filter((d) => allow.has(d.id));
+  }, [desigQ.data, unitId, contractDesigQ.isLoading, contractDesigQ.data]);
+
+  // Clear a designation that the newly picked unit's contract doesn't cover.
+  useEffect(() => {
+    if (!unitId || contractDesigQ.isLoading || !designationId) return;
+    if (!(contractDesigQ.data ?? []).includes(designationId)) setDesignationId("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unitId, contractDesigQ.isLoading, (contractDesigQ.data ?? []).join(",")]);
 
   const roleOptions = useMemo(() => {
     const all = rolesQ.data ?? [];
@@ -115,6 +159,7 @@ export function RehireRequestDialog({
     if (!isFieldOfficer) return all;
     return all.filter((r) => r.key === "guard" || r.key === "security_guard");
   }, [rolesQ.data, isFieldOfficer]);
+
 
   const existingResignation = match?.resignation_url || "";
   const existingIdCard = match?.id_card_url || "";
