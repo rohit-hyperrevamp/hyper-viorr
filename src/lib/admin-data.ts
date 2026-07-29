@@ -579,6 +579,7 @@ export type Unit = {
   enablePt: boolean;
   enableLwf: boolean;
   uniformIncluded: boolean;
+  uniformFeeAmount: number;
   recruitmentFeeEnabled: boolean;
   recruitmentFeeAmount: number;
   gpaipEnabled: boolean;
