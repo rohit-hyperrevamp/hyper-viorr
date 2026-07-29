@@ -1384,7 +1384,6 @@ function EmployeesPage() {
           no_hire: false,
           offboarding_reason_id: null,
           offboarded_at: null,
-          offboarding_details: {},
           rejection_reason: "",
           rejected_at: null,
           preferred_joining_date: today,
@@ -1835,7 +1834,6 @@ function EmployeesPage() {
           rejected_at: null,
           offboarding_reason_id: null,
           offboarded_at: null,
-          offboarding_details: {},
           onboarding_details: nextOnboardingDetails,
         } as unknown as never)
         .eq("id", c.id)
@@ -2422,7 +2420,11 @@ function EmployeesPage() {
                         className="h-7 w-7 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
                         title={editLocked ? "View profile & offboarding docs (read-only)" : "Open the full 10-section editor"}
                       >
-                        <Link to="/admin/candidates/$id/details" params={{ id: c.id }}>
+                        <Link
+                          to="/admin/candidates/$id/details"
+                          params={{ id: c.id }}
+                          search={c.offboarding_details && Object.keys(c.offboarding_details).length > 0 ? { section: "offboarding" } : undefined}
+                        >
                           <FileText className="h-4 w-4" />
                         </Link>
                       </Button>
@@ -2681,7 +2683,11 @@ function EmployeesPage() {
                   </>
                 )}
                 <Button asChild variant="ghost" size="icon" className="h-8 w-8 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground" title={editLocked ? "View profile & offboarding docs (read-only)" : "Open full editor"}>
-                  <Link to="/admin/candidates/$id/details" params={{ id: c.id }}><FileText className="h-4 w-4" /></Link>
+                  <Link
+                    to="/admin/candidates/$id/details"
+                    params={{ id: c.id }}
+                    search={c.offboarding_details && Object.keys(c.offboarding_details).length > 0 ? { section: "offboarding" } : undefined}
+                  ><FileText className="h-4 w-4" /></Link>
                 </Button>
 
                 <Button variant="ghost" size="icon" onClick={() => void openEditor(c.id)} disabled={openingCandidateId === c.id || editLocked} className="h-8 w-8 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50" title={editLocked ? lockedTitle : "Quick edit"} aria-label={editLocked ? lockedTitle : "Quick edit"}>
@@ -3335,7 +3341,7 @@ function EmployeesPage() {
             >
               <div className="font-semibold text-foreground">Reactivate the same record</div>
               <div className="mt-1 text-xs text-muted-foreground">
-                Keeps the existing employee ID <span className="font-mono">{reactivateTarget?.employee_code || "—"}</span>. Clears offboarding fields and rehires them on the same profile.
+                Keeps the existing employee ID <span className="font-mono">{reactivateTarget?.employee_code || "—"}</span>. Reactivates the same profile while retaining offboarding history.
               </div>
             </button>
             <button
