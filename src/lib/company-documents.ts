@@ -547,14 +547,14 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc th, .govdoc td { padding: 2px 3px; font-size: 14px; line-height: 1.05; vertical-align: top; }
 .govdoc th { font-weight: 700; text-align: left; background: transparent; }
 .govdoc .nomination-table { width: 660px; margin-top: 12px; table-layout: fixed; }
-.govdoc .nomination-table th { height: 132px; vertical-align: top; }
-.govdoc .nomination-table .col-1 { width: 132px; }
-.govdoc .nomination-table .col-2 { width: 53px; }
-.govdoc .nomination-table .col-3 { width: 102px; }
-.govdoc .nomination-table .col-4 { width: 42px; }
-.govdoc .nomination-table .col-5 { width: 144px; }
-.govdoc .nomination-table .col-6 { width: 184px; }
-.govdoc .nomination-table tfoot td { height: 18px; padding: 1px 3px; text-align: center; font-weight: 700; }
+.govdoc .nomination-table th { height: 245px; vertical-align: top; }
+.govdoc .nomination-table .col-1 { width: 133px; }
+.govdoc .nomination-table .col-2 { width: 49px; }
+.govdoc .nomination-table .col-3 { width: 109px; }
+.govdoc .nomination-table .col-4 { width: 40px; }
+.govdoc .nomination-table .col-5 { width: 146px; }
+.govdoc .nomination-table .col-6 { width: 183px; }
+.govdoc .nomination-table tfoot td { height: 18px; padding: 1px 3px; text-align: center; font-weight: 400; }
 .govdoc .nominee-entry { display: block; min-height: 15px; font-weight: 400; }
 .govdoc .nominee-detail-title { width: 660px; margin-top: 16px; font-weight: 700; font-size: 13px; }
 .govdoc .nominee-detail-table { width: 660px; margin-top: 5px; table-layout: fixed; }
@@ -570,14 +570,15 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc .nominee-detail-table .d-5 { width: 48px; text-align: center; }
 .govdoc .nominee-detail-table td.d-4, .govdoc .nominee-detail-table td.d-5 { text-align: center; }
 .govdoc .nominee-detail-table .d-6 { width: 170px; }
-.govdoc .cert-list { width: 660px; margin-top: 14px; font-weight: 700; font-size: 12.5px; }
-.govdoc .cert-list div { margin: 2px 0; }
-.govdoc .employee-sign { width: 660px; margin-top: 26px; text-align: right; font-weight: 700; }
-.govdoc .employer-cert-title { margin-top: 20px; text-align: center; font-weight: 400; }
-.govdoc .employer-cert-copy { width: 660px; margin-top: 19px; text-align: justify; text-indent: 48px; font-weight: 700; }
-.govdoc .employer-sign { width: 660px; margin-top: 18px; font-weight: 700; }
-.govdoc .place-date { width: 660px; margin-top: 20px; font-weight: 700; }
-.govdoc .stamp-line { width: 660px; margin-top: 20px; text-align: right; font-weight: 700; }
+.govdoc .cert-list { width: 660px; margin-top: 16px; font-weight: 400; font-size: 14px; }
+.govdoc .cert-list div { margin: 0; }
+.govdoc .employee-sign { width: 660px; margin-top: 34px; text-align: right; font-weight: 400; }
+.govdoc .employer-cert-title { margin-top: 22px; width: 660px; text-align: center; font-weight: 400; }
+.govdoc .employer-cert-copy { width: 660px; margin-top: 22px; text-align: justify; text-indent: 58px; font-weight: 400; }
+.govdoc .employer-sign { width: 660px; margin-top: 22px; font-weight: 400; }
+.govdoc .place-date { width: 660px; margin-top: 18px; font-weight: 400; }
+.govdoc .place-date div { margin-top: 14px; }
+.govdoc .stamp-line { width: 660px; margin-top: 26px; text-align: right; font-weight: 400; }
 .govdoc .plain, .govdoc .plain td, .govdoc .plain th { border: none; padding: 2px 0; }
 .govdoc .sec { font-weight: 700; text-decoration: underline; margin-top: 14px; font-size: 12.5px; }
 .govdoc .sign-row { display: flex; justify-content: space-between; margin-top: 34px; gap: 24px; }
