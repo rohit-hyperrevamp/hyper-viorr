@@ -578,21 +578,53 @@ function esc(v: string): string {
 }
 
 function nomineeTableHtml(nominees: NomineeForRender[]): string {
-  const list = nominees.length ? nominees : [];
-  const cell = (value: (n: NomineeForRender) => string) =>
-    list.map((n) => `<span class="nominee-entry">${esc(value(n)) || "&nbsp;"}</span>`).join("");
-  return `<table class="nomination-table">
+  // Statutory table — kept exactly as the printed government form (blank ruled area).
+  const mainTable = `<table class="nomination-table">
     <thead><tr>
-      <th class="col-1">Name of<br/>nominee/nominees${cell((n) => n.name)}</th>
-      <th class="col-2">Address${cell((n) => n.address)}</th>
-      <th class="col-3">Nominee's<br/>relationship<br/>with the<br/>employee${cell((n) => n.relation)}</th>
-      <th class="col-4">Date<br/>of<br/>Birth${cell((n) => (n.dob ? fmtDate(n.dob) : ""))}</th>
-      <th class="col-5">Total amount of share<br/>of accumulations in<br/>credit to be paid to<br/>each nominee${cell((n) => `${n.share || 0}%`)}</th>
-      <th class="col-6">If the nominee is minor,<br/>name, relationship, and<br/>address of the guardian who<br/>may receive the amount<br/>during the minority of<br/>nominee${cell((n) => n.guardian)}</th>
+      <th class="col-1">Name of<br/>nominee/nominees</th>
+      <th class="col-2">Address</th>
+      <th class="col-3">Nominee's<br/>relationship<br/>with the<br/>employee</th>
+      <th class="col-4">Date<br/>of<br/>Birth</th>
+      <th class="col-5">Total amount of share<br/>of accumulations in<br/>credit to be paid to<br/>each nominee</th>
+      <th class="col-6">If the nominee is minor,<br/>name, relationship, and<br/>address of the guardian who<br/>may receive the amount<br/>during the minority of<br/>nominee</th>
     </tr></thead>
     <tfoot><tr><td>(1)</td><td>(2)</td><td>(3)</td><td>(4)</td><td>(5)</td><td>(6)</td></tr></tfoot>
   </table>`;
+
+  const rows = (nominees.length ? nominees : []).map(
+    (n, i) => `<tr>
+      <td class="d-sr">${i + 1}</td>
+      <td class="d-1">${esc(n.name) || "&nbsp;"}</td>
+      <td class="d-2">${esc(n.address) || "&nbsp;"}</td>
+      <td class="d-3">${esc(n.relation) || "&nbsp;"}</td>
+      <td class="d-4">${n.dob ? esc(fmtDate(n.dob)) : "&nbsp;"}</td>
+      <td class="d-5">${n.share || 0}%</td>
+      <td class="d-6">${esc(n.guardian) || "&nbsp;"}</td>
+    </tr>`,
+  );
+  while (rows.length < 2) {
+    rows.push(
+      `<tr><td class="d-sr">${rows.length + 1}</td><td class="d-1">&nbsp;</td><td class="d-2">&nbsp;</td><td class="d-3">&nbsp;</td><td class="d-4">&nbsp;</td><td class="d-5">&nbsp;</td><td class="d-6">&nbsp;</td></tr>`,
+    );
+  }
+
+  const detailTable = `<div class="nominee-detail-title">Particulars of nominee(s) as recorded</div>
+  <table class="nominee-detail-table">
+    <thead><tr>
+      <th class="d-sr">Sr.</th>
+      <th class="d-1">Name of nominee</th>
+      <th class="d-2">Address</th>
+      <th class="d-3">Relationship</th>
+      <th class="d-4">Date of Birth</th>
+      <th class="d-5">Share</th>
+      <th class="d-6">Guardian (if nominee is minor)</th>
+    </tr></thead>
+    <tbody>${rows.join("")}</tbody>
+  </table>`;
+
+  return `${mainTable}${detailTable}`;
 }
+
 
 export type EsicFamilyForRender = { name: string; relation: string; mobile: string; share: number };
 
