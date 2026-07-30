@@ -2153,13 +2153,12 @@ function ClientContractsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                        onClick={() => handleSyncFormulas(c.id, c.contractCode || "contract")}
-                        disabled={syncingId === c.id}
-                        aria-label="Sync formulas from master"
-                        title="Sync formulas from Allowance / Cost Component Manager"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
+                        onClick={() => setViewing(c)}
+                        aria-label="View contract"
+                        title="View contract"
                       >
-                        <RefreshCcw className={`h-4 w-4 ${syncingId === c.id ? "animate-spin" : ""}`} />
+                        <Eye className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
@@ -2170,9 +2169,11 @@ function ClientContractsPage() {
                           setFormOpen(true);
                         }}
                         aria-label="Edit"
+                        title="Edit"
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
+
                       <DeleteGuardButton
                         id={c.id}
                         entityLabel="contract"
