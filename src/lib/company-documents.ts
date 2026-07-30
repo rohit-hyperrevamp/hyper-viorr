@@ -309,6 +309,18 @@ export async function ensureFormViiForCandidate(candidateId: string): Promise<"c
     .maybeSingle();
   if (existing) return "exists";
 
+  // Drop stale unsigned copies from older template versions so the employee
+  // always holds exactly one Form VII rendered from the current master layout.
+  await supabase
+    .from("employee_signed_documents")
+    .delete()
+    .eq("candidate_id", candidateId)
+    .eq("doc_type", "form_vii")
+    .neq("version", template.version)
+    .eq("employee_signature_data", "")
+    .eq("company_signature_data", "");
+
+
   const candidate = await fetchCandidateForRender(candidateId);
   const rendered = renderTemplate(template.body, buildPlaceholderMap(candidate, isHtmlBody(template.body)));
 
