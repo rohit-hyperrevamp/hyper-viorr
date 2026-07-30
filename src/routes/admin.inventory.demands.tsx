@@ -75,26 +75,13 @@ function DemandsPage() {
       return (data as unknown as Item[]) ?? [];
     },
   });
-  const { data: itemSizes = new Map<string, string[]>() } = useQuery({
-    queryKey: ["inv", "item-sizes-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("inv_item_sizes" as never).select("item_id,size_value,sort_order,enabled").eq("enabled", true);
-      if (error) throw error;
-      const rows = (data as unknown as { item_id: string; size_value: string; sort_order: number }[]) ?? [];
-      const out = new Map<string, string[]>();
-      const grouped = new Map<string, { v: string; o: number }[]>();
-      for (const r of rows) {
-        const a = grouped.get(r.item_id) ?? [];
-        a.push({ v: r.size_value, o: r.sort_order });
-        grouped.set(r.item_id, a);
-      }
-      for (const [k, arr] of grouped) {
-        arr.sort((a, b) => a.o - b.o || a.v.localeCompare(b.v));
-        out.set(k, arr.map((x) => x.v));
-      }
-      return out;
-    },
-  });
+  const { data: sizeOptions = new Map<string, ItemSizeOptions>() } = useItemSizeOptions();
+  const itemSizes = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const [k, v] of sizeOptions) m.set(k, v.options);
+    return m;
+  }, [sizeOptions]);
+
 
   const { data: lineAgg = new Map<string, { items: number; qty: number }>() } = useQuery({
     queryKey: ["inv", "demand-line-agg"],
