@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { nextSeq, fmtNumber, statusBadgeClass } from "@/lib/inv-helpers";
 import { useUserBranchScope } from "@/lib/use-user-branch-scope";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
+import { useItemSizeOptions, sizePlaceholder, type ItemSizeOptions } from "@/lib/inv-sizes";
 
 export const Route = createFileRoute("/admin/inventory/demands")({ component: DemandsPage });
 
@@ -76,11 +77,6 @@ function DemandsPage() {
     },
   });
   const { data: sizeOptions = new Map<string, ItemSizeOptions>() } = useItemSizeOptions();
-  const itemSizes = useMemo(() => {
-    const m = new Map<string, string[]>();
-    for (const [k, v] of sizeOptions) m.set(k, v.options);
-    return m;
-  }, [sizeOptions]);
 
 
   const { data: lineAgg = new Map<string, { items: number; qty: number }>() } = useQuery({
@@ -308,7 +304,7 @@ function DemandsPage() {
         branches={branches}
         warehouses={warehouses}
         items={items}
-        itemSizes={itemSizes}
+        itemSizes={sizeOptions}
 
         onSaved={invalidate}
       />
@@ -321,7 +317,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
   open: boolean; onOpenChange: (o: boolean) => void; initial: Demand | null;
   requesterCandidateId: string | null;
   branchId: string; branchLabel: string; isFieldOfficer: boolean;
-  branches: Branch[]; warehouses: Warehouse[]; items: Item[]; itemSizes: Map<string, string[]>; onSaved: () => void;
+  branches: Branch[]; warehouses: Warehouse[]; items: Item[]; itemSizes: Map<string, ItemSizeOptions>; onSaved: () => void;
 }) {
 
   const [demandDate, setDemandDate] = useState(new Date().toISOString().slice(0, 10));
@@ -484,7 +480,8 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
             <div className="grid gap-2 sm:hidden">
               {lines.map((l, idx) => {
                 const it = itemMap.get(l.item_id);
-                const sizes = it ? (itemSizes.get(it.id) ?? []) : [];
+                const sizeOpt = it ? itemSizes.get(it.id) : undefined;
+                const sizes = sizeOpt?.options ?? [];
                 const needsSize = !!it?.is_sized;
                 const missing = needsSize && !String(l.size_value ?? "").trim();
                 return (
@@ -507,7 +504,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
                         <Label className="text-[11px] font-semibold">Size</Label>
                         {needsSize && sizes.length > 0 ? (
                           <Select value={l.size_value} onValueChange={(v) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, size_value: v } : x))}>
-                            <SelectTrigger className={`h-10 w-full ${missing ? "border-destructive ring-1 ring-destructive/40" : ""}`}><SelectValue placeholder="Required" /></SelectTrigger>
+                            <SelectTrigger className={`h-10 w-full ${missing ? "border-destructive ring-1 ring-destructive/40" : ""}`}><SelectValue placeholder={sizePlaceholder(sizeOpt)} /></SelectTrigger>
                             <SelectContent>{sizes.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                           </Select>
                         ) : (
@@ -555,13 +552,14 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
                         </td>
                         <td className="px-2 py-1.5">
                           {(() => {
-                            const sizes = it ? (itemSizes.get(it.id) ?? []) : [];
+                            const sizeOpt = it ? itemSizes.get(it.id) : undefined;
+                const sizes = sizeOpt?.options ?? [];
                             const needsSize = !!it?.is_sized;
                             const missing = needsSize && !String(l.size_value ?? "").trim();
                             if (needsSize && sizes.length > 0) {
                               return (
                                 <Select value={l.size_value} onValueChange={(v) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, size_value: v } : x))}>
-                                  <SelectTrigger className={`h-9 ${missing ? "border-destructive ring-1 ring-destructive/40" : ""}`}><SelectValue placeholder="Required" /></SelectTrigger>
+                                  <SelectTrigger className={`h-9 ${missing ? "border-destructive ring-1 ring-destructive/40" : ""}`}><SelectValue placeholder={sizePlaceholder(sizeOpt)} /></SelectTrigger>
                                   <SelectContent>{sizes.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                                 </Select>
                               );
@@ -572,7 +570,7 @@ function DemandFormDialog({ open, onOpenChange, initial, requesterCandidateId, b
                                 disabled={!needsSize}
                                 value={l.size_value}
                                 onChange={(e) => setLines((ls) => ls.map((x, i) => i === idx ? { ...x, size_value: e.target.value } : x))}
-                                placeholder={needsSize ? "Required (e.g. M / L)" : "—"}
+                                placeholder={needsSize ? "Required (e.g. M / L / 40)" : "—"}
                               />
                             );
                           })()}
