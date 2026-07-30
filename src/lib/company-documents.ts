@@ -309,6 +309,18 @@ export async function ensureFormViiForCandidate(candidateId: string): Promise<"c
     .maybeSingle();
   if (existing) return "exists";
 
+  // Drop stale unsigned copies from older template versions so the employee
+  // always holds exactly one Form VII rendered from the current master layout.
+  await supabase
+    .from("employee_signed_documents")
+    .delete()
+    .eq("candidate_id", candidateId)
+    .eq("doc_type", "form_vii")
+    .neq("version", template.version)
+    .eq("employee_signature_data", "")
+    .eq("company_signature_data", "");
+
+
   const candidate = await fetchCandidateForRender(candidateId);
   const rendered = renderTemplate(template.body, buildPlaceholderMap(candidate, isHtmlBody(template.body)));
 
@@ -531,32 +543,32 @@ export const DOCUMENT_PAGE_CSS = `
   font-size: 15px; line-height: 1; margin-bottom: 4px; }
 .govdoc .gazette-head span:nth-child(2) { text-align: center; font-weight: 700; }
 .govdoc .gazette-head span:nth-child(3) { text-align: right; }
-.govdoc .gazette-rule { height: 5px; border-top: 1px solid #000; border-bottom: 2px double #000; margin-bottom: 30px; }
+.govdoc .gazette-rule { height: 5px; border-top: 1px solid #000; border-bottom: 2px double #000; margin-bottom: 22px; }
 .govdoc .doc-title { text-align: center; font-weight: 700; font-size: 15px; line-height: 1; letter-spacing: 0; }
 .govdoc .doc-rule { text-align: center; font-weight: 700; font-size: 14px; line-height: 1; margin-top: 20px; }
 .govdoc .doc-sub { text-align: center; font-weight: 400; font-size: 15px; line-height: 1; margin-top: 20px; letter-spacing: 0; }
-.govdoc .gov-fields { margin-top: 26px; font-weight: 700; }
+.govdoc .gov-fields { margin-top: 26px; font-weight: 400; }
 .govdoc .gov-fields div { min-height: 19px; }
 .govdoc .field-fill { font-weight: 400; }
 .govdoc .address-lines { margin-top: 1px; }
 .govdoc .address-lines div { min-height: 19px; }
-.govdoc .nomination-text { width: 660px; margin: 10px 0 6px; text-align: justify; text-indent: 24px; }
+.govdoc .nomination-text { width: 660px; margin: 12px 0 6px; text-align: justify; text-indent: 58px; }
 .govdoc p { margin: 8px 0; text-align: justify; }
 .govdoc table { border-collapse: collapse; }
 .govdoc table, .govdoc th, .govdoc td { border: 2px solid #222; }
 .govdoc th, .govdoc td { padding: 2px 3px; font-size: 14px; line-height: 1.05; vertical-align: top; }
 .govdoc th { font-weight: 700; text-align: left; background: transparent; }
 .govdoc .nomination-table { width: 660px; margin-top: 12px; table-layout: fixed; }
-.govdoc .nomination-table th { height: 132px; vertical-align: top; }
-.govdoc .nomination-table .col-1 { width: 132px; }
-.govdoc .nomination-table .col-2 { width: 53px; }
-.govdoc .nomination-table .col-3 { width: 102px; }
-.govdoc .nomination-table .col-4 { width: 42px; }
-.govdoc .nomination-table .col-5 { width: 144px; }
-.govdoc .nomination-table .col-6 { width: 184px; }
-.govdoc .nomination-table tfoot td { height: 18px; padding: 1px 3px; text-align: center; font-weight: 700; }
+.govdoc .nomination-table th { height: 145px; vertical-align: top; font-weight: 400; }
+.govdoc .nomination-table .col-1 { width: 133px; }
+.govdoc .nomination-table .col-2 { width: 49px; }
+.govdoc .nomination-table .col-3 { width: 109px; }
+.govdoc .nomination-table .col-4 { width: 40px; }
+.govdoc .nomination-table .col-5 { width: 146px; }
+.govdoc .nomination-table .col-6 { width: 183px; }
+.govdoc .nomination-table tfoot td { height: 18px; padding: 1px 3px; text-align: center; font-weight: 400; }
 .govdoc .nominee-entry { display: block; min-height: 15px; font-weight: 400; }
-.govdoc .nominee-detail-title { width: 660px; margin-top: 16px; font-weight: 700; font-size: 13px; }
+.govdoc .nominee-detail-title { width: 660px; margin-top: 12px; font-weight: 700; font-size: 13px; }
 .govdoc .nominee-detail-table { width: 660px; margin-top: 5px; table-layout: fixed; }
 .govdoc .nominee-detail-table th, .govdoc .nominee-detail-table td {
   border: 1px solid #222; padding: 3px 4px; font-size: 11.5px; line-height: 1.2; vertical-align: top; }
@@ -570,14 +582,15 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc .nominee-detail-table .d-5 { width: 48px; text-align: center; }
 .govdoc .nominee-detail-table td.d-4, .govdoc .nominee-detail-table td.d-5 { text-align: center; }
 .govdoc .nominee-detail-table .d-6 { width: 170px; }
-.govdoc .cert-list { width: 660px; margin-top: 14px; font-weight: 700; font-size: 12.5px; }
-.govdoc .cert-list div { margin: 2px 0; }
-.govdoc .employee-sign { width: 660px; margin-top: 26px; text-align: right; font-weight: 700; }
-.govdoc .employer-cert-title { margin-top: 20px; text-align: center; font-weight: 400; }
-.govdoc .employer-cert-copy { width: 660px; margin-top: 19px; text-align: justify; text-indent: 48px; font-weight: 700; }
-.govdoc .employer-sign { width: 660px; margin-top: 18px; font-weight: 700; }
-.govdoc .place-date { width: 660px; margin-top: 20px; font-weight: 700; }
-.govdoc .stamp-line { width: 660px; margin-top: 20px; text-align: right; font-weight: 700; }
+.govdoc .cert-list { width: 660px; margin-top: 12px; font-weight: 400; font-size: 14px; }
+.govdoc .cert-list div { margin: 0; }
+.govdoc .employee-sign { width: 660px; margin-top: 22px; text-align: right; font-weight: 400; }
+.govdoc .employer-cert-title { margin-top: 16px; width: 660px; text-align: center; font-weight: 400; }
+.govdoc .employer-cert-copy { width: 660px; margin-top: 16px; text-align: justify; text-indent: 58px; font-weight: 400; }
+.govdoc .employer-sign { width: 660px; margin-top: 18px; font-weight: 400; }
+.govdoc .place-date { width: 660px; margin-top: 18px; font-weight: 400; }
+.govdoc .place-date div { margin-top: 14px; }
+.govdoc .stamp-line { width: 660px; margin-top: 22px; text-align: right; font-weight: 400; }
 .govdoc .plain, .govdoc .plain td, .govdoc .plain th { border: none; padding: 2px 0; }
 .govdoc .sec { font-weight: 700; text-decoration: underline; margin-top: 14px; font-size: 12.5px; }
 .govdoc .sign-row { display: flex; justify-content: space-between; margin-top: 34px; gap: 24px; }
