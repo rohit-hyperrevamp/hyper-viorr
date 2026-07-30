@@ -924,7 +924,7 @@ function EmployeesPage() {
 
   const { candidateId: currentCandidateId, isLoading: roleLoading } = useCurrentUserRole();
   const candidateUnitsQuery = useCandidateUnits();
-  const NOMANS_UNIT_ID = "045fc1ec-a703-494f-8cce-29d353374c60";
+  const NOMANS_UNIT_ID = NOMANS_UNIT_ID_CONST;
   const scopedUnitsForWizard = useMemo(() => {
     if (!isFieldOfficer) return units;
     if (!currentCandidateId) return [] as typeof units;
