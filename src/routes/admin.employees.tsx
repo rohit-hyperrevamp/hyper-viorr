@@ -345,6 +345,9 @@ type CandidateContact = {
   mobile: string;
   dob?: string;
   address?: string;
+  guardian_name?: string;
+  guardian_mobile?: string;
+  guardian_address?: string;
   is_emergency: boolean;
 };
 
@@ -4509,10 +4512,27 @@ function CandidateWizard({
     {
       key: "Emergency contact",
       ok: (() => {
-        const e = form.contacts.find((c) => c.is_emergency);
-        return !!e && !!e.name.trim() && !!e.relation.trim() && /^[6-9]\d{9}$/.test(e.mobile.trim());
+        const e = form.contacts.find((c) => c.is_emergency) ?? form.contacts[0];
+        if (!e) return false;
+        const base =
+          !!e.name.trim() &&
+          !!e.relation.trim() &&
+          /^[6-9]\d{9}$/.test(e.mobile.trim()) &&
+          !!(e.address ?? "").trim() &&
+          !!e.dob;
+        if (!base) return false;
+        const age = Math.floor((Date.now() - new Date(e.dob as string).getTime()) / 31557600000);
+        if (Number.isFinite(age) && age < 18) {
+          return (
+            !!(e.guardian_name ?? "").trim() &&
+            !!(e.guardian_address ?? "").trim() &&
+            /^[6-9]\d{9}$/.test((e.guardian_mobile ?? "").trim())
+          );
+        }
+        return true;
       })(),
     },
+
     { key: "Bank account", ok: !!form.bank_account_number.trim() && !!form.bank_ifsc.trim() },
     { key: "PAN number", ok: /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase()) },
     { key: "Unit assignment", ok: form.unit_ids.length > 0 },
@@ -5173,160 +5193,117 @@ function CandidateWizard({
                 </div>
 
                 <div className="mt-5 border-t border-border pt-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                      Contacts — emergency contact required *
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setForm((f) => ({
-                          ...f,
-                          contacts: [
-                            ...f.contacts,
-                            { name: "", relation: "", mobile: "", is_emergency: f.contacts.length === 0 },
-                          ],
-                        }))
-                      }
-                    >
-                      <Plus className="mr-1 h-4 w-4" /> Add Contact
-                    </Button>
-                  </div>
-                  {form.contacts.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      An emergency contact is mandatory (it is used for the nominee record). Add a contact with name, relationship and mobile, then tick Emergency.
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {form.contacts.map((ct, i) => (
-                        <div
-                          key={i}
-                          className="rounded-lg border border-border bg-secondary/30 p-2.5 sm:p-3"
-                        >
-                          <div className="mb-2 flex items-center justify-between">
-                            <span className="text-xs font-semibold text-muted-foreground">
-                              Contact #{i + 1}
-                            </span>
-                            <div className="flex items-center gap-3">
-                              <label className="flex items-center gap-2 text-xs">
-                                <input
-                                  type="checkbox"
-                                  className="h-4 w-4 accent-rose-500"
-                                  checked={!!ct.is_emergency}
-                                  onChange={(e) =>
-                                    setForm((f) => ({
-                                      ...f,
-                                      contacts: f.contacts.map((c, idx) =>
-                                        idx === i
-                                          ? { ...c, is_emergency: e.target.checked }
-                                          : e.target.checked
-                                            ? { ...c, is_emergency: false }
-                                            : c,
-                                      ),
-                                    }))
-                                  }
-                                />
-                                Emergency
-                              </label>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  setForm((f) => ({
-                                    ...f,
-                                    contacts: f.contacts.filter((_, idx) => idx !== i),
-                                  }))
-                                }
-                              >
-                                <Trash2 className="h-4 w-4 text-rose-500" />
-                              </Button>
-                            </div>
-                          </div>
+                  {(() => {
+                    const ct: CandidateContact =
+                      form.contacts[0] ?? { name: "", relation: "", mobile: "", is_emergency: true };
+                    const upd = (patch: Partial<CandidateContact>) =>
+                      setForm((f) => {
+                        const base: CandidateContact =
+                          f.contacts[0] ?? { name: "", relation: "", mobile: "", is_emergency: true };
+                        return { ...f, contacts: [{ ...base, ...patch, is_emergency: true }] };
+                      });
+                    const presentAddress = [
+                      form.present_address1,
+                      form.present_address2,
+                      form.present_landmark,
+                      form.present_city,
+                      form.present_state,
+                      form.present_pincode,
+                    ]
+                      .filter((x) => x && String(x).trim())
+                      .join(", ");
+                    const age = ct.dob ? Math.floor((Date.now() - new Date(ct.dob).getTime()) / 31557600000) : null;
+                    const isMinor = age !== null && Number.isFinite(age) && age < 18;
+                    return (
+                      <>
+                        <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                          Emergency Contact *
+                        </div>
+                        <div className="rounded-lg border border-border bg-secondary/30 p-2.5 sm:p-3">
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <Field label="Name">
-                              <Input
-                                value={ct.name}
-                                onChange={(e) =>
-                                  setForm((f) => ({
-                                    ...f,
-                                    contacts: f.contacts.map((c, idx) =>
-                                      idx === i ? { ...c, name: e.target.value } : c,
-                                    ),
-                                  }))
-                                }
-                              />
+                            <Field label="Name" required>
+                              <Input value={ct.name} onChange={(e) => upd({ name: e.target.value })} />
                             </Field>
-                            <Field label="Relationship">
-                              <Select
-                                value={ct.relation || undefined}
-                                onValueChange={(v) =>
-                                  setForm((f) => ({
-                                    ...f,
-                                    contacts: f.contacts.map((c, idx) =>
-                                      idx === i ? { ...c, relation: v } : c,
-                                    ),
-                                  }))
-                                }
-                              >
+                            <Field label="Relationship" required>
+                              <Select value={ct.relation || undefined} onValueChange={(v) => upd({ relation: v })}>
                                 <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                                 <SelectContent>
                                   {REFERENCE_RELATIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                                 </SelectContent>
                               </Select>
                             </Field>
-                            <Field label="Mobile">
+                            <Field label="Mobile" required>
                               <Input
                                 value={ct.mobile}
                                 inputMode="numeric"
-                                onChange={(e) =>
-                                  setForm((f) => ({
-                                    ...f,
-                                    contacts: f.contacts.map((c, idx) =>
-                                      idx === i
-                                        ? { ...c, mobile: e.target.value.replace(/\D/g, "").slice(0, 10) }
-                                        : c,
-                                    ),
-                                  }))
-                                }
+                                maxLength={10}
+                                placeholder="10-digit mobile"
+                                onChange={(e) => upd({ mobile: e.target.value.replace(/\D/g, "").slice(0, 10) })}
                               />
                             </Field>
-                            <Field label="Date of Birth">
-                              <Input
-                                type="date"
-                                value={ct.dob ?? ""}
-                                onChange={(e) =>
-                                  setForm((f) => ({
-                                    ...f,
-                                    contacts: f.contacts.map((c, idx) =>
-                                      idx === i ? { ...c, dob: e.target.value } : c,
-                                    ),
-                                  }))
-                                }
-                              />
+                            <Field label="Date of Birth" required>
+                              <Input type="date" value={ct.dob ?? ""} onChange={(e) => upd({ dob: e.target.value })} />
                             </Field>
-                            <Field label="Address">
+                            <div className="sm:col-span-2">
+                              <div className="mb-1.5 flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium text-muted-foreground">Address *</span>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-[11px]"
+                                  disabled={!presentAddress}
+                                  onClick={() => upd({ address: presentAddress })}
+                                >
+                                  Same as candidate's present address
+                                </Button>
+                              </div>
                               <Input
                                 value={ct.address ?? ""}
-                                placeholder="Used on Form VII nomination"
-                                onChange={(e) =>
-                                  setForm((f) => ({
-                                    ...f,
-                                    contacts: f.contacts.map((c, idx) =>
-                                      idx === i ? { ...c, address: e.target.value } : c,
-                                    ),
-                                  }))
-                                }
+                                placeholder="House / street, landmark, city, state, pincode"
+                                onChange={(e) => upd({ address: e.target.value })}
                               />
-                            </Field>
+                            </div>
                           </div>
+
+                          {isMinor && (
+                            <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
+                              <p className="mb-2 text-xs font-semibold text-amber-800">
+                                The emergency contact is a minor ({age} yrs). Guardian details are required.
+                              </p>
+                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <Field label="Guardian Name" required>
+                                  <Input
+                                    value={ct.guardian_name ?? ""}
+                                    onChange={(e) => upd({ guardian_name: e.target.value })}
+                                  />
+                                </Field>
+                                <Field label="Guardian Mobile" required>
+                                  <Input
+                                    value={ct.guardian_mobile ?? ""}
+                                    inputMode="numeric"
+                                    maxLength={10}
+                                    placeholder="10-digit mobile"
+                                    onChange={(e) =>
+                                      upd({ guardian_mobile: e.target.value.replace(/\D/g, "").slice(0, 10) })
+                                    }
+                                  />
+                                </Field>
+                                <Field label="Guardian Address" required>
+                                  <Input
+                                    value={ct.guardian_address ?? ""}
+                                    onChange={(e) => upd({ guardian_address: e.target.value })}
+                                  />
+                                </Field>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </>
+                    );
+                  })()}
                 </div>
+
 
                 <div className="mt-5 border-t border-border pt-4">
                   <div className="mb-3 flex items-center justify-between">
