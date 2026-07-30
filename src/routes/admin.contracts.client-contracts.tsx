@@ -404,6 +404,31 @@ function nextContractCode(existing: string[]): string {
   return `CON${String(max + 1).padStart(5, "0")}`;
 }
 
+/**
+ * A unit may hold at most ONE active client contract at a time. Expired /
+ * pending / lost contracts for the same unit are fine. Throws when another
+ * active contract already exists for the unit.
+ */
+async function assertSingleActiveContract(unitId: string, excludeId?: string | null) {
+  if (!unitId) return;
+  let q = supabase
+    .from("client_contracts" as never)
+    .select("id, contract_code")
+    .eq("unit_id", unitId)
+    .eq("record_type", "client")
+    .eq("status", "active");
+  if (excludeId) q = q.neq("id", excludeId);
+  const { data, error } = await q;
+  if (error) throw error;
+  const dup = ((data as unknown as Record<string, unknown>[]) ?? [])[0];
+  if (dup) {
+    throw new Error(
+      `Unit already has an active contract (${String(dup.contract_code ?? "—")}). Expire or end it before activating another one.`,
+    );
+  }
+}
+
+
 function nextProspectCode(existing: string[]): string {
   let max = 0;
   for (const code of existing) {
@@ -564,23 +589,8 @@ function useContracts() {
 
       if (p.approvalStatus === "approved") {
         const unitId = p.unitId || String(before?.unit_id ?? "");
-        if (unitId) {
-          const { data: dupRows, error: dupErr } = await supabase
-            .from("client_contracts" as never)
-            .select("contract_code")
-            .eq("unit_id", unitId)
-            .eq("record_type", "client")
-            .eq("status", "active")
-            .eq("approval_status", "approved")
-            .neq("id", id);
-          if (dupErr) throw dupErr;
-          const dup = ((dupRows as unknown as Record<string, unknown>[]) ?? [])[0];
-          if (dup) {
-            throw new Error(
-              `Unit already has an active contract (${String(dup.contract_code ?? "—")}). Expire or end it before approving a new one.`,
-            );
-          }
-        }
+        await assertSingleActiveContract(unitId, id);
+
 
         let nextCode = p.contractCode || String(before?.contract_code ?? "");
         if (!nextCode) {
@@ -613,12 +623,16 @@ function useContracts() {
           prospect_stage: "closed",
         });
       } else {
+        if (p.status === "active" && p.recordType === "client") {
+          await assertSingleActiveContract(p.unitId || String(before?.unit_id ?? ""), id);
+        }
         Object.assign(after, {
           approval_status: p.approvalStatus,
           status: p.status,
           record_type: p.recordType,
           prospect_stage: p.prospectStage,
         });
+
 
         if (p.approvalStatus === "rejected") {
           const uidRes = await supabase.auth.getUser();
@@ -1604,6 +1618,38 @@ function safeJsonArray(v: unknown): unknown[] {
   }
 }
 
+/** Read-only look at what an uploaded workbook would do, before touching the DB. */
+async function inspectContractWorkbook(buf: ArrayBuffer): Promise<{
+  code: string;
+  unitId: string;
+  existing: { id: string; status: string; unitId: string } | null;
+}> {
+  const { contractRow } = parseContractWorkbook(buf);
+  const code = String(contractRow.contract_code ?? "").trim();
+  if (!code) throw new Error("Missing contract_code in workbook");
+  const unitId = String(contractRow.unit_id ?? "").trim();
+  if (!unitId) throw new Error("Missing unit_id in workbook");
+
+  const { data, error } = await supabase
+    .from("client_contracts" as never)
+    .select("id, status, unit_id")
+    .eq("contract_code", code)
+    .maybeSingle();
+  if (error) throw error;
+  const row = data as Record<string, unknown> | null;
+  return {
+    code,
+    unitId,
+    existing: row
+      ? {
+          id: String(row.id),
+          status: String(row.status ?? ""),
+          unitId: String(row.unit_id ?? ""),
+        }
+      : null,
+  };
+}
+
 async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
   action: "created" | "updated";
   contractCode: string;
@@ -1636,10 +1682,19 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
     .maybeSingle();
   if (existing.error) throw existing.error;
 
+  const existingId = existing.data
+    ? String((existing.data as Record<string, unknown>).id)
+    : null;
+
+  // One active contract per unit — an import must never create a second one.
+  if (row.status === "active") {
+    await assertSingleActiveContract(unitId, existingId);
+  }
+
   let contractId: string;
   let action: "created" | "updated";
-  if (existing.data) {
-    contractId = String((existing.data as Record<string, unknown>).id);
+  if (existingId) {
+    contractId = existingId;
     const upd = await supabase
       .from("client_contracts" as never)
       .update(row as never)
@@ -1656,6 +1711,7 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
     contractId = String((ins.data as Record<string, unknown>).id);
     action = "created";
   }
+
 
   const resources: ContractResource[] = resourceRows.map((r) => ({
     designationId: String(r.designation_id ?? ""),
@@ -1909,11 +1965,24 @@ function ClientContractsPage() {
             if (!file) return;
             try {
               const buf = await file.arrayBuffer();
+              const peek = await inspectContractWorkbook(buf);
+              if (peek.existing) {
+                const unitLabel = unitById.get(peek.existing.unitId)?.name ?? "";
+                const ok = await confirmAction({
+                  title: "Update an existing contract?",
+                  description: `Contract ${peek.code}${unitLabel ? ` (${unitLabel})` : ""} already exists and is currently ${peek.existing.status}. Importing this file will OVERWRITE its details and replace all of its resource lines. This cannot be undone.`,
+                  confirmText: "Yes, update it",
+                  cancelText: "Cancel",
+                  destructive: true,
+                });
+                if (!ok) return;
+              }
               const res = await importContractFromXlsx(buf);
               toast.success(
                 `Contract ${res.contractCode} ${res.action === "created" ? "imported" : "updated"} from Excel`,
               );
               await qc.invalidateQueries({ queryKey: QK });
+
             } catch (err) {
               toast.error(err instanceof Error ? err.message : "Import failed");
             }
