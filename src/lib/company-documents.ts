@@ -669,6 +669,14 @@ export async function generateHtmlDocumentPdf(opts: {
   const host = document.createElement("div");
   host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_WIDTH_PX}px;background:#fff;`;
   host.innerHTML = buildDocumentPageHtml(opts.body + sigBlock);
+  const employeeSlot = host.querySelector('[data-signature-slot="employee"]');
+  if (employeeSlot && opts.employeeSignatureDataUrl) {
+    employeeSlot.innerHTML = `<img src="${opts.employeeSignatureDataUrl}" style="display:block;height:34px;object-fit:contain;margin:0 0 4px auto" />`;
+  }
+  const companySlot = host.querySelector('[data-signature-slot="company"]');
+  if (companySlot && opts.companySignatureDataUrl) {
+    companySlot.innerHTML = `<img src="${opts.companySignatureDataUrl}" style="display:block;height:34px;object-fit:contain;margin:0 auto 4px 0" />`;
+  }
   document.body.appendChild(host);
 
   try {
