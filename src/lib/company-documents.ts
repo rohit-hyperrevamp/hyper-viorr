@@ -559,9 +559,9 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc th, .govdoc td { padding: 2px 3px; font-size: 14px; line-height: 1.05; vertical-align: top; }
 .govdoc th { font-weight: 700; text-align: left; background: transparent; }
 .govdoc .nomination-table { width: 660px; margin-top: 12px; table-layout: fixed; }
-.govdoc .nomination-table th { height: 145px; vertical-align: top; font-weight: 400; }
-.govdoc .nomination-table .col-1 { width: 133px; }
-.govdoc .nomination-table .col-2 { width: 49px; }
+.govdoc .nomination-table th { height: 132px; vertical-align: top; font-weight: 400; }
+.govdoc .nomination-table .col-1 { width: 120px; }
+.govdoc .nomination-table .col-2 { width: 62px; }
 .govdoc .nomination-table .col-3 { width: 109px; }
 .govdoc .nomination-table .col-4 { width: 40px; }
 .govdoc .nomination-table .col-5 { width: 146px; }
@@ -582,9 +582,11 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc .nominee-detail-table .d-5 { width: 48px; text-align: center; }
 .govdoc .nominee-detail-table td.d-4, .govdoc .nominee-detail-table td.d-5 { text-align: center; }
 .govdoc .nominee-detail-table .d-6 { width: 170px; }
+.govdoc .nominee-detail-table.dense th, .govdoc .nominee-detail-table.dense td {
+  font-size: 10px; padding: 1px 3px; line-height: 1.15; }
 .govdoc .cert-list { width: 660px; margin-top: 12px; font-weight: 400; font-size: 14px; }
 .govdoc .cert-list div { margin: 0; }
-.govdoc .employee-sign { width: 660px; margin-top: 22px; text-align: right; font-weight: 400; }
+.govdoc .employee-sign { width: 660px; margin-top: 16px; text-align: right; font-weight: 400; }
 .govdoc .employer-cert-title { margin-top: 16px; width: 660px; text-align: center; font-weight: 400; }
 .govdoc .employer-cert-copy { width: 660px; margin-top: 16px; text-align: justify; text-indent: 58px; font-weight: 400; }
 .govdoc .employer-sign { width: 660px; margin-top: 18px; font-weight: 400; }
@@ -635,8 +637,9 @@ function nomineeTableHtml(nominees: NomineeForRender[]): string {
     );
   }
 
+  const dense = nominees.length > 2 ? " dense" : "";
   const detailTable = `<div class="nominee-detail-title">Particulars of nominee(s) as recorded</div>
-  <table class="nominee-detail-table">
+  <table class="nominee-detail-table${dense}">
     <thead><tr>
       <th class="d-sr">Sr.</th>
       <th class="d-1">Name of nominee</th>
@@ -746,14 +749,25 @@ export async function generateHtmlDocumentPdf(opts: {
     const pageH = doc.internal.pageSize.getHeight();
     const imgH = (canvas.height * pageW) / canvas.width;
     const img = canvas.toDataURL("image/png");
-    let remaining = imgH;
-    let offset = 0;
-    while (remaining > 0) {
-      doc.addImage(img, "PNG", 0, -offset, pageW, imgH);
-      remaining -= pageH;
-      offset += pageH;
-      if (remaining > 0) doc.addPage();
+    // Statutory forms must stay on a single A4 sheet. If the rendered content is
+    // marginally taller (e.g. many nominees), scale it down to fit instead of
+    // spilling a near-empty second page.
+    if (imgH <= pageH * 1.35) {
+      const scale = Math.min(1, pageH / imgH);
+      const w = pageW * scale;
+      const h = imgH * scale;
+      doc.addImage(img, "PNG", (pageW - w) / 2, 0, w, h);
+    } else {
+      let remaining = imgH;
+      let offset = 0;
+      while (remaining > 0) {
+        doc.addImage(img, "PNG", 0, -offset, pageW, imgH);
+        remaining -= pageH;
+        offset += pageH;
+        if (remaining > 0) doc.addPage();
+      }
     }
+
     return doc.output("blob");
   } finally {
     host.remove();
