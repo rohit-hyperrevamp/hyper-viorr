@@ -4512,10 +4512,27 @@ function CandidateWizard({
     {
       key: "Emergency contact",
       ok: (() => {
-        const e = form.contacts.find((c) => c.is_emergency);
-        return !!e && !!e.name.trim() && !!e.relation.trim() && /^[6-9]\d{9}$/.test(e.mobile.trim());
+        const e = form.contacts.find((c) => c.is_emergency) ?? form.contacts[0];
+        if (!e) return false;
+        const base =
+          !!e.name.trim() &&
+          !!e.relation.trim() &&
+          /^[6-9]\d{9}$/.test(e.mobile.trim()) &&
+          !!(e.address ?? "").trim() &&
+          !!e.dob;
+        if (!base) return false;
+        const age = Math.floor((Date.now() - new Date(e.dob as string).getTime()) / 31557600000);
+        if (Number.isFinite(age) && age < 18) {
+          return (
+            !!(e.guardian_name ?? "").trim() &&
+            !!(e.guardian_address ?? "").trim() &&
+            /^[6-9]\d{9}$/.test((e.guardian_mobile ?? "").trim())
+          );
+        }
+        return true;
       })(),
     },
+
     { key: "Bank account", ok: !!form.bank_account_number.trim() && !!form.bank_ifsc.trim() },
     { key: "PAN number", ok: /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase()) },
     { key: "Unit assignment", ok: form.unit_ids.length > 0 },
