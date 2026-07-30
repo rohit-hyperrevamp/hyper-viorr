@@ -136,7 +136,9 @@ export function RehireRequestDialog({
   const unitOptions = useMemo(() => {
     const all = unitsQ.data ?? [];
     if (!isFieldOfficer) return all;
-    return all.filter((u) => unitIds.has(u.id));
+    // A field officer sees only their assigned units, plus the "No Man's Land"
+    // holding unit so a rehire can be parked and reassigned later.
+    return all.filter((u) => unitIds.has(u.id) || isNomansUnit(u));
   }, [unitsQ.data, isFieldOfficer, unitIds]);
 
   const designationOptions = useMemo(() => {
