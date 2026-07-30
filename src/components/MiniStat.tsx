@@ -1,5 +1,11 @@
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  ACCENT_CHIP,
+  ACCENT_TILE_BG,
+  accentFromKey,
+  accentFromTone,
+  type Accent,
+} from "@/components/tile-theme";
 
 export function MiniStat({
   label,
@@ -8,6 +14,7 @@ export function MiniStat({
   subtle,
   trend,
   icon: Icon,
+  accent,
 }: {
   label: string;
   value: number | string;
@@ -16,69 +23,62 @@ export function MiniStat({
   /** { delta: "+12%" | "-3", direction: "up" | "down" | "flat" } */
   trend?: { delta: string; direction?: "up" | "down" | "flat"; label?: string };
   icon?: React.ComponentType<{ className?: string }>;
+  accent?: Accent;
 }) {
-  const valueTone =
-    tone === "destructive"
-      ? "text-destructive"
-      : tone === "warning"
-        ? "text-amber-600 dark:text-amber-400"
-        : tone === "accent"
-          ? "text-accent"
-          : "text-foreground";
+  const resolvedAccent: Accent = accent ?? accentFromTone(tone) ?? accentFromKey(label);
 
   const dir = trend?.direction ?? "flat";
-  const TrendIcon = dir === "up" ? ArrowUpRight : dir === "down" ? ArrowDownRight : Minus;
   const trendTone =
     dir === "up"
-      ? "text-emerald-600 bg-emerald-500/10 ring-emerald-500/20"
+      ? "text-emerald-700 bg-emerald-500/15 ring-emerald-500/25"
       : dir === "down"
-        ? "text-rose-600 bg-rose-500/10 ring-rose-500/20"
-        : "text-muted-foreground bg-muted ring-border";
+        ? "text-rose-700 bg-rose-500/15 ring-rose-500/25"
+        : "text-muted-foreground bg-card/70 ring-border";
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card px-3 py-2.5 transition-all hover:-translate-y-0.5 hover:border-accent/40 sm:px-4 sm:py-3.5">
-
+    <div
+      className={cn(
+        "group relative flex flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:rounded-[26px] sm:p-4",
+        ACCENT_TILE_BG[resolvedAccent],
+      )}
+    >
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <div className="truncate font-display text-[12.5px] font-semibold leading-tight text-foreground sm:text-[14px]">
             {label}
           </div>
-          <div
+          {(trend?.label || subtle) && (
+            <div className="mt-0.5 truncate text-[10px] text-muted-foreground sm:text-[11px]">
+              {trend?.label ?? subtle}
+            </div>
+          )}
+        </div>
+        {trend && (
+          <span
             className={cn(
-              "mt-0.5 font-display text-[20px] font-semibold leading-none tracking-tight tabular-nums sm:mt-1 sm:text-[24px]",
-              valueTone,
+              "shrink-0 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset tabular-nums",
+              trendTone,
             )}
           >
-            {value}
-          </div>
+            {trend.delta}
+          </span>
+        )}
+      </div>
+      <div className="relative mt-3 flex items-end justify-between gap-3 sm:mt-5">
+        <div className="min-w-0 whitespace-nowrap font-display text-[24px] font-bold leading-none tracking-tight tabular-nums text-foreground sm:text-[32px]">
+          {value}
         </div>
         {Icon && (
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent ring-1 ring-inset ring-accent/20 sm:h-8 sm:w-8">
+          <span
+            className={cn(
+              "grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card/80 ring-1 ring-inset sm:h-9 sm:w-9",
+              ACCENT_CHIP[resolvedAccent],
+            )}
+          >
             <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </span>
         )}
       </div>
-      {(trend || subtle) && (
-        <div className="relative mt-1.5 flex items-center gap-1.5 sm:mt-2.5">
-          {trend && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset tabular-nums",
-                trendTone,
-              )}
-            >
-              <TrendIcon className="h-3 w-3" />
-              {trend.delta}
-            </span>
-          )}
-          {(trend?.label || subtle) && (
-            <span className="truncate text-[11px] text-muted-foreground">
-              {trend?.label ?? subtle}
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 }
-
