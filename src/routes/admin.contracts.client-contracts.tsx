@@ -2374,6 +2374,197 @@ function StatusBadge({ status }: { status: ContractStatus }) {
   );
 }
 
+type ViewContract = ClientContract & {
+  unitName?: string;
+  unitCode?: string;
+  orgName?: string;
+};
+
+function ViewRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-border bg-secondary/30 px-3 py-2">
+      <div className="text-[9.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </div>
+      <div className="mt-0.5 text-sm font-medium text-foreground">{value || "—"}</div>
+    </div>
+  );
+}
+
+function money(n: number) {
+  return `₹${(Number(n) || 0).toLocaleString("en-IN")}`;
+}
+
+function ContractViewDialog({
+  contract,
+  onOpenChange,
+  onEdit,
+  canEdit,
+}: {
+  contract: ViewContract | null;
+  onOpenChange: (o: boolean) => void;
+  onEdit: (c: ViewContract) => void;
+  canEdit: boolean;
+}) {
+  const resources = useContractResources(contract?.id ?? null);
+  const designations = useDesignations();
+  const serviceTypes = useServiceTypes();
+  const payrollWindows = usePayrollWindows();
+  const billingTypes = useBillingTypes();
+  const esicBranches = useEsicBranches();
+
+  const designationName = (id: string) =>
+    designations.find((d) => d.id === id)?.name ?? "—";
+  const serviceTypeName = (id: string | null) =>
+    serviceTypes.find((s) => s.id === id)?.name ?? "—";
+
+  if (!contract) return null;
+
+  const isClient = contract.recordType === "client";
+
+  return (
+    <Dialog open={!!contract} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="font-mono">
+              {isClient ? contract.contractCode : contract.prospectCode}
+            </span>
+            {isClient ? <StatusBadge status={contract.status} /> : null}
+          </DialogTitle>
+          <DialogDescription>
+            {contract.orgName} · {contract.unitCode} {contract.unitName}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-2 sm:grid-cols-3">
+          <ViewRow label="Organisation" value={contract.orgName} />
+          <ViewRow label="Unit" value={`${contract.unitCode ?? ""} ${contract.unitName ?? ""}`.trim()} />
+          <ViewRow label="Service type" value={serviceTypeName(contract.serviceTypeId)} />
+          <ViewRow label="Start date" value={contract.startDate} />
+          <ViewRow label="End date" value={contract.endDate} />
+          <ViewRow label="Next renewal / expiry" value={contract.expiryDate} />
+          <ViewRow label="Original start" value={contract.originalStartDate} />
+          <ViewRow label="Renewals so far" value={String(contract.renewalCount ?? 0)} />
+          <ViewRow label="GST option" value={contract.gstOption?.toUpperCase()} />
+          <ViewRow
+            label="Payroll window"
+            value={payrollWindows.find((p) => p.id === contract.payrollWindowId)?.label ?? "—"}
+          />
+          <ViewRow
+            label="Billing type"
+            value={billingTypes.find((b) => b.id === contract.billingTypeId)?.name ?? "—"}
+          />
+          <ViewRow
+            label="ESIC branch"
+            value={
+              esicBranches.find((e) => e.id === contract.esicBranchId)
+                ? `${esicBranches.find((e) => e.id === contract.esicBranchId)!.esicCode} — ${esicBranches.find((e) => e.id === contract.esicBranchId)!.location}`
+                : "—"
+            }
+          />
+        </div>
+
+        {contract.description ? (
+          <div className="mt-2">
+            <ViewRow label="Description" value={contract.description} />
+          </div>
+        ) : null}
+
+        <div className="mt-3">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Resource lines ({resources.length})
+          </div>
+          {resources.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+              No resource lines on this contract.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {resources.map((r, idx) => {
+                const gross = (r.components ?? []).reduce(
+                  (s, c) => s + (Number(c.amount) || 0),
+                  0,
+                );
+                return (
+                  <div key={r.id ?? idx} className="rounded-2xl border border-border bg-card p-3">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-foreground">
+                        {designationName(r.designationId)}
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          Qty {r.quantity} · {serviceTypeName(r.serviceTypeId)}
+                        </span>
+                      </div>
+                      <div className="text-sm font-semibold tabular-nums text-accent">
+                        {money(gross)}
+                      </div>
+                    </div>
+                    <div className="grid gap-1 sm:grid-cols-2">
+                      {(r.components ?? []).map((c, i) => (
+                        <div
+                          key={`${c.allowanceId}-${i}`}
+                          className="flex items-center justify-between rounded-lg bg-secondary/40 px-2.5 py-1.5 text-xs"
+                        >
+                          <span className="truncate text-muted-foreground">{c.name}</span>
+                          <span className="ml-2 shrink-0 font-medium tabular-nums text-foreground">
+                            {money(c.amount)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {[
+                      { label: "Benefits", list: r.benefits },
+                      { label: "Deductions", list: r.deductions },
+                      { label: "Employer contributions", list: r.employerContributions },
+                    ]
+                      .filter((g) => (g.list ?? []).length > 0)
+                      .map((g) => (
+                        <div key={g.label} className="mt-2">
+                          <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                            {g.label}
+                          </div>
+                          <div className="grid gap-1 sm:grid-cols-2">
+                            {(g.list ?? []).map((b, i) => (
+                              <div
+                                key={`${b.costComponentId}-${i}`}
+                                className="flex items-center justify-between rounded-lg bg-secondary/30 px-2.5 py-1.5 text-xs"
+                              >
+                                <span className="truncate text-muted-foreground">
+                                  {b.name}
+                                  {b.calcType === "percentage" ? ` (${b.percentage}%)` : ""}
+                                </span>
+                                <span className="ml-2 shrink-0 font-medium tabular-nums text-foreground">
+                                  {money(b.amount)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+          {canEdit && (
+            <Button onClick={() => onEdit(contract)}>
+              <Edit2 className="mr-1.5 h-4 w-4" />
+              Edit contract
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 function ContractFormDialog({
   open,
   onOpenChange,
