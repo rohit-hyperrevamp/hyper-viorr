@@ -1600,12 +1600,43 @@ function parseContractWorkbook(buf: ArrayBuffer): ImportedContract {
     apply("Expiry Date", "expiry_date");
   }
 
+  // Summary values are human-readable ("Inactive", "CSGST", "1 to 30/31"),
+  // but the DB has strict lowercase checks — normalise before use.
+  contractRow.status = normalizeStatus(contractRow.status);
+  contractRow.gst_option = normalizeGstOption(contractRow.gst_option);
+
   const rSheet = wb.Sheets["Resources_Raw"] ?? wb.Sheets["Resources"];
   const rRows = rSheet
     ? XLSX.utils.sheet_to_json<Record<string, unknown>>(rSheet, { defval: "" })
     : [];
   return { contractRow, resourceRows: rRows };
 }
+
+function normalizeStatus(v: unknown): ContractStatus {
+  const s = String(v ?? "").trim().toLowerCase();
+  if (s === "active" || s === "inactive" || s === "expired") return s;
+  if (s === "lost" || s === "rejected" || s === "pending") return "inactive";
+  return "active";
+}
+
+function normalizeGstOption(v: unknown): "csgst" | "igst" | "none" {
+  const s = String(v ?? "").trim().toLowerCase().replace(/[^a-z]/g, "");
+  if (s.includes("igst")) return "igst";
+  if (s === "none" || s === "na" || s === "") return s === "" ? "csgst" : "none";
+  return "csgst";
+}
+
+/** Supabase errors are plain objects, not Error instances — surface their text. */
+function importErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object") {
+    const e = err as { message?: string; details?: string; hint?: string; code?: string };
+    const parts = [e.message, e.details, e.hint].filter(Boolean);
+    if (parts.length) return `${parts.join(" — ")}${e.code ? ` (${e.code})` : ""}`;
+  }
+  return "Import failed";
+}
+
 
 function safeJsonArray(v: unknown): unknown[] {
   if (v == null || v === "") return [];
@@ -1671,9 +1702,15 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
     payroll_window_id: contractRow.payroll_window_id ? String(contractRow.payroll_window_id) : null,
     billing_type_id: contractRow.billing_type_id ? String(contractRow.billing_type_id) : null,
     esic_branch_id: contractRow.esic_branch_id ? String(contractRow.esic_branch_id) : null,
-    gst_option: String(contractRow.gst_option ?? "csgst"),
-    status: String(contractRow.status ?? "active"),
+    gst_option: normalizeGstOption(contractRow.gst_option),
+    status: normalizeStatus(contractRow.status),
+    // Imported client contracts must land in the Clients tab, not as prospects
+    // (the column default is 'prospect').
+    record_type: "client",
+    approval_status: "approved",
+    prospect_stage: "closed",
   };
+
 
   const existing = await supabase
     .from("client_contracts" as never)
@@ -1984,7 +2021,9 @@ function ClientContractsPage() {
               await qc.invalidateQueries({ queryKey: QK });
 
             } catch (err) {
-              toast.error(err instanceof Error ? err.message : "Import failed");
+              console.error("[contract import]", err);
+              toast.error(importErrorMessage(err));
+
             }
           }}
         />
