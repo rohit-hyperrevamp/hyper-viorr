@@ -2021,7 +2021,9 @@ function ClientContractsPage() {
               await qc.invalidateQueries({ queryKey: QK });
 
             } catch (err) {
-              toast.error(err instanceof Error ? err.message : "Import failed");
+              console.error("[contract import]", err);
+              toast.error(importErrorMessage(err));
+
             }
           }}
         />
