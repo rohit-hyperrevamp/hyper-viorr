@@ -2246,6 +2246,21 @@ function ClientContractsPage() {
         canManageApproval={canApprove}
       />
 
+      <ContractViewDialog
+        contract={viewing}
+        onOpenChange={(o) => {
+          if (!o) setViewing(null);
+        }}
+        onEdit={(c) => {
+          setViewing(null);
+          setEditing(c);
+          setFormOpen(true);
+        }}
+        canEdit={canEdit}
+      />
+
+
+
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
