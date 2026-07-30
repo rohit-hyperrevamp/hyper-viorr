@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
+import { isNomansUnit } from "@/lib/business-constants";
 import { createRehireRequest, uploadRehireDocument } from "@/lib/workflows";
 
 export type ExistingCandidateMatch = {
