@@ -1729,10 +1729,26 @@ function ClientContractsPage() {
     });
   }, [items, unitById, customerById]);
 
+  // Renewal window: contracts whose next renewal / expiry date falls between
+  // today and six months from today.
+  const renewalWindow = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return { from: today, to: addMonthsISO(today, 6) };
+  }, []);
+
+  const isUpForRenewal = (c: { recordType: RecordType; status: ContractStatus; expiryDate: string; endDate: string }) => {
+    if (c.recordType !== "client") return false;
+    if (c.status !== "active") return false;
+    const due = c.expiryDate || c.endDate;
+    if (!due) return false;
+    return due >= renewalWindow.from && due <= renewalWindow.to;
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return enriched.filter((c) => {
       if (c.recordType !== tab) return false;
+      if (renewalOnly && !isUpForRenewal(c)) return false;
       if (tab === "client" && statusFilter !== "all" && c.status !== statusFilter) return false;
       if (orgFilter !== "all" && c.orgId !== orgFilter) return false;
       if (unitFilter !== "all" && c.unitId !== unitFilter) return false;
@@ -1746,10 +1762,18 @@ function ClientContractsPage() {
         c.description.toLowerCase().includes(q)
       );
     });
-  }, [enriched, query, statusFilter, orgFilter, unitFilter, tab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enriched, query, statusFilter, orgFilter, unitFilter, tab, renewalOnly, renewalWindow]);
+
+  const renewalCount6m = useMemo(
+    () => items.filter(isUpForRenewal).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items, renewalWindow],
+  );
 
   const hasFilters =
-    !!query || orgFilter !== "all" || unitFilter !== "all" || statusFilter !== "all";
+    !!query || orgFilter !== "all" || unitFilter !== "all" || statusFilter !== "all" || renewalOnly;
+
 
   const tabCounts = useMemo(() => {
     let prospects = 0;
