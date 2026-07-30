@@ -520,8 +520,13 @@ export function NomineeSection({ form, setSection }: { form: any; setSection: Se
           </div>
         </div>
       )}
+
+      <div className="mt-6">
+        <EsicFamilySection form={form} setSection={setSection} />
+      </div>
     </div>
   );
+
 }
 
 
