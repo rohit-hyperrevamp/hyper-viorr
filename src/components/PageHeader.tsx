@@ -103,13 +103,18 @@ export function PageStat({
   tone = "default",
   icon: Icon,
   trend,
+  onClick,
+  active,
 }: {
   label: string;
   value: React.ReactNode;
   tone?: "default" | "accent" | "success" | "warning" | "destructive";
   icon?: LucideIcon;
   trend?: { delta: string; direction?: "up" | "down" | "flat" };
+  onClick?: () => void;
+  active?: boolean;
 }) {
+
   const toneClasses =
     tone === "accent"
       ? "text-accent"
