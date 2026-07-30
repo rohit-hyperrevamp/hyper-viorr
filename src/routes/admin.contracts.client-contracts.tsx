@@ -1825,10 +1825,22 @@ function ClientContractsPage() {
           <>
             <PageStat label="Clients + Prospects" value={overview.total} />
             <PageStat label="Active Clients" value={overview.activeClients} tone="accent" />
+            <PageStat
+              label="Renewals ≤ 6 months"
+              value={renewalCount6m}
+              tone="warning"
+              active={renewalOnly}
+              onClick={() => {
+                setTab("client");
+                setStatusFilter("all");
+                setRenewalOnly((v) => !v);
+              }}
+            />
             <PageStat label="Inactive / Expired" value={overview.inactiveClients} tone="warning" />
             <PageStat label="Awaiting Approval" value={overview.pendingProspects} tone="warning" />
             <PageStat label="Rejected" value={overview.rejectedProspects} tone="destructive" />
             <PageStat label="Lost" value={overview.lostProspects} tone="destructive" />
+
           </>
         }
       />
