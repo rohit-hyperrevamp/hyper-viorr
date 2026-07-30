@@ -529,6 +529,111 @@ export function NomineeSection({ form, setSection }: { form: any; setSection: Se
 
 }
 
+export const MAX_ESIC_FAMILY = 6;
+
+export type EsicFamilyMember = { name: string; relation: string; mobile: string };
+
+export function esicFamilyShares(count: number): number[] {
+  if (count <= 0) return [];
+  const base = Math.floor(100 / count);
+  const shares = Array.from({ length: count }, () => base);
+  let rem = 100 - base * count;
+  for (let i = 0; rem > 0; i = (i + 1) % count, rem--) shares[i] += 1;
+  return shares;
+}
+
+const ESIC_RELATIONS = [
+  "Spouse", "Son", "Daughter", "Father", "Mother", "Brother", "Sister", "Other",
+];
+
+export function EsicFamilySection({ form, setSection }: { form: any; setSection: SetSection }) {
+  const compliance = form.compliance ?? {};
+  const members: EsicFamilyMember[] = Array.isArray(compliance.esic_family)
+    ? compliance.esic_family.map((m: any) => ({
+        name: m?.name ?? "",
+        relation: m?.relation ?? "",
+        mobile: m?.mobile ?? "",
+      }))
+    : [];
+
+  const setMembers = (next: EsicFamilyMember[]) =>
+    setSection("compliance", { esic_family: next.slice(0, MAX_ESIC_FAMILY) });
+
+  const shares = esicFamilyShares(members.length);
+
+  return (
+    <div>
+      <SectionHeader
+        title="Family Members for ESIC"
+        desc={`Assign family members for ESIC benefit. Minimum 1 and maximum ${MAX_ESIC_FAMILY} family members are required. With a single member the full 100% share applies; with more, the share is distributed equally.`}
+      />
+      <div className="rounded-md border p-3">
+        {members.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No family member added.</p>
+        ) : (
+          <div className="space-y-3">
+            {members.map((m, i) => {
+              const update = (patch: Partial<EsicFamilyMember>) => {
+                const copy = [...members];
+                copy[i] = { ...copy[i], ...patch };
+                setMembers(copy);
+              };
+              return (
+                <div key={i} className="grid grid-cols-1 gap-2 rounded-md border bg-muted/30 p-2 md:grid-cols-[1.4fr_1fr_1fr_auto_auto] md:items-center">
+                  <Input
+                    placeholder="Family member name"
+                    value={m.name}
+                    onChange={(e) => update({ name: e.target.value })}
+                  />
+                  <Select value={m.relation || undefined} onValueChange={(v) => update({ relation: v })}>
+                    <SelectTrigger><SelectValue placeholder="Relationship" /></SelectTrigger>
+                    <SelectContent>
+                      {ESIC_RELATIONS.map((r) => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Mobile number"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={m.mobile}
+                    onChange={(e) => update({ mobile: e.target.value.replace(/[^0-9]/g, "").slice(0, 10) })}
+                  />
+                  <span className="text-xs font-medium text-muted-foreground md:text-center">{shares[i]}%</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-rose-500"
+                    onClick={() => setMembers(members.filter((_, j) => j !== i))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={members.length >= MAX_ESIC_FAMILY}
+            onClick={() => setMembers([...members, { name: "", relation: "", mobile: "" }])}
+          >
+            <Plus className="mr-1 h-3 w-3" /> Add family member
+          </Button>
+          <span className={`text-xs ${members.length === 0 ? "text-rose-600 font-medium" : "text-muted-foreground"}`}>
+            {members.length === 0
+              ? "At least one family member is required"
+              : `${members.length} member${members.length > 1 ? "s" : ""} · shares total 100%`}
+            {members.length >= MAX_ESIC_FAMILY ? ` · max ${MAX_ESIC_FAMILY}` : ""}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 
 export function OtherSection({ form, setSection }: { form: any; setSection: SetSection }) {
