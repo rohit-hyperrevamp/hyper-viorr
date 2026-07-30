@@ -46,6 +46,7 @@ export type NomineeForRender = {
   relation: string;
   dob: string | null;
   share: number;
+  guardian: string;
 };
 
 export type CandidateForRender = {
@@ -210,6 +211,7 @@ export function resolveNominees(candidate: any): NomineeForRender[] {
       relation: (c?.relation ?? "").trim(),
       dob: (c?.dob as string) || null,
       share: Number.isFinite(e.percent) ? e.percent : 0,
+      guardian: [c?.guardian_name, c?.guardian_address || c?.guardian_mobile].filter(Boolean).join(", "),
     });
   }
   return out;
@@ -522,21 +524,46 @@ export const A4_HEIGHT_PX = 1123;
  */
 export const DOCUMENT_PAGE_CSS = `
 .govdoc { width: ${A4_WIDTH_PX}px; min-height: ${A4_HEIGHT_PX}px; box-sizing: border-box;
-  padding: 42px 46px; background: #fff; color: #000;
-  font-family: "Times New Roman", Times, serif; font-size: 12.5px; line-height: 1.45; }
+  padding: 38px 48px 42px; background: #fff; color: #000;
+  font-family: "Times New Roman", Times, serif; font-size: 14px; line-height: 1.18; }
 .govdoc * { box-sizing: border-box; }
-.govdoc .doc-title { text-align: center; font-weight: 700; font-size: 17px; letter-spacing: 1px; }
-.govdoc .doc-rule { text-align: center; font-style: italic; font-size: 12px; margin-top: 2px; }
-.govdoc .doc-sub { text-align: center; font-weight: 700; font-size: 14px; text-decoration: underline;
-  margin-top: 8px; letter-spacing: .5px; }
-.govdoc .doc-act { text-align: center; font-size: 11.5px; margin-top: 2px; }
+.govdoc .gazette-head { display: grid; grid-template-columns: 56px 1fr 176px; align-items: end;
+  font-size: 15px; line-height: 1; margin-bottom: 4px; }
+.govdoc .gazette-head span:nth-child(2) { text-align: center; font-weight: 700; }
+.govdoc .gazette-head span:nth-child(3) { text-align: right; }
+.govdoc .gazette-rule { height: 5px; border-top: 1px solid #000; border-bottom: 2px double #000; margin-bottom: 30px; }
+.govdoc .doc-title { text-align: center; font-weight: 700; font-size: 15px; line-height: 1; letter-spacing: 0; }
+.govdoc .doc-rule { text-align: center; font-weight: 700; font-size: 14px; line-height: 1; margin-top: 20px; }
+.govdoc .doc-sub { text-align: center; font-weight: 400; font-size: 15px; line-height: 1; margin-top: 20px; letter-spacing: 0; }
+.govdoc .gov-fields { margin-top: 26px; font-weight: 700; }
+.govdoc .gov-fields div { min-height: 19px; }
+.govdoc .field-fill { font-weight: 400; }
+.govdoc .address-lines { margin-top: 1px; }
+.govdoc .address-lines div { min-height: 19px; }
+.govdoc .nomination-text { margin: 4px 0 12px 50px; max-width: 640px; text-align: justify; text-indent: 24px; }
 .govdoc p { margin: 8px 0; text-align: justify; }
-.govdoc table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-.govdoc table, .govdoc th, .govdoc td { border: 1px solid #000; }
-.govdoc th, .govdoc td { padding: 4px 6px; font-size: 12px; vertical-align: top; }
-.govdoc th { font-weight: 700; text-align: center; background: #f2f2f2; }
-.govdoc td.num { text-align: center; width: 34px; }
-.govdoc td.lbl { width: 46%; }
+.govdoc table { border-collapse: collapse; }
+.govdoc table, .govdoc th, .govdoc td { border: 2px solid #222; }
+.govdoc th, .govdoc td { padding: 2px 3px; font-size: 14px; line-height: 1.05; vertical-align: top; }
+.govdoc th { font-weight: 700; text-align: left; background: transparent; }
+.govdoc .nomination-table { width: 660px; margin-top: 12px; table-layout: fixed; }
+.govdoc .nomination-table th { height: 230px; vertical-align: top; }
+.govdoc .nomination-table .col-1 { width: 132px; }
+.govdoc .nomination-table .col-2 { width: 53px; }
+.govdoc .nomination-table .col-3 { width: 102px; }
+.govdoc .nomination-table .col-4 { width: 42px; }
+.govdoc .nomination-table .col-5 { width: 144px; }
+.govdoc .nomination-table .col-6 { width: 184px; }
+.govdoc .nomination-table tfoot td { height: 18px; padding: 1px 3px; text-align: center; font-weight: 700; }
+.govdoc .nominee-entry { display: block; min-height: 15px; font-weight: 400; }
+.govdoc .cert-list { width: 660px; margin-top: 16px; font-weight: 700; }
+.govdoc .cert-list div { margin: 2px 0; }
+.govdoc .employee-sign { width: 660px; margin-top: 34px; text-align: right; font-weight: 700; }
+.govdoc .employer-cert-title { margin-top: 20px; text-align: center; font-weight: 400; }
+.govdoc .employer-cert-copy { width: 660px; margin-top: 19px; text-align: justify; text-indent: 48px; font-weight: 700; }
+.govdoc .employer-sign { width: 660px; margin-top: 18px; font-weight: 700; }
+.govdoc .place-date { width: 660px; margin-top: 20px; font-weight: 700; }
+.govdoc .stamp-line { width: 660px; margin-top: 20px; text-align: right; font-weight: 700; }
 .govdoc .plain, .govdoc .plain td, .govdoc .plain th { border: none; padding: 2px 0; }
 .govdoc .sec { font-weight: 700; text-decoration: underline; margin-top: 14px; font-size: 12.5px; }
 .govdoc .sign-row { display: flex; justify-content: space-between; margin-top: 34px; gap: 24px; }
@@ -551,13 +578,20 @@ function esc(v: string): string {
 }
 
 function nomineeTableHtml(nominees: NomineeForRender[]): string {
-  const rows = (nominees.length ? nominees : []).map(
-    (n, i) => `<tr><td class="num">${i + 1}</td><td>${esc(n.name) || "&nbsp;"}</td><td>${esc(n.address) || "&nbsp;"}</td><td>${esc(n.relation) || "&nbsp;"}</td><td>${n.dob ? esc(fmtDate(n.dob)) : "&nbsp;"}</td><td class="num">${n.share || 0}%</td></tr>`,
-  );
-  while (rows.length < 4) {
-    rows.push(`<tr><td class="num">${rows.length + 1}</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`);
-  }
-  return `<table><thead><tr><th style="width:34px">Sl. No.</th><th>Name of nominee(s)</th><th>Address of nominee(s)</th><th>Relationship with the employee</th><th>Date of birth of nominee</th><th style="width:70px">Share</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+  const list = nominees.length ? nominees : [];
+  const cell = (value: (n: NomineeForRender) => string) =>
+    list.map((n) => `<span class="nominee-entry">${esc(value(n)) || "&nbsp;"}</span>`).join("");
+  return `<table class="nomination-table">
+    <thead><tr>
+      <th class="col-1">Name of<br/>nominee/nominees${cell((n) => n.name)}</th>
+      <th class="col-2">Address${cell((n) => n.address)}</th>
+      <th class="col-3">Nominee's<br/>relationship<br/>with the<br/>employee${cell((n) => n.relation)}</th>
+      <th class="col-4">Date<br/>of<br/>Birth${cell((n) => (n.dob ? fmtDate(n.dob) : ""))}</th>
+      <th class="col-5">Total amount of share<br/>of accumulations in<br/>credit to be paid to<br/>each nominee${cell((n) => `${n.share || 0}%`)}</th>
+      <th class="col-6">If the nominee is minor,<br/>name, relationship, and<br/>address of the guardian who<br/>may receive the amount<br/>during the minority of<br/>nominee${cell((n) => n.guardian)}</th>
+    </tr></thead>
+    <tfoot><tr><td>(1)</td><td>(2)</td><td>(3)</td><td>(4)</td><td>(5)</td><td>(6)</td></tr></tfoot>
+  </table>`;
 }
 
 export type EsicFamilyForRender = { name: string; relation: string; mobile: string; share: number };
@@ -623,8 +657,9 @@ export async function generateHtmlDocumentPdf(opts: {
     import("html2canvas-pro"),
   ]);
 
+  const hasFixedSignatureLayout = /class=["'][^"']*\bform-vii-doc\b/.test(opts.body);
   const sigBlock =
-    opts.employeeSignatureDataUrl || opts.companySignatureDataUrl
+    !hasFixedSignatureLayout && (opts.employeeSignatureDataUrl || opts.companySignatureDataUrl)
       ? `<div class="sign-row">
            <div class="sign-box">${opts.employeeSignatureDataUrl ? `<img src="${opts.employeeSignatureDataUrl}" style="height:52px;object-fit:contain" />` : ""}<div class="sign-line">Signature / Thumb impression of the employee</div></div>
            <div class="sign-box">${opts.companySignatureDataUrl ? `<img src="${opts.companySignatureDataUrl}" style="height:52px;object-fit:contain" />` : ""}<div class="sign-line">Signature of the Employer / Authorised Signatory</div></div>
