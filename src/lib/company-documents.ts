@@ -535,12 +535,12 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc .doc-title { text-align: center; font-weight: 700; font-size: 15px; line-height: 1; letter-spacing: 0; }
 .govdoc .doc-rule { text-align: center; font-weight: 700; font-size: 14px; line-height: 1; margin-top: 20px; }
 .govdoc .doc-sub { text-align: center; font-weight: 400; font-size: 15px; line-height: 1; margin-top: 20px; letter-spacing: 0; }
-.govdoc .gov-fields { margin-top: 26px; font-weight: 700; }
+.govdoc .gov-fields { margin-top: 26px; font-weight: 400; }
 .govdoc .gov-fields div { min-height: 19px; }
 .govdoc .field-fill { font-weight: 400; }
 .govdoc .address-lines { margin-top: 1px; }
 .govdoc .address-lines div { min-height: 19px; }
-.govdoc .nomination-text { width: 660px; margin: 10px 0 6px; text-align: justify; text-indent: 24px; }
+.govdoc .nomination-text { width: 800px; margin: 10px 0 6px; text-align: justify; text-indent: 60px; }
 .govdoc p { margin: 8px 0; text-align: justify; }
 .govdoc table { border-collapse: collapse; }
 .govdoc table, .govdoc th, .govdoc td { border: 2px solid #222; }
