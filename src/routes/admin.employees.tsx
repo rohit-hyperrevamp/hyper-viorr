@@ -343,6 +343,8 @@ type CandidateContact = {
   name: string;
   relation: string;
   mobile: string;
+  dob?: string;
+  address?: string;
   is_emergency: boolean;
 };
 
