@@ -40,6 +40,14 @@ export type SignedDocument = {
   updated_at: string;
 };
 
+export type NomineeForRender = {
+  name: string;
+  address: string;
+  relation: string;
+  dob: string | null;
+  share: number;
+};
+
 export type CandidateForRender = {
   id: string;
   full_name: string;
@@ -60,6 +68,11 @@ export type CandidateForRender = {
   present_state: string;
   present_pincode: string;
   preferred_joining_date: string | null;
+  gender: string;
+  marital_status: string;
+  father_or_spouse_name: string;
+  permanent_address: string;
+  nominees: NomineeForRender[];
 };
 
 export const PLACEHOLDERS: { key: string; label: string }[] = [
@@ -77,6 +90,17 @@ export const PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "joining_date", label: "Joining Date" },
   { key: "date", label: "Today's Date" },
   { key: "company_name", label: "Company Name" },
+  { key: "father_or_spouse_name", label: "Father's / Spouse's Name" },
+  { key: "sex", label: "Sex" },
+  { key: "marital_status", label: "Marital Status" },
+  { key: "permanent_address", label: "Permanent Address" },
+  { key: "temporary_address", label: "Temporary (Present) Address" },
+  { key: "nominee_table", label: "Nominee Table (all nominees)" },
+  { key: "nominee_1_name", label: "Nominee 1 Name" },
+  { key: "nominee_1_address", label: "Nominee 1 Address" },
+  { key: "nominee_1_relation", label: "Nominee 1 Relationship" },
+  { key: "nominee_1_dob", label: "Nominee 1 Date of Birth" },
+  { key: "nominee_1_share", label: "Nominee 1 Share (%)" },
 ];
 
 function fmtDate(s: string | null | undefined): string {
@@ -92,10 +116,23 @@ function fmtDate(s: string | null | undefined): string {
   }
 }
 
+function nomineeTable(nominees: NomineeForRender[]): string {
+  if (!nominees.length) return "(No nominee recorded)";
+  return nominees
+    .map(
+      (n, i) =>
+        `${i + 1}. Name: ${n.name || "_______"} | Address: ${n.address || "_______"} | Relationship: ${
+          n.relation || "_______"
+        } | Date of birth: ${n.dob ? fmtDate(n.dob) : "_______"} | Share: ${n.share || 0}%`,
+    )
+    .join("\n");
+}
+
 export function buildPlaceholderMap(c: CandidateForRender): Record<string, string> {
   const addr = [c.present_address1, c.present_address2, c.present_city, c.present_state, c.present_pincode]
     .filter((x) => x && x.trim())
     .join(", ");
+  const n1 = c.nominees?.[0];
   return {
     employee_name: c.full_name || "_______",
     employee_code: c.employee_code || c.candidate_code || "_______",
@@ -111,6 +148,17 @@ export function buildPlaceholderMap(c: CandidateForRender): Record<string, strin
     joining_date: fmtDate(c.preferred_joining_date),
     date: fmtDate(new Date().toISOString()),
     company_name: "Radiant Guard Services Pvt. Ltd.",
+    father_or_spouse_name: c.father_or_spouse_name || "_______",
+    sex: c.gender || "_______",
+    marital_status: c.marital_status || "_______",
+    permanent_address: c.permanent_address || addr || "_______",
+    temporary_address: addr || "_______",
+    nominee_table: nomineeTable(c.nominees ?? []),
+    nominee_1_name: n1?.name || "_______",
+    nominee_1_address: n1?.address || "_______",
+    nominee_1_relation: n1?.relation || "_______",
+    nominee_1_dob: n1?.dob ? fmtDate(n1.dob) : "_______",
+    nominee_1_share: n1 ? `${n1.share}` : "_______",
   };
 }
 
