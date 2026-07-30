@@ -5291,6 +5291,34 @@ function CandidateWizard({
                                 }
                               />
                             </Field>
+                            <Field label="Date of Birth">
+                              <Input
+                                type="date"
+                                value={ct.dob ?? ""}
+                                onChange={(e) =>
+                                  setForm((f) => ({
+                                    ...f,
+                                    contacts: f.contacts.map((c, idx) =>
+                                      idx === i ? { ...c, dob: e.target.value } : c,
+                                    ),
+                                  }))
+                                }
+                              />
+                            </Field>
+                            <Field label="Address">
+                              <Input
+                                value={ct.address ?? ""}
+                                placeholder="Used on Form VII nomination"
+                                onChange={(e) =>
+                                  setForm((f) => ({
+                                    ...f,
+                                    contacts: f.contacts.map((c, idx) =>
+                                      idx === i ? { ...c, address: e.target.value } : c,
+                                    ),
+                                  }))
+                                }
+                              />
+                            </Field>
                           </div>
                         </div>
                       ))}
