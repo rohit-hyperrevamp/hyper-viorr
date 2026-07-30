@@ -404,6 +404,31 @@ function nextContractCode(existing: string[]): string {
   return `CON${String(max + 1).padStart(5, "0")}`;
 }
 
+/**
+ * A unit may hold at most ONE active client contract at a time. Expired /
+ * pending / lost contracts for the same unit are fine. Throws when another
+ * active contract already exists for the unit.
+ */
+async function assertSingleActiveContract(unitId: string, excludeId?: string | null) {
+  if (!unitId) return;
+  let q = supabase
+    .from("client_contracts" as never)
+    .select("id, contract_code")
+    .eq("unit_id", unitId)
+    .eq("record_type", "client")
+    .eq("status", "active");
+  if (excludeId) q = q.neq("id", excludeId);
+  const { data, error } = await q;
+  if (error) throw error;
+  const dup = ((data as unknown as Record<string, unknown>[]) ?? [])[0];
+  if (dup) {
+    throw new Error(
+      `Unit already has an active contract (${String(dup.contract_code ?? "—")}). Expire or end it before activating another one.`,
+    );
+  }
+}
+
+
 function nextProspectCode(existing: string[]): string {
   let max = 0;
   for (const code of existing) {
