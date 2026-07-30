@@ -27,7 +27,7 @@ import { ContractApprovalDialog, type ApprovalMode } from "@/components/Contract
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
-import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
+
 import { useCurrentPermissions, fetchRoles, type RoleRow } from "@/lib/rbac";
 import { notifyApprovers } from "@/lib/notifications";
 import { csvDate, downloadCsv } from "@/lib/csv-export";
