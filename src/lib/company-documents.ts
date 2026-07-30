@@ -746,14 +746,25 @@ export async function generateHtmlDocumentPdf(opts: {
     const pageH = doc.internal.pageSize.getHeight();
     const imgH = (canvas.height * pageW) / canvas.width;
     const img = canvas.toDataURL("image/png");
-    let remaining = imgH;
-    let offset = 0;
-    while (remaining > 0) {
-      doc.addImage(img, "PNG", 0, -offset, pageW, imgH);
-      remaining -= pageH;
-      offset += pageH;
-      if (remaining > 0) doc.addPage();
+    // Statutory forms must stay on a single A4 sheet. If the rendered content is
+    // marginally taller (e.g. many nominees), scale it down to fit instead of
+    // spilling a near-empty second page.
+    if (imgH <= pageH * 1.35) {
+      const scale = Math.min(1, pageH / imgH);
+      const w = pageW * scale;
+      const h = imgH * scale;
+      doc.addImage(img, "PNG", (pageW - w) / 2, 0, w, h);
+    } else {
+      let remaining = imgH;
+      let offset = 0;
+      while (remaining > 0) {
+        doc.addImage(img, "PNG", 0, -offset, pageW, imgH);
+        remaining -= pageH;
+        offset += pageH;
+        if (remaining > 0) doc.addPage();
+      }
     }
+
     return doc.output("blob");
   } finally {
     host.remove();
