@@ -4488,7 +4488,7 @@ function CandidateWizard({
     { key: "Date of birth", ok: !!form.date_of_birth },
     { key: "Gender", ok: !!form.gender },
     { key: "Mobile", ok: !!form.mobile.trim() },
-    { key: "Email", ok: !!form.email.trim() },
+    
     { key: "Permanent address", ok: !!form.permanent_address1.trim() && !!form.permanent_pincode },
     { key: "District", ok: !!form.permanent_district.trim() && (form.same_as_permanent || !!form.present_district.trim()) },
     {
@@ -5156,8 +5156,8 @@ function CandidateWizard({
                   <Field label="Alternate Mobile">
                     <Input value={form.alt_mobile} inputMode="numeric" maxLength={10} placeholder="10-digit mobile" onChange={(e) => set("alt_mobile", e.target.value.replace(/\D/g, "").slice(0, 10))} />
                   </Field>
-                  <Field label="Personal Email" required>
-                    <Input type="email" required value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="name@example.com" />
+                  <Field label="Personal Email (optional)">
+                    <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="name@example.com" />
                   </Field>
                 </div>
 
