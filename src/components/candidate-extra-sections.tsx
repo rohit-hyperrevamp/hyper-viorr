@@ -358,12 +358,8 @@ export function CriminalSection({ form, set }: { form: any; set: SetField }) {
   );
 }
 
-const NOMINEE_SLOTS = [
-  { key: "pf", label: "Provident Fund (PF)", enabledKey: "pf_enabled", defaultEnabled: true },
-  { key: "eps", label: "Employees' Pension Scheme (EPS)", enabledKey: "eps_enabled", defaultEnabled: true },
-  { key: "esic", label: "Employees' State Insurance (ESIC)", enabledKey: "esic_enabled", defaultEnabled: true },
-  { key: "gratuity", label: "Gratuity", enabledKey: "gratuity_enabled", defaultEnabled: true },
-] as const;
+const MAX_NOMINEES = 4;
+
 
 function contactKey(c: any, idx: number) {
   if (c?.id) return String(c.id);
