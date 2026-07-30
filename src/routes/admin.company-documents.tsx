@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 
+import { DocumentPreview } from "@/components/DocumentPreview";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { PageHeader } from "@/components/PageHeader";
@@ -422,9 +423,7 @@ function CompanyDocumentsPage() {
               documents.
             </DialogDescription>
           </DialogHeader>
-          <pre className="whitespace-pre-wrap rounded-md bg-secondary/40 p-4 font-sans text-sm leading-relaxed text-foreground">
-            {previewing?.body}
-          </pre>
+          <DocumentPreview body={previewing?.body ?? ""} className="max-h-[65vh]" />
         </DialogContent>
       </Dialog>
     </div>

@@ -73,6 +73,7 @@ export type CandidateForRender = {
   father_or_spouse_name: string;
   permanent_address: string;
   nominees: NomineeForRender[];
+  esic_family?: EsicFamilyForRender[];
 };
 
 export const PLACEHOLDERS: { key: string; label: string }[] = [
@@ -96,6 +97,7 @@ export const PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "permanent_address", label: "Permanent Address" },
   { key: "temporary_address", label: "Temporary (Present) Address" },
   { key: "nominee_table", label: "Nominee Table (all nominees)" },
+  { key: "esic_family_table", label: "ESIC Family Members Table" },
   { key: "nominee_1_name", label: "Nominee 1 Name" },
   { key: "nominee_1_address", label: "Nominee 1 Address" },
   { key: "nominee_1_relation", label: "Nominee 1 Relationship" },
@@ -128,7 +130,7 @@ function nomineeTable(nominees: NomineeForRender[]): string {
     .join("\n");
 }
 
-export function buildPlaceholderMap(c: CandidateForRender): Record<string, string> {
+export function buildPlaceholderMap(c: CandidateForRender, html = false): Record<string, string> {
   const addr = [c.present_address1, c.present_address2, c.present_city, c.present_state, c.present_pincode]
     .filter((x) => x && x.trim())
     .join(", ");
@@ -153,7 +155,10 @@ export function buildPlaceholderMap(c: CandidateForRender): Record<string, strin
     marital_status: c.marital_status || "_______",
     permanent_address: c.permanent_address || addr || "_______",
     temporary_address: addr || "_______",
-    nominee_table: nomineeTable(c.nominees ?? []),
+    nominee_table: html ? nomineeTableHtml(c.nominees ?? []) : nomineeTable(c.nominees ?? []),
+    esic_family_table: html
+      ? esicFamilyTableHtml(c.esic_family ?? [])
+      : esicFamilyTableText(c.esic_family ?? []),
     nominee_1_name: n1?.name || "_______",
     nominee_1_address: n1?.address || "_______",
     nominee_1_relation: n1?.relation || "_______",
@@ -281,6 +286,7 @@ export async function fetchCandidateForRender(id: string): Promise<CandidateForR
       (isMarried ? other.spouse_name || other.father_name : other.father_name || other.spouse_name) ?? "",
     permanent_address,
     nominees: resolveNominees(data),
+    esic_family: resolveEsicFamily(data),
   };
 }
 
@@ -302,7 +308,7 @@ export async function ensureFormViiForCandidate(candidateId: string): Promise<"c
   if (existing) return "exists";
 
   const candidate = await fetchCandidateForRender(candidateId);
-  const rendered = renderTemplate(template.body, buildPlaceholderMap(candidate));
+  const rendered = renderTemplate(template.body, buildPlaceholderMap(candidate, isHtmlBody(template.body)));
 
   const { error } = await supabase.from("employee_signed_documents").insert({
     candidate_id: candidateId,
@@ -343,6 +349,13 @@ export async function generateDocumentPdf(opts: {
   employeeCode: string;
   signedAt: string | null;
 }): Promise<Blob> {
+  if (isHtmlBody(opts.body)) {
+    return generateHtmlDocumentPdf({
+      body: opts.body,
+      employeeSignatureDataUrl: opts.employeeSignatureDataUrl,
+      companySignatureDataUrl: opts.companySignatureDataUrl,
+    });
+  }
   const { default: jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -489,3 +502,159 @@ export function downloadBlob(blob: Blob, filename: string) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+/* ------------------------------------------------------------------ */
+/* HTML (statutory form) documents                                     */
+/* ------------------------------------------------------------------ */
+
+/** A template body is treated as a statutory HTML form when it starts with a tag. */
+export function isHtmlBody(body: string | null | undefined): boolean {
+  return !!body && /^\s*</.test(body);
+}
+
+/** A4 at 96dpi. Used identically for on-screen preview and the printed PDF. */
+export const A4_WIDTH_PX = 794;
+export const A4_HEIGHT_PX = 1123;
+
+/**
+ * Scoped stylesheet for statutory forms. Preview and PDF share this exact CSS,
+ * so what the user sees on screen is what gets printed — inch for inch.
+ */
+export const DOCUMENT_PAGE_CSS = `
+.govdoc { width: ${A4_WIDTH_PX}px; min-height: ${A4_HEIGHT_PX}px; box-sizing: border-box;
+  padding: 42px 46px; background: #fff; color: #000;
+  font-family: "Times New Roman", Times, serif; font-size: 12.5px; line-height: 1.45; }
+.govdoc * { box-sizing: border-box; }
+.govdoc .doc-title { text-align: center; font-weight: 700; font-size: 17px; letter-spacing: 1px; }
+.govdoc .doc-rule { text-align: center; font-style: italic; font-size: 12px; margin-top: 2px; }
+.govdoc .doc-sub { text-align: center; font-weight: 700; font-size: 14px; text-decoration: underline;
+  margin-top: 8px; letter-spacing: .5px; }
+.govdoc .doc-act { text-align: center; font-size: 11.5px; margin-top: 2px; }
+.govdoc p { margin: 8px 0; text-align: justify; }
+.govdoc table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+.govdoc table, .govdoc th, .govdoc td { border: 1px solid #000; }
+.govdoc th, .govdoc td { padding: 4px 6px; font-size: 12px; vertical-align: top; }
+.govdoc th { font-weight: 700; text-align: center; background: #f2f2f2; }
+.govdoc td.num { text-align: center; width: 34px; }
+.govdoc td.lbl { width: 46%; }
+.govdoc .plain, .govdoc .plain td, .govdoc .plain th { border: none; padding: 2px 0; }
+.govdoc .sec { font-weight: 700; text-decoration: underline; margin-top: 14px; font-size: 12.5px; }
+.govdoc .sign-row { display: flex; justify-content: space-between; margin-top: 34px; gap: 24px; }
+.govdoc .sign-box { flex: 1; text-align: center; }
+.govdoc .sign-line { border-top: 1px solid #000; margin-top: 46px; padding-top: 4px; font-size: 11.5px; }
+.govdoc .small { font-size: 11px; }
+`;
+
+/** Escape a value before injecting it into an HTML template. */
+function esc(v: string): string {
+  return String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+}
+
+function nomineeTableHtml(nominees: NomineeForRender[]): string {
+  const rows = (nominees.length ? nominees : []).map(
+    (n, i) => `<tr><td class="num">${i + 1}</td><td>${esc(n.name) || "&nbsp;"}</td><td>${esc(n.address) || "&nbsp;"}</td><td>${esc(n.relation) || "&nbsp;"}</td><td>${n.dob ? esc(fmtDate(n.dob)) : "&nbsp;"}</td><td class="num">${n.share || 0}%</td></tr>`,
+  );
+  while (rows.length < 4) {
+    rows.push(`<tr><td class="num">${rows.length + 1}</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`);
+  }
+  return `<table><thead><tr><th style="width:34px">Sl. No.</th><th>Name of nominee(s)</th><th>Address of nominee(s)</th><th>Relationship with the employee</th><th>Date of birth of nominee</th><th style="width:70px">Share</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+}
+
+export type EsicFamilyForRender = { name: string; relation: string; mobile: string; share: number };
+
+/** compliance.esic_family = [{name, relation, mobile}] — shares are split equally. */
+export function resolveEsicFamily(candidate: any): EsicFamilyForRender[] {
+  const raw = candidate?.compliance?.esic_family;
+  if (!Array.isArray(raw)) return [];
+  const list = raw
+    .map((m: any) => ({
+      name: String(m?.name ?? "").trim(),
+      relation: String(m?.relation ?? "").trim(),
+      mobile: String(m?.mobile ?? "").trim(),
+    }))
+    .filter((m) => m.name || m.relation || m.mobile)
+    .slice(0, 6);
+  const n = list.length;
+  if (!n) return [];
+  const base = Math.floor(100 / n);
+  let rem = 100 - base * n;
+  return list.map((m, i) => {
+    const extra = rem > 0 && i < rem ? 1 : 0;
+    return { ...m, share: base + extra };
+  });
+}
+
+function esicFamilyTableHtml(members: EsicFamilyForRender[]): string {
+  const rows = members.map(
+    (m, i) => `<tr><td class="num">${i + 1}</td><td>${esc(m.name) || "&nbsp;"}</td><td>${esc(m.relation) || "&nbsp;"}</td><td>${esc(m.mobile) || "&nbsp;"}</td><td class="num">${m.share}%</td></tr>`,
+  );
+  while (rows.length < 3) {
+    rows.push(`<tr><td class="num">${rows.length + 1}</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`);
+  }
+  return `<table><thead><tr><th style="width:34px">Sl. No.</th><th>Name of family member</th><th>Relationship with the insured person</th><th>Mobile number</th><th style="width:70px">Share</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+}
+
+function esicFamilyTableText(members: EsicFamilyForRender[]): string {
+  if (!members.length) return "(No family member recorded)";
+  return members
+    .map((m, i) => `${i + 1}. Name: ${m.name || "_______"} | Relationship: ${m.relation || "_______"} | Mobile: ${m.mobile || "_______"} | Share: ${m.share}%`)
+    .join("\n");
+}
+
+/**
+ * Build the exact HTML that both the preview and the PDF render.
+ * The returned string is a full `.govdoc` page including the scoped stylesheet.
+ */
+export function buildDocumentPageHtml(body: string): string {
+  return `<style>${DOCUMENT_PAGE_CSS}</style><div class="govdoc">${body}</div>`;
+}
+
+/**
+ * Rasterise an HTML statutory form to a pixel-accurate A4 PDF.
+ * Renders the same markup the preview shows, so layout cannot drift.
+ */
+export async function generateHtmlDocumentPdf(opts: {
+  body: string;
+  employeeSignatureDataUrl?: string;
+  companySignatureDataUrl?: string;
+}): Promise<Blob> {
+  const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+    import("jspdf"),
+    import("html2canvas-pro"),
+  ]);
+
+  const sigBlock =
+    opts.employeeSignatureDataUrl || opts.companySignatureDataUrl
+      ? `<div class="sign-row">
+           <div class="sign-box">${opts.employeeSignatureDataUrl ? `<img src="${opts.employeeSignatureDataUrl}" style="height:52px;object-fit:contain" />` : ""}<div class="sign-line">Signature / Thumb impression of the employee</div></div>
+           <div class="sign-box">${opts.companySignatureDataUrl ? `<img src="${opts.companySignatureDataUrl}" style="height:52px;object-fit:contain" />` : ""}<div class="sign-line">Signature of the Employer / Authorised Signatory</div></div>
+         </div>`
+      : "";
+
+  const host = document.createElement("div");
+  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_WIDTH_PX}px;background:#fff;`;
+  host.innerHTML = buildDocumentPageHtml(opts.body + sigBlock);
+  document.body.appendChild(host);
+
+  try {
+    const target = host.querySelector(".govdoc") as HTMLElement;
+    const canvas = await html2canvas(target, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const imgH = (canvas.height * pageW) / canvas.width;
+    const img = canvas.toDataURL("image/png");
+    let remaining = imgH;
+    let offset = 0;
+    while (remaining > 0) {
+      doc.addImage(img, "PNG", 0, -offset, pageW, imgH);
+      remaining -= pageH;
+      offset += pageH;
+      if (remaining > 0) doc.addPage();
+    }
+    return doc.output("blob");
+  } finally {
+    host.remove();
+  }
+}
+

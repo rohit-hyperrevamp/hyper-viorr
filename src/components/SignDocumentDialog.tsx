@@ -6,12 +6,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { SignaturePad } from "@/components/SignaturePad";
+import { DocumentPreview } from "@/components/DocumentPreview";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import {
   DOC_TYPE_LABELS,
   DOC_TYPE_SHORT,
   buildPlaceholderMap,
+  isHtmlBody,
   downloadBlob,
   fetchActiveTemplate,
   fetchCandidateForRender,
@@ -58,7 +60,7 @@ export function SignDocumentDialog({
 
   const rendered = useMemo(() => {
     if (!data) return "";
-    return renderTemplate(data.template.body, buildPlaceholderMap(data.candidate));
+    return renderTemplate(data.template.body, buildPlaceholderMap(data.candidate, isHtmlBody(data.template.body)));
   }, [data]);
 
   const [signature, setSignature] = useState<string>("");
@@ -154,9 +156,7 @@ export function SignDocumentDialog({
                 <span className="font-mono">v{data.template.version}</span>
                 {data.prev?.signed_at && <span>Previously signed on {new Date(data.prev.signed_at).toLocaleDateString("en-IN")}</span>}
               </div>
-              <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-foreground">
-                {rendered}
-              </pre>
+              <DocumentPreview body={rendered} className="max-h-[60vh]" />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
