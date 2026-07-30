@@ -4488,7 +4488,7 @@ function CandidateWizard({
     { key: "Date of birth", ok: !!form.date_of_birth },
     { key: "Gender", ok: !!form.gender },
     { key: "Mobile", ok: !!form.mobile.trim() },
-    { key: "Email", ok: !!form.email.trim() },
+    
     { key: "Permanent address", ok: !!form.permanent_address1.trim() && !!form.permanent_pincode },
     { key: "District", ok: !!form.permanent_district.trim() && (form.same_as_permanent || !!form.present_district.trim()) },
     {
