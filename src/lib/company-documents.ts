@@ -540,7 +540,7 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc .field-fill { font-weight: 400; }
 .govdoc .address-lines { margin-top: 1px; }
 .govdoc .address-lines div { min-height: 19px; }
-.govdoc .nomination-text { width: 800px; margin: 10px 0 6px; text-align: justify; text-indent: 60px; }
+.govdoc .nomination-text { width: 660px; margin: 12px 0 6px; text-align: justify; text-indent: 58px; }
 .govdoc p { margin: 8px 0; text-align: justify; }
 .govdoc table { border-collapse: collapse; }
 .govdoc table, .govdoc th, .govdoc td { border: 2px solid #222; }
