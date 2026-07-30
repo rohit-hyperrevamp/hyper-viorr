@@ -623,12 +623,16 @@ function useContracts() {
           prospect_stage: "closed",
         });
       } else {
+        if (p.status === "active" && p.recordType === "client") {
+          await assertSingleActiveContract(p.unitId || String(before?.unit_id ?? ""), id);
+        }
         Object.assign(after, {
           approval_status: p.approvalStatus,
           status: p.status,
           record_type: p.recordType,
           prospect_stage: p.prospectStage,
         });
+
 
         if (p.approvalStatus === "rejected") {
           const uidRes = await supabase.auth.getUser();
