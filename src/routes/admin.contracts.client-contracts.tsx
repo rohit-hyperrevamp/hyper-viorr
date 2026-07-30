@@ -589,23 +589,8 @@ function useContracts() {
 
       if (p.approvalStatus === "approved") {
         const unitId = p.unitId || String(before?.unit_id ?? "");
-        if (unitId) {
-          const { data: dupRows, error: dupErr } = await supabase
-            .from("client_contracts" as never)
-            .select("contract_code")
-            .eq("unit_id", unitId)
-            .eq("record_type", "client")
-            .eq("status", "active")
-            .eq("approval_status", "approved")
-            .neq("id", id);
-          if (dupErr) throw dupErr;
-          const dup = ((dupRows as unknown as Record<string, unknown>[]) ?? [])[0];
-          if (dup) {
-            throw new Error(
-              `Unit already has an active contract (${String(dup.contract_code ?? "—")}). Expire or end it before approving a new one.`,
-            );
-          }
-        }
+        await assertSingleActiveContract(unitId, id);
+
 
         let nextCode = p.contractCode || String(before?.contract_code ?? "");
         if (!nextCode) {
