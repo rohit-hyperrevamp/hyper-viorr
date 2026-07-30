@@ -1702,9 +1702,15 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
     payroll_window_id: contractRow.payroll_window_id ? String(contractRow.payroll_window_id) : null,
     billing_type_id: contractRow.billing_type_id ? String(contractRow.billing_type_id) : null,
     esic_branch_id: contractRow.esic_branch_id ? String(contractRow.esic_branch_id) : null,
-    gst_option: String(contractRow.gst_option ?? "csgst"),
-    status: String(contractRow.status ?? "active"),
+    gst_option: normalizeGstOption(contractRow.gst_option),
+    status: normalizeStatus(contractRow.status),
+    // Imported client contracts must land in the Clients tab, not as prospects
+    // (the column default is 'prospect').
+    record_type: "client",
+    approval_status: "approved",
+    prospect_stage: "closed",
   };
+
 
   const existing = await supabase
     .from("client_contracts" as never)
