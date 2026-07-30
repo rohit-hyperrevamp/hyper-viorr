@@ -168,11 +168,53 @@ export function renderTemplate(body: string, map: Record<string, string>): strin
   });
 }
 
+function contactKey(c: any, idx: number) {
+  if (c?.id) return String(c.id);
+  const name = (c?.name ?? "").trim();
+  const mob = (c?.mobile ?? c?.phone ?? "").trim();
+  return name || mob ? `${name}|${mob}` : `idx:${idx}`;
+}
+
+/** Nominees are stored as compliance.nominees = [{contact, percent}] pointing at candidates.contacts. */
+export function resolveNominees(candidate: any): NomineeForRender[] {
+  const contacts: any[] = Array.isArray(candidate?.contacts) ? candidate.contacts : [];
+  const raw = candidate?.compliance?.nominees;
+  const flat: { contact: string; percent: number }[] = [];
+  const push = (v: any) => {
+    if (!v) return;
+    if (typeof v === "string") flat.push({ contact: v, percent: 100 });
+    else if (Array.isArray(v)) {
+      for (const e of v) {
+        if (e && typeof e === "object") flat.push({ contact: String(e.contact ?? ""), percent: Number(e.percent ?? 0) });
+      }
+    }
+  };
+  if (Array.isArray(raw)) push(raw);
+  else if (raw && typeof raw === "object") for (const k of Object.keys(raw)) push(raw[k]);
+
+  const seen = new Set<string>();
+  const out: NomineeForRender[] = [];
+  for (const e of flat) {
+    if (!e.contact || seen.has(e.contact)) continue;
+    seen.add(e.contact);
+    const idx = contacts.findIndex((c, i) => contactKey(c, i) === e.contact);
+    const c = idx >= 0 ? contacts[idx] : null;
+    out.push({
+      name: (c?.name ?? "").trim() || e.contact.split("|")[0] || "",
+      address: (c?.address ?? "").trim(),
+      relation: (c?.relation ?? "").trim(),
+      dob: (c?.dob as string) || null,
+      share: Number.isFinite(e.percent) ? e.percent : 0,
+    });
+  }
+  return out;
+}
+
 export async function fetchCandidateForRender(id: string): Promise<CandidateForRender> {
   const { data, error } = await supabase
     .from("candidates")
     .select(
-      "id,full_name,employee_code,candidate_code,email,mobile,aadhaar_number,date_of_birth,unit_id,designation_id,present_address1,present_address2,present_city,present_state,present_pincode,preferred_joining_date",
+      "id,full_name,employee_code,candidate_code,email,mobile,aadhaar_number,date_of_birth,unit_id,designation_id,present_address1,present_address2,present_city,present_state,present_pincode,preferred_joining_date,gender,marital_status,other_info,contacts,compliance,permanent_address1,permanent_address2,permanent_city,permanent_state,permanent_pincode",
     )
     .eq("id", id)
     .maybeSingle();
@@ -200,6 +242,19 @@ export async function fetchCandidateForRender(id: string): Promise<CandidateForR
     unit_city = ((u?.billing_city as string) || (u?.shipping_city as string)) ?? "";
   }
 
+  const other = (data as any).other_info ?? {};
+  const maritalRaw = ((data as any).marital_status as string) ?? "";
+  const isMarried = maritalRaw.toLowerCase().startsWith("married");
+  const permanent_address = [
+    (data as any).permanent_address1,
+    (data as any).permanent_address2,
+    (data as any).permanent_city,
+    (data as any).permanent_state,
+    (data as any).permanent_pincode,
+  ]
+    .filter((x: any) => x && String(x).trim())
+    .join(", ");
+
   return {
     id: data.id as string,
     full_name: (data.full_name as string) ?? "",
@@ -220,8 +275,48 @@ export async function fetchCandidateForRender(id: string): Promise<CandidateForR
     present_state: (data.present_state as string) ?? "",
     present_pincode: (data.present_pincode as string) ?? "",
     preferred_joining_date: (data.preferred_joining_date as string) ?? null,
+    gender: ((data as any).gender as string) ?? "",
+    marital_status: maritalRaw,
+    father_or_spouse_name:
+      (isMarried ? other.spouse_name || other.father_name : other.father_name || other.spouse_name) ?? "",
+    permanent_address,
+    nominees: resolveNominees(data),
   };
 }
+
+/**
+ * Attach the active Form VII template to a candidate as an employee-specific document.
+ * Idempotent: skips when a Form VII already exists for the candidate at that version.
+ */
+export async function ensureFormViiForCandidate(candidateId: string): Promise<"created" | "exists" | "no-template"> {
+  const template = await fetchActiveTemplate("form_vii");
+  if (!template) return "no-template";
+
+  const { data: existing } = await supabase
+    .from("employee_signed_documents")
+    .select("id")
+    .eq("candidate_id", candidateId)
+    .eq("doc_type", "form_vii")
+    .eq("version", template.version)
+    .maybeSingle();
+  if (existing) return "exists";
+
+  const candidate = await fetchCandidateForRender(candidateId);
+  const rendered = renderTemplate(template.body, buildPlaceholderMap(candidate));
+
+  const { error } = await supabase.from("employee_signed_documents").insert({
+    candidate_id: candidateId,
+    template_id: template.id,
+    doc_type: "form_vii",
+    version: template.version,
+    rendered_body: rendered,
+    employee_signature_data: "",
+    company_signature_data: "",
+  } as any);
+  if (error) throw error;
+  return "created";
+}
+
 
 export async function fetchActiveTemplate(docType: DocType): Promise<DocumentTemplate | null> {
   const { data, error } = await supabase
