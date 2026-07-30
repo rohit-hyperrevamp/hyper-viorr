@@ -8,6 +8,8 @@ import {
   Copy,
   Download,
   Edit2,
+  Eye,
+
   FileSignature,
   FileSpreadsheet,
   FileText,
