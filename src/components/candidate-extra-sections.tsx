@@ -358,12 +358,8 @@ export function CriminalSection({ form, set }: { form: any; set: SetField }) {
   );
 }
 
-const NOMINEE_SLOTS = [
-  { key: "pf", label: "Provident Fund (PF)", enabledKey: "pf_enabled", defaultEnabled: true },
-  { key: "eps", label: "Employees' Pension Scheme (EPS)", enabledKey: "eps_enabled", defaultEnabled: true },
-  { key: "esic", label: "Employees' State Insurance (ESIC)", enabledKey: "esic_enabled", defaultEnabled: true },
-  { key: "gratuity", label: "Gratuity", enabledKey: "gratuity_enabled", defaultEnabled: true },
-] as const;
+const MAX_NOMINEES = 4;
+
 
 function contactKey(c: any, idx: number) {
   if (c?.id) return String(c.id);
@@ -422,26 +418,38 @@ function PercentInput({ value, disabled, onChange }: { value: number; disabled?:
 export function NomineeSection({ form, setSection }: { form: any; setSection: SetSection }) {
   const compliance = form.compliance ?? {};
   const contacts: any[] = Array.isArray(form.contacts) ? form.contacts : [];
-  const rawNominees: Record<string, any> = compliance.nominees ?? {};
+  const raw = compliance.nominees;
 
-  const options = contacts
-    .map((c, idx) => ({ key: contactKey(c, idx), label: contactLabel(c) }))
-    .filter((o) => o.label && o.label !== "Unnamed contact" || true);
+  // Backward compatible: older records stored per-benefit slots (pf/eps/esic/gratuity).
+  const entries: NomineeEntry[] = Array.isArray(raw)
+    ? normalizeSlot(raw)
+    : raw && typeof raw === "object"
+      ? (() => {
+          const merged: NomineeEntry[] = [];
+          for (const key of Object.keys(raw)) {
+            for (const e of normalizeSlot((raw as any)[key])) {
+              if (!merged.some((m) => m.contact === e.contact)) merged.push(e);
+            }
+          }
+          return merged.slice(0, MAX_NOMINEES);
+        })()
+      : [];
 
-  const setSlot = (slot: string, entries: NomineeEntry[]) => {
-    const next: Record<string, any> = { ...(rawNominees ?? {}) };
-    if (entries.length === 0) delete next[slot];
-    else next[slot] = entries;
-    setSection("compliance", { nominees: next });
+  const options = contacts.map((c, idx) => ({ key: contactKey(c, idx), label: contactLabel(c) }));
+
+  const setEntries = (next: NomineeEntry[]) => {
+    setSection("compliance", { nominees: next.slice(0, MAX_NOMINEES) });
   };
 
+  const total = entries.reduce((a, e) => a + (Number.isFinite(e.percent) ? e.percent : 0), 0);
+  const balanced = entries.length > 0 && total === 100;
   const noContacts = contacts.length === 0;
 
   return (
     <div>
       <SectionHeader
         title="Nominee"
-        desc="Assign a nominee from your contacts to each statutory benefit. The same contact may be nominated for multiple benefits, or split across different contacts."
+        desc={`Nominees are picked from the candidate's contacts. Minimum 1, maximum ${MAX_NOMINEES}, shares must total 100%.`}
       />
 
       {noContacts ? (
@@ -450,98 +458,72 @@ export function NomineeSection({ form, setSection }: { form: any; setSection: Se
           Nominees are picked from your candidate's contacts list.
         </div>
       ) : (
-        <div className="space-y-3">
-          {NOMINEE_SLOTS.map((s) => {
-            const enabled = compliance[s.enabledKey] ?? s.defaultEnabled;
-            const entries = normalizeSlot(rawNominees[s.key]);
-            const total = entries.reduce((a, e) => a + (Number.isFinite(e.percent) ? e.percent : 0), 0);
-            const balanced = entries.length === 0 || total === 100;
-            return (
-              <div key={s.key} className="rounded-md border p-3">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium">{s.label}</p>
-                  {!enabled && (
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Disabled
-                    </span>
-                  )}
-                </div>
-                {entries.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No nominees assigned.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {entries.map((e, i) => {
-                      const stale = e.contact && !options.some((o) => o.key === e.contact);
-                      const update = (patch: Partial<NomineeEntry>) => {
-                        const copy = [...entries];
-                        copy[i] = { ...copy[i], ...patch };
-                        setSlot(s.key, copy);
-                      };
-                      return (
-                        <div key={i} className="flex flex-wrap items-center gap-2">
-                          <div className="min-w-[200px] flex-1">
-                            <Select
-                              value={e.contact || undefined}
-                              onValueChange={(v) => update({ contact: v })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select contact" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {options.map((o) => (
-                                  <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {stale && (
-                              <p className="mt-1 text-[11px] text-amber-600">Contact no longer available.</p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <PercentInput
-                              value={e.percent}
-                              onChange={(n) => update({ percent: n })}
-                            />
-                            <span className="text-xs text-muted-foreground">%</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-rose-500"
-                            onClick={() => setSlot(s.key, entries.filter((_, j) => j !== i))}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      );
-                    })}
+        <div className="rounded-md border p-3">
+          {entries.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No nominee assigned.</p>
+          ) : (
+            <div className="space-y-2">
+              {entries.map((e, i) => {
+                const stale = e.contact && !options.some((o) => o.key === e.contact);
+                const update = (patch: Partial<NomineeEntry>) => {
+                  const copy = [...entries];
+                  copy[i] = { ...copy[i], ...patch };
+                  setEntries(copy);
+                };
+                return (
+                  <div key={i} className="flex flex-wrap items-center gap-2">
+                    <div className="min-w-[200px] flex-1">
+                      <Select value={e.contact || undefined} onValueChange={(v) => update({ contact: v })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select contact" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {options.map((o) => (
+                            <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {stale && <p className="mt-1 text-[11px] text-amber-600">Contact no longer available.</p>}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <PercentInput value={e.percent} onChange={(n) => update({ percent: n })} />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-rose-500"
+                      onClick={() => setEntries(entries.filter((_, j) => j !== i))}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                )}
-                <div className="mt-2 flex items-center justify-between">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const remaining = Math.max(0, 100 - total);
-                      setSlot(s.key, [...entries, { contact: "", percent: remaining }]);
-                    }}
-                  >
-                    <Plus className="mr-1 h-3 w-3" /> Add nominee
-                  </Button>
-                  {entries.length > 0 && (
-                    <span className={`text-xs ${balanced ? "text-muted-foreground" : "text-rose-600 font-medium"}`}>
-                      Total: {total}%{balanced ? "" : " — must equal 100%"}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={entries.length >= MAX_NOMINEES}
+              onClick={() => setEntries([...entries, { contact: "", percent: Math.max(0, 100 - total) }])}
+            >
+              <Plus className="mr-1 h-3 w-3" /> Add nominee
+            </Button>
+            <span className={`text-xs ${balanced ? "text-muted-foreground" : "text-rose-600 font-medium"}`}>
+              {entries.length === 0
+                ? "At least one nominee is required"
+                : `Total: ${total}%${balanced ? "" : " — must equal 100%"}`}
+              {entries.length >= MAX_NOMINEES ? ` · max ${MAX_NOMINEES}` : ""}
+            </span>
+          </div>
         </div>
       )}
     </div>
   );
 }
+
 
 
 export function OtherSection({ form, setSection }: { form: any; setSection: SetSection }) {
