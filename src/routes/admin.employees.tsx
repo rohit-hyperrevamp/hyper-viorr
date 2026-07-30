@@ -343,6 +343,8 @@ type CandidateContact = {
   name: string;
   relation: string;
   mobile: string;
+  dob?: string;
+  address?: string;
   is_emergency: boolean;
 };
 
@@ -1882,6 +1884,15 @@ function EmployeesPage() {
       if (error) throw error;
       const empCode = (data as { employee_code?: string })?.employee_code ?? "";
       const label = c.full_name || c.aadhaar_number || "Candidate";
+      // Auto-attach Form VII (nomination form) to the newly approved employee.
+      void (async () => {
+        try {
+          const { ensureFormViiForCandidate } = await import("@/lib/company-documents");
+          await ensureFormViiForCandidate(c.id);
+        } catch (e) {
+          console.error("Form VII generation failed", e);
+        }
+      })();
       // Fire-and-forget: activity log + notifications should not block the UI.
       void (async () => {
         try {
@@ -5277,6 +5288,34 @@ function CandidateWizard({
                                       idx === i
                                         ? { ...c, mobile: e.target.value.replace(/\D/g, "").slice(0, 10) }
                                         : c,
+                                    ),
+                                  }))
+                                }
+                              />
+                            </Field>
+                            <Field label="Date of Birth">
+                              <Input
+                                type="date"
+                                value={ct.dob ?? ""}
+                                onChange={(e) =>
+                                  setForm((f) => ({
+                                    ...f,
+                                    contacts: f.contacts.map((c, idx) =>
+                                      idx === i ? { ...c, dob: e.target.value } : c,
+                                    ),
+                                  }))
+                                }
+                              />
+                            </Field>
+                            <Field label="Address">
+                              <Input
+                                value={ct.address ?? ""}
+                                placeholder="Used on Form VII nomination"
+                                onChange={(e) =>
+                                  setForm((f) => ({
+                                    ...f,
+                                    contacts: f.contacts.map((c, idx) =>
+                                      idx === i ? { ...c, address: e.target.value } : c,
                                     ),
                                   }))
                                 }
