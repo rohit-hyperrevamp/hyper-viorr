@@ -1882,6 +1882,15 @@ function EmployeesPage() {
       if (error) throw error;
       const empCode = (data as { employee_code?: string })?.employee_code ?? "";
       const label = c.full_name || c.aadhaar_number || "Candidate";
+      // Auto-attach Form VII (nomination form) to the newly approved employee.
+      void (async () => {
+        try {
+          const { ensureFormViiForCandidate } = await import("@/lib/company-documents");
+          await ensureFormViiForCandidate(c.id);
+        } catch (e) {
+          console.error("Form VII generation failed", e);
+        }
+      })();
       // Fire-and-forget: activity log + notifications should not block the UI.
       void (async () => {
         try {
