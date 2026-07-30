@@ -1618,6 +1618,38 @@ function safeJsonArray(v: unknown): unknown[] {
   }
 }
 
+/** Read-only look at what an uploaded workbook would do, before touching the DB. */
+async function inspectContractWorkbook(buf: ArrayBuffer): Promise<{
+  code: string;
+  unitId: string;
+  existing: { id: string; status: string; unitId: string } | null;
+}> {
+  const { contractRow } = parseContractWorkbook(buf);
+  const code = String(contractRow.contract_code ?? "").trim();
+  if (!code) throw new Error("Missing contract_code in workbook");
+  const unitId = String(contractRow.unit_id ?? "").trim();
+  if (!unitId) throw new Error("Missing unit_id in workbook");
+
+  const { data, error } = await supabase
+    .from("client_contracts" as never)
+    .select("id, status, unit_id")
+    .eq("contract_code", code)
+    .maybeSingle();
+  if (error) throw error;
+  const row = data as Record<string, unknown> | null;
+  return {
+    code,
+    unitId,
+    existing: row
+      ? {
+          id: String(row.id),
+          status: String(row.status ?? ""),
+          unitId: String(row.unit_id ?? ""),
+        }
+      : null,
+  };
+}
+
 async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
   action: "created" | "updated";
   contractCode: string;
@@ -1650,10 +1682,19 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
     .maybeSingle();
   if (existing.error) throw existing.error;
 
+  const existingId = existing.data
+    ? String((existing.data as Record<string, unknown>).id)
+    : null;
+
+  // One active contract per unit — an import must never create a second one.
+  if (row.status === "active") {
+    await assertSingleActiveContract(unitId, existingId);
+  }
+
   let contractId: string;
   let action: "created" | "updated";
-  if (existing.data) {
-    contractId = String((existing.data as Record<string, unknown>).id);
+  if (existingId) {
+    contractId = existingId;
     const upd = await supabase
       .from("client_contracts" as never)
       .update(row as never)
@@ -1670,6 +1711,7 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
     contractId = String((ins.data as Record<string, unknown>).id);
     action = "created";
   }
+
 
   const resources: ContractResource[] = resourceRows.map((r) => ({
     designationId: String(r.designation_id ?? ""),
