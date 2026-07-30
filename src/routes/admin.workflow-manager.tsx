@@ -343,7 +343,7 @@ function WorkflowManagerPage() {
                                 const ok = await confirmAction({
                                   title: `Remove “${s.name}”?`,
                                   description: "This step will no longer be part of the approval chain.",
-                                  confirmLabel: "Remove",
+                                  confirmText: "Remove",
                                   destructive: true,
                                 });
                                 if (ok) removeStep.mutate(s);
