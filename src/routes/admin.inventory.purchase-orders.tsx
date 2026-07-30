@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useItemSizeOptions, type ItemSizeOptions } from "@/lib/inv-sizes";
 import { nextSeq, fmtNumber, statusBadgeClass } from "@/lib/inv-helpers";
 
 // PO status → user-facing delivery label. Legacy "approved" maps to Delivery Open.
@@ -129,14 +130,14 @@ function POPage() {
       return (data as unknown as RateCard[]) ?? [];
     },
   });
-  const { data: itemSizes = [] } = useQuery({
-    queryKey: ["inv", "item-sizes-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("inv_item_sizes" as never).select("item_id,size_value,sort_order").eq("enabled", true).order("sort_order");
-      if (error) throw error;
-      return (data as unknown as ItemSize[]) ?? [];
-    },
-  });
+  const { data: sizeOptions = new Map<string, ItemSizeOptions>() } = useItemSizeOptions();
+  const itemSizes = useMemo<ItemSize[]>(() => {
+    const rows: ItemSize[] = [];
+    for (const [itemId, opt] of sizeOptions) {
+      opt.options.forEach((size_value, i) => rows.push({ item_id: itemId, size_value, sort_order: i }));
+    }
+    return rows;
+  }, [sizeOptions]);
   const { data: lineAgg = new Map<string, { products: number; qty: number }>() } = useQuery({
     queryKey: ["inv", "po-line-agg"],
     queryFn: async () => {
