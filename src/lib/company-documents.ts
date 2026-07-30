@@ -556,6 +556,20 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc .nomination-table .col-6 { width: 184px; }
 .govdoc .nomination-table tfoot td { height: 18px; padding: 1px 3px; text-align: center; font-weight: 700; }
 .govdoc .nominee-entry { display: block; min-height: 15px; font-weight: 400; }
+.govdoc .nominee-detail-title { width: 660px; margin-top: 16px; font-weight: 700; font-size: 13px; }
+.govdoc .nominee-detail-table { width: 660px; margin-top: 5px; table-layout: fixed; }
+.govdoc .nominee-detail-table th, .govdoc .nominee-detail-table td {
+  border: 1px solid #222; padding: 3px 4px; font-size: 11.5px; line-height: 1.2; vertical-align: top; }
+.govdoc .nominee-detail-table th { font-weight: 700; text-align: center; }
+.govdoc .nominee-detail-table td { text-align: left; word-wrap: break-word; }
+.govdoc .nominee-detail-table .d-sr { width: 30px; text-align: center; }
+.govdoc .nominee-detail-table .d-1 { width: 118px; }
+.govdoc .nominee-detail-table .d-2 { width: 138px; }
+.govdoc .nominee-detail-table .d-3 { width: 78px; }
+.govdoc .nominee-detail-table .d-4 { width: 78px; text-align: center; }
+.govdoc .nominee-detail-table .d-5 { width: 48px; text-align: center; }
+.govdoc .nominee-detail-table td.d-4, .govdoc .nominee-detail-table td.d-5 { text-align: center; }
+.govdoc .nominee-detail-table .d-6 { width: 170px; }
 .govdoc .cert-list { width: 660px; margin-top: 16px; font-weight: 700; }
 .govdoc .cert-list div { margin: 2px 0; }
 .govdoc .employee-sign { width: 660px; margin-top: 34px; text-align: right; font-weight: 700; }
