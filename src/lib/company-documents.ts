@@ -73,6 +73,7 @@ export type CandidateForRender = {
   father_or_spouse_name: string;
   permanent_address: string;
   nominees: NomineeForRender[];
+  esic_family: EsicFamilyForRender[];
 };
 
 export const PLACEHOLDERS: { key: string; label: string }[] = [
@@ -96,6 +97,7 @@ export const PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "permanent_address", label: "Permanent Address" },
   { key: "temporary_address", label: "Temporary (Present) Address" },
   { key: "nominee_table", label: "Nominee Table (all nominees)" },
+  { key: "esic_family_table", label: "ESIC Family Members Table" },
   { key: "nominee_1_name", label: "Nominee 1 Name" },
   { key: "nominee_1_address", label: "Nominee 1 Address" },
   { key: "nominee_1_relation", label: "Nominee 1 Relationship" },
@@ -128,7 +130,7 @@ function nomineeTable(nominees: NomineeForRender[]): string {
     .join("\n");
 }
 
-export function buildPlaceholderMap(c: CandidateForRender): Record<string, string> {
+export function buildPlaceholderMap(c: CandidateForRender, html = false): Record<string, string> {
   const addr = [c.present_address1, c.present_address2, c.present_city, c.present_state, c.present_pincode]
     .filter((x) => x && x.trim())
     .join(", ");
@@ -153,7 +155,10 @@ export function buildPlaceholderMap(c: CandidateForRender): Record<string, strin
     marital_status: c.marital_status || "_______",
     permanent_address: c.permanent_address || addr || "_______",
     temporary_address: addr || "_______",
-    nominee_table: nomineeTable(c.nominees ?? []),
+    nominee_table: html ? nomineeTableHtml(c.nominees ?? []) : nomineeTable(c.nominees ?? []),
+    esic_family_table: html
+      ? esicFamilyTableHtml(c.esic_family ?? [])
+      : esicFamilyTableText(c.esic_family ?? []),
     nominee_1_name: n1?.name || "_______",
     nominee_1_address: n1?.address || "_______",
     nominee_1_relation: n1?.relation || "_______",
@@ -281,6 +286,7 @@ export async function fetchCandidateForRender(id: string): Promise<CandidateForR
       (isMarried ? other.spouse_name || other.father_name : other.father_name || other.spouse_name) ?? "",
     permanent_address,
     nominees: resolveNominees(data),
+    esic_family: resolveEsicFamily(data),
   };
 }
 
@@ -302,7 +308,7 @@ export async function ensureFormViiForCandidate(candidateId: string): Promise<"c
   if (existing) return "exists";
 
   const candidate = await fetchCandidateForRender(candidateId);
-  const rendered = renderTemplate(template.body, buildPlaceholderMap(candidate));
+  const rendered = renderTemplate(template.body, buildPlaceholderMap(candidate, isHtmlBody(template.body)));
 
   const { error } = await supabase.from("employee_signed_documents").insert({
     candidate_id: candidateId,
@@ -343,6 +349,13 @@ export async function generateDocumentPdf(opts: {
   employeeCode: string;
   signedAt: string | null;
 }): Promise<Blob> {
+  if (isHtmlBody(opts.body)) {
+    return generateHtmlDocumentPdf({
+      body: opts.body,
+      employeeSignatureDataUrl: opts.employeeSignatureDataUrl,
+      companySignatureDataUrl: opts.companySignatureDataUrl,
+    });
+  }
   const { default: jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
