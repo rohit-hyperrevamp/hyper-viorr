@@ -2,6 +2,14 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRight, Home } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  ACCENT_CHIP,
+  ACCENT_TILE_BG,
+  accentFromKey,
+  accentFromTone,
+  type Accent,
+} from "@/components/tile-theme";
+
 
 export type Crumb = { label: string; to?: string };
 
