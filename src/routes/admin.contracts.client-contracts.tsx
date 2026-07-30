@@ -1965,11 +1965,24 @@ function ClientContractsPage() {
             if (!file) return;
             try {
               const buf = await file.arrayBuffer();
+              const peek = await inspectContractWorkbook(buf);
+              if (peek.existing) {
+                const unitLabel = unitById.get(peek.existing.unitId)?.name ?? "";
+                const ok = await confirmAction({
+                  title: "Update an existing contract?",
+                  description: `Contract ${peek.code}${unitLabel ? ` (${unitLabel})` : ""} already exists and is currently ${peek.existing.status}. Importing this file will OVERWRITE its details and replace all of its resource lines. This cannot be undone.`,
+                  confirmText: "Yes, update it",
+                  cancelText: "Cancel",
+                  destructive: true,
+                });
+                if (!ok) return;
+              }
               const res = await importContractFromXlsx(buf);
               toast.success(
                 `Contract ${res.contractCode} ${res.action === "created" ? "imported" : "updated"} from Excel`,
               );
               await qc.invalidateQueries({ queryKey: QK });
+
             } catch (err) {
               toast.error(err instanceof Error ? err.message : "Import failed");
             }
