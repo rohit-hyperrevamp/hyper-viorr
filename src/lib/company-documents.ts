@@ -540,14 +540,14 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc .field-fill { font-weight: 400; }
 .govdoc .address-lines { margin-top: 1px; }
 .govdoc .address-lines div { min-height: 19px; }
-.govdoc .nomination-text { margin: 4px 0 12px 50px; max-width: 640px; text-align: justify; text-indent: 24px; }
+.govdoc .nomination-text { width: 660px; margin: 10px 0 6px; text-align: justify; text-indent: 24px; }
 .govdoc p { margin: 8px 0; text-align: justify; }
 .govdoc table { border-collapse: collapse; }
 .govdoc table, .govdoc th, .govdoc td { border: 2px solid #222; }
 .govdoc th, .govdoc td { padding: 2px 3px; font-size: 14px; line-height: 1.05; vertical-align: top; }
 .govdoc th { font-weight: 700; text-align: left; background: transparent; }
 .govdoc .nomination-table { width: 660px; margin-top: 12px; table-layout: fixed; }
-.govdoc .nomination-table th { height: 230px; vertical-align: top; }
+.govdoc .nomination-table th { height: 132px; vertical-align: top; }
 .govdoc .nomination-table .col-1 { width: 132px; }
 .govdoc .nomination-table .col-2 { width: 53px; }
 .govdoc .nomination-table .col-3 { width: 102px; }
@@ -570,9 +570,9 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc .nominee-detail-table .d-5 { width: 48px; text-align: center; }
 .govdoc .nominee-detail-table td.d-4, .govdoc .nominee-detail-table td.d-5 { text-align: center; }
 .govdoc .nominee-detail-table .d-6 { width: 170px; }
-.govdoc .cert-list { width: 660px; margin-top: 16px; font-weight: 700; }
+.govdoc .cert-list { width: 660px; margin-top: 14px; font-weight: 700; font-size: 12.5px; }
 .govdoc .cert-list div { margin: 2px 0; }
-.govdoc .employee-sign { width: 660px; margin-top: 34px; text-align: right; font-weight: 700; }
+.govdoc .employee-sign { width: 660px; margin-top: 26px; text-align: right; font-weight: 700; }
 .govdoc .employer-cert-title { margin-top: 20px; text-align: center; font-weight: 400; }
 .govdoc .employer-cert-copy { width: 660px; margin-top: 19px; text-align: justify; text-indent: 48px; font-weight: 700; }
 .govdoc .employer-sign { width: 660px; margin-top: 18px; font-weight: 700; }
