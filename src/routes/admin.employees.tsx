@@ -345,6 +345,9 @@ type CandidateContact = {
   mobile: string;
   dob?: string;
   address?: string;
+  guardian_name?: string;
+  guardian_mobile?: string;
+  guardian_address?: string;
   is_emergency: boolean;
 };
 
