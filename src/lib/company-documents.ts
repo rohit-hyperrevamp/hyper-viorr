@@ -582,6 +582,8 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc .nominee-detail-table .d-5 { width: 48px; text-align: center; }
 .govdoc .nominee-detail-table td.d-4, .govdoc .nominee-detail-table td.d-5 { text-align: center; }
 .govdoc .nominee-detail-table .d-6 { width: 170px; }
+.govdoc .nominee-detail-table.dense th, .govdoc .nominee-detail-table.dense td {
+  font-size: 10px; padding: 1px 3px; line-height: 1.15; }
 .govdoc .cert-list { width: 660px; margin-top: 12px; font-weight: 400; font-size: 14px; }
 .govdoc .cert-list div { margin: 0; }
 .govdoc .employee-sign { width: 660px; margin-top: 16px; text-align: right; font-weight: 400; }
@@ -635,8 +637,9 @@ function nomineeTableHtml(nominees: NomineeForRender[]): string {
     );
   }
 
+  const dense = nominees.length > 2 ? " dense" : "";
   const detailTable = `<div class="nominee-detail-title">Particulars of nominee(s) as recorded</div>
-  <table class="nominee-detail-table">
+  <table class="nominee-detail-table${dense}">
     <thead><tr>
       <th class="d-sr">Sr.</th>
       <th class="d-1">Name of nominee</th>
