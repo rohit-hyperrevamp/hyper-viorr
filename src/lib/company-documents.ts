@@ -73,7 +73,7 @@ export type CandidateForRender = {
   father_or_spouse_name: string;
   permanent_address: string;
   nominees: NomineeForRender[];
-  esic_family: EsicFamilyForRender[];
+  esic_family?: EsicFamilyForRender[];
 };
 
 export const PLACEHOLDERS: { key: string; label: string }[] = [
