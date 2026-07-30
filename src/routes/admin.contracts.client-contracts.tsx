@@ -2005,6 +2005,7 @@ function ClientContractsPage() {
               setOrgFilter("all");
               setUnitFilter("all");
               setStatusFilter("all");
+              setRenewalOnly(false);
             }}
           >
             <X className="mr-1.5 h-4 w-4" /> Clear
@@ -2012,7 +2013,13 @@ function ClientContractsPage() {
         </div>
         <div className="mt-3 text-xs text-muted-foreground">
           Showing <span className="font-semibold text-foreground">{filtered.length}</span> of {items.length} contracts
+          {renewalOnly && (
+            <span className="ml-2 rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-600">
+              Up for renewal by {renewalWindow.to}
+            </span>
+          )}
         </div>
+
       </div>
 
       <div className="ios-table-card overflow-hidden rounded-2xl border border-border bg-card">
