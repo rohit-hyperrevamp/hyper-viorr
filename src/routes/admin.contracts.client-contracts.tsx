@@ -8,6 +8,8 @@ import {
   Copy,
   Download,
   Edit2,
+  Eye,
+
   FileSignature,
   FileSpreadsheet,
   FileText,
@@ -25,7 +27,7 @@ import { ContractApprovalDialog, type ApprovalMode } from "@/components/Contract
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
-import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
+
 import { useCurrentPermissions, fetchRoles, type RoleRow } from "@/lib/rbac";
 import { notifyApprovers } from "@/lib/notifications";
 import { csvDate, downloadCsv } from "@/lib/csv-export";
@@ -1702,42 +1704,11 @@ function ClientContractsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ClientContract | null>(null);
   const [deleting, setDeleting] = useState<ClientContract | null>(null);
-  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<
+    (ClientContract & { unitName?: string; unitCode?: string; orgName?: string }) | null
+  >(null);
+  const [renewalOnly, setRenewalOnly] = useState(false);
 
-  async function handleSyncFormulas(contractId: string, label: string) {
-    setSyncingId(contractId);
-    try {
-      const { data, error } = await supabase
-        .from("contract_resources" as never)
-        .select("id,designation_id,service_type_id,quantity,components,sort_order,payroll_day_base_id,benefits,deductions,employer_contributions")
-        .eq("contract_id", contractId)
-        .order("sort_order");
-      if (error) throw error;
-      const current: ContractResource[] = (data as unknown as Record<string, unknown>[]).map((r) => ({
-        id: String(r.id),
-        designationId: r.designation_id ? String(r.designation_id) : "",
-        serviceTypeId: r.service_type_id ? String(r.service_type_id) : "",
-        quantity: Number(r.quantity ?? 1),
-        components: Array.isArray(r.components) ? (r.components as ResourceComponent[]) : [],
-        payrollDayBaseId: r.payroll_day_base_id ? String(r.payroll_day_base_id) : null,
-        benefits: Array.isArray(r.benefits) ? (r.benefits as BenefitItem[]) : [],
-        deductions: Array.isArray(r.deductions) ? (r.deductions as BenefitItem[]) : [],
-        employerContributions: Array.isArray(r.employer_contributions) ? (r.employer_contributions as BenefitItem[]) : [],
-      }));
-      if (current.length === 0) {
-        toast.info("No resource lines to sync on this contract.");
-        return;
-      }
-      const hydrated = await hydrateFormulasFromMaster(current);
-      await persistResources(contractId, hydrated);
-      await qc.invalidateQueries({ queryKey: ["admin", "contract-resources", contractId] });
-      toast.success(`Formulas synced from master for ${label}`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not sync formulas");
-    } finally {
-      setSyncingId(null);
-    }
-  }
   const [tab, setTab] = useState<RecordType>("client");
   const [approvalTarget, setApprovalTarget] = useState<{
     contract: ClientContract;
@@ -1758,10 +1729,26 @@ function ClientContractsPage() {
     });
   }, [items, unitById, customerById]);
 
+  // Renewal window: contracts whose next renewal / expiry date falls between
+  // today and six months from today.
+  const renewalWindow = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return { from: today, to: addMonthsISO(today, 6) };
+  }, []);
+
+  const isUpForRenewal = (c: { recordType: RecordType; status: ContractStatus; expiryDate: string; endDate: string }) => {
+    if (c.recordType !== "client") return false;
+    if (c.status !== "active") return false;
+    const due = c.expiryDate || c.endDate;
+    if (!due) return false;
+    return due >= renewalWindow.from && due <= renewalWindow.to;
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return enriched.filter((c) => {
       if (c.recordType !== tab) return false;
+      if (renewalOnly && !isUpForRenewal(c)) return false;
       if (tab === "client" && statusFilter !== "all" && c.status !== statusFilter) return false;
       if (orgFilter !== "all" && c.orgId !== orgFilter) return false;
       if (unitFilter !== "all" && c.unitId !== unitFilter) return false;
@@ -1775,10 +1762,18 @@ function ClientContractsPage() {
         c.description.toLowerCase().includes(q)
       );
     });
-  }, [enriched, query, statusFilter, orgFilter, unitFilter, tab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enriched, query, statusFilter, orgFilter, unitFilter, tab, renewalOnly, renewalWindow]);
+
+  const renewalCount6m = useMemo(
+    () => items.filter(isUpForRenewal).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items, renewalWindow],
+  );
 
   const hasFilters =
-    !!query || orgFilter !== "all" || unitFilter !== "all" || statusFilter !== "all";
+    !!query || orgFilter !== "all" || unitFilter !== "all" || statusFilter !== "all" || renewalOnly;
+
 
   const tabCounts = useMemo(() => {
     let prospects = 0;
@@ -1830,10 +1825,22 @@ function ClientContractsPage() {
           <>
             <PageStat label="Clients + Prospects" value={overview.total} />
             <PageStat label="Active Clients" value={overview.activeClients} tone="accent" />
+            <PageStat
+              label="Renewals ≤ 6 months"
+              value={renewalCount6m}
+              tone="warning"
+              active={renewalOnly}
+              onClick={() => {
+                setTab("client");
+                setStatusFilter("all");
+                setRenewalOnly((v) => !v);
+              }}
+            />
             <PageStat label="Inactive / Expired" value={overview.inactiveClients} tone="warning" />
             <PageStat label="Awaiting Approval" value={overview.pendingProspects} tone="warning" />
             <PageStat label="Rejected" value={overview.rejectedProspects} tone="destructive" />
             <PageStat label="Lost" value={overview.lostProspects} tone="destructive" />
+
           </>
         }
       />
@@ -1998,6 +2005,7 @@ function ClientContractsPage() {
               setOrgFilter("all");
               setUnitFilter("all");
               setStatusFilter("all");
+              setRenewalOnly(false);
             }}
           >
             <X className="mr-1.5 h-4 w-4" /> Clear
@@ -2005,7 +2013,13 @@ function ClientContractsPage() {
         </div>
         <div className="mt-3 text-xs text-muted-foreground">
           Showing <span className="font-semibold text-foreground">{filtered.length}</span> of {items.length} contracts
+          {renewalOnly && (
+            <span className="ml-2 rounded-full bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-600">
+              Up for renewal by {renewalWindow.to}
+            </span>
+          )}
         </div>
+
       </div>
 
       <div className="ios-table-card overflow-hidden rounded-2xl border border-border bg-card">
@@ -2153,13 +2167,12 @@ function ClientContractsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                        onClick={() => handleSyncFormulas(c.id, c.contractCode || "contract")}
-                        disabled={syncingId === c.id}
-                        aria-label="Sync formulas from master"
-                        title="Sync formulas from Allowance / Cost Component Manager"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
+                        onClick={() => setViewing(c)}
+                        aria-label="View contract"
+                        title="View contract"
                       >
-                        <RefreshCcw className={`h-4 w-4 ${syncingId === c.id ? "animate-spin" : ""}`} />
+                        <Eye className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
@@ -2170,9 +2183,11 @@ function ClientContractsPage() {
                           setFormOpen(true);
                         }}
                         aria-label="Edit"
+                        title="Edit"
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
+
                       <DeleteGuardButton
                         id={c.id}
                         entityLabel="contract"
@@ -2230,6 +2245,21 @@ function ClientContractsPage() {
         }}
         canManageApproval={canApprove}
       />
+
+      <ContractViewDialog
+        contract={viewing}
+        onOpenChange={(o) => {
+          if (!o) setViewing(null);
+        }}
+        onEdit={(c) => {
+          setViewing(null);
+          setEditing(c);
+          setFormOpen(true);
+        }}
+        canEdit={canEdit}
+      />
+
+
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
@@ -2343,6 +2373,197 @@ function StatusBadge({ status }: { status: ContractStatus }) {
     </span>
   );
 }
+
+type ViewContract = ClientContract & {
+  unitName?: string;
+  unitCode?: string;
+  orgName?: string;
+};
+
+function ViewRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-border bg-secondary/30 px-3 py-2">
+      <div className="text-[9.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </div>
+      <div className="mt-0.5 text-sm font-medium text-foreground">{value || "—"}</div>
+    </div>
+  );
+}
+
+function money(n: number) {
+  return `₹${(Number(n) || 0).toLocaleString("en-IN")}`;
+}
+
+function ContractViewDialog({
+  contract,
+  onOpenChange,
+  onEdit,
+  canEdit,
+}: {
+  contract: ViewContract | null;
+  onOpenChange: (o: boolean) => void;
+  onEdit: (c: ViewContract) => void;
+  canEdit: boolean;
+}) {
+  const resources = useContractResources(contract?.id ?? null);
+  const designations = useDesignations();
+  const serviceTypes = useServiceTypes();
+  const payrollWindows = usePayrollWindows();
+  const billingTypes = useBillingTypes();
+  const esicBranches = useEsicBranches();
+
+  const designationName = (id: string) =>
+    designations.find((d) => d.id === id)?.name ?? "—";
+  const serviceTypeName = (id: string | null) =>
+    serviceTypes.find((s) => s.id === id)?.name ?? "—";
+
+  if (!contract) return null;
+
+  const isClient = contract.recordType === "client";
+
+  return (
+    <Dialog open={!!contract} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="font-mono">
+              {isClient ? contract.contractCode : contract.prospectCode}
+            </span>
+            {isClient ? <StatusBadge status={contract.status} /> : null}
+          </DialogTitle>
+          <DialogDescription>
+            {contract.orgName} · {contract.unitCode} {contract.unitName}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-2 sm:grid-cols-3">
+          <ViewRow label="Organisation" value={contract.orgName} />
+          <ViewRow label="Unit" value={`${contract.unitCode ?? ""} ${contract.unitName ?? ""}`.trim()} />
+          <ViewRow label="Service type" value={serviceTypeName(contract.serviceTypeId)} />
+          <ViewRow label="Start date" value={contract.startDate} />
+          <ViewRow label="End date" value={contract.endDate} />
+          <ViewRow label="Next renewal / expiry" value={contract.expiryDate} />
+          <ViewRow label="Original start" value={contract.originalStartDate} />
+          <ViewRow label="Renewals so far" value={String(contract.renewalCount ?? 0)} />
+          <ViewRow label="GST option" value={contract.gstOption?.toUpperCase()} />
+          <ViewRow
+            label="Payroll window"
+            value={payrollWindows.find((p) => p.id === contract.payrollWindowId)?.label ?? "—"}
+          />
+          <ViewRow
+            label="Billing type"
+            value={billingTypes.find((b) => b.id === contract.billingTypeId)?.name ?? "—"}
+          />
+          <ViewRow
+            label="ESIC branch"
+            value={
+              esicBranches.find((e) => e.id === contract.esicBranchId)
+                ? `${esicBranches.find((e) => e.id === contract.esicBranchId)!.esicCode} — ${esicBranches.find((e) => e.id === contract.esicBranchId)!.location}`
+                : "—"
+            }
+          />
+        </div>
+
+        {contract.description ? (
+          <div className="mt-2">
+            <ViewRow label="Description" value={contract.description} />
+          </div>
+        ) : null}
+
+        <div className="mt-3">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Resource lines ({resources.length})
+          </div>
+          {resources.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+              No resource lines on this contract.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {resources.map((r, idx) => {
+                const gross = (r.components ?? []).reduce(
+                  (s, c) => s + (Number(c.amount) || 0),
+                  0,
+                );
+                return (
+                  <div key={r.id ?? idx} className="rounded-2xl border border-border bg-card p-3">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-foreground">
+                        {designationName(r.designationId)}
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          Qty {r.quantity} · {serviceTypeName(r.serviceTypeId)}
+                        </span>
+                      </div>
+                      <div className="text-sm font-semibold tabular-nums text-accent">
+                        {money(gross)}
+                      </div>
+                    </div>
+                    <div className="grid gap-1 sm:grid-cols-2">
+                      {(r.components ?? []).map((c, i) => (
+                        <div
+                          key={`${c.allowanceId}-${i}`}
+                          className="flex items-center justify-between rounded-lg bg-secondary/40 px-2.5 py-1.5 text-xs"
+                        >
+                          <span className="truncate text-muted-foreground">{c.name}</span>
+                          <span className="ml-2 shrink-0 font-medium tabular-nums text-foreground">
+                            {money(c.amount)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {[
+                      { label: "Benefits", list: r.benefits },
+                      { label: "Deductions", list: r.deductions },
+                      { label: "Employer contributions", list: r.employerContributions },
+                    ]
+                      .filter((g) => (g.list ?? []).length > 0)
+                      .map((g) => (
+                        <div key={g.label} className="mt-2">
+                          <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                            {g.label}
+                          </div>
+                          <div className="grid gap-1 sm:grid-cols-2">
+                            {(g.list ?? []).map((b, i) => (
+                              <div
+                                key={`${b.costComponentId}-${i}`}
+                                className="flex items-center justify-between rounded-lg bg-secondary/30 px-2.5 py-1.5 text-xs"
+                              >
+                                <span className="truncate text-muted-foreground">
+                                  {b.name}
+                                  {b.calcType === "percentage" ? ` (${b.percentage}%)` : ""}
+                                </span>
+                                <span className="ml-2 shrink-0 font-medium tabular-nums text-foreground">
+                                  {money(b.amount)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+          {canEdit && (
+            <Button onClick={() => onEdit(contract)}>
+              <Edit2 className="mr-1.5 h-4 w-4" />
+              Edit contract
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function ContractFormDialog({
   open,

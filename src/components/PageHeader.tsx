@@ -103,13 +103,18 @@ export function PageStat({
   tone = "default",
   icon: Icon,
   trend,
+  onClick,
+  active,
 }: {
   label: string;
   value: React.ReactNode;
   tone?: "default" | "accent" | "success" | "warning" | "destructive";
   icon?: LucideIcon;
   trend?: { delta: string; direction?: "up" | "down" | "flat" };
+  onClick?: () => void;
+  active?: boolean;
 }) {
+
   const toneClasses =
     tone === "accent"
       ? "text-accent"
@@ -126,8 +131,16 @@ export function PageStat({
       : trend?.direction === "flat"
         ? "text-muted-foreground bg-muted ring-border"
         : "text-emerald-600 bg-emerald-500/10 ring-emerald-500/20";
+  const Wrapper: React.ElementType = onClick ? "button" : "div";
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border bg-card px-3.5 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-md">
+    <Wrapper
+      {...(onClick ? { type: "button", onClick } : {})}
+      className={cn(
+        "group relative w-full overflow-hidden rounded-2xl border border-border bg-card px-3.5 py-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-md",
+        onClick && "cursor-pointer",
+        active && "border-accent ring-2 ring-accent/30",
+      )}
+    >
       <div className="relative flex items-center gap-2.5">
         {Icon && (
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground shadow-sm">
@@ -149,8 +162,9 @@ export function PageStat({
           </span>
         )}
       </div>
-    </div>
+    </Wrapper>
   );
+
 }
 
 export function ComingSoonCard({
