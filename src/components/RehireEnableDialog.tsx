@@ -98,7 +98,7 @@ export function RehireEnableDialog({
             <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-foreground">
-                Issue a new employee ID
+                1. Create a new employee record (new employee ID)
               </span>
               <span className="block text-xs text-muted-foreground">
                 A fresh EMP number is generated for this new tenure.
@@ -117,7 +117,7 @@ export function RehireEnableDialog({
             <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-foreground">
-                Keep the same employee ID
+                2. Reactivate the same record (keep employee ID)
               </span>
               <span className="block text-xs text-muted-foreground">
                 {previousCode

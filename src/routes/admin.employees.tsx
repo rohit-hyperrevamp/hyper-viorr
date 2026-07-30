@@ -3474,12 +3474,12 @@ function EmployeesPage() {
                 if (!reactivateTarget) return;
                 const target = reactivateTarget;
                 setReactivateTarget(null);
-                reactivateMut.mutate({ candidate: target, mode: "reuse" });
+                reactivateMut.mutate({ candidate: target, mode: "new" });
               }}
             >
-              <div className="font-semibold text-foreground">Reactivate the same record</div>
+              <div className="font-semibold text-foreground">1. Create a new employee record</div>
               <div className="mt-1 text-xs text-muted-foreground">
-                Keeps the existing employee ID <span className="font-mono">{reactivateTarget?.employee_code || "—"}</span>. Reactivates the same profile while retaining offboarding history.
+                A brand-new employee ID will be generated. All KYC/documents are copied over; the original record ({reactivateTarget?.employee_code || "—"}) stays archived for audit.
               </div>
             </button>
             <button
@@ -3492,14 +3492,15 @@ function EmployeesPage() {
                 if (!reactivateTarget) return;
                 const target = reactivateTarget;
                 setReactivateTarget(null);
-                reactivateMut.mutate({ candidate: target, mode: "new" });
+                reactivateMut.mutate({ candidate: target, mode: "reuse" });
               }}
             >
-              <div className="font-semibold text-foreground">Create a new employee record</div>
+              <div className="font-semibold text-foreground">2. Reactivate the same record</div>
               <div className="mt-1 text-xs text-muted-foreground">
-                A brand-new employee ID will be generated. All KYC/documents are copied over; the original record ({reactivateTarget?.employee_code || "—"}) stays archived for audit.
+                Keeps the existing employee ID <span className="font-mono">{reactivateTarget?.employee_code || "—"}</span>. Reactivates the same profile while retaining offboarding history.
               </div>
             </button>
+
 
           </div>
           <DialogFooter>
