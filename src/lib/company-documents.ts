@@ -1,15 +1,17 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type DocType = "nda" | "appointment_letter";
+export type DocType = "nda" | "appointment_letter" | "form_vii";
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
   nda: "Non-Disclosure Agreement",
   appointment_letter: "Appointment Letter",
+  form_vii: "Form VII — Nomination Form",
 };
 
 export const DOC_TYPE_SHORT: Record<DocType, string> = {
   nda: "NDA",
   appointment_letter: "Appointment Letter",
+  form_vii: "Form VII",
 };
 
 export type DocumentTemplate = {
