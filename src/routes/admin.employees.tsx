@@ -5242,7 +5242,14 @@ function CandidateWizard({
                               />
                             </Field>
                             <Field label="Date of Birth" required>
-                              <Input type="date" value={ct.dob ?? ""} onChange={(e) => upd({ dob: e.target.value })} />
+                              <DatePickerInput
+                                value={ct.dob ?? ""}
+                                onChange={(v) => upd({ dob: v ?? "" })}
+                                placeholder="Select date of birth"
+                                startYear={1930}
+                                disableFuture
+                              />
+
                             </Field>
                             <div className="sm:col-span-2">
                               <div className="mb-1.5 flex items-center justify-between gap-2">
