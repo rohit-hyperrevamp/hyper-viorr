@@ -90,6 +90,24 @@ export function RehireEnableDialog({
         <div className="space-y-2.5">
           <button
             type="button"
+            onClick={() => setChoice("new")}
+            className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
+              choice === "new" ? "border-violet-500 bg-violet-500/5" : "border-border hover:bg-muted/40"
+            }`}
+          >
+            <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-foreground">
+                Issue a new employee ID
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                A fresh EMP number is generated for this new tenure.
+              </span>
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setChoice("same")}
             disabled={!previousCode}
             className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors disabled:opacity-50 ${
@@ -105,24 +123,6 @@ export function RehireEnableDialog({
                 {previousCode
                   ? `Reuse ${previousCode} — history and records stay under one ID.`
                   : "No previous employee ID on record."}
-              </span>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setChoice("new")}
-            className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
-              choice === "new" ? "border-violet-500 bg-violet-500/5" : "border-border hover:bg-muted/40"
-            }`}
-          >
-            <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-foreground">
-                Issue a new employee ID
-              </span>
-              <span className="block text-xs text-muted-foreground">
-                A fresh EMP number is generated for this new tenure.
               </span>
             </span>
           </button>
