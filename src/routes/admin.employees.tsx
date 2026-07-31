@@ -4504,6 +4504,11 @@ function CandidateWizard({
     { key: "Aadhaar number", ok: /^\d{12}$/.test(form.aadhaar_number) },
     { key: "Date of birth", ok: !!form.date_of_birth },
     { key: "Gender", ok: !!form.gender },
+    {
+      key: "Blood group",
+      ok: !!String(((form.physical_health ?? {}) as Record<string, unknown>).blood_group ?? "").trim(),
+    },
+
     
     
     { key: "Permanent address", ok: !!form.permanent_address1.trim() && !!form.permanent_pincode },
@@ -4785,6 +4790,9 @@ function CandidateWizard({
       if (!form.pan_image_url) return failValidation("PAN card upload is required");
       if (!form.full_name.trim()) return failValidation("Name is required");
       if (!form.mobile.trim()) return failValidation("Mobile is required");
+      if (!String(((form.physical_health ?? {}) as Record<string, unknown>).blood_group ?? "").trim())
+        return failValidation("Blood group is required (Physical & Health section) — it is printed on the employee ID card");
+
       if (!form.permanent_district.trim()) return failValidation("District is required in the permanent address");
       if (!form.same_as_permanent && !form.present_district.trim())
         return failValidation("District is required in the present address");
