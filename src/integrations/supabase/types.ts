@@ -1053,6 +1053,7 @@ export type Database = {
           quantity: number
           role_key: string | null
           service_type_id: string | null
+          shift_hours: number
           sort_order: number
           updated_at: string
         }
@@ -1070,6 +1071,7 @@ export type Database = {
           quantity?: number
           role_key?: string | null
           service_type_id?: string | null
+          shift_hours?: number
           sort_order?: number
           updated_at?: string
         }
@@ -1087,6 +1089,7 @@ export type Database = {
           quantity?: number
           role_key?: string | null
           service_type_id?: string | null
+          shift_hours?: number
           sort_order?: number
           updated_at?: string
         }
