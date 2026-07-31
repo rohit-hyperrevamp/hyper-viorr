@@ -186,6 +186,13 @@ export function buildPlaceholderMap(c: CandidateForRender, html = false): Record
     nominee_1_relation: n1?.relation || "_______",
     nominee_1_dob: n1?.dob ? fmtDate(n1.dob) : "_______",
     nominee_1_share: n1 ? `${n1.share}` : "_______",
+    rank: c.designation_name || "_______",
+    id_no: c.employee_code || c.candidate_code || "_______",
+    blood_group: c.blood_group || "—",
+    employee_photo: c.photo_url || "",
+    company_logo: absoluteAssetUrl(COMPANY_LOGO_URL),
+    company_stamp: absoluteAssetUrl(COMPANY_STAMP_URL),
+
   };
 }
 
