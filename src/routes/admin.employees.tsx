@@ -9,6 +9,8 @@ import {
   OtherSection,
   ListSection,
   NomineeSection,
+  esicFamilyAadhaarComplete,
+
   SectionHeaderContext,
 } from "@/components/candidate-extra-sections";
 import { GuardReportingManagersEditor } from "@/components/GuardReportingManagersEditor";
@@ -4538,6 +4540,8 @@ function CandidateWizard({
     { key: "PAN number", ok: /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase()) },
     { key: "Unit assignment", ok: form.unit_ids.length > 0 },
     { key: "Designation", ok: !!form.designation_id },
+    { key: "ESIC family Aadhaar", ok: esicFamilyAadhaarComplete(form.compliance) },
+
   ];
   const completionDone = completionChecks.filter((c) => c.ok).length;
   const completionTotal = completionChecks.length;
@@ -5743,7 +5747,7 @@ function CandidateWizard({
               )}
 
               <Section title="Nominee">
-                <NomineeSection form={form} setSection={setSection} />
+                <NomineeSection form={form} setSection={setSection} set={(k, v) => set(k as never, v as never)} />
               </Section>
 
             </div>
