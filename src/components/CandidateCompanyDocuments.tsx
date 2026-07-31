@@ -64,32 +64,41 @@ export function CandidateCompanyDocuments({
   });
 
   const regenMut = useMutation({
-    mutationFn: async () => ensureFormViiForCandidate(candidateId, { force: true }),
+    mutationFn: async () => {
+      const form = await ensureFormViiForCandidate(candidateId, { force: true });
+      const card = await ensureIdCardForCandidate(candidateId, { force: true });
+      return { form, card };
+    },
     onSuccess: (res) => {
-      if (res === "no-template") toast.error("No active Form VII master template found");
-      else toast.success("Form VII regenerated from the current master template");
+      if (res.form === "no-template") toast.error("No active Form VII master template found");
+      else if (res.card === "no-template") toast.error("No active ID Card master template found");
+      else toast.success("Documents regenerated from the current master templates");
       void qc.invalidateQueries({ queryKey: QK });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not generate document"),
   });
 
   // Self-heal: employees activated before this workflow existed (or through a
-  // server-side path) get their Form VII generated the first time it is opened.
+  // server-side path) get their documents generated the first time it is opened.
   const autoTried = useRef(false);
   useEffect(() => {
     if (isLoading || autoTried.current) return;
-    if (docs.some((d) => d.doc_type === "form_vii")) return;
+    const hasForm = docs.some((d) => d.doc_type === "form_vii");
+    const hasCard = docs.some((d) => d.doc_type === "id_card");
+    if (hasForm && hasCard) return;
     autoTried.current = true;
     void (async () => {
       try {
-        const res = await ensureFormViiForCandidate(candidateId);
-        if (res === "created") void qc.invalidateQueries({ queryKey: QK });
+        const a = hasForm ? "exists" : await ensureFormViiForCandidate(candidateId);
+        const b = hasCard ? "exists" : await ensureIdCardForCandidate(candidateId);
+        if (a === "created" || b === "created") void qc.invalidateQueries({ queryKey: QK });
       } catch {
         /* surfaced via the manual Generate button */
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, docs.length, candidateId]);
+
 
   async function download(row: SignedDocRow) {
     setDownloading(row.id);
