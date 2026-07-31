@@ -721,8 +721,6 @@ function DashboardPage() {
         )}
       </div>
 
-      <RehireApprovalsCard />
-
       {/* P&L renders full-width below the shell via fullWidthBelow */}
 
 
