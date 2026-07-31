@@ -1,4 +1,9 @@
-import { Plus, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Image as ImageIcon, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
+
+import { supabase } from "@/integrations/supabase/client";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,20 +86,88 @@ export function IdCardEditor({
   const setFront = (patch: Partial<IdCardSpec["front"]>) => set({ front: { ...spec.front, ...patch } });
   const setBack = (patch: Partial<IdCardSpec["back"]>) => set({ back: { ...spec.back, ...patch } });
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function uploadLogo(file: File | null) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `id-card-logo-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("org-logos")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data } = supabase.storage.from("org-logos").getPublicUrl(path);
+      set({ logoUrl: data.publicUrl });
+      toast.success("Logo uploaded");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Logo upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const previewBody = renderTemplate(serializeIdCardSpec(spec), previewPlaceholderMap(true));
+
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
       <div className="space-y-3">
         <Section title="Logo (shared by front & back)">
-          <div className="grid gap-1.5">
-            <Label className="text-xs">Logo image URL</Label>
-            <Input
-              value={spec.logoUrl}
-              onChange={(e) => set({ logoUrl: e.target.value })}
-              className="h-8 text-xs"
-            />
+          <div className="flex items-center gap-3">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-white">
+              {spec.logoUrl ? (
+                <img src={spec.logoUrl} alt="ID card logo" className="max-h-full max-w-full object-contain" />
+              ) : (
+                <ImageIcon className="h-5 w-5 text-muted-foreground" />
+              )}
+            </div>
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Logo</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  disabled={uploading}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  {uploading ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Upload className="mr-1 h-3 w-3" />
+                  )}
+                  {spec.logoUrl ? "Replace logo" : "Upload logo"}
+                </Button>
+                {spec.logoUrl ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => set({ logoUrl: "" })}
+                  >
+                    Remove
+                  </Button>
+                ) : null}
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  e.target.value = "";
+                  void uploadLogo(f);
+                }}
+              />
+            </div>
           </div>
+
           <div className="grid grid-cols-2 gap-2">
             <div className="grid gap-1.5">
               <Label className="text-xs">Front logo height (px)</Label>
