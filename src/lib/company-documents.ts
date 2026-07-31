@@ -892,8 +892,109 @@ function esicFamilyTableText(members: EsicFamilyForRender[]): string {
  * The returned string is a full `.govdoc` page including the scoped stylesheet.
  */
 export function buildDocumentPageHtml(body: string): string {
+  if (isIdCardBody(body)) {
+    return `<style>${ID_CARD_CSS}</style>${body}`;
+  }
   return `<style>${DOCUMENT_PAGE_CSS}</style><div class="govdoc">${body}</div>`;
 }
+
+/* ------------------------------------------------------------------ */
+/* ID card (CR80 portrait — 5.4cm x 8.56cm)                            */
+/* ------------------------------------------------------------------ */
+
+/** 5.4cm x 8.56cm at 96dpi. */
+export const ID_CARD_WIDTH_PX = 204;
+export const ID_CARD_HEIGHT_PX = 324;
+
+export function isIdCardBody(body: string | null | undefined): boolean {
+  return !!body && /idcard-sheet/.test(body);
+}
+
+export const ID_CARD_CSS = `
+.idcard-sheet { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start;
+  font-family: Arial, Helvetica, sans-serif; background: transparent; }
+.idcard-sheet * { box-sizing: border-box; }
+.idcard-face { width: ${ID_CARD_WIDTH_PX}px; }
+.idcard-face > .idcard-caption { font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  color: #6b7280; margin-bottom: 5px; text-align: center; font-weight: 700; }
+.idcard { width: ${ID_CARD_WIDTH_PX}px; height: ${ID_CARD_HEIGHT_PX}px; position: relative; overflow: hidden;
+  border-radius: 9px; padding: 10px 12px; color: #111;
+  background: linear-gradient(160deg,#f4f6f9 0%,#e7ecf3 42%,#dfe6ef 68%,#eef1f6 100%);
+  box-shadow: 0 1px 2px rgba(0,0,0,.18); }
+.idcard .wm { position: absolute; inset: 0; opacity: .10; background-repeat: repeat;
+  background-size: 52px 52px; pointer-events: none; }
+.idcard .body { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; }
+.idcard .logo { display: block; margin: 2px auto 0; height: 52px; width: auto; object-fit: contain; }
+.idcard .company { text-align: center; font-weight: 700; font-size: 11px; letter-spacing: -.2px; margin-top: 6px; }
+.idcard .photo-wrap { position: relative; width: 78px; height: 88px; margin: 8px auto 0; }
+.idcard .photo { width: 78px; height: 88px; border-radius: 8px; object-fit: cover; display: block;
+  background: #d7dde6; border: 1px solid #b9c2cd; }
+.idcard .photo-ph { width: 78px; height: 88px; border-radius: 8px; display: flex; align-items: center;
+  justify-content: center; background: #d7dde6; border: 1px solid #b9c2cd; font-size: 8px; color: #6b7280; }
+.idcard .photo-stamp { position: absolute; left: -20px; bottom: 6px; height: 62px; width: auto;
+  opacity: .62; z-index: 3; pointer-events: none; }
+.idcard .rows { margin-top: 10px; font-size: 10px; line-height: 1.42; }
+.idcard .row { display: flex; }
+.idcard .row .k { width: 56px; font-weight: 700; flex: 0 0 56px; }
+.idcard .row .c { width: 8px; flex: 0 0 8px; }
+.idcard .row .v { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.idcard .auth { margin-top: auto; text-align: right; }
+.idcard .auth .sig-slot { display: block; min-height: 24px; }
+.idcard .auth .sig-img { display: block; height: 24px; width: auto; max-width: 96px; object-fit: contain;
+  margin: 0 0 1px auto; }
+.idcard .auth .sig-line { border-top: 1px solid #111; width: 96px; margin-left: auto; }
+.idcard .auth .auth-label { font-size: 9.5px; font-weight: 700; margin-top: 2px; }
+.idcard .back-title { text-align: center; font-weight: 700; font-size: 10.5px; margin-top: 14px; }
+.idcard .back-block { text-align: center; font-size: 10px; font-weight: 700; line-height: 1.45; margin-top: 6px; }
+.idcard .back-contact { text-align: center; font-size: 10px; line-height: 1.7; margin-top: 14px; }
+.idcard .back-validity { text-align: center; font-size: 8.5px; margin-top: 14px; }
+`;
+
+/** Default editable master template for the employee ID card (front + back). */
+export const DEFAULT_ID_CARD_TEMPLATE = `<div class="idcard-sheet">
+  <div class="idcard-face">
+    <div class="idcard-caption">Front</div>
+    <div class="idcard idcard-front">
+      <div class="wm" style="background-image:url('$company_logo')"></div>
+      <div class="body">
+        <img class="logo" src="$company_logo" alt="Company logo" />
+        <div class="company">$company_name</div>
+        <div class="photo-wrap">
+          <img class="photo" src="$employee_photo" alt="Employee photo" />
+          <img class="photo-stamp" src="$company_stamp" alt="Company stamp" />
+        </div>
+        <div class="rows">
+          <div class="row"><span class="k">Name</span><span class="c">:</span><span class="v">$employee_name</span></div>
+          <div class="row"><span class="k">Rank</span><span class="c">:</span><span class="v">$rank</span></div>
+          <div class="row"><span class="k">I. D. No.</span><span class="c">:</span><span class="v">$id_no</span></div>
+          <div class="row"><span class="k">BG</span><span class="c">:</span><span class="v">$blood_group</span></div>
+          <div class="row"><span class="k">DOJ</span><span class="c">:</span><span class="v">$joining_date</span></div>
+        </div>
+        <div class="auth">
+          <span class="sig-slot" data-signature-slot="company"></span>
+          <div class="sig-line"></div>
+          <div class="auth-label">Issuing Authority</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="idcard-face">
+    <div class="idcard-caption">Back</div>
+    <div class="idcard idcard-back">
+      <div class="wm" style="background-image:url('$company_logo')"></div>
+      <div class="body">
+        <img class="logo" style="height:64px;margin-top:12px" src="$company_logo" alt="Company logo" />
+        <div class="company" style="margin-top:10px">$company_name</div>
+        <div class="back-title">Corporate Office :</div>
+        <div class="back-block">818, Clover Hills Plaza<br/>NIBM Road, Kondhwa<br/>Pune - 411048</div>
+        <div class="back-contact">Ph. No. - 020 48622515<br/>Mob.No. : 09156453001</div>
+        <div class="back-validity">Validity : 1 Year from date of Issue</div>
+      </div>
+    </div>
+  </div>
+</div>`;
+
 
 /**
  * Rasterise an HTML statutory form to a pixel-accurate A4 PDF.
