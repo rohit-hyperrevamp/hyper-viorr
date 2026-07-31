@@ -227,9 +227,9 @@ function CompliancePage() {
             variant="outline"
             size="sm"
             onClick={() =>
-              downloadCsv({
-                filename: "compliance-calendar",
-                rows: rows.map((r) => ({
+              downloadCsv(
+                "compliance-calendar",
+                rows.map((r) => ({
                   category: r.category,
                   subject: r.subject,
                   item: r.title,
@@ -238,7 +238,7 @@ function CompliancePage() {
                   days_left: r.daysLeft,
                   state: r.daysLeft < 0 ? "Overdue" : "Upcoming",
                 })),
-                columns: [
+                [
                   { key: "category", header: "Category" },
                   { key: "subject", header: "Subject" },
                   { key: "item", header: "Item" },
@@ -247,7 +247,7 @@ function CompliancePage() {
                   { key: "days_left", header: "Days left" },
                   { key: "state", header: "State" },
                 ],
-              })
+              )
             }
           >
             <Download className="mr-1.5 h-3.5 w-3.5" /> Export
