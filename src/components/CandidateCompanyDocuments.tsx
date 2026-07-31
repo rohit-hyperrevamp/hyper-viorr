@@ -140,7 +140,8 @@ export function CandidateCompanyDocuments({
           ) : (
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
           )}
-          Generate / Refresh Form VII
+          Generate / Refresh Documents
+
         </Button>
       </div>
 
