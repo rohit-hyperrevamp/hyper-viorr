@@ -341,30 +341,31 @@ export async function fetchCandidateForRender(id: string): Promise<CandidateForR
  * Idempotent: skips when a Form VII already exists for the candidate at that version,
  * unless `force` is set (used to regenerate after data changes).
  */
-export async function ensureFormViiForCandidate(
+export async function ensureDocForCandidate(
   candidateId: string,
+  docType: Extract<DocType, "form_vii" | "id_card">,
   opts: { force?: boolean } = {},
 ): Promise<"created" | "exists" | "no-template"> {
-  const template = await fetchActiveTemplate("form_vii");
+  const template = await fetchActiveTemplate(docType);
   if (!template) return "no-template";
 
   const { data: existing } = await supabase
     .from("employee_signed_documents")
     .select("id")
     .eq("candidate_id", candidateId)
-    .eq("doc_type", "form_vii")
+    .eq("doc_type", docType)
     .eq("version", template.version)
     .maybeSingle();
   if (existing && !opts.force) return "exists";
 
   // Drop stale copies from older template versions (and the current one when
-  // regenerating) so the employee always holds exactly one Form VII rendered
+  // regenerating) so the employee always holds exactly one copy rendered
   // from the current master layout.
   let del = supabase
     .from("employee_signed_documents")
     .delete()
     .eq("candidate_id", candidateId)
-    .eq("doc_type", "form_vii");
+    .eq("doc_type", docType);
   if (!opts.force) del = del.neq("version", template.version);
   await del;
 
@@ -382,7 +383,7 @@ export async function ensureFormViiForCandidate(
   const { error } = await supabase.from("employee_signed_documents").insert({
     candidate_id: candidateId,
     template_id: template.id,
-    doc_type: "form_vii",
+    doc_type: docType,
     version: template.version,
     rendered_body: rendered,
     employee_signature_data: employeeSignature,
@@ -392,6 +393,21 @@ export async function ensureFormViiForCandidate(
   if (error) throw error;
   return "created";
 }
+
+export async function ensureFormViiForCandidate(
+  candidateId: string,
+  opts: { force?: boolean } = {},
+): Promise<"created" | "exists" | "no-template"> {
+  return ensureDocForCandidate(candidateId, "form_vii", opts);
+}
+
+export async function ensureIdCardForCandidate(
+  candidateId: string,
+  opts: { force?: boolean } = {},
+): Promise<"created" | "exists" | "no-template"> {
+  return ensureDocForCandidate(candidateId, "id_card", opts);
+}
+
 
 /**
  * Fire-and-forget wrapper used by every path that turns a candidate into an
