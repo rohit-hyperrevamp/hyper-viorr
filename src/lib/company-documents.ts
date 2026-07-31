@@ -263,7 +263,7 @@ export async function fetchCandidateForRender(id: string): Promise<CandidateForR
   const { data, error } = await supabase
     .from("candidates")
     .select(
-      "id,full_name,employee_code,candidate_code,email,mobile,aadhaar_number,date_of_birth,unit_id,designation_id,present_address1,present_address2,present_city,present_state,present_pincode,preferred_joining_date,gender,marital_status,other_info,contacts,compliance,permanent_address1,permanent_address2,permanent_city,permanent_state,permanent_pincode",
+      "id,full_name,employee_code,candidate_code,email,mobile,aadhaar_number,date_of_birth,unit_id,designation_id,present_address1,present_address2,present_city,present_state,present_pincode,preferred_joining_date,gender,marital_status,other_info,contacts,compliance,permanent_address1,permanent_address2,permanent_city,permanent_state,permanent_pincode,photo_url",
     )
     .eq("id", id)
     .maybeSingle();
@@ -331,6 +331,8 @@ export async function fetchCandidateForRender(id: string): Promise<CandidateForR
     permanent_address,
     nominees: resolveNominees(data),
     esic_family: resolveEsicFamily(data),
+    blood_group: String(other.blood_group ?? ""),
+    photo_url: ((data as any).photo_url as string) ?? "",
   };
 }
 
@@ -446,7 +448,7 @@ export function autoAttachFormVii(candidateId: string): void {
  * Backfill Form VII for every employee (approved/active/inactive) that does not
  * yet hold a copy from the current master version. Returns per-candidate counts.
  */
-export async function backfillFormViiForAllEmployees(): Promise<{
+export async function syncCompanyDocumentsForAllEmployees(): Promise<{
   created: number;
   skipped: number;
   failed: number;
@@ -461,9 +463,12 @@ export async function backfillFormViiForAllEmployees(): Promise<{
   let failed = 0;
   for (const r of (rows ?? []) as { id: string }[]) {
     try {
-      const res = await ensureFormViiForCandidate(r.id);
-      if (res === "created") created += 1;
-      else skipped += 1;
+      const [form, card] = await Promise.all([
+        ensureFormViiForCandidate(r.id, { force: true }),
+        ensureIdCardForCandidate(r.id, { force: true }),
+      ]);
+      created += Number(form === "created") + Number(card === "created");
+      skipped += Number(form !== "created") + Number(card !== "created");
     } catch {
       failed += 1;
     }
