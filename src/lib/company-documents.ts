@@ -301,9 +301,15 @@ export async function fetchCandidateForRender(id: string): Promise<CandidateForR
 
 /**
  * Attach the active Form VII template to a candidate as an employee-specific document.
- * Idempotent: skips when a Form VII already exists for the candidate at that version.
+ * The rendered copy carries the employee's onboarding signature and the company
+ * stamp/authorised signature, so it is a complete signed record.
+ * Idempotent: skips when a Form VII already exists for the candidate at that version,
+ * unless `force` is set (used to regenerate after data changes).
  */
-export async function ensureFormViiForCandidate(candidateId: string): Promise<"created" | "exists" | "no-template"> {
+export async function ensureFormViiForCandidate(
+  candidateId: string,
+  opts: { force?: boolean } = {},
+): Promise<"created" | "exists" | "no-template"> {
   const template = await fetchActiveTemplate("form_vii");
   if (!template) return "no-template";
 
@@ -314,22 +320,29 @@ export async function ensureFormViiForCandidate(candidateId: string): Promise<"c
     .eq("doc_type", "form_vii")
     .eq("version", template.version)
     .maybeSingle();
-  if (existing) return "exists";
+  if (existing && !opts.force) return "exists";
 
-  // Drop stale unsigned copies from older template versions so the employee
-  // always holds exactly one Form VII rendered from the current master layout.
-  await supabase
+  // Drop stale copies from older template versions (and the current one when
+  // regenerating) so the employee always holds exactly one Form VII rendered
+  // from the current master layout.
+  let del = supabase
     .from("employee_signed_documents")
     .delete()
     .eq("candidate_id", candidateId)
-    .eq("doc_type", "form_vii")
-    .neq("version", template.version)
-    .eq("employee_signature_data", "")
-    .eq("company_signature_data", "");
-
+    .eq("doc_type", "form_vii");
+  if (!opts.force) del = del.neq("version", template.version);
+  await del;
 
   const candidate = await fetchCandidateForRender(candidateId);
   const rendered = renderTemplate(template.body, buildPlaceholderMap(candidate, isHtmlBody(template.body)));
+
+  // Employee signature captured during onboarding + company stamp/signature.
+  const { data: sigRow } = await supabase
+    .from("candidates")
+    .select("signature_url")
+    .eq("id", candidateId)
+    .maybeSingle();
+  const employeeSignature = ((sigRow as any)?.signature_url as string) || "";
 
   const { error } = await supabase.from("employee_signed_documents").insert({
     candidate_id: candidateId,
@@ -337,12 +350,58 @@ export async function ensureFormViiForCandidate(candidateId: string): Promise<"c
     doc_type: "form_vii",
     version: template.version,
     rendered_body: rendered,
-    employee_signature_data: "",
-    company_signature_data: "",
+    employee_signature_data: employeeSignature,
+    company_signature_data: COMPANY_STAMP_URL,
+    signed_at: new Date().toISOString(),
   } as any);
   if (error) throw error;
   return "created";
 }
+
+/**
+ * Inject signature images into a rendered statutory form's signature slots.
+ * Works for both the on-screen preview and the printed PDF.
+ */
+export function injectSignatureImages(
+  body: string,
+  employeeSignatureUrl?: string,
+  companySignatureUrl?: string,
+): string {
+  let out = body;
+  if (employeeSignatureUrl) {
+    out = out.replace(
+      /(<span[^>]*data-signature-slot=["']employee["'][^>]*>)/,
+      `$1<img class="sig-img sig-employee" src="${employeeSignatureUrl}" alt="Employee signature" />`,
+    );
+  }
+  if (companySignatureUrl) {
+    out = out.replace(
+      /(<span[^>]*data-signature-slot=["']company["'][^>]*>)/,
+      `$1<img class="sig-img sig-company" src="${companySignatureUrl}" alt="Company stamp and authorised signature" />`,
+    );
+  }
+  return out;
+}
+
+/** Convert an image URL into a data URL so jsPDF/html2canvas can rasterise it. */
+export async function resolveImageDataUrl(url?: string): Promise<string | undefined> {
+  if (!url) return undefined;
+  if (url.startsWith("data:")) return url;
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) return undefined;
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result));
+      fr.onerror = () => reject(fr.error);
+      fr.readAsDataURL(blob);
+    });
+  } catch {
+    return undefined;
+  }
+}
+
 
 
 export async function fetchActiveTemplate(docType: DocType): Promise<DocumentTemplate | null> {
