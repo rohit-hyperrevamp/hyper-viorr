@@ -428,10 +428,12 @@ function CompanyDocumentsPage() {
                 )}
               </div>
             </div>
-            <div className="mt-3 max-h-32 overflow-hidden rounded-md bg-secondary/40 p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
-              {t.body.slice(0, 360)}
-              {t.body.length > 360 && "…"}
-            </div>
+            {t.doc_type !== "id_card" && (
+              <div className="mt-3 max-h-32 overflow-hidden rounded-md bg-secondary/40 p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                {t.body.slice(0, 360)}
+                {t.body.length > 360 && "…"}
+              </div>
+            )}
           </div>
         ))}
       </div>
