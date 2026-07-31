@@ -58,6 +58,7 @@ import {
 import { useCurrentPermissions } from "@/lib/rbac";
 import { OffboardingRecordsSection } from "@/components/offboarding-records-section";
 import { CandidateCompanyDocuments } from "@/components/CandidateCompanyDocuments";
+import { CandidateEsicCard } from "@/components/CandidateEsicCard";
 import { ensureFormViiForCandidate, ensureIdCardForCandidate } from "@/lib/company-documents";
 
 
