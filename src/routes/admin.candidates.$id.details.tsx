@@ -57,6 +57,7 @@ import {
 } from "@/components/candidate-extra-sections";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { OffboardingRecordsSection } from "@/components/offboarding-records-section";
+import { CandidateCompanyDocuments } from "@/components/CandidateCompanyDocuments";
 
 
 const MODULE = "Candidate Details";
@@ -427,6 +428,13 @@ function CandidateDetailsPage() {
           )}
           {active === "office_assets" && (
             <OfficeAssetsSection candidateId={id} candidate={form} onToggleNonBillable={(v: boolean) => set("non_billable", v)} />
+          )}
+          {active === "company_docs" && (
+            <CandidateCompanyDocuments
+              candidateId={id}
+              employeeName={form.full_name || ""}
+              employeeCode={form.employee_code || form.candidate_code || ""}
+            />
           )}
           {active === "offboarding" && (
             <OffboardingRecordsSection details={form.offboarding_details} />
