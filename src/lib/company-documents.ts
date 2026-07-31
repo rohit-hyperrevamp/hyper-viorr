@@ -637,6 +637,8 @@ function nomineeTableHtml(nominees: NomineeForRender[]): string {
     );
   }
 
+  if (!nominees.length) return mainTable;
+
   const dense = nominees.length > 2 ? " dense" : "";
   const detailTable = `<div class="nominee-detail-title">Particulars of nominee(s) as recorded</div>
   <table class="nominee-detail-table${dense}">
@@ -654,6 +656,41 @@ function nomineeTableHtml(nominees: NomineeForRender[]): string {
 
   return `${mainTable}${detailTable}`;
 }
+
+/** Sample candidate used to preview a template with realistic data (Control Center). */
+export function previewPlaceholderMap(html: boolean): Record<string, string> {
+  return buildPlaceholderMap(
+    {
+      id: "preview",
+      full_name: "SAMPLE EMPLOYEE NAME",
+      employee_code: "EMP-000",
+      candidate_code: "CAN-000",
+      email: "sample@example.com",
+      mobile: "9000000000",
+      aadhaar_number: "0000 0000 0000",
+      date_of_birth: "1995-01-01",
+      designation_name: "Security Guard",
+      unit_name: "Radiant Guards - Pune Office",
+      unit_city: "Pune",
+      unit_id: null,
+      designation_id: null,
+      present_address1: "Sample Address Line 1",
+      present_address2: "",
+      present_city: "Pune",
+      present_state: "Maharashtra",
+      present_pincode: "411001",
+      preferred_joining_date: new Date().toISOString(),
+      gender: "Male",
+      marital_status: "Married",
+      father_or_spouse_name: "SAMPLE FATHER NAME",
+      permanent_address: "Sample Permanent Address, Pune, Maharashtra 411001",
+      nominees: [],
+      esic_family: [],
+    },
+    html,
+  );
+}
+
 
 
 export type EsicFamilyForRender = { name: string; relation: string; mobile: string; share: number };
