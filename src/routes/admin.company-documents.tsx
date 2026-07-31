@@ -39,6 +39,10 @@ import {
   DOC_TYPE_LABELS,
   DOC_TYPE_SHORT,
   PLACEHOLDERS,
+  renderTemplate,
+  previewPlaceholderMap,
+  isHtmlBody,
+
   type DocType,
   type DocumentTemplate,
 } from "@/lib/company-documents";
