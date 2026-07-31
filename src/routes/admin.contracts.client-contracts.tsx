@@ -1994,34 +1994,45 @@ function ClientContractsPage() {
     return { prospects, clients };
   }, [items]);
 
-  // Merged stats — show both client AND prospect health at the top of the page.
-  const overview = useMemo(() => {
-    let activeClients = 0;
-    let inactiveClients = 0;
-    let expiredClients = 0;
-    let pendingProspects = 0;
-    let rejectedProspects = 0;
-    let lostProspects = 0;
+  // Merged stats — one status vocabulary across clients AND prospects.
+  const statusCounts = useMemo(() => {
+    const empty = (): Record<UnifiedStatus, number> => ({
+      active: 0,
+      inactive: 0,
+      expired: 0,
+      pending_approval: 0,
+      lost: 0,
+    });
+    const client = empty();
+    const prospect = empty();
+    const all = empty();
     for (const c of items) {
-      if (c.recordType === "client") {
-        if (c.status === "active") activeClients++;
-        else if (c.status === "inactive") inactiveClients++;
-        else if (c.status === "expired") expiredClients++;
-      } else {
-        if (c.prospectStage === "lost") lostProspects++;
-        else if (c.approvalStatus === "rejected") rejectedProspects++;
-        else pendingProspects++;
-      }
+      const s = deriveStatus(c);
+      all[s]++;
+      if (c.recordType === "client") client[s]++;
+      else prospect[s]++;
     }
+    return { client, prospect, all };
+  }, [items]);
+
+  // Clicking a KPI tile filters by that status, and jumps to whichever tab
+  // actually holds those records.
+  const applyStatusTile = (s: UnifiedStatus) => {
+    setRenewalOnly(false);
+    setStatusFilter((prev) => (prev === s ? "all" : s));
+    if (statusFilter === s) return;
+    if (statusCounts[tab][s] === 0) {
+      const other: RecordType = tab === "client" ? "prospect" : "client";
+      if (statusCounts[other][s] > 0) setTab(other);
+    }
+  };
+
+  const overview = useMemo(() => {
     return {
       total: items.length,
-      activeClients,
-      inactiveClients: inactiveClients + expiredClients,
-      pendingProspects,
-      rejectedProspects,
-      lostProspects,
+      ...statusCounts.all,
     };
-  }, [items]);
+  }, [items, statusCounts]);
 
   return (
     <div>
