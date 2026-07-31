@@ -2335,17 +2335,11 @@ function ClientContractsPage() {
                     {c.startDate || "—"}
                   </td>
                 )}
-                <td className="px-5 py-3" data-col={tab === "client" ? "status" : "approval"}>
-                    {tab === "client" ? (
-                      <StatusBadge status={c.status} />
-                    ) : c.prospectStage === "lost" ? (
-                      <LostBadge />
-                    ) : (
-                      <ApprovalBadge
-                        status={c.approvalStatus}
-                        reason={c.rejectionReason}
-                      />
-                    )}
+                <td className="px-5 py-3" data-col="status">
+                    <StatusBadge
+                      status={deriveStatus(c)}
+                      reason={c.approvalStatus === "rejected" ? c.rejectionReason : ""}
+                    />
                   </td>
                   <td className="px-5 py-3 text-right" data-col="actions">
                     <div className="inline-flex gap-1">
