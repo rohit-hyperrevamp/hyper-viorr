@@ -54,6 +54,7 @@ export const Route = createFileRoute("/admin/company-documents")({
 
 const QK = ["admin", "company-document-templates"] as const;
 const MODULE = "Company Documents";
+const COMPANY_STAMP_URL = `https://radiant-guard-services.lovable.app${companyStampAsset.url}`;
 
 function fmt(d: string) {
   try {
@@ -431,7 +432,7 @@ function CompanyDocumentsPage() {
           {previewing?.doc_type === "company_stamp" ? (
             <div className="flex max-h-[65vh] items-center justify-center overflow-auto rounded-md bg-background p-6">
               <img
-                src={companyStampAsset.url}
+                src={COMPANY_STAMP_URL}
                 alt="Company stamp and authorised signature"
                 className="block h-auto max-h-[55vh] max-w-full object-contain"
               />
