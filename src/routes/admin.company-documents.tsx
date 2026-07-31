@@ -423,7 +423,15 @@ function CompanyDocumentsPage() {
               documents.
             </DialogDescription>
           </DialogHeader>
-          <DocumentPreview body={previewing?.body ?? ""} className="max-h-[65vh]" />
+          <DocumentPreview
+            body={
+              previewing
+                ? renderTemplate(previewing.body, previewPlaceholderMap(isHtmlBody(previewing.body)))
+                : ""
+            }
+            className="max-h-[65vh]"
+          />
+
         </DialogContent>
       </Dialog>
     </div>
