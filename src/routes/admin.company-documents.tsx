@@ -304,6 +304,10 @@ function CompanyDocumentsPage() {
                 setSyncing(true);
                 try {
                   const res = await syncCompanyDocumentsForAllEmployees();
+                  await logActivity(
+                    MODULE,
+                    `Synced employee documents: ${res.created} refreshed, ${res.skipped} skipped, ${res.failed} failed`,
+                  );
                   toast.success(
                     `Sync complete — ${res.created} documents refreshed, ${res.skipped} skipped${
                       res.failed ? `, ${res.failed} failed` : ""

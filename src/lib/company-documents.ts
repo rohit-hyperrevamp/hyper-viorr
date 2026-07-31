@@ -444,10 +444,7 @@ export function autoAttachFormVii(candidateId: string): void {
 }
 
 
-/**
- * Backfill Form VII for every employee (approved/active/inactive) that does not
- * yet hold a copy from the current master version. Returns per-candidate counts.
- */
+/** Refresh Form VII and ID cards for every approved, active or inactive employee. */
 export async function syncCompanyDocumentsForAllEmployees(): Promise<{
   created: number;
   skipped: number;
