@@ -32,21 +32,27 @@ import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
-import { RehirePipelineCard, RehireApprovalsCard } from "@/components/RehirePipelineCard";
+import { RehireApprovalsCard } from "@/components/RehirePipelineCard";
+import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 
-function PeopleInsightsSection() {
+function PeopleInsightsSection({ compact }: { compact?: boolean }) {
   const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights();
   return (
     <div className="flex flex-col gap-4">
       <LiveFieldOfficersCard />
-      <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
-      <PeopleInsightsCard kind="anniversaries" items={anniversaries} isLoading={isLoading} />
-      {showSixtyPlus && (
-        <PeopleInsightsCard kind="sixty-plus" items={sixtyPlus} isLoading={isLoading} />
+      {!compact && (
+        <>
+          <PeopleInsightsCard kind="birthdays" items={birthdays} isLoading={isLoading} />
+          <PeopleInsightsCard kind="anniversaries" items={anniversaries} isLoading={isLoading} />
+          {showSixtyPlus && (
+            <PeopleInsightsCard kind="sixty-plus" items={sixtyPlus} isLoading={isLoading} />
+          )}
+        </>
       )}
     </div>
   );
 }
+
 
 
 export const Route = createFileRoute("/admin/dashboard")({
@@ -596,7 +602,7 @@ function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <DashboardShell rightExtras={<PeopleInsightsSection />} fullWidthBelow={pnlBlock}>
+      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={pnlBlock}>
 
       <PageHeader
         title="Dashboard"
@@ -663,7 +669,7 @@ function DashboardPage() {
 
       <RehireApprovalsCard />
 
-      {can("employees") && <RehirePipelineCard />}
+      {can("employees") && <EmployeeInsightsSection />}
 
       {/* Insights — gradient chart + speedometer (each gated by RBAC) */}
       {(() => {
