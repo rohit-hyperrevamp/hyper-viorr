@@ -4778,7 +4778,7 @@ function CandidateWizard({
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (invalidField) setInvalidField(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form]);
@@ -5903,7 +5903,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-const InvalidFieldContext = React.createContext<string | null>(null);
+const InvalidFieldContext = createContext<string | null>(null);
 
 function Field({
   label,
@@ -5916,7 +5916,7 @@ function Field({
   anchor?: string;
   children: React.ReactNode;
 }) {
-  const invalidAnchor = React.useContext(InvalidFieldContext);
+  const invalidAnchor = useContext(InvalidFieldContext);
   const invalid = !!anchor && invalidAnchor === anchor;
   return (
     <div
