@@ -12,6 +12,7 @@ import {
   History,
   Power,
   Save,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
