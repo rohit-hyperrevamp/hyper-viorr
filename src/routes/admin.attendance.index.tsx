@@ -642,7 +642,7 @@ function AttendanceUnitsPage() {
                               search={{ month: monthIdx, year }}
                               className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-xs font-medium text-foreground hover:border-accent/50 hover:text-accent"
                             >
-                              Open roll <ArrowRight className="h-3 w-3" />
+                              Open attendance <ArrowRight className="h-3 w-3" />
                             </Link>
                           </div>
                         </td>
