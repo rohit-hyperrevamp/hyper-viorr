@@ -1858,7 +1858,7 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
 
 function ClientContractsPage() {
   const qc = useQueryClient();
-  const { items, addMut, updateMut, deleteMut, updateStageMut, resubmitMut } = useContracts();
+  const { items, addMut, updateMut, deleteMut, duplicateMut, updateStageMut, resubmitMut } = useContracts();
   const { can } = useCurrentPermissions();
   const canApprove = can("contracts", "approve");
   const canEdit = can("contracts", "edit");
