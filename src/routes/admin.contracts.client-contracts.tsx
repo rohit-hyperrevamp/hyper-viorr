@@ -1958,7 +1958,7 @@ function ClientContractsPage() {
     return enriched.filter((c) => {
       if (c.recordType !== tab) return false;
       if (renewalOnly && !isUpForRenewal(c)) return false;
-      if (tab === "client" && statusFilter !== "all" && c.status !== statusFilter) return false;
+      if (statusFilter !== "all" && deriveStatus(c) !== statusFilter) return false;
       if (orgFilter !== "all" && c.orgId !== orgFilter) return false;
       if (unitFilter !== "all" && c.unitId !== unitFilter) return false;
       if (!q) return true;
