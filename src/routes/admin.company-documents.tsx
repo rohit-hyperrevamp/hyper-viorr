@@ -485,8 +485,10 @@ function CompanyDocumentsPage() {
                   ? renderTemplate(previewing.body, previewPlaceholderMap(isHtmlBody(previewing.body)))
                   : ""
               }
+              companySignatureUrl={previewing?.doc_type === "id_card" ? COMPANY_STAMP_URL : undefined}
               className="max-h-[65vh]"
             />
+
           )}
 
         </DialogContent>
