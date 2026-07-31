@@ -668,6 +668,8 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc .sign-box { flex: 1; text-align: center; }
 .govdoc .sign-line { border-top: 1px solid #000; margin-top: 46px; padding-top: 4px; font-size: 11.5px; }
 .govdoc .small { font-size: 11px; }
+.govdoc .sig-img { display: block; height: 42px; object-fit: contain; margin: 0 0 3px auto; }
+.govdoc .employer-sign .sig-img { height: 86px; margin: 0 auto 3px 0; }
 `;
 
 /** Escape a value before injecting it into an HTML template. */
