@@ -4504,6 +4504,11 @@ function CandidateWizard({
     { key: "Aadhaar number", ok: /^\d{12}$/.test(form.aadhaar_number) },
     { key: "Date of birth", ok: !!form.date_of_birth },
     { key: "Gender", ok: !!form.gender },
+    {
+      key: "Blood group",
+      ok: !!String(((form.physical_health ?? {}) as Record<string, unknown>).blood_group ?? "").trim(),
+    },
+
     
     
     { key: "Permanent address", ok: !!form.permanent_address1.trim() && !!form.permanent_pincode },
