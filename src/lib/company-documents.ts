@@ -301,9 +301,15 @@ export async function fetchCandidateForRender(id: string): Promise<CandidateForR
 
 /**
  * Attach the active Form VII template to a candidate as an employee-specific document.
- * Idempotent: skips when a Form VII already exists for the candidate at that version.
+ * The rendered copy carries the employee's onboarding signature and the company
+ * stamp/authorised signature, so it is a complete signed record.
+ * Idempotent: skips when a Form VII already exists for the candidate at that version,
+ * unless `force` is set (used to regenerate after data changes).
  */
-export async function ensureFormViiForCandidate(candidateId: string): Promise<"created" | "exists" | "no-template"> {
+export async function ensureFormViiForCandidate(
+  candidateId: string,
+  opts: { force?: boolean } = {},
+): Promise<"created" | "exists" | "no-template"> {
   const template = await fetchActiveTemplate("form_vii");
   if (!template) return "no-template";
 
@@ -314,22 +320,29 @@ export async function ensureFormViiForCandidate(candidateId: string): Promise<"c
     .eq("doc_type", "form_vii")
     .eq("version", template.version)
     .maybeSingle();
-  if (existing) return "exists";
+  if (existing && !opts.force) return "exists";
 
-  // Drop stale unsigned copies from older template versions so the employee
-  // always holds exactly one Form VII rendered from the current master layout.
-  await supabase
+  // Drop stale copies from older template versions (and the current one when
+  // regenerating) so the employee always holds exactly one Form VII rendered
+  // from the current master layout.
+  let del = supabase
     .from("employee_signed_documents")
     .delete()
     .eq("candidate_id", candidateId)
-    .eq("doc_type", "form_vii")
-    .neq("version", template.version)
-    .eq("employee_signature_data", "")
-    .eq("company_signature_data", "");
-
+    .eq("doc_type", "form_vii");
+  if (!opts.force) del = del.neq("version", template.version);
+  await del;
 
   const candidate = await fetchCandidateForRender(candidateId);
   const rendered = renderTemplate(template.body, buildPlaceholderMap(candidate, isHtmlBody(template.body)));
+
+  // Employee signature captured during onboarding + company stamp/signature.
+  const { data: sigRow } = await supabase
+    .from("candidates")
+    .select("signature_url")
+    .eq("id", candidateId)
+    .maybeSingle();
+  const employeeSignature = ((sigRow as any)?.signature_url as string) || "";
 
   const { error } = await supabase.from("employee_signed_documents").insert({
     candidate_id: candidateId,
@@ -337,12 +350,58 @@ export async function ensureFormViiForCandidate(candidateId: string): Promise<"c
     doc_type: "form_vii",
     version: template.version,
     rendered_body: rendered,
-    employee_signature_data: "",
-    company_signature_data: "",
+    employee_signature_data: employeeSignature,
+    company_signature_data: COMPANY_STAMP_URL,
+    signed_at: new Date().toISOString(),
   } as any);
   if (error) throw error;
   return "created";
 }
+
+/**
+ * Inject signature images into a rendered statutory form's signature slots.
+ * Works for both the on-screen preview and the printed PDF.
+ */
+export function injectSignatureImages(
+  body: string,
+  employeeSignatureUrl?: string,
+  companySignatureUrl?: string,
+): string {
+  let out = body;
+  if (employeeSignatureUrl) {
+    out = out.replace(
+      /(<span[^>]*data-signature-slot=["']employee["'][^>]*>)/,
+      `$1<img class="sig-img sig-employee" src="${employeeSignatureUrl}" alt="Employee signature" />`,
+    );
+  }
+  if (companySignatureUrl) {
+    out = out.replace(
+      /(<span[^>]*data-signature-slot=["']company["'][^>]*>)/,
+      `$1<img class="sig-img sig-company" src="${companySignatureUrl}" alt="Company stamp and authorised signature" />`,
+    );
+  }
+  return out;
+}
+
+/** Convert an image URL into a data URL so jsPDF/html2canvas can rasterise it. */
+export async function resolveImageDataUrl(url?: string): Promise<string | undefined> {
+  if (!url) return undefined;
+  if (url.startsWith("data:")) return url;
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) return undefined;
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result));
+      fr.onerror = () => reject(fr.error);
+      fr.readAsDataURL(blob);
+    });
+  } catch {
+    return undefined;
+  }
+}
+
 
 
 export async function fetchActiveTemplate(docType: DocType): Promise<DocumentTemplate | null> {
@@ -609,6 +668,8 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc .sign-box { flex: 1; text-align: center; }
 .govdoc .sign-line { border-top: 1px solid #000; margin-top: 46px; padding-top: 4px; font-size: 11.5px; }
 .govdoc .small { font-size: 11px; }
+.govdoc .sig-img { display: block; height: 42px; object-fit: contain; margin: 0 0 3px auto; }
+.govdoc .employer-sign .sig-img { height: 86px; margin: 0 auto 3px 0; }
 `;
 
 /** Escape a value before injecting it into an HTML template. */
@@ -767,26 +828,23 @@ export async function generateHtmlDocumentPdf(opts: {
   ]);
 
   const hasFixedSignatureLayout = /class=["'][^"']*\bform-vii-doc\b/.test(opts.body);
+  const [empSig, compSig] = await Promise.all([
+    resolveImageDataUrl(opts.employeeSignatureDataUrl),
+    resolveImageDataUrl(opts.companySignatureDataUrl),
+  ]);
   const sigBlock =
-    !hasFixedSignatureLayout && (opts.employeeSignatureDataUrl || opts.companySignatureDataUrl)
+    !hasFixedSignatureLayout && (empSig || compSig)
       ? `<div class="sign-row">
-           <div class="sign-box">${opts.employeeSignatureDataUrl ? `<img src="${opts.employeeSignatureDataUrl}" style="height:52px;object-fit:contain" />` : ""}<div class="sign-line">Signature / Thumb impression of the employee</div></div>
-           <div class="sign-box">${opts.companySignatureDataUrl ? `<img src="${opts.companySignatureDataUrl}" style="height:52px;object-fit:contain" />` : ""}<div class="sign-line">Signature of the Employer / Authorised Signatory</div></div>
+           <div class="sign-box">${empSig ? `<img src="${empSig}" style="height:52px;object-fit:contain" />` : ""}<div class="sign-line">Signature / Thumb impression of the employee</div></div>
+           <div class="sign-box">${compSig ? `<img src="${compSig}" style="height:52px;object-fit:contain" />` : ""}<div class="sign-line">Signature of the Employer / Authorised Signatory</div></div>
          </div>`
       : "";
 
   const host = document.createElement("div");
   host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_WIDTH_PX}px;background:#fff;`;
-  host.innerHTML = buildDocumentPageHtml(opts.body + sigBlock);
-  const employeeSlot = host.querySelector('[data-signature-slot="employee"]');
-  if (employeeSlot && opts.employeeSignatureDataUrl) {
-    employeeSlot.innerHTML = `<img src="${opts.employeeSignatureDataUrl}" style="display:block;height:34px;object-fit:contain;margin:0 0 4px auto" />`;
-  }
-  const companySlot = host.querySelector('[data-signature-slot="company"]');
-  if (companySlot && opts.companySignatureDataUrl) {
-    companySlot.innerHTML = `<img src="${opts.companySignatureDataUrl}" style="display:block;height:34px;object-fit:contain;margin:0 auto 4px 0" />`;
-  }
+  host.innerHTML = buildDocumentPageHtml(injectSignatureImages(opts.body, empSig, compSig) + sigBlock);
   document.body.appendChild(host);
+
 
   try {
     const target = host.querySelector(".govdoc") as HTMLElement;
