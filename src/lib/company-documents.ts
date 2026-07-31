@@ -1094,10 +1094,6 @@ export function serializeIdCardSpec(spec: IdCardSpec): string {
   return JSON.stringify(spec, null, 2);
 }
 
-function esc(v: string): string {
-  return v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
 /** Builds the ID card markup (with $placeholders intact) from a structured spec. */
 export function renderIdCardHtml(spec: IdCardSpec): string {
   const logo = spec.logoUrl;
