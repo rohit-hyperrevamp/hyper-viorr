@@ -278,9 +278,45 @@ function CompanyDocumentsPage() {
             <TabsTrigger value="archived">Archived</TabsTrigger>
           </TabsList>
         </Tabs>
-        <p className="text-xs text-muted-foreground">
-          Editing the active version automatically archives it and creates a new active version.
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          {docType === "form_vii" && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={backfilling}
+              onClick={async () => {
+                if (
+                  !(await confirmAction({
+                    title: "Backfill Form VII for all employees?",
+                    description:
+                      "Generates a signed Form VII for every approved, active or inactive employee that does not already hold one from the current master version.",
+                    confirmText: "Backfill",
+                  }))
+                )
+                  return;
+                setBackfilling(true);
+                try {
+                  const res = await backfillFormViiForAllEmployees();
+                  toast.success(
+                    `Backfill complete — ${res.created} created, ${res.skipped} already up to date${
+                      res.failed ? `, ${res.failed} failed` : ""
+                    }`,
+                  );
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Backfill failed");
+                } finally {
+                  setBackfilling(false);
+                }
+              }}
+            >
+              <Users className="mr-1.5 h-3.5 w-3.5" />
+              {backfilling ? "Backfilling…" : "Backfill all employees"}
+            </Button>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Editing the active version automatically archives it and creates a new active version.
+          </p>
+        </div>
       </div>
 
       <div className="space-y-3">
