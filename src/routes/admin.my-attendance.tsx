@@ -246,7 +246,7 @@ function MyAttendancePage() {
       else absent += 1;
     }
     return { present, absent, leave };
-  }, [days, byDay, codeMap]);
+  }, [days, byDay, codeMap, myShiftHours]);
 
   function shiftMonth(delta: number) {
     const d = new Date(monthDate);
