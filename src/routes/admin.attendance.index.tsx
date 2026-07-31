@@ -534,22 +534,13 @@ function AttendanceUnitsPage() {
         <div className="space-y-3 border-b border-border/60 px-4 py-4 sm:px-5 sm:py-5">
           <div className="flex flex-col gap-1">
             <h2 className="font-display text-base font-bold tracking-tight text-foreground sm:text-lg">
-              Attendance unit register
+              Attendance charter
             </h2>
             <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
-              Open any unit to view its month-wise muster roll.
+              Committed vs actual deployment with month-till-date attendance. Open any unit for its full muster roll.
             </p>
           </div>
 
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search unit, client, code, employee…"
-              className="h-11 rounded-2xl border-border/60 bg-background pl-10 text-sm"
-            />
-          </div>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <FilterSelect
