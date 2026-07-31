@@ -2101,7 +2101,6 @@ function ClientContractsPage() {
         value={tab}
         onValueChange={(v) => {
           setTab(v as RecordType);
-          setStatusFilter("all");
         }}
         className="mb-4"
       >
