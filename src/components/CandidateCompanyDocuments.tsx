@@ -63,7 +63,7 @@ export function CandidateCompanyDocuments({
     },
   });
 
-  const regenMut = useMutation({
+  const syncMut = useMutation({
     mutationFn: async () => {
       const form = await ensureFormViiForCandidate(candidateId, { force: true });
       const card = await ensureIdCardForCandidate(candidateId, { force: true });
@@ -72,10 +72,10 @@ export function CandidateCompanyDocuments({
     onSuccess: (res) => {
       if (res.form === "no-template") toast.error("No active Form VII master template found");
       else if (res.card === "no-template") toast.error("No active ID Card master template found");
-      else toast.success("Documents regenerated from the current master templates");
+      else toast.success("Documents synced with the employee profile and current templates");
       void qc.invalidateQueries({ queryKey: QK });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not generate document"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not sync documents"),
   });
 
   // Self-heal: employees activated before this workflow existed (or through a
@@ -132,15 +132,15 @@ export function CandidateCompanyDocuments({
         <Button
           variant="outline"
           size="sm"
-          disabled={regenMut.isPending}
-          onClick={() => regenMut.mutate()}
+          disabled={syncMut.isPending}
+          onClick={() => syncMut.mutate()}
         >
-          {regenMut.isPending ? (
+          {syncMut.isPending ? (
             <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
           ) : (
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
           )}
-          Generate / Refresh Documents
+          Sync Documents
 
         </Button>
       </div>
@@ -151,7 +151,7 @@ export function CandidateCompanyDocuments({
         </div>
       ) : docs.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          No company documents generated yet. Use “Generate / Refresh Documents”.
+          Documents are being prepared. Use “Sync Documents” if they do not appear automatically.
         </div>
       ) : (
         <ul className="divide-y divide-border rounded-2xl border border-border bg-card">

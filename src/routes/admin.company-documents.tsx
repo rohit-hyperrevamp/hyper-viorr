@@ -48,7 +48,7 @@ import {
   parseIdCardSpec,
   serializeIdCardSpec,
   DEFAULT_ID_CARD_SPEC,
-  backfillFormViiForAllEmployees,
+  syncCompanyDocumentsForAllEmployees,
 
   type DocType,
   type DocumentTemplate,
@@ -233,7 +233,7 @@ function CompanyDocumentsPage() {
   const [view, setView] = useState<"active" | "archived">("active");
   const [editing, setEditing] = useState<DocumentTemplate | null>(null);
   const [previewing, setPreviewing] = useState<DocumentTemplate | null>(null);
-  const [backfilling, setBackfilling] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const filtered = useMemo(() => {
     return items
@@ -286,38 +286,44 @@ function CompanyDocumentsPage() {
           </TabsList>
         </Tabs>
         <div className="flex flex-wrap items-center gap-3">
-          {docType === "form_vii" && (
+          {(docType === "form_vii" || docType === "id_card") && (
             <Button
               variant="outline"
               size="sm"
-              disabled={backfilling}
+              disabled={syncing}
               onClick={async () => {
                 if (
                   !(await confirmAction({
-                    title: "Backfill Form VII for all employees?",
+                    title: "Sync documents for all employees?",
                     description:
-                      "Generates a signed Form VII for every approved, active or inactive employee that does not already hold one from the current master version.",
-                    confirmText: "Backfill",
+                      "Refreshes Form VII and ID cards for every approved, active or inactive employee using their latest profile photo, signature and the current templates.",
+                    confirmText: "Sync all",
                   }))
                 )
                   return;
-                setBackfilling(true);
+                setSyncing(true);
                 try {
-                  const res = await backfillFormViiForAllEmployees();
+                  const res = await syncCompanyDocumentsForAllEmployees();
+                  await logActivity({
+                    module: MODULE,
+                    action: "Sync all employee documents",
+                    entityType: "employee_signed_documents",
+                    details: res,
+                  });
                   toast.success(
-                    `Backfill complete — ${res.created} created, ${res.skipped} already up to date${
+                    `Sync complete — ${res.created} documents refreshed, ${res.skipped} skipped${
                       res.failed ? `, ${res.failed} failed` : ""
                     }`,
                   );
                 } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "Backfill failed");
+                  toast.error(e instanceof Error ? e.message : "Sync failed");
                 } finally {
-                  setBackfilling(false);
+                  setSyncing(false);
                 }
               }}
             >
               <Users className="mr-1.5 h-3.5 w-3.5" />
-              {backfilling ? "Backfilling…" : "Backfill all employees"}
+              {syncing ? "Syncing…" : "Sync all employees"}
             </Button>
           )}
           <p className="text-xs text-muted-foreground">
