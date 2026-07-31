@@ -107,7 +107,7 @@ export function PhysicalSection({ form, setSection, set }: { form: any; setSecti
         ))}
       </div>
       <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-        <Field label="Blood Group">
+        <Field label="Blood Group" required>
           <Select
             value={ph.blood_group ?? ""}
             onValueChange={(v) => setSection("physical_health", { blood_group: v })}
