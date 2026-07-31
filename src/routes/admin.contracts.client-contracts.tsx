@@ -273,6 +273,7 @@ type ContractResource = {
   roleKey?: string | null;
   serviceTypeId: string;
   quantity: number;
+  shiftHours: number;
   components: ResourceComponent[];
   payrollDayBaseId: string | null;
   benefits: BenefitItem[];
@@ -298,6 +299,7 @@ function cloneContractResource(resource: ContractResource): ContractResource {
     roleKey: resource.roleKey ?? null,
     serviceTypeId: resource.serviceTypeId,
     quantity: Number(resource.quantity) || 1,
+    shiftHours: Number(resource.shiftHours) === 12 ? 12 : 8,
     components: (resource.components ?? []).map((c) => ({
       ...c,
       amount: Number(c.amount) || 0,
@@ -1012,7 +1014,7 @@ function useContractResources(contractId: string | null) {
       const { data, error } = await supabase
         .from("contract_resources" as never)
         .select(
-          "id,designation_id,role_key,service_type_id,quantity,components,sort_order,payroll_day_base_id,benefits,deductions,employer_contributions",
+          "id,designation_id,role_key,service_type_id,quantity,shift_hours,components,sort_order,payroll_day_base_id,benefits,deductions,employer_contributions",
         )
         .eq("contract_id", contractId)
         .order("sort_order");
@@ -1023,6 +1025,7 @@ function useContractResources(contractId: string | null) {
         roleKey: r.role_key ? String(r.role_key) : null,
         serviceTypeId: r.service_type_id ? String(r.service_type_id) : "",
         quantity: Number(r.quantity ?? 1),
+        shiftHours: Number(r.shift_hours ?? 8) === 12 ? 12 : 8,
         components: Array.isArray(r.components)
           ? (r.components as ResourceComponent[])
           : [],
@@ -1342,7 +1345,7 @@ async function persistResources(contractId: string, resources: ContractResource[
   const normalizedResources = resources.map(cloneContractResource);
   const prev = await supabase
     .from("contract_resources" as never)
-    .select("designation_id,service_type_id,quantity,components,benefits,deductions,employer_contributions,payroll_day_base_id,sort_order")
+    .select("designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,sort_order")
     .eq("contract_id", contractId)
     .order("sort_order");
   const beforeRows = (prev.data ?? []) as Record<string, unknown>[];
@@ -1368,6 +1371,7 @@ async function persistResources(contractId: string, resources: ContractResource[
     role_key: r.roleKey || null,
     service_type_id: r.serviceTypeId || null,
     quantity: r.quantity,
+    shift_hours: r.shiftHours === 12 ? 12 : 8,
     components: r.components,
     gross: r.components.reduce((s, c) => s + (Number(c.amount) || 0), 0),
     sort_order: idx,
@@ -1379,7 +1383,7 @@ async function persistResources(contractId: string, resources: ContractResource[
   const ins = await supabase
     .from("contract_resources" as never)
     .insert(rows as never)
-    .select("designation_id,service_type_id,quantity,components,benefits,deductions,employer_contributions,payroll_day_base_id,sort_order");
+    .select("designation_id,service_type_id,quantity,shift_hours,components,benefits,deductions,employer_contributions,payroll_day_base_id,sort_order");
   if (ins.error) throw ins.error;
   const savedRows = ((ins.data ?? []) as Record<string, unknown>[]).sort(
     (a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0),
@@ -1439,7 +1443,7 @@ async function exportContractToXlsx(contract: ClientContract): Promise<void> {
   const { data: resData, error } = await supabase
     .from("contract_resources" as never)
     .select(
-      "designation_id,service_type_id,quantity,payroll_day_base_id,components,benefits,deductions,employer_contributions,sort_order",
+      "designation_id,service_type_id,quantity,shift_hours,payroll_day_base_id,components,benefits,deductions,employer_contributions,sort_order",
     )
     .eq("contract_id", contract.id)
     .order("sort_order");
@@ -1649,6 +1653,7 @@ async function exportContractToXlsx(contract: ClientContract): Promise<void> {
     designation_id: r.designation_id ? String(r.designation_id) : "",
     service_type_id: r.service_type_id ? String(r.service_type_id) : "",
     quantity: Number(r.quantity ?? 1),
+    shift_hours: Number(r.shift_hours ?? 8) === 12 ? 12 : 8,
     payroll_day_base_id: r.payroll_day_base_id ? String(r.payroll_day_base_id) : "",
     components_json: JSON.stringify(r.components ?? []),
     benefits_json: JSON.stringify(r.benefits ?? []),
@@ -1661,6 +1666,7 @@ async function exportContractToXlsx(contract: ClientContract): Promise<void> {
       "designation_id",
       "service_type_id",
       "quantity",
+      "shift_hours",
       "payroll_day_base_id",
       "components_json",
       "benefits_json",
@@ -1871,6 +1877,7 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
     designationId: String(r.designation_id ?? ""),
     serviceTypeId: String(r.service_type_id ?? ""),
     quantity: Number(r.quantity ?? 1) || 1,
+    shiftHours: Number(r.shift_hours ?? 8) === 12 ? 12 : 8,
     payrollDayBaseId: r.payroll_day_base_id ? String(r.payroll_day_base_id) : null,
     components: safeJsonArray(r.components_json) as ResourceComponent[],
     benefits: safeJsonArray(r.benefits_json) as BenefitItem[],
@@ -3809,6 +3816,7 @@ function ResourceFormDialog({
   const [roleKey, setRoleKey] = useState<string>("");
   const [serviceTypeId, setServiceTypeId] = useState("");
   const [quantity, setQuantity] = useState("1");
+  const [shiftHours, setShiftHours] = useState("8");
   const [components, setComponents] = useState<ResourceComponent[]>([]);
   const [payrollDayBaseId, setPayrollDayBaseId] = useState<string>("");
   const [benefits, setBenefits] = useState<BenefitItem[]>([]);
@@ -3853,6 +3861,7 @@ function ResourceFormDialog({
       setRoleKey(initial.roleKey ?? "");
       setServiceTypeId(initial.serviceTypeId);
       setQuantity(String(initial.quantity));
+      setShiftHours(String(initial.shiftHours ?? 8));
       setComponents(nextComponents);
       setPayrollDayBaseId(initial.payrollDayBaseId ?? "");
       setBenefits(nextBenefits);
@@ -3878,13 +3887,14 @@ function ResourceFormDialog({
       setRoleKey("");
       setServiceTypeId("");
       setQuantity("1");
+      setShiftHours("8");
       // Pre-load defaults from allowance types
       setComponents(nextComponents);
       setPayrollDayBaseId("");
       setBenefits([]);
       setDeductions([]);
       setEmployerContributions([]);
-      setResourceBaselineSnapshot(serializeContractResources([{ designationId: "", serviceTypeId: "", quantity: 1, components: nextComponents, payrollDayBaseId: null, benefits: [], deductions: [], employerContributions: [] }]));
+      setResourceBaselineSnapshot(serializeContractResources([{ designationId: "", serviceTypeId: "", quantity: 1, shiftHours: 8, components: nextComponents, payrollDayBaseId: null, benefits: [], deductions: [], employerContributions: [] }]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial, allowanceTypes.length]);
@@ -3898,6 +3908,7 @@ function ResourceFormDialog({
           roleKey: roleKey || null,
           serviceTypeId,
           quantity: Number.parseInt(quantity, 10) || 1,
+          shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
           components,
           payrollDayBaseId: payrollDayBaseId || null,
           benefits,
@@ -3905,7 +3916,7 @@ function ResourceFormDialog({
           employerContributions,
         },
       ]),
-    [benefits, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, roleKey, serviceTypeId],
+    [benefits, components, deductions, designationId, employerContributions, initial?.id, payrollDayBaseId, quantity, shiftHours, roleKey, serviceTypeId],
   );
   const resourceHasChanges = resourceBaselineSnapshot !== "" && currentResourceSnapshot !== resourceBaselineSnapshot;
 
@@ -4312,6 +4323,7 @@ function ResourceFormDialog({
       roleKey: roleKey || null,
       serviceTypeId,
       quantity: q,
+      shiftHours: Number.parseInt(shiftHours, 10) === 12 ? 12 : 8,
       components,
       payrollDayBaseId: payrollDayBaseId || null,
       benefits,
@@ -4468,6 +4480,18 @@ function ResourceFormDialog({
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
               />
+            </Field>
+
+            <Field label="Shift Hours *">
+              <Select value={shiftHours} onValueChange={setShiftHours}>
+                <SelectTrigger className="h-10 rounded-lg">
+                  <SelectValue placeholder="Select shift" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="8">8 hours</SelectItem>
+                  <SelectItem value="12">12 hours</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
           </div>
 
