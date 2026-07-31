@@ -559,7 +559,10 @@ export const DOCUMENT_PAGE_CSS = `
 .govdoc th, .govdoc td { padding: 2px 3px; font-size: 14px; line-height: 1.05; vertical-align: top; }
 .govdoc th { font-weight: 700; text-align: left; background: transparent; }
 .govdoc .nomination-table { width: 698px; margin-top: 12px; table-layout: fixed; }
-.govdoc .nomination-table th { height: 132px; vertical-align: top; font-weight: 400; }
+.govdoc .nomination-table th { height: 132px; vertical-align: top; font-weight: 400;
+  font-size: 10.5px; line-height: 1.15; letter-spacing: 0; text-transform: none;
+  font-variant: normal; overflow-wrap: break-word; word-break: break-word; hyphens: auto;
+  overflow: hidden; white-space: normal; }
 .govdoc .nomination-table .col-1 { width: 120px; }
 .govdoc .nomination-table .col-2 { width: 62px; }
 .govdoc .nomination-table .col-3 { width: 109px; }
