@@ -97,13 +97,11 @@ export type CandidateForRender = {
  * Assets are served from Lovable's CDN path. PDFs and previews on custom
  * domains need the absolute URL, so resolve it against the current origin.
  */
+export const DOCUMENT_ASSET_ORIGIN = "https://radiant-guard-services.lovable.app";
+
 export function absoluteAssetUrl(path: string): string {
   if (/^https?:/i.test(path)) return path;
-  const origin =
-    typeof window !== "undefined" && window.location?.origin
-      ? window.location.origin
-      : "https://radiant-guard-services.lovable.app";
-  return `${origin}${path}`;
+  return `${DOCUMENT_ASSET_ORIGIN}${path}`;
 }
 
 
@@ -671,7 +669,7 @@ export function downloadBlob(blob: Blob, filename: string) {
 
 /** A template body is treated as a statutory HTML form when it starts with a tag. */
 export function isHtmlBody(body: string | null | undefined): boolean {
-  return !!body && /^\s*</.test(body);
+  return !!body && (/^\s*</.test(body) || isIdCardBody(body));
 }
 
 /** A4 at 96dpi. Used identically for on-screen preview and the printed PDF. */
@@ -910,7 +908,9 @@ export const ID_CARD_WIDTH_PX = 204;
 export const ID_CARD_HEIGHT_PX = 324;
 
 export function isIdCardBody(body: string | null | undefined): boolean {
-  return !!body && /idcard-sheet/.test(body);
+  if (!body) return false;
+  if (/idcard-sheet/.test(body)) return true;
+  return !!parseIdCardSpec(body);
 }
 
 export const ID_CARD_CSS = `
