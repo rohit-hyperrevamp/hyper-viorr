@@ -1013,6 +1013,28 @@ export async function generateHtmlDocumentPdf(opts: {
     import("html2canvas-pro"),
   ]);
 
+  if (isIdCardBody(opts.body)) {
+    const compSigCard = await resolveImageDataUrl(opts.companySignatureDataUrl);
+    const host = document.createElement("div");
+    host.style.cssText = "position:fixed;left:-10000px;top:0;background:#fff;";
+    host.innerHTML = buildDocumentPageHtml(injectSignatureImages(opts.body, undefined, compSigCard));
+    document.body.appendChild(host);
+    try {
+      const faces = Array.from(host.querySelectorAll(".idcard")) as HTMLElement[];
+      const doc = new jsPDF({ unit: "mm", format: [54, 85.6] });
+      for (let i = 0; i < faces.length; i += 1) {
+        const canvas = await html2canvas(faces[i], { scale: 4, backgroundColor: "#ffffff", useCORS: true });
+        if (i > 0) doc.addPage([54, 85.6], "portrait");
+        doc.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 54, 85.6);
+      }
+      return doc.output("blob");
+    } finally {
+      host.remove();
+    }
+  }
+
+
+
   const hasFixedSignatureLayout = /class=["'][^"']*\bform-vii-doc\b/.test(opts.body);
   const [empSig, compSig] = await Promise.all([
     resolveImageDataUrl(opts.employeeSignatureDataUrl),
