@@ -70,6 +70,8 @@ export function RehireEnableDialog({
       toast.success(
         res.employeeCode ? `Enabled · employee ID ${res.employeeCode}` : "Rehire enabled",
       );
+      // Rehired employees get a fresh Form VII against their current nominee data.
+      if (candidateId) autoAttachFormVii(candidateId);
       qc.invalidateQueries({ queryKey: ["rehire-pipeline"] });
       qc.invalidateQueries({ queryKey: ["candidates"] });
       onDone?.(res.employeeCode);
