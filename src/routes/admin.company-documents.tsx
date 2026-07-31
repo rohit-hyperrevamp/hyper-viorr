@@ -229,6 +229,7 @@ function CompanyDocumentsPage() {
   const [view, setView] = useState<"active" | "archived">("active");
   const [editing, setEditing] = useState<DocumentTemplate | null>(null);
   const [previewing, setPreviewing] = useState<DocumentTemplate | null>(null);
+  const [backfilling, setBackfilling] = useState(false);
 
   const filtered = useMemo(() => {
     return items
