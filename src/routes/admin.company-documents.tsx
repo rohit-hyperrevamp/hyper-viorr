@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 
 import { DocumentPreview } from "@/components/DocumentPreview";
+import { IdCardEditor } from "@/components/IdCardEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { PageHeader } from "@/components/PageHeader";
@@ -44,6 +45,9 @@ import {
   renderTemplate,
   previewPlaceholderMap,
   isHtmlBody,
+  parseIdCardSpec,
+  serializeIdCardSpec,
+  DEFAULT_ID_CARD_SPEC,
   backfillFormViiForAllEmployees,
 
   type DocType,
