@@ -422,8 +422,14 @@ export function autoAttachFormVii(candidateId: string): void {
     } catch (e) {
       console.error("Form VII auto-attach failed", candidateId, e);
     }
+    try {
+      await ensureIdCardForCandidate(candidateId);
+    } catch (e) {
+      console.error("ID card auto-attach failed", candidateId, e);
+    }
   })();
 }
+
 
 /**
  * Backfill Form VII for every employee (approved/active/inactive) that does not
