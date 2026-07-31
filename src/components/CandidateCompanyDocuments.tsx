@@ -17,9 +17,11 @@ import {
   DOC_TYPE_LABELS,
   downloadBlob,
   ensureFormViiForCandidate,
+  ensureIdCardForCandidate,
   generateDocumentPdf,
   type DocType,
 } from "@/lib/company-documents";
+
 
 type SignedDocRow = {
   id: string;
