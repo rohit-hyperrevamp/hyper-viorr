@@ -2097,6 +2097,10 @@ function ClientContractsPage() {
         }
       />
 
+      <WorkforceCoverageCard />
+
+
+
 
       <Tabs
         value={tab}
