@@ -963,7 +963,7 @@ export const DEFAULT_ID_CARD_TEMPLATE = `<div class="idcard-sheet">
         <img class="logo" src="$company_logo" alt="Company logo" />
         <div class="company">$company_name</div>
         <div class="photo-wrap">
-          <img class="photo" src="$employee_photo" alt="Employee photo" />
+          <img class="photo" src="$employee_photo" alt="Employee photo" onerror="this.style.visibility='hidden'" />
           <img class="photo-stamp" src="$company_stamp" alt="Company stamp" />
         </div>
         <div class="rows">
