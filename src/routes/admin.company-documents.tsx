@@ -304,10 +304,12 @@ function CompanyDocumentsPage() {
                 setSyncing(true);
                 try {
                   const res = await syncCompanyDocumentsForAllEmployees();
-                  await logActivity(
-                    MODULE,
-                    `Synced employee documents: ${res.created} refreshed, ${res.skipped} skipped, ${res.failed} failed`,
-                  );
+                  await logActivity({
+                    module: MODULE,
+                    action: "Sync all employee documents",
+                    entityType: "employee_signed_documents",
+                    details: res,
+                  });
                   toast.success(
                     `Sync complete — ${res.created} documents refreshed, ${res.skipped} skipped${
                       res.failed ? `, ${res.failed} failed` : ""
