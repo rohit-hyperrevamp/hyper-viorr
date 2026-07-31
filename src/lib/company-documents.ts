@@ -370,7 +370,18 @@ export async function ensureDocForCandidate(
   await del;
 
   const candidate = await fetchCandidateForRender(candidateId);
-  const rendered = renderTemplate(template.body, buildPlaceholderMap(candidate, isHtmlBody(template.body)));
+  let rendered = renderTemplate(template.body, buildPlaceholderMap(candidate, isHtmlBody(template.body)));
+
+  // ID cards are stored as a structured spec; bake the employee photo and the
+  // company stamp into it so the rendered card never carries raw placeholders.
+  if (docType === "id_card") {
+    const spec = parseIdCardSpec(rendered);
+    if (spec) {
+      spec.front.photoUrl = candidate.photo_url || "";
+      spec.front.stampUrl = absoluteAssetUrl(COMPANY_STAMP_URL);
+      rendered = serializeIdCardSpec(spec);
+    }
+  }
 
   // Employee signature captured during onboarding + company stamp/signature.
   const { data: sigRow } = await supabase
@@ -387,7 +398,7 @@ export async function ensureDocForCandidate(
     version: template.version,
     rendered_body: rendered,
     employee_signature_data: employeeSignature,
-    company_signature_data: COMPANY_STAMP_URL,
+    company_signature_data: absoluteAssetUrl(COMPANY_STAMP_URL),
     signed_at: new Date().toISOString(),
   } as any);
   if (error) throw error;
@@ -1036,6 +1047,10 @@ export type IdCardSpec = {
     companyName: string;
     showPhoto: boolean;
     showPhotoStamp: boolean;
+    /** Resolved at generation time from the candidate's profile photo. */
+    photoUrl?: string;
+    /** Resolved at generation time from the company stamp asset. */
+    stampUrl?: string;
     fields: IdCardField[];
     authorityLabel: string;
     showAuthoritySignature: boolean;
@@ -1093,6 +1108,8 @@ export function parseIdCardSpec(body: string | null | undefined): IdCardSpec | n
         companyName: raw.front?.companyName ?? d.front.companyName,
         showPhoto: raw.front?.showPhoto ?? true,
         showPhotoStamp: raw.front?.showPhotoStamp ?? true,
+        photoUrl: raw.front?.photoUrl,
+        stampUrl: raw.front?.stampUrl,
         fields: Array.isArray(raw.front?.fields) && raw.front!.fields.length
           ? raw.front!.fields.map((f) => ({ label: String(f?.label ?? ""), value: String(f?.value ?? "") }))
           : d.front.fields,
@@ -1128,10 +1145,16 @@ export function renderIdCardHtml(spec: IdCardSpec): string {
     )
     .join("\n          ");
 
+  const isReal = (u?: string) => !!u && !u.startsWith("$") && u.trim() !== "";
+  const photoSrc = isReal(spec.front.photoUrl) ? absoluteAssetUrl(spec.front.photoUrl!) : "";
+  const stampSrc = isReal(spec.front.stampUrl)
+    ? absoluteAssetUrl(spec.front.stampUrl!)
+    : absoluteAssetUrl(COMPANY_STAMP_URL);
+
   const photo = spec.front.showPhoto
     ? `<div class="photo-wrap">
-          <img class="photo" src="$employee_photo" alt="Employee photo" onerror="this.style.visibility='hidden'" />
-          ${spec.front.showPhotoStamp ? `<img class="photo-stamp" src="$company_stamp" alt="Company stamp" />` : ""}
+          ${photoSrc ? `<img class="photo" src="${photoSrc}" alt="Employee photo" onerror="this.style.visibility='hidden'" />` : `<div class="photo-ph"></div>`}
+          ${spec.front.showPhotoStamp ? `<img class="photo-stamp" src="${stampSrc}" alt="Company stamp" />` : ""}
         </div>`
     : "";
 
