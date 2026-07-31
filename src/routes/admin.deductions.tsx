@@ -28,6 +28,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { z } from "zod";
+import { CHARTER_UNITS_QK, fetchCharterUnits } from "@/lib/charter-units";
+import { fetchLiveContractDeductions } from "@/lib/contract-deductions-live";
 
 const searchSchema = z.object({
   mode: z.enum(["list", "create", "edit"]).default("list"),
@@ -302,15 +304,39 @@ function DeductionList() {
   });
 
   const [deleting, setDeleting] = useState<Deduction | null>(null);
+  const [view, setView] = useState<"entries" | "contract">("entries");
 
   return (
     <div>
       <PayrollTabs />
       <PageHeader
         title="Deductions"
-        description="Record and track employee deductions applied to payroll."
+        description="Recorded deductions plus the live contract & statutory deductions computed from each client contract."
         crumbs={[{ label: "Payroll", to: "/admin/payroll" }, { label: "Deductions" }]}
       />
+
+      <div className="mb-4 inline-flex flex-wrap items-center gap-1 rounded-2xl border border-border/60 bg-card/60 p-1 backdrop-blur-xl">
+        {([
+          { key: "entries", label: "Recorded deductions" },
+          { key: "contract", label: "Contract & statutory (live)" },
+        ] as const).map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setView(t.key)}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all",
+              view === t.key
+                ? "bg-background text-foreground ring-1 ring-inset ring-accent/25 shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {view === "contract" ? <ContractDeductionsPanel /> : <>
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -462,6 +488,182 @@ function DeductionList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </>}
+    </div>
+  );
+}
+
+/**
+ * Live view of the deductions that live on the client contract's resource rate
+ * card — PF / ESI employee shares, Professional Tax, LWF and any bespoke
+ * contract deduction line. These are recomputed from the contract + attendance
+ * every time this renders (same engine as the payroll register), so they are
+ * never stored as rows here; storing them would double-count in payroll.
+ */
+function ContractDeductionsPanel() {
+  const now = new Date();
+  const [monthIdx, setMonthIdx] = useState(now.getMonth());
+  const [year, setYear] = useState(now.getFullYear());
+  const [unitId, setUnitId] = useState<string>("");
+
+  const unitsQ = useQuery({ queryKey: CHARTER_UNITS_QK, queryFn: fetchCharterUnits });
+  const units = unitsQ.data?.units ?? [];
+  const effectiveUnitId = unitId || units[0]?.id || "";
+  const unitName = units.find((u) => u.id === effectiveUnitId)?.name ?? "";
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const start = `${year}-${pad(monthIdx + 1)}-01`;
+  const lastDay = new Date(year, monthIdx + 1, 0).getDate();
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const monthEnd = `${year}-${pad(monthIdx + 1)}-${pad(lastDay)}`;
+  const end = monthEnd > todayIso && start <= todayIso ? todayIso : monthEnd;
+
+  const liveQ = useQuery({
+    queryKey: ["contract-deductions-live", effectiveUnitId, start, end],
+    enabled: !!effectiveUnitId,
+    queryFn: () => fetchLiveContractDeductions({ unitId: effectiveUnitId, unitName, start, end }),
+  });
+
+  const rows = liveQ.data?.rows ?? [];
+  const byLine = liveQ.data?.byLine ?? [];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 lg:max-w-2xl">
+          <div className="grid gap-1.5">
+            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Unit</Label>
+            <Select value={effectiveUnitId} onValueChange={setUnitId}>
+              <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Select unit" /></SelectTrigger>
+              <SelectContent className="max-h-[320px]">
+                {units.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name || u.code}{u.customer_name ? ` · ${u.customer_name}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Month</Label>
+            <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
+              <SelectTrigger className="h-10 rounded-lg"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m, i) => (
+                  <SelectItem key={m} value={String(i)}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Year</Label>
+            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+              <SelectTrigger className="h-10 rounded-lg"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[year - 2, year - 1, year, year + 1].map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          className="h-10 rounded-lg"
+          disabled={rows.length === 0}
+          onClick={() => downloadCsv(
+            `contract-deductions-${start}-to-${end}`,
+            rows.flatMap((r) => r.lines.map((l) => ({
+              employee: r.name,
+              employee_code: r.employeeCode,
+              designation: r.designation,
+              unit: r.unitName,
+              contract: r.contractCode,
+              line: l.name,
+              amount: l.amount,
+              earned_gross: r.earnedGross,
+            }))),
+            [
+              { key: "employee", header: "Employee" },
+              { key: "employee_code", header: "Emp Code" },
+              { key: "designation", header: "Designation" },
+              { key: "unit", header: "Unit" },
+              { key: "contract", header: "Contract" },
+              { key: "line", header: "Deduction" },
+              { key: "amount", header: "Amount" },
+              { key: "earned_gross", header: "Earned Gross" },
+            ],
+          )}
+        >
+          <Download className="mr-1.5 h-4 w-4" /> Export
+        </Button>
+      </div>
+
+      <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
+        Computed live from the client contract rate card + this period&apos;s attendance ({start} → {end}) using the payroll
+        engine. These lines are not stored as deduction records — the payroll register applies them directly, so recording
+        them here as well would double-count.
+      </div>
+
+      {byLine.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {byLine.map((l) => (
+            <div key={l.name} className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 shadow-sm">
+              <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{l.name}</span>
+              <span className="text-sm font-semibold tabular-nums">{fmtINR(l.amount)}</span>
+            </div>
+          ))}
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-1.5 text-primary-foreground shadow-sm">
+            <span className="text-[11px] font-medium uppercase tracking-[0.12em]">Total</span>
+            <span className="text-sm font-semibold tabular-nums">{fmtINR(liveQ.data?.total ?? 0)}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="overflow-x-auto">
+          <table className="ios-table w-full text-sm">
+            <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <tr>
+                <th className="px-5 py-3">Employee</th>
+                <th className="px-5 py-3">Designation</th>
+                <th className="px-5 py-3 text-right">Earned Gross</th>
+                <th className="px-5 py-3">Contract &amp; statutory deductions</th>
+                <th className="px-5 py-3 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map((r) => (
+                <tr key={r.candidateId} className="hover:bg-secondary/30">
+                  <td className="px-5 py-3">
+                    <div className="font-medium">{r.name}</div>
+                    <div className="font-mono text-[11px] text-muted-foreground">{r.employeeCode}</div>
+                  </td>
+                  <td className="px-5 py-3 text-muted-foreground">{r.designation}</td>
+                  <td className="px-5 py-3 text-right tabular-nums">{fmtINR(r.earnedGross)}</td>
+                  <td className="px-5 py-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      {r.lines.map((l) => (
+                        <span key={l.name} className="rounded-md bg-secondary px-2 py-0.5 text-[11px] font-medium">
+                          {l.name} · <span className="tabular-nums">{fmtINR(l.amount)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-5 py-3 text-right font-semibold tabular-nums">{fmtINR(r.total)}</td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-5 py-12 text-center text-sm text-muted-foreground">
+                    {liveQ.isLoading ? "Computing from the contract…" : "No contract deductions for this unit and period."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
