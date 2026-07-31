@@ -2388,27 +2388,31 @@ function ClientContractsPage() {
                             <RefreshCcw className="h-4 w-4" />
                           </Button>
                         )}
-                      {tab === "prospect" &&
-                        c.approvalStatus === "pending" &&
-                        c.prospectStage !== "lost" &&
-                        canEdit && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-muted-foreground"
-                            onClick={() =>
-                              updateStageMut.mutate({
-                                id: c.id,
-                                stage: "lost",
-                                label: c.prospectCode,
-                              })
-                            }
-                            title="Mark prospect as lost (stays in prospects)"
-                            aria-label="Mark Lost"
-                          >
-                            <Flag className="h-4 w-4" />
-                          </Button>
-                        )}
+                      {canEdit && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className={cn(
+                            "text-muted-foreground",
+                            c.prospectStage === "lost" && "text-rose-600",
+                          )}
+                          onClick={() =>
+                            updateStageMut.mutate({
+                              id: c.id,
+                              stage: c.prospectStage === "lost" ? "new" : "lost",
+                              label: c.contractCode || c.prospectCode,
+                            })
+                          }
+                          title={
+                            c.prospectStage === "lost"
+                              ? "Restore from Lost"
+                              : "Mark as Lost"
+                          }
+                          aria-label="Mark Lost"
+                        >
+                          <Flag className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
