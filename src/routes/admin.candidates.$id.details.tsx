@@ -379,7 +379,11 @@ function CandidateDetailsPage() {
       <div className="space-y-4">
         {/* Section tabs (horizontal) */}
         <nav className="flex flex-wrap gap-1 rounded-lg border bg-card p-1">
-          {SECTIONS.map((s) => {
+          {SECTIONS.filter(
+            (s) =>
+              s.id !== "esic_card" ||
+              ["approved", "active"].includes(String(form.status ?? "").toLowerCase()),
+          ).map((s) => {
             const Icon = s.icon;
             const isActive = active === s.id;
             return (
