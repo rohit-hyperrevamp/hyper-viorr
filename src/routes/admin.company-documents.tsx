@@ -424,10 +424,12 @@ function CompanyDocumentsPage() {
                 v{previewing?.version}
               </span>
             </DialogTitle>
-            <DialogDescription>
-              Placeholders like <code>$employee_name</code> will be replaced when generating per-employee
-              documents.
-            </DialogDescription>
+            {previewing?.doc_type !== "company_stamp" && (
+              <DialogDescription>
+                Placeholders like <code>$employee_name</code> will be replaced when generating per-employee
+                documents.
+              </DialogDescription>
+            )}
           </DialogHeader>
           {previewing?.doc_type === "company_stamp" ? (
             <div className="flex max-h-[65vh] items-center justify-center overflow-auto rounded-md bg-background p-6">
