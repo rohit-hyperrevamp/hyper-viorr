@@ -826,26 +826,23 @@ export async function generateHtmlDocumentPdf(opts: {
   ]);
 
   const hasFixedSignatureLayout = /class=["'][^"']*\bform-vii-doc\b/.test(opts.body);
+  const [empSig, compSig] = await Promise.all([
+    resolveImageDataUrl(opts.employeeSignatureDataUrl),
+    resolveImageDataUrl(opts.companySignatureDataUrl),
+  ]);
   const sigBlock =
-    !hasFixedSignatureLayout && (opts.employeeSignatureDataUrl || opts.companySignatureDataUrl)
+    !hasFixedSignatureLayout && (empSig || compSig)
       ? `<div class="sign-row">
-           <div class="sign-box">${opts.employeeSignatureDataUrl ? `<img src="${opts.employeeSignatureDataUrl}" style="height:52px;object-fit:contain" />` : ""}<div class="sign-line">Signature / Thumb impression of the employee</div></div>
-           <div class="sign-box">${opts.companySignatureDataUrl ? `<img src="${opts.companySignatureDataUrl}" style="height:52px;object-fit:contain" />` : ""}<div class="sign-line">Signature of the Employer / Authorised Signatory</div></div>
+           <div class="sign-box">${empSig ? `<img src="${empSig}" style="height:52px;object-fit:contain" />` : ""}<div class="sign-line">Signature / Thumb impression of the employee</div></div>
+           <div class="sign-box">${compSig ? `<img src="${compSig}" style="height:52px;object-fit:contain" />` : ""}<div class="sign-line">Signature of the Employer / Authorised Signatory</div></div>
          </div>`
       : "";
 
   const host = document.createElement("div");
   host.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_WIDTH_PX}px;background:#fff;`;
-  host.innerHTML = buildDocumentPageHtml(opts.body + sigBlock);
-  const employeeSlot = host.querySelector('[data-signature-slot="employee"]');
-  if (employeeSlot && opts.employeeSignatureDataUrl) {
-    employeeSlot.innerHTML = `<img src="${opts.employeeSignatureDataUrl}" style="display:block;height:34px;object-fit:contain;margin:0 0 4px auto" />`;
-  }
-  const companySlot = host.querySelector('[data-signature-slot="company"]');
-  if (companySlot && opts.companySignatureDataUrl) {
-    companySlot.innerHTML = `<img src="${opts.companySignatureDataUrl}" style="display:block;height:34px;object-fit:contain;margin:0 auto 4px 0" />`;
-  }
+  host.innerHTML = buildDocumentPageHtml(injectSignatureImages(opts.body, empSig, compSig) + sigBlock);
   document.body.appendChild(host);
+
 
   try {
     const target = host.querySelector(".govdoc") as HTMLElement;
