@@ -963,11 +963,11 @@ export const ID_CARD_CSS = `
 .idcard .wm { position: absolute; inset: 0; opacity: .06; background-repeat: repeat;
   background-size: 62px 62px; pointer-events: none; }
 .idcard .body { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; }
-.idcard .logo { display: block; margin: 2px auto 0; height: 52px; width: auto; object-fit: contain; }
+.idcard .logo { display: block; margin: 2px auto 0; width: auto !important; max-width: 100% !important; object-fit: contain; }
 .idcard .company { text-align: center; font-weight: 700; font-size: 11px; letter-spacing: -.2px; margin-top: 6px; }
 .idcard .photo-wrap { position: relative; width: 78px; height: 88px; margin: 8px auto 0;
   border-radius: 8px; background: #d7dde6; border: 1px solid #b9c2cd; }
-.idcard .photo { width: 100%; height: 100%; border-radius: 8px; object-fit: cover; display: block; }
+.idcard .photo { width: 100% !important; height: 100% !important; max-width: none !important; border-radius: 8px; object-fit: cover; display: block; }
 .idcard .photo-ph { width: 78px; height: 88px; border-radius: 8px; display: flex; align-items: center;
   justify-content: center; background: #d7dde6; border: 1px solid #b9c2cd; font-size: 8px; color: #6b7280; }
 /* Stamp sits low on the photo's left edge so the face stays fully readable. */
