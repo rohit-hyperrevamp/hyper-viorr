@@ -894,7 +894,7 @@ function esicFamilyTableText(members: EsicFamilyForRender[]): string {
  */
 export function buildDocumentPageHtml(body: string): string {
   if (isIdCardBody(body)) {
-    return `<style>${ID_CARD_CSS}</style>${body}`;
+    return `<style>${ID_CARD_CSS}</style>${expandIdCardBody(body)}`;
   }
   return `<style>${DOCUMENT_PAGE_CSS}</style><div class="govdoc">${body}</div>`;
 }
@@ -1177,7 +1177,7 @@ export async function generateHtmlDocumentPdf(opts: {
   ]);
 
   if (isIdCardBody(opts.body)) {
-    const compSigCard = await resolveImageDataUrl(opts.companySignatureDataUrl);
+    const compSigCard = await resolveImageDataUrl(opts.companySignatureDataUrl ?? absoluteAssetUrl(COMPANY_STAMP_URL));
     const host = document.createElement("div");
     host.style.cssText = "position:fixed;left:-10000px;top:0;background:#fff;";
     host.innerHTML = buildDocumentPageHtml(injectSignatureImages(opts.body, undefined, compSigCard));
