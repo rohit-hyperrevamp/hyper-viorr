@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { actOnRehireRequest, type RehireRequest } from "@/lib/workflows";
+import { autoAttachFormVii } from "@/lib/company-documents";
 
 /**
  * HR enablement prompt for a rehire: keep the previous employee ID, or issue a
@@ -69,6 +70,8 @@ export function RehireEnableDialog({
       toast.success(
         res.employeeCode ? `Enabled · employee ID ${res.employeeCode}` : "Rehire enabled",
       );
+      // Rehired employees get a fresh Form VII against their current nominee data.
+      if (candidateId) autoAttachFormVii(candidateId);
       qc.invalidateQueries({ queryKey: ["rehire-pipeline"] });
       qc.invalidateQueries({ queryKey: ["candidates"] });
       onDone?.(res.employeeCode);

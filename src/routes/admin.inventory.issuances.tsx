@@ -702,6 +702,12 @@ function IssuanceDialog({ open, onOpenChange, initial, initialCandidateId, curre
         reference_type: "issuance", reference_id: initial.id,
       }));
       await postMovements(movs);
+      // Guard hand-over acknowledgement activates the employee (DB trigger) —
+      // attach their statutory Form VII at the same moment.
+      if (["guard", "security_guard"].includes(initial.destination_type)) {
+        const { autoAttachFormVii } = await import("@/lib/company-documents");
+        autoAttachFormVii(initial.destination_id);
+      }
       void logActivity({ module: MODULE, action: "acknowledge", entityType: ENTITY, entityId: initial.id, entityLabel: initial.issuance_number });
       toast.success("Receipt confirmed — stock added");
       onSaved(); onOpenChange(false);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Eye, Loader2, RefreshCw, FileSignature } from "lucide-react";
 import { toast } from "sonner";
@@ -70,6 +70,24 @@ export function CandidateCompanyDocuments({
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not generate document"),
   });
+
+  // Self-heal: employees activated before this workflow existed (or through a
+  // server-side path) get their Form VII generated the first time it is opened.
+  const autoTried = useRef(false);
+  useEffect(() => {
+    if (isLoading || autoTried.current) return;
+    if (docs.some((d) => d.doc_type === "form_vii")) return;
+    autoTried.current = true;
+    void (async () => {
+      try {
+        const res = await ensureFormViiForCandidate(candidateId);
+        if (res === "created") void qc.invalidateQueries({ queryKey: QK });
+      } catch {
+        /* surfaced via the manual Generate button */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, docs.length, candidateId]);
 
   async function download(row: SignedDocRow) {
     setDownloading(row.id);
