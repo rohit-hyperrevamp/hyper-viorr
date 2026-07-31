@@ -4790,6 +4790,9 @@ function CandidateWizard({
       if (!form.pan_image_url) return failValidation("PAN card upload is required");
       if (!form.full_name.trim()) return failValidation("Name is required");
       if (!form.mobile.trim()) return failValidation("Mobile is required");
+      if (!String(((form.physical_health ?? {}) as Record<string, unknown>).blood_group ?? "").trim())
+        return failValidation("Blood group is required (Physical & Health section) — it is printed on the employee ID card");
+
       if (!form.permanent_district.trim()) return failValidation("District is required in the permanent address");
       if (!form.same_as_permanent && !form.present_district.trim())
         return failValidation("District is required in the present address");
