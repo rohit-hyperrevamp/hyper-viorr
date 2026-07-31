@@ -1,4 +1,11 @@
-import { buildDocumentPageHtml, injectSignatureImages, isHtmlBody, A4_WIDTH_PX } from "@/lib/company-documents";
+import {
+  buildDocumentPageHtml,
+  injectSignatureImages,
+  isHtmlBody,
+  isIdCardBody,
+  A4_WIDTH_PX,
+} from "@/lib/company-documents";
+
 
 /**
  * Renders a company document exactly as it will be printed.
