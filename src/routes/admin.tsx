@@ -482,6 +482,10 @@ function AdminLayout() {
           // Other roles need RBAC access to the field_sense module.
           return isFieldOfficer || isSuperAdmin || can("field_sense");
         }
+        // Leadership-only analytics surfaces — hidden from field officers.
+        if (g.key === "reports" || g.key === "compliance") {
+          return !isFieldOfficer && (isSuperAdmin || can("contracts") || can("employees"));
+        }
         return !g.module || can(g.module);
       })
       .map((g) => {
