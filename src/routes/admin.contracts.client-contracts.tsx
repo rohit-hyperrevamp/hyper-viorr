@@ -668,6 +668,89 @@ function useContracts() {
     onSuccess: invalidate,
   });
 
+  /**
+   * Duplicate a contract exactly (header + all resource lines) under the next
+   * available contract / prospect code. The copy is always created inactive.
+   */
+  const duplicateMut = useMutation({
+    mutationFn: async (id: string): Promise<{ id: string; code: string }> => {
+      const { data: srcRow, error: srcErr } = await supabase
+        .from("client_contracts" as never)
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (srcErr) throw srcErr;
+      const src = srcRow as unknown as Record<string, unknown>;
+
+      const { data: codeRows, error: codeErr } = await supabase
+        .from("client_contracts" as never)
+        .select("contract_code,prospect_code");
+      if (codeErr) throw codeErr;
+      const all = (codeRows as unknown as Record<string, unknown>[]) ?? [];
+      const newContractCode = src.contract_code
+        ? nextContractCode(all.map((r) => String(r.contract_code ?? "")).filter(Boolean))
+        : null;
+      const newProspectCode = nextProspectCode(
+        all.map((r) => String(r.prospect_code ?? "")).filter(Boolean),
+      );
+
+      const uidRes = await supabase.auth.getUser();
+      const copy: Record<string, unknown> = { ...src };
+      delete copy.id;
+      delete copy.created_at;
+      delete copy.updated_at;
+      Object.assign(copy, {
+        contract_code: newContractCode,
+        prospect_code: newProspectCode,
+        status: "inactive",
+        created_by: uidRes.data.user?.id ?? null,
+        signed_at: null,
+        company_signature_data: null,
+        signed_pdf_url: null,
+      });
+
+      const { data: inserted, error: insErr } = await supabase
+        .from("client_contracts" as never)
+        .insert(copy as never)
+        .select("id")
+        .single();
+      if (insErr) throw insErr;
+      const newId = String((inserted as Record<string, unknown>).id);
+
+      const { data: resRows, error: resErr } = await supabase
+        .from("contract_resources" as never)
+        .select("*")
+        .eq("contract_id", id);
+      if (resErr) throw resErr;
+      const lines = ((resRows as unknown as Record<string, unknown>[]) ?? []).map((r) => {
+        const line: Record<string, unknown> = { ...r, contract_id: newId };
+        delete line.id;
+        delete line.created_at;
+        delete line.updated_at;
+        return line;
+      });
+      if (lines.length > 0) {
+        const { error: lineErr } = await supabase
+          .from("contract_resources" as never)
+          .insert(lines as never);
+        if (lineErr) throw lineErr;
+      }
+
+      const code = String(newContractCode ?? newProspectCode);
+      void logActivity({
+        module: "Client Contracts",
+        action: "duplicate",
+        entityType: "client_contracts",
+        entityId: newId,
+        entityLabel: code,
+        details: { duplicatedFrom: id, resourceLines: lines.length },
+      });
+      return { id: newId, code };
+    },
+    onSuccess: invalidate,
+  });
+
+
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
