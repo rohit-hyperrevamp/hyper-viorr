@@ -2129,7 +2129,7 @@ function ClientContractsPage() {
                 end: csvDate(c.endDate),
                 description: c.description,
                 gst: c.gstOption.toUpperCase(),
-                status: c.status,
+                status: STATUS_LABEL[deriveStatus(c)],
               })),
               [
                 { key: "code", header: "Contract ID" },
