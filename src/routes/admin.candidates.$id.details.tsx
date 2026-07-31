@@ -28,6 +28,7 @@ import {
   Briefcase,
   Undo2,
   FileText,
+  FileSignature,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,7 @@ import {
 } from "@/components/candidate-extra-sections";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { OffboardingRecordsSection } from "@/components/offboarding-records-section";
+import { CandidateCompanyDocuments } from "@/components/CandidateCompanyDocuments";
 
 
 const MODULE = "Candidate Details";
@@ -71,6 +73,7 @@ const SECTIONS = [
   { id: "criminal", label: "Criminal History", icon: Gavel },
   { id: "nominee", label: "Nominee", icon: UserCheck },
   { id: "office_assets", label: "Office Assets", icon: Briefcase },
+  { id: "company_docs", label: "Company Documents", icon: FileSignature },
   { id: "offboarding", label: "Offboarding Docs", icon: FileText },
 ] as const;
 
@@ -425,6 +428,13 @@ function CandidateDetailsPage() {
           )}
           {active === "office_assets" && (
             <OfficeAssetsSection candidateId={id} candidate={form} onToggleNonBillable={(v: boolean) => set("non_billable", v)} />
+          )}
+          {active === "company_docs" && (
+            <CandidateCompanyDocuments
+              candidateId={id}
+              employeeName={form.full_name || ""}
+              employeeCode={form.employee_code || form.candidate_code || ""}
+            />
           )}
           {active === "offboarding" && (
             <OffboardingRecordsSection details={form.offboarding_details} />
