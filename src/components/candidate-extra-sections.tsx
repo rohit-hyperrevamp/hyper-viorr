@@ -68,14 +68,17 @@ export function SectionHeader({ title, desc }: { title: string; desc?: string })
   );
 }
 
-export function Field({ label, children }: { label: string; children: React.ReactNode }) {
+export function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <Label className="text-xs font-medium text-muted-foreground">
+        {label} {required && <span className="text-rose-500">*</span>}
+      </Label>
       {children}
     </div>
   );
 }
+
 
 type SetSection = (k: string, v: any) => void;
 type SetField = (k: string, v: any) => void;
