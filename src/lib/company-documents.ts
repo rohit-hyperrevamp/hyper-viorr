@@ -1,12 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type DocType = "nda" | "appointment_letter" | "form_vii" | "company_stamp";
+export type DocType = "nda" | "appointment_letter" | "form_vii" | "company_stamp" | "id_card";
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
   nda: "Non-Disclosure Agreement",
   appointment_letter: "Appointment Letter",
   form_vii: "Form VII — Nomination Form",
   company_stamp: "Company Stamp and Signatures",
+  id_card: "ID Card",
 };
 
 export const DOC_TYPE_SHORT: Record<DocType, string> = {
@@ -14,11 +15,17 @@ export const DOC_TYPE_SHORT: Record<DocType, string> = {
   appointment_letter: "Appointment Letter",
   form_vii: "Form VII",
   company_stamp: "Stamp & Signatures",
+  id_card: "ID Card",
 };
 
 /** CDN URL of the official company stamp (with authorised signature). */
 export const COMPANY_STAMP_URL =
   "/__l5e/assets-v1/87ea9ec6-0ff1-4c65-8122-abc676b013d3/company-stamp.png";
+
+/** CDN URL of the company logo used on the ID card (replaceable in the template). */
+export const COMPANY_LOGO_URL =
+  "/__l5e/assets-v1/20a50aa3-b6c2-4ed4-a3f3-7d4527ee1acd/radiant-logo.png";
+
 
 
 export type DocumentTemplate = {
