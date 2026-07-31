@@ -4674,6 +4674,13 @@ function CandidateWizard({
         before: (before as unknown as Record<string, unknown>) ?? null,
         after: { ...(patched as Record<string, unknown>), unit_ids: form.unit_ids },
       });
+      if (["active", "approved", "inactive"].includes(status)) {
+        const { ensureFormViiForCandidate, ensureIdCardForCandidate } = await import("@/lib/company-documents");
+        await Promise.all([
+          ensureFormViiForCandidate(editing.id, { force: true }),
+          ensureIdCardForCandidate(editing.id, { force: true }),
+        ]);
+      }
       if (isResubmit) {
         await notifyOnboardingApprovers({
           type: "candidate_pending_approval",

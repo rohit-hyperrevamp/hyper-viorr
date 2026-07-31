@@ -382,6 +382,16 @@ export async function ensureDocForCandidate(
     if (spec) {
       spec.front.photoUrl = candidate.photo_url || "";
       spec.front.stampUrl = absoluteAssetUrl(COMPANY_STAMP_URL);
+      // Structured cards are persisted snapshots. Always overwrite profile-backed
+      // fields from the freshly fetched candidate so an older rendered value can
+      // never survive a forced regeneration.
+      spec.front.fields = spec.front.fields.map((field) => {
+        const normalizedLabel = field.label.trim().toLowerCase().replace(/[^a-z]/g, "");
+        if (normalizedLabel === "bg" || normalizedLabel === "bloodgroup") {
+          return { ...field, value: candidate.blood_group || "—" };
+        }
+        return field;
+      });
       rendered = serializeIdCardSpec(spec);
     }
   }

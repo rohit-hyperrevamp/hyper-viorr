@@ -58,6 +58,7 @@ import {
 import { useCurrentPermissions } from "@/lib/rbac";
 import { OffboardingRecordsSection } from "@/components/offboarding-records-section";
 import { CandidateCompanyDocuments } from "@/components/CandidateCompanyDocuments";
+import { ensureFormViiForCandidate, ensureIdCardForCandidate } from "@/lib/company-documents";
 
 
 const MODULE = "Candidate Details";
@@ -211,7 +212,15 @@ function CandidateDetailsPage() {
         entityId: id,
         entityLabel: form.full_name || id,
       });
-      toast.success("Saved");
+      const [formResult, cardResult] = await Promise.all([
+        ensureFormViiForCandidate(id, { force: true }),
+        ensureIdCardForCandidate(id, { force: true }),
+      ]);
+      if (formResult === "no-template" || cardResult === "no-template") {
+        toast.warning("Profile saved, but an active company-document template is missing");
+      } else {
+        toast.success("Saved — company documents updated automatically");
+      }
       setBaselinePayload(JSON.stringify(payload));
       if (closeAfter) navigate({ to: "/admin/employees" });
     } catch (e: any) {
