@@ -1,4 +1,9 @@
-import { Plus, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Image as ImageIcon, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
+
+import { supabase } from "@/integrations/supabase/client";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
