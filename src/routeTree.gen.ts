@@ -18,6 +18,7 @@ import { Route as AdminVehiclesRouteImport } from './routes/admin.vehicles'
 import { Route as AdminSystemLogsRouteImport } from './routes/admin.system-logs'
 import { Route as AdminServiceTypeManagerRouteImport } from './routes/admin.service-type-manager'
 import { Route as AdminRolesManagerRouteImport } from './routes/admin.roles-manager'
+import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminRbacRouteImport } from './routes/admin.rbac'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminProfessionalTaxManagerRouteImport } from './routes/admin.professional-tax-manager'
@@ -47,6 +48,7 @@ import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminCostComponentManagerRouteImport } from './routes/admin.cost-component-manager'
 import { Route as AdminControlCenterRouteImport } from './routes/admin.control-center'
+import { Route as AdminComplianceRouteImport } from './routes/admin.compliance'
 import { Route as AdminCompanyDocumentsRouteImport } from './routes/admin.company-documents'
 import { Route as AdminBillingTypeManagerRouteImport } from './routes/admin.billing-type-manager'
 import { Route as AdminAttendanceCodeManagerRouteImport } from './routes/admin.attendance-code-manager'
@@ -148,6 +150,11 @@ const AdminServiceTypeManagerRoute = AdminServiceTypeManagerRouteImport.update({
 const AdminRolesManagerRoute = AdminRolesManagerRouteImport.update({
   id: '/roles-manager',
   path: '/roles-manager',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminRbacRoute = AdminRbacRouteImport.update({
@@ -297,6 +304,11 @@ const AdminCostComponentManagerRoute =
 const AdminControlCenterRoute = AdminControlCenterRouteImport.update({
   id: '/control-center',
   path: '/control-center',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminComplianceRoute = AdminComplianceRouteImport.update({
+  id: '/compliance',
+  path: '/compliance',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCompanyDocumentsRoute = AdminCompanyDocumentsRouteImport.update({
@@ -620,6 +632,7 @@ export interface FileRoutesByFullPath {
   '/admin/attendance-code-manager': typeof AdminAttendanceCodeManagerRoute
   '/admin/billing-type-manager': typeof AdminBillingTypeManagerRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
+  '/admin/compliance': typeof AdminComplianceRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
@@ -649,6 +662,7 @@ export interface FileRoutesByFullPath {
   '/admin/professional-tax-manager': typeof AdminProfessionalTaxManagerRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rbac': typeof AdminRbacRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/roles-manager': typeof AdminRolesManagerRoute
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
@@ -716,6 +730,7 @@ export interface FileRoutesByTo {
   '/admin/attendance-code-manager': typeof AdminAttendanceCodeManagerRoute
   '/admin/billing-type-manager': typeof AdminBillingTypeManagerRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
+  '/admin/compliance': typeof AdminComplianceRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
@@ -743,6 +758,7 @@ export interface FileRoutesByTo {
   '/admin/professional-tax-manager': typeof AdminProfessionalTaxManagerRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rbac': typeof AdminRbacRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/roles-manager': typeof AdminRolesManagerRoute
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
@@ -812,6 +828,7 @@ export interface FileRoutesById {
   '/admin/attendance-code-manager': typeof AdminAttendanceCodeManagerRoute
   '/admin/billing-type-manager': typeof AdminBillingTypeManagerRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
+  '/admin/compliance': typeof AdminComplianceRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
@@ -841,6 +858,7 @@ export interface FileRoutesById {
   '/admin/professional-tax-manager': typeof AdminProfessionalTaxManagerRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rbac': typeof AdminRbacRoute
+  '/admin/reports': typeof AdminReportsRoute
   '/admin/roles-manager': typeof AdminRolesManagerRoute
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
@@ -911,6 +929,7 @@ export interface FileRouteTypes {
     | '/admin/attendance-code-manager'
     | '/admin/billing-type-manager'
     | '/admin/company-documents'
+    | '/admin/compliance'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
     | '/admin/customers'
@@ -940,6 +959,7 @@ export interface FileRouteTypes {
     | '/admin/professional-tax-manager'
     | '/admin/profile'
     | '/admin/rbac'
+    | '/admin/reports'
     | '/admin/roles-manager'
     | '/admin/service-type-manager'
     | '/admin/system-logs'
@@ -1007,6 +1027,7 @@ export interface FileRouteTypes {
     | '/admin/attendance-code-manager'
     | '/admin/billing-type-manager'
     | '/admin/company-documents'
+    | '/admin/compliance'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
     | '/admin/customers'
@@ -1034,6 +1055,7 @@ export interface FileRouteTypes {
     | '/admin/professional-tax-manager'
     | '/admin/profile'
     | '/admin/rbac'
+    | '/admin/reports'
     | '/admin/roles-manager'
     | '/admin/service-type-manager'
     | '/admin/system-logs'
@@ -1102,6 +1124,7 @@ export interface FileRouteTypes {
     | '/admin/attendance-code-manager'
     | '/admin/billing-type-manager'
     | '/admin/company-documents'
+    | '/admin/compliance'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
     | '/admin/customers'
@@ -1131,6 +1154,7 @@ export interface FileRouteTypes {
     | '/admin/professional-tax-manager'
     | '/admin/profile'
     | '/admin/rbac'
+    | '/admin/reports'
     | '/admin/roles-manager'
     | '/admin/service-type-manager'
     | '/admin/system-logs'
@@ -1258,6 +1282,13 @@ declare module '@tanstack/react-router' {
       path: '/roles-manager'
       fullPath: '/admin/roles-manager'
       preLoaderRoute: typeof AdminRolesManagerRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/rbac': {
@@ -1461,6 +1492,13 @@ declare module '@tanstack/react-router' {
       path: '/control-center'
       fullPath: '/admin/control-center'
       preLoaderRoute: typeof AdminControlCenterRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/compliance': {
+      id: '/admin/compliance'
+      path: '/compliance'
+      fullPath: '/admin/compliance'
+      preLoaderRoute: typeof AdminComplianceRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/company-documents': {
@@ -2030,6 +2068,7 @@ interface AdminRouteChildren {
   AdminAttendanceCodeManagerRoute: typeof AdminAttendanceCodeManagerRoute
   AdminBillingTypeManagerRoute: typeof AdminBillingTypeManagerRoute
   AdminCompanyDocumentsRoute: typeof AdminCompanyDocumentsRoute
+  AdminComplianceRoute: typeof AdminComplianceRoute
   AdminControlCenterRoute: typeof AdminControlCenterRoute
   AdminCostComponentManagerRoute: typeof AdminCostComponentManagerRoute
   AdminCustomersRoute: typeof AdminCustomersRouteWithChildren
@@ -2059,6 +2098,7 @@ interface AdminRouteChildren {
   AdminProfessionalTaxManagerRoute: typeof AdminProfessionalTaxManagerRoute
   AdminProfileRoute: typeof AdminProfileRoute
   AdminRbacRoute: typeof AdminRbacRoute
+  AdminReportsRoute: typeof AdminReportsRoute
   AdminRolesManagerRoute: typeof AdminRolesManagerRoute
   AdminServiceTypeManagerRoute: typeof AdminServiceTypeManagerRoute
   AdminSystemLogsRoute: typeof AdminSystemLogsRoute
@@ -2084,6 +2124,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAttendanceCodeManagerRoute: AdminAttendanceCodeManagerRoute,
   AdminBillingTypeManagerRoute: AdminBillingTypeManagerRoute,
   AdminCompanyDocumentsRoute: AdminCompanyDocumentsRoute,
+  AdminComplianceRoute: AdminComplianceRoute,
   AdminControlCenterRoute: AdminControlCenterRoute,
   AdminCostComponentManagerRoute: AdminCostComponentManagerRoute,
   AdminCustomersRoute: AdminCustomersRouteWithChildren,
@@ -2113,6 +2154,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminProfessionalTaxManagerRoute: AdminProfessionalTaxManagerRoute,
   AdminProfileRoute: AdminProfileRoute,
   AdminRbacRoute: AdminRbacRoute,
+  AdminReportsRoute: AdminReportsRoute,
   AdminRolesManagerRoute: AdminRolesManagerRoute,
   AdminServiceTypeManagerRoute: AdminServiceTypeManagerRoute,
   AdminSystemLogsRoute: AdminSystemLogsRoute,
