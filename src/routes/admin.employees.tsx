@@ -4538,6 +4538,8 @@ function CandidateWizard({
     { key: "PAN number", ok: /^[A-Z]{5}[0-9]{4}[A-Z]$/.test((form.pan_number || "").trim().toUpperCase()) },
     { key: "Unit assignment", ok: form.unit_ids.length > 0 },
     { key: "Designation", ok: !!form.designation_id },
+    { key: "ESIC family Aadhaar", ok: esicFamilyAadhaarComplete(form.compliance) },
+
   ];
   const completionDone = completionChecks.filter((c) => c.ok).length;
   const completionTotal = completionChecks.length;
