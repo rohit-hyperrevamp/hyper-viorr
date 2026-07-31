@@ -238,7 +238,7 @@ function MyAttendancePage() {
     for (const d of days) {
       if (d.isFuture) continue;
       const rec = byDay.get(d.date);
-      const punchCode = punchAttendanceCode(rec?.punch, d.date, todayIso);
+      const punchCode = punchAttendanceCode(rec?.punch, d.date, todayIso, myShiftHours);
       if (rec?.punch?.check_in_at && !rec.punch.check_out_at && !punchCode) continue;
       const code = punchCode ? codeMap.get(punchCode) : rec?.entry?.code ? codeMap.get(rec.entry.code) : undefined;
       if (code?.is_leave) leave += attendanceDayValue(code);
@@ -314,7 +314,7 @@ function MyAttendancePage() {
           const rec = byDay.get(d.date);
           const p = rec?.punch;
           const todayIso = iso(new Date());
-          const punchCode = punchAttendanceCode(p, d.date, todayIso);
+          const punchCode = punchAttendanceCode(p, d.date, todayIso, myShiftHours);
           const code = punchCode ? codeMap.get(punchCode) : rec?.entry?.code ? codeMap.get(rec.entry.code) : undefined;
           const punchDuration = p?.check_in_at && p.check_out_at ? duration(p.check_in_at, p.check_out_at) : null;
           type Tone = "emerald" | "rose" | "amber" | "sky" | "muted";
