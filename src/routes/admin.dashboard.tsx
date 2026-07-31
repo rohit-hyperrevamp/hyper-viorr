@@ -669,7 +669,7 @@ function DashboardPage() {
 
       <RehireApprovalsCard />
 
-      {can("employees") && <RehirePipelineCard />}
+      {can("employees") && <EmployeeInsightsSection />}
 
       {/* Insights — gradient chart + speedometer (each gated by RBAC) */}
       {(() => {
