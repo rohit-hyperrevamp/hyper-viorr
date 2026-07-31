@@ -1134,10 +1134,16 @@ export function renderIdCardHtml(spec: IdCardSpec): string {
     )
     .join("\n          ");
 
+  const isReal = (u?: string) => !!u && !u.startsWith("$") && u.trim() !== "";
+  const photoSrc = isReal(spec.front.photoUrl) ? absoluteAssetUrl(spec.front.photoUrl!) : "";
+  const stampSrc = isReal(spec.front.stampUrl)
+    ? absoluteAssetUrl(spec.front.stampUrl!)
+    : absoluteAssetUrl(COMPANY_STAMP_URL);
+
   const photo = spec.front.showPhoto
     ? `<div class="photo-wrap">
-          <img class="photo" src="$employee_photo" alt="Employee photo" onerror="this.style.visibility='hidden'" />
-          ${spec.front.showPhotoStamp ? `<img class="photo-stamp" src="$company_stamp" alt="Company stamp" />` : ""}
+          ${photoSrc ? `<img class="photo" src="${photoSrc}" alt="Employee photo" onerror="this.style.visibility='hidden'" />` : `<div class="photo-ph"></div>`}
+          ${spec.front.showPhotoStamp ? `<img class="photo-stamp" src="${stampSrc}" alt="Company stamp" />` : ""}
         </div>`
     : "";
 
