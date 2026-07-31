@@ -531,7 +531,13 @@ export function NomineeSection({ form, setSection }: { form: any; setSection: Se
 
 export const MAX_ESIC_FAMILY = 6;
 
-export type EsicFamilyMember = { name: string; relation: string; mobile: string };
+export type EsicFamilyMember = {
+  name: string;
+  relation: string;
+  mobile: string;
+  aadhaar_front_url?: string;
+  aadhaar_back_url?: string;
+};
 
 export function esicFamilyShares(count: number): number[] {
   if (count <= 0) return [];
@@ -546,27 +552,124 @@ const ESIC_RELATIONS = [
   "Spouse", "Son", "Daughter", "Father", "Mother", "Brother", "Sister", "Other",
 ];
 
-export function EsicFamilySection({ form, setSection }: { form: any; setSection: SetSection }) {
+/** Uploads to the private candidate-files bucket and returns a long-lived signed URL. */
+export async function uploadCandidateFile(file: File, folder: string, keyHint?: string): Promise<string> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const ext = file.name.split(".").pop() || "png";
+  const path = `${folder}/${(keyHint || "NEW").replace(/[^A-Za-z0-9_-]/g, "")}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("candidate-files")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  const { data: signed, error: signErr } = await supabase.storage
+    .from("candidate-files")
+    .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  if (signErr) throw signErr;
+  return signed.signedUrl;
+}
+
+export function esicFamilyAadhaarComplete(compliance: any): boolean {
+  const list = Array.isArray(compliance?.esic_family) ? compliance.esic_family : [];
+  if (list.length === 0) return false;
+  return list.every((m: any) => !!m?.aadhaar_front_url && !!m?.aadhaar_back_url);
+}
+
+function EsicAadhaarUpload({
+  label,
+  url,
+  onUploaded,
+}: {
+  label: string;
+  url?: string;
+  onUploaded: (url: string, file: File) => Promise<void> | void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const inputId = useState(() => `esic-aadhaar-${Math.random().toString(36).slice(2)}`)[0];
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        id={inputId}
+        type="file"
+        accept="image/*,application/pdf"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (!file) return;
+          setBusy(true);
+          try {
+            const uploaded = await uploadCandidateFile(file, "esic-family", file.name);
+            await onUploaded(uploaded, file);
+          } catch (err) {
+            console.error("[esic-family] upload failed", err);
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+      <Button
+        type="button"
+        size="sm"
+        variant={url ? "secondary" : "outline"}
+        disabled={busy}
+        onClick={() => document.getElementById(inputId)?.click()}
+        className="h-8 text-xs"
+      >
+        {busy ? "Uploading…" : url ? `${label} ✓` : `Upload ${label}`}
+      </Button>
+      {url && (
+        <a href={url} target="_blank" rel="noreferrer" className="text-[11px] font-medium text-primary underline">
+          View
+        </a>
+      )}
+    </div>
+  );
+}
+
+export function EsicFamilySection({
+  form,
+  setSection,
+  set,
+}: {
+  form: any;
+  setSection: SetSection;
+  set?: SetField;
+}) {
   const compliance = form.compliance ?? {};
   const members: EsicFamilyMember[] = Array.isArray(compliance.esic_family)
     ? compliance.esic_family.map((m: any) => ({
         name: m?.name ?? "",
         relation: m?.relation ?? "",
         mobile: m?.mobile ?? "",
+        aadhaar_front_url: m?.aadhaar_front_url ?? "",
+        aadhaar_back_url: m?.aadhaar_back_url ?? "",
       }))
     : [];
 
   const setMembers = (next: EsicFamilyMember[]) =>
     setSection("compliance", { esic_family: next.slice(0, MAX_ESIC_FAMILY) });
 
+  /** Mirror every family Aadhaar upload into the employee's documents list. */
+  const addToDocuments = (name: string, url: string) => {
+    if (!set) return;
+    const existing: any[] = Array.isArray(form.documents) ? form.documents : [];
+    const next = existing.filter((d) => d?.name !== name);
+    next.push({ id: crypto.randomUUID(), name, type: "ESIC Family Aadhaar", url, notes: "" });
+    set("documents", next);
+  };
+
   const shares = esicFamilyShares(members.length);
+  const missingAadhaar = members.some((m) => !m.aadhaar_front_url || !m.aadhaar_back_url);
 
   return (
     <div>
-      <SectionHeader
-        title="Family Members for ESIC"
-        desc={`Assign family members for ESIC benefit. Minimum 1 and maximum ${MAX_ESIC_FAMILY} family members are required. With a single member the full 100% share applies; with more, the share is distributed equally.`}
-      />
+      <div className="mb-4 border-b pb-3">
+        <h2 className="text-base font-semibold sm:text-lg">Family Members for ESIC</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+          {`Assign family members for ESIC benefit. Minimum 1 and maximum ${MAX_ESIC_FAMILY} family members are required. With a single member the full 100% share applies; with more, the share is distributed equally. Aadhaar front and back are mandatory for every family member and are filed under the employee's documents.`}
+        </p>
+      </div>
       <div className="rounded-md border p-3">
         {members.length === 0 ? (
           <p className="text-xs text-muted-foreground">No family member added.</p>
@@ -578,37 +681,67 @@ export function EsicFamilySection({ form, setSection }: { form: any; setSection:
                 copy[i] = { ...copy[i], ...patch };
                 setMembers(copy);
               };
+              const docLabel = (side: string) =>
+                `ESIC Family Aadhaar (${side}) — ${m.name || `Member ${i + 1}`}`;
               return (
-                <div key={i} className="grid grid-cols-1 gap-2 rounded-md border bg-muted/30 p-2 md:grid-cols-[1.4fr_1fr_1fr_auto_auto] md:items-center">
-                  <Input
-                    placeholder="Family member name"
-                    value={m.name}
-                    onChange={(e) => update({ name: e.target.value })}
-                  />
-                  <Select value={m.relation || undefined} onValueChange={(v) => update({ relation: v })}>
-                    <SelectTrigger><SelectValue placeholder="Relationship" /></SelectTrigger>
-                    <SelectContent>
-                      {ESIC_RELATIONS.map((r) => (
-                        <SelectItem key={r} value={r}>{r}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="Mobile number"
-                    inputMode="numeric"
-                    maxLength={10}
-                    value={m.mobile}
-                    onChange={(e) => update({ mobile: e.target.value.replace(/[^0-9]/g, "").slice(0, 10) })}
-                  />
-                  <span className="text-xs font-medium text-muted-foreground md:text-center">{shares[i]}%</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-rose-500"
-                    onClick={() => setMembers(members.filter((_, j) => j !== i))}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                <div key={i} className="rounded-md border bg-muted/30 p-2">
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-[1.4fr_1fr_1fr_auto_auto] md:items-center">
+                    <Input
+                      placeholder="Family member name"
+                      value={m.name}
+                      onChange={(e) => update({ name: e.target.value })}
+                    />
+                    <Select value={m.relation || undefined} onValueChange={(v) => update({ relation: v })}>
+                      <SelectTrigger><SelectValue placeholder="Relationship" /></SelectTrigger>
+                      <SelectContent>
+                        {ESIC_RELATIONS.map((r) => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      placeholder="Mobile number"
+                      inputMode="numeric"
+                      maxLength={10}
+                      value={m.mobile}
+                      onChange={(e) => update({ mobile: e.target.value.replace(/[^0-9]/g, "").slice(0, 10) })}
+                    />
+                    <span className="text-xs font-medium text-muted-foreground md:text-center">{shares[i]}%</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-rose-500"
+                      onClick={() => setMembers(members.filter((_, j) => j !== i))}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-3 border-t pt-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Aadhaar <span className="text-rose-500">*</span>
+                    </span>
+                    <EsicAadhaarUpload
+                      label="Front"
+                      url={m.aadhaar_front_url}
+                      onUploaded={(url) => {
+                        update({ aadhaar_front_url: url });
+                        addToDocuments(docLabel("Front"), url);
+                      }}
+                    />
+                    <EsicAadhaarUpload
+                      label="Back"
+                      url={m.aadhaar_back_url}
+                      onUploaded={(url) => {
+                        update({ aadhaar_back_url: url });
+                        addToDocuments(docLabel("Back"), url);
+                      }}
+                    />
+                    {(!m.aadhaar_front_url || !m.aadhaar_back_url) && (
+                      <span className="text-[11px] font-medium text-rose-600">
+                        Both sides are required
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -619,14 +752,16 @@ export function EsicFamilySection({ form, setSection }: { form: any; setSection:
             size="sm"
             variant="outline"
             disabled={members.length >= MAX_ESIC_FAMILY}
-            onClick={() => setMembers([...members, { name: "", relation: "", mobile: "" }])}
+            onClick={() => setMembers([...members, { name: "", relation: "", mobile: "", aadhaar_front_url: "", aadhaar_back_url: "" }])}
           >
             <Plus className="mr-1 h-3 w-3" /> Add family member
           </Button>
-          <span className={`text-xs ${members.length === 0 ? "text-rose-600 font-medium" : "text-muted-foreground"}`}>
+          <span className={`text-xs ${members.length === 0 || missingAadhaar ? "text-rose-600 font-medium" : "text-muted-foreground"}`}>
             {members.length === 0
               ? "At least one family member is required"
-              : `${members.length} member${members.length > 1 ? "s" : ""} · shares total 100%`}
+              : missingAadhaar
+                ? "Aadhaar front and back required for every family member"
+                : `${members.length} member${members.length > 1 ? "s" : ""} · shares total 100%`}
             {members.length >= MAX_ESIC_FAMILY ? ` · max ${MAX_ESIC_FAMILY}` : ""}
           </span>
         </div>
@@ -634,6 +769,7 @@ export function EsicFamilySection({ form, setSection }: { form: any; setSection:
     </div>
   );
 }
+
 
 
 export function OtherSection({ form, setSection }: { form: any; setSection: SetSection }) {
