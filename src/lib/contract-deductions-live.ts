@@ -53,11 +53,15 @@ export type LiveDeductionResult = {
   byLine: LiveDeductionLine[];
 };
 
-function periodDatesOf(start: string, end: string): Date[] {
-  const out: Date[] = [];
+function periodDatesOf(start: string, end: string): string[] {
+  const out: string[] = [];
   const s = new Date(`${start}T00:00:00`);
   const e = new Date(`${end}T00:00:00`);
-  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) out.push(new Date(d));
+  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+    out.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+    );
+  }
   return out;
 }
 
@@ -227,7 +231,7 @@ export async function fetchLiveContractDeductions(args: {
       lineEntries as AttendanceEntryLike[],
       (codes ?? []) as AttendanceCodeLike[],
     );
-    const wages = computeWages(totals, resource, periodDates.length, { periodDates, dayBases });
+    const wages = computeWages(totals, resource, periodDates.length, { periodDates: periodDates.map((d) => new Date(d)), dayBases });
 
     Object.assign(wages, applyEsiToWageComputation(wages, { isDisabled: Boolean((c as { is_disabled?: boolean | null }).is_disabled) }));
 
