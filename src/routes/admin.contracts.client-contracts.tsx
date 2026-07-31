@@ -2378,6 +2378,28 @@ function ClientContractsPage() {
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-accent"
+                          disabled={duplicateMut.isPending}
+                          onClick={async () => {
+                            try {
+                              const res = await duplicateMut.mutateAsync(c.id);
+                              toast.success(`Duplicated as ${res.code} (inactive)`);
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : "Duplicate failed");
+                            }
+                          }}
+                          aria-label="Duplicate contract"
+                          title="Duplicate contract"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      )}
+
+
 
                       <DeleteGuardButton
                         id={c.id}
