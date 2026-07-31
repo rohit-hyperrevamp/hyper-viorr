@@ -85,6 +85,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useCustomers, useUnits } from "@/lib/admin-data";
+import { WorkforceCoverageCard } from "@/components/WorkforceCoverage";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/contracts/client-contracts")({
