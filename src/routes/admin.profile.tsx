@@ -1387,7 +1387,7 @@ function ProfilePage() {
             <InfoRow label="Height" value={profile.physical_health_full.height_cm ? `${profile.physical_health_full.height_cm} cm` : ""} />
             <InfoRow label="Weight" value={profile.physical_health_full.weight_kg ? `${profile.physical_health_full.weight_kg} kg` : ""} />
             <InfoRow label="Blood Group" value={profile.blood_group} />
-            <InfoRow label="Identification Marks" value={profile.physical_health_full.identification_marks} />
+            
             <InfoRow label="Disabilities" value={profile.physical_health_full.disabilities} />
             <InfoRow label="Allergies" value={profile.physical_health_full.allergies} />
           </div>
