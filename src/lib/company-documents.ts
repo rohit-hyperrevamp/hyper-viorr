@@ -839,6 +839,9 @@ export function previewPlaceholderMap(html: boolean): Record<string, string> {
       permanent_address: "Sample Permanent Address, Pune, Maharashtra 411001",
       nominees: [],
       esic_family: [],
+      blood_group: "AB+",
+      photo_url: "",
+
     },
     html,
   );
