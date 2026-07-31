@@ -114,6 +114,39 @@ const PROSPECT_STAGE_LABEL: Record<ProspectStage, string> = Object.fromEntries(
   PROSPECT_STAGES.map((s) => [s.value, s.label]),
 ) as Record<ProspectStage, string>;
 
+// ---------------------------------------------------------------------------
+// Unified status nomenclature — one vocabulary for clients AND prospects.
+// ---------------------------------------------------------------------------
+type UnifiedStatus = "active" | "inactive" | "expired" | "pending_approval" | "lost";
+
+const STATUS_OPTIONS: { value: UnifiedStatus; label: string }[] = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "expired", label: "Expired" },
+  { value: "pending_approval", label: "Pending Approval" },
+  { value: "lost", label: "Lost" },
+];
+
+const STATUS_LABEL: Record<UnifiedStatus, string> = Object.fromEntries(
+  STATUS_OPTIONS.map((s) => [s.value, s.label]),
+) as Record<UnifiedStatus, string>;
+
+function deriveStatus(c: {
+  recordType: RecordType;
+  status: ContractStatus;
+  approvalStatus: ApprovalStatus;
+  prospectStage: ProspectStage;
+}): UnifiedStatus {
+  if (c.prospectStage === "lost") return "lost";
+  if (c.recordType === "prospect") {
+    if (c.approvalStatus === "pending") return "pending_approval";
+    if (c.approvalStatus === "rejected") return "inactive";
+  }
+  if (c.status === "expired") return "expired";
+  if (c.status === "active") return "active";
+  return "inactive";
+}
+
 type ClientContract = {
   id: string;
   contractCode: string;
