@@ -81,11 +81,20 @@ function attendanceDayValue(code: CodeRow | undefined) {
 }
 
 function MyAttendancePage() {
-  const [me, setMe] = useState<{ candidate_id: string | null; name: string; code: string; role_key: string | null }>({
+  const [me, setMe] = useState<{
+    candidate_id: string | null;
+    name: string;
+    code: string;
+    role_key: string | null;
+    unit_id: string | null;
+    designation_id: string | null;
+  }>({
     candidate_id: null,
     name: "",
     code: "",
     role_key: null,
+    unit_id: null,
+    designation_id: null,
   });
   const [monthDate, setMonthDate] = useState<Date>(() => new Date());
   const [search, setSearch] = useState("");
@@ -98,15 +107,24 @@ function MyAttendancePage() {
       if (!phone) return;
       const { data: c } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code,role_key")
+        .select("id,full_name,employee_code,role_key,unit_id,designation_id")
         .eq("mobile", phone)
         .maybeSingle();
-      const row = c as { id?: string; full_name?: string; employee_code?: string; role_key?: string } | null;
+      const row = c as {
+        id?: string;
+        full_name?: string;
+        employee_code?: string;
+        role_key?: string;
+        unit_id?: string | null;
+        designation_id?: string | null;
+      } | null;
       setMe({
         candidate_id: row?.id ?? null,
         name: row?.full_name ?? "",
         code: row?.employee_code ?? "",
         role_key: row?.role_key ?? null,
+        unit_id: row?.unit_id ?? null,
+        designation_id: row?.designation_id ?? null,
       });
     })();
   }, []);
