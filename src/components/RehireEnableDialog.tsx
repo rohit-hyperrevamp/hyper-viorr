@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { actOnRehireRequest, type RehireRequest } from "@/lib/workflows";
+import { autoAttachFormVii } from "@/lib/company-documents";
 
 /**
  * HR enablement prompt for a rehire: keep the previous employee ID, or issue a
