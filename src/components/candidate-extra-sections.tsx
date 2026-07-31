@@ -118,13 +118,6 @@ export function PhysicalSection({ form, setSection, set }: { form: any; setSecti
             </SelectContent>
           </Select>
         </Field>
-        <Field label="Identification Marks">
-          <Textarea
-            rows={2}
-            value={ph.identification_marks ?? ""}
-            onChange={(e) => setSection("physical_health", { identification_marks: e.target.value })}
-          />
-        </Field>
       </div>
       {set && (
         <div className="mt-6 flex items-center justify-between rounded-lg border border-border bg-secondary/30 px-4 py-3">
