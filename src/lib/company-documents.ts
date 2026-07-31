@@ -970,22 +970,27 @@ export const ID_CARD_CSS = `
 .idcard .photo { width: 100%; height: 100%; border-radius: 8px; object-fit: cover; display: block; }
 .idcard .photo-ph { width: 78px; height: 88px; border-radius: 8px; display: flex; align-items: center;
   justify-content: center; background: #d7dde6; border: 1px solid #b9c2cd; font-size: 8px; color: #6b7280; }
-.idcard .photo-stamp { position: absolute; left: -18px; bottom: 2px; height: 70px; width: auto;
-  opacity: .6; z-index: 3; pointer-events: none; }
+/* Stamp sits low on the photo's left edge so the face stays fully readable. */
+.idcard .photo-stamp { position: absolute !important; left: -16px !important; bottom: -8px !important;
+  height: 42px !important; width: auto !important; max-width: none !important;
+  opacity: .45 !important; z-index: 3; pointer-events: none; }
 .idcard .rows { margin-top: 10px; font-size: 10px; line-height: 1.42; }
 .idcard .row { display: flex; }
 .idcard .row .k { width: 56px; font-weight: 700; flex: 0 0 56px; }
 .idcard .row .c { width: 8px; flex: 0 0 8px; }
 .idcard .row .v { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.idcard .auth { margin-top: auto; text-align: right; padding-bottom: 2px; }
-.idcard .sig-slot { display: block; min-height: 26px; }
+.idcard .auth { margin-top: auto; text-align: right; padding-bottom: 4px; }
+.idcard .sig-slot { display: block; min-height: 30px; }
 /* Any signature/stamp image on the card is hard-capped so it can never bleed
-   past the card edge, whichever slot it was injected into. */
+   past the card edge, whichever slot it was injected into. !important is
+   required: the global img sizing rule in styles.css outranks plain selectors. */
 .idcard .sig-img,
 .idcard .auth .sig-img,
-.idcard .auth .sig-company { display: block; height: 26px; width: auto; max-width: 78px;
-  object-fit: contain; margin: 0 0 1px auto; }
-.idcard .auth .sig-line { border-top: 1px solid #111; width: 78px; margin-left: auto; }
+.idcard .auth .sig-company,
+.idcard .sig-slot img,
+.idcard .auth img { display: block !important; height: 30px !important; width: auto !important;
+  max-width: 72px !important; object-fit: contain !important; margin: 0 0 2px auto !important; }
+.idcard .auth .sig-line { border-top: 1px solid #111; width: 72px; margin-left: auto; }
 
 .idcard .auth .auth-label { font-size: 9px; font-weight: 700; margin-top: 2px; }
 
