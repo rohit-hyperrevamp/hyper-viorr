@@ -708,7 +708,7 @@
     justify-content: center;
     flex: 0 0 auto;
   }
-  .ios-table [data-col="status"] { width: auto; min-width: 110px; white-space: normal; text-align: left !important; }
+  .ios-table [data-col="status"] { width: auto; min-width: 156px; white-space: normal; text-align: left !important; }
   .ios-table [data-col="approval"] { min-width: 156px; white-space: normal; }
   .ios-table [data-col="date"] { width: 108px; }
   .ios-table [data-col="code"] { width: 150px; }

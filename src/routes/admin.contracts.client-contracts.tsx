@@ -114,6 +114,39 @@ const PROSPECT_STAGE_LABEL: Record<ProspectStage, string> = Object.fromEntries(
   PROSPECT_STAGES.map((s) => [s.value, s.label]),
 ) as Record<ProspectStage, string>;
 
+// ---------------------------------------------------------------------------
+// Unified status nomenclature — one vocabulary for clients AND prospects.
+// ---------------------------------------------------------------------------
+type UnifiedStatus = "active" | "inactive" | "expired" | "pending_approval" | "lost";
+
+const STATUS_OPTIONS: { value: UnifiedStatus; label: string }[] = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "expired", label: "Expired" },
+  { value: "pending_approval", label: "Pending Approval" },
+  { value: "lost", label: "Lost" },
+];
+
+const STATUS_LABEL: Record<UnifiedStatus, string> = Object.fromEntries(
+  STATUS_OPTIONS.map((s) => [s.value, s.label]),
+) as Record<UnifiedStatus, string>;
+
+function deriveStatus(c: {
+  recordType: RecordType;
+  status: ContractStatus;
+  approvalStatus: ApprovalStatus;
+  prospectStage: ProspectStage;
+}): UnifiedStatus {
+  if (c.prospectStage === "lost") return "lost";
+  if (c.recordType === "prospect") {
+    if (c.approvalStatus === "pending") return "pending_approval";
+    if (c.approvalStatus === "rejected") return "inactive";
+  }
+  if (c.status === "expired") return "expired";
+  if (c.status === "active") return "active";
+  return "inactive";
+}
+
 type ClientContract = {
   id: string;
   contractCode: string;
@@ -1925,7 +1958,7 @@ function ClientContractsPage() {
     return enriched.filter((c) => {
       if (c.recordType !== tab) return false;
       if (renewalOnly && !isUpForRenewal(c)) return false;
-      if (tab === "client" && statusFilter !== "all" && c.status !== statusFilter) return false;
+      if (statusFilter !== "all" && deriveStatus(c) !== statusFilter) return false;
       if (orgFilter !== "all" && c.orgId !== orgFilter) return false;
       if (unitFilter !== "all" && c.unitId !== unitFilter) return false;
       if (!q) return true;
@@ -1961,34 +1994,45 @@ function ClientContractsPage() {
     return { prospects, clients };
   }, [items]);
 
-  // Merged stats — show both client AND prospect health at the top of the page.
-  const overview = useMemo(() => {
-    let activeClients = 0;
-    let inactiveClients = 0;
-    let expiredClients = 0;
-    let pendingProspects = 0;
-    let rejectedProspects = 0;
-    let lostProspects = 0;
+  // Merged stats — one status vocabulary across clients AND prospects.
+  const statusCounts = useMemo(() => {
+    const empty = (): Record<UnifiedStatus, number> => ({
+      active: 0,
+      inactive: 0,
+      expired: 0,
+      pending_approval: 0,
+      lost: 0,
+    });
+    const client = empty();
+    const prospect = empty();
+    const all = empty();
     for (const c of items) {
-      if (c.recordType === "client") {
-        if (c.status === "active") activeClients++;
-        else if (c.status === "inactive") inactiveClients++;
-        else if (c.status === "expired") expiredClients++;
-      } else {
-        if (c.prospectStage === "lost") lostProspects++;
-        else if (c.approvalStatus === "rejected") rejectedProspects++;
-        else pendingProspects++;
-      }
+      const s = deriveStatus(c);
+      all[s]++;
+      if (c.recordType === "client") client[s]++;
+      else prospect[s]++;
     }
+    return { client, prospect, all };
+  }, [items]);
+
+  // Clicking a KPI tile filters by that status, and jumps to whichever tab
+  // actually holds those records.
+  const applyStatusTile = (s: UnifiedStatus) => {
+    setRenewalOnly(false);
+    setStatusFilter((prev) => (prev === s ? "all" : s));
+    if (statusFilter === s) return;
+    if (statusCounts[tab][s] === 0) {
+      const other: RecordType = tab === "client" ? "prospect" : "client";
+      if (statusCounts[other][s] > 0) setTab(other);
+    }
+  };
+
+  const overview = useMemo(() => {
     return {
       total: items.length,
-      activeClients,
-      inactiveClients: inactiveClients + expiredClients,
-      pendingProspects,
-      rejectedProspects,
-      lostProspects,
+      ...statusCounts.all,
     };
-  }, [items]);
+  }, [items, statusCounts]);
 
   return (
     <div>
@@ -2000,7 +2044,13 @@ function ClientContractsPage() {
         kpis={
           <>
             <PageStat label="Clients + Prospects" value={overview.total} />
-            <PageStat label="Active Clients" value={overview.activeClients} tone="accent" />
+            <PageStat
+              label="Active"
+              value={overview.active}
+              tone="accent"
+              active={statusFilter === "active"}
+              onClick={() => applyStatusTile("active")}
+            />
             <PageStat
               label="Renewals ≤ 6 months"
               value={renewalCount6m}
@@ -2012,10 +2062,35 @@ function ClientContractsPage() {
                 setRenewalOnly((v) => !v);
               }}
             />
-            <PageStat label="Inactive / Expired" value={overview.inactiveClients} tone="warning" />
-            <PageStat label="Awaiting Approval" value={overview.pendingProspects} tone="warning" />
-            <PageStat label="Rejected" value={overview.rejectedProspects} tone="destructive" />
-            <PageStat label="Lost" value={overview.lostProspects} tone="destructive" />
+            <PageStat
+              label="Inactive"
+              value={overview.inactive}
+              tone="warning"
+              active={statusFilter === "inactive"}
+              onClick={() => applyStatusTile("inactive")}
+            />
+            <PageStat
+              label="Expired"
+              value={overview.expired}
+              tone="destructive"
+              active={statusFilter === "expired"}
+              onClick={() => applyStatusTile("expired")}
+            />
+            <PageStat
+              label="Pending Approval"
+              value={overview.pending_approval}
+              tone="warning"
+              active={statusFilter === "pending_approval"}
+              onClick={() => applyStatusTile("pending_approval")}
+            />
+            <PageStat
+              label="Lost"
+              value={overview.lost}
+              tone="destructive"
+              active={statusFilter === "lost"}
+              onClick={() => applyStatusTile("lost")}
+            />
+
 
           </>
         }
@@ -2026,7 +2101,6 @@ function ClientContractsPage() {
         value={tab}
         onValueChange={(v) => {
           setTab(v as RecordType);
-          setStatusFilter("all");
         }}
         className="mb-4"
       >
@@ -2055,7 +2129,7 @@ function ClientContractsPage() {
                 end: csvDate(c.endDate),
                 description: c.description,
                 gst: c.gstOption.toUpperCase(),
-                status: c.status,
+                status: STATUS_LABEL[deriveStatus(c)],
               })),
               [
                 { key: "code", header: "Contract ID" },
@@ -2182,9 +2256,11 @@ function ClientContractsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Button
@@ -2229,7 +2305,7 @@ function ClientContractsPage() {
                 ) : (
                   <th className="px-5 py-3" data-col="date">Start</th>
                 )}
-                <th className="px-5 py-3" data-col={tab === "client" ? "status" : "approval"}>{tab === "client" ? "Status" : "Approval"}</th>
+                <th className="px-5 py-3" data-col="status">Status</th>
                 <th className="px-5 py-3 text-right" data-col="actions">Actions</th>
               </tr>
             </thead>
@@ -2258,17 +2334,11 @@ function ClientContractsPage() {
                     {c.startDate || "—"}
                   </td>
                 )}
-                <td className="px-5 py-3" data-col={tab === "client" ? "status" : "approval"}>
-                    {tab === "client" ? (
-                      <StatusBadge status={c.status} />
-                    ) : c.prospectStage === "lost" ? (
-                      <LostBadge />
-                    ) : (
-                      <ApprovalBadge
-                        status={c.approvalStatus}
-                        reason={c.rejectionReason}
-                      />
-                    )}
+                <td className="px-5 py-3" data-col="status">
+                    <StatusBadge
+                      status={deriveStatus(c)}
+                      reason={c.approvalStatus === "rejected" ? c.rejectionReason : ""}
+                    />
                   </td>
                   <td className="px-5 py-3 text-right" data-col="actions">
                     <div className="inline-flex gap-1">
@@ -2317,27 +2387,31 @@ function ClientContractsPage() {
                             <RefreshCcw className="h-4 w-4" />
                           </Button>
                         )}
-                      {tab === "prospect" &&
-                        c.approvalStatus === "pending" &&
-                        c.prospectStage !== "lost" &&
-                        canEdit && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-muted-foreground"
-                            onClick={() =>
-                              updateStageMut.mutate({
-                                id: c.id,
-                                stage: "lost",
-                                label: c.prospectCode,
-                              })
-                            }
-                            title="Mark prospect as lost (stays in prospects)"
-                            aria-label="Mark Lost"
-                          >
-                            <Flag className="h-4 w-4" />
-                          </Button>
-                        )}
+                      {canEdit && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className={cn(
+                            "text-muted-foreground",
+                            c.prospectStage === "lost" && "text-rose-600",
+                          )}
+                          onClick={() =>
+                            updateStageMut.mutate({
+                              id: c.id,
+                              stage: c.prospectStage === "lost" ? "new" : "lost",
+                              label: c.contractCode || c.prospectCode,
+                            })
+                          }
+                          title={
+                            c.prospectStage === "lost"
+                              ? "Restore from Lost"
+                              : "Mark as Lost"
+                          }
+                          aria-label="Mark Lost"
+                        >
+                          <Flag className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
@@ -2530,60 +2604,32 @@ function ClientContractsPage() {
   );
 }
 
-function ApprovalBadge({ status, reason }: { status: ApprovalStatus; reason?: string }) {
-  const map: Record<ApprovalStatus, { cls: string; label: string }> = {
-    pending: { cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400", label: "Pending" },
-    approved: { cls: "bg-accent/15 text-accent", label: "Approved" },
-    rejected: { cls: "bg-destructive/15 text-destructive", label: "Rejected" },
+function StatusBadge({ status, reason }: { status: UnifiedStatus; reason?: string }) {
+  const map: Record<UnifiedStatus, string> = {
+    active: "bg-accent/15 text-accent",
+    inactive: "bg-muted text-muted-foreground",
+    expired: "bg-destructive/15 text-destructive",
+    pending_approval: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    lost: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
   };
-  const { cls, label } = map[status];
   return (
     <div className="flex flex-col gap-0.5">
       <span
         className={cn(
-          "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider",
-          cls,
+          "inline-flex w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider",
+          map[status],
         )}
-        title={status === "rejected" && reason ? reason : undefined}
+        title={reason || undefined}
       >
         <span className="h-1.5 w-1.5 rounded-full bg-current" />
-        {label}
+        {STATUS_LABEL[status]}
       </span>
-      {status === "rejected" && reason ? (
+      {reason ? (
         <span className="max-w-[220px] truncate text-[11px] text-destructive/80" title={reason}>
           {reason}
         </span>
       ) : null}
     </div>
-  );
-}
-
-function LostBadge() {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      Lost
-    </span>
-  );
-}
-
-
-function StatusBadge({ status }: { status: ContractStatus }) {
-  const map: Record<ContractStatus, string> = {
-    active: "bg-accent/15 text-accent",
-    inactive: "bg-muted text-muted-foreground",
-    expired: "bg-destructive/15 text-destructive",
-  };
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider",
-        map[status],
-      )}
-    >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {status}
-    </span>
   );
 }
 
@@ -2643,7 +2689,7 @@ function ContractViewDialog({
             <span className="font-mono">
               {isClient ? contract.contractCode : contract.prospectCode}
             </span>
-            {isClient ? <StatusBadge status={contract.status} /> : null}
+            <StatusBadge status={deriveStatus(contract)} />
           </DialogTitle>
           <DialogDescription>
             {contract.orgName} · {contract.unitCode} {contract.unitName}
