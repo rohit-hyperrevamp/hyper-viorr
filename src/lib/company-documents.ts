@@ -1097,6 +1097,8 @@ export function parseIdCardSpec(body: string | null | undefined): IdCardSpec | n
         companyName: raw.front?.companyName ?? d.front.companyName,
         showPhoto: raw.front?.showPhoto ?? true,
         showPhotoStamp: raw.front?.showPhotoStamp ?? true,
+        photoUrl: raw.front?.photoUrl,
+        stampUrl: raw.front?.stampUrl,
         fields: Array.isArray(raw.front?.fields) && raw.front!.fields.length
           ? raw.front!.fields.map((f) => ({ label: String(f?.label ?? ""), value: String(f?.value ?? "") }))
           : d.front.fields,
