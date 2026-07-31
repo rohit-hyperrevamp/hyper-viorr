@@ -118,6 +118,13 @@ export const PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "nominee_1_relation", label: "Nominee 1 Relationship" },
   { key: "nominee_1_dob", label: "Nominee 1 Date of Birth" },
   { key: "nominee_1_share", label: "Nominee 1 Share (%)" },
+  { key: "rank", label: "Rank / Designation (ID card)" },
+  { key: "id_no", label: "I.D. No. (ID card)" },
+  { key: "blood_group", label: "Blood Group (ID card)" },
+  { key: "employee_photo", label: "Employee Photo URL (ID card)" },
+  { key: "company_logo", label: "Company Logo URL (ID card)" },
+  { key: "company_stamp", label: "Company Stamp URL" },
+
 ];
 
 function fmtDate(s: string | null | undefined): string {
