@@ -28,6 +28,7 @@ import {
   Briefcase,
   Undo2,
   FileText,
+  FileSignature,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +72,7 @@ const SECTIONS = [
   { id: "criminal", label: "Criminal History", icon: Gavel },
   { id: "nominee", label: "Nominee", icon: UserCheck },
   { id: "office_assets", label: "Office Assets", icon: Briefcase },
+  { id: "company_docs", label: "Company Documents", icon: FileSignature },
   { id: "offboarding", label: "Offboarding Docs", icon: FileText },
 ] as const;
 
