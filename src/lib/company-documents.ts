@@ -359,6 +359,51 @@ export async function ensureFormViiForCandidate(
 }
 
 /**
+ * Fire-and-forget wrapper used by every path that turns a candidate into an
+ * employee (HR approval, rehire enablement, guard issuance acknowledgement).
+ * Never throws — document generation must not block the activation itself.
+ */
+export function autoAttachFormVii(candidateId: string): void {
+  if (!candidateId) return;
+  void (async () => {
+    try {
+      await ensureFormViiForCandidate(candidateId);
+    } catch (e) {
+      console.error("Form VII auto-attach failed", candidateId, e);
+    }
+  })();
+}
+
+/**
+ * Backfill Form VII for every employee (approved/active/inactive) that does not
+ * yet hold a copy from the current master version. Returns per-candidate counts.
+ */
+export async function backfillFormViiForAllEmployees(): Promise<{
+  created: number;
+  skipped: number;
+  failed: number;
+}> {
+  const { data: rows, error } = await supabase
+    .from("candidates")
+    .select("id,status")
+    .in("status", ["approved", "active", "inactive"]);
+  if (error) throw error;
+  let created = 0;
+  let skipped = 0;
+  let failed = 0;
+  for (const r of (rows ?? []) as { id: string }[]) {
+    try {
+      const res = await ensureFormViiForCandidate(r.id);
+      if (res === "created") created += 1;
+      else skipped += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+  return { created, skipped, failed };
+}
+
+/**
  * Inject signature images into a rendered statutory form's signature slots.
  * Works for both the on-screen preview and the printed PDF.
  */
