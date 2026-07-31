@@ -80,8 +80,8 @@ export function CandidateCompanyDocuments({
         body: row.rendered_body,
         employeeSignatureDataUrl: row.employee_signature_data || undefined,
         companySignatureDataUrl: row.company_signature_data || undefined,
-        employeeName,
-        employeeCode,
+        employeeName: employeeName ?? "",
+        employeeCode: employeeCode ?? "",
         signedAt: row.signed_at,
       });
       downloadBlob(blob, `${label.replace(/\s+/g, "_")}-${employeeCode || "document"}.pdf`);
