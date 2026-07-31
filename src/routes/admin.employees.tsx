@@ -4876,6 +4876,7 @@ function CandidateWizard({
   }, [open]);
 
   return (
+    <InvalidFieldContext.Provider value={invalidField}>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent ref={wizardScrollRef} className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-y-auto overscroll-contain rounded-none border-0 p-0 sm:h-auto sm:max-h-[92dvh] sm:w-[96vw] sm:max-w-4xl sm:overflow-hidden sm:rounded-lg sm:border">
 
@@ -5885,6 +5886,7 @@ function CandidateWizard({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </InvalidFieldContext.Provider>
   );
 }
 
