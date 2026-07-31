@@ -924,28 +924,29 @@ export const ID_CARD_CSS = `
   border-radius: 9px; padding: 10px 12px; color: #111;
   background: linear-gradient(160deg,#f4f6f9 0%,#e7ecf3 42%,#dfe6ef 68%,#eef1f6 100%);
   box-shadow: 0 1px 2px rgba(0,0,0,.18); }
-.idcard .wm { position: absolute; inset: 0; opacity: .10; background-repeat: repeat;
-  background-size: 52px 52px; pointer-events: none; }
+.idcard .wm { position: absolute; inset: 0; opacity: .06; background-repeat: repeat;
+  background-size: 62px 62px; pointer-events: none; }
 .idcard .body { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; }
 .idcard .logo { display: block; margin: 2px auto 0; height: 52px; width: auto; object-fit: contain; }
 .idcard .company { text-align: center; font-weight: 700; font-size: 11px; letter-spacing: -.2px; margin-top: 6px; }
-.idcard .photo-wrap { position: relative; width: 78px; height: 88px; margin: 8px auto 0; }
-.idcard .photo { width: 78px; height: 88px; border-radius: 8px; object-fit: cover; display: block;
-  background: #d7dde6; border: 1px solid #b9c2cd; }
+.idcard .photo-wrap { position: relative; width: 78px; height: 88px; margin: 8px auto 0;
+  border-radius: 8px; background: #d7dde6; border: 1px solid #b9c2cd; }
+.idcard .photo { width: 100%; height: 100%; border-radius: 8px; object-fit: cover; display: block; }
 .idcard .photo-ph { width: 78px; height: 88px; border-radius: 8px; display: flex; align-items: center;
   justify-content: center; background: #d7dde6; border: 1px solid #b9c2cd; font-size: 8px; color: #6b7280; }
-.idcard .photo-stamp { position: absolute; left: -20px; bottom: 6px; height: 62px; width: auto;
-  opacity: .62; z-index: 3; pointer-events: none; }
+.idcard .photo-stamp { position: absolute; left: -18px; bottom: 2px; height: 70px; width: auto;
+  opacity: .6; z-index: 3; pointer-events: none; }
 .idcard .rows { margin-top: 10px; font-size: 10px; line-height: 1.42; }
 .idcard .row { display: flex; }
 .idcard .row .k { width: 56px; font-weight: 700; flex: 0 0 56px; }
 .idcard .row .c { width: 8px; flex: 0 0 8px; }
 .idcard .row .v { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .idcard .auth { margin-top: auto; text-align: right; }
-.idcard .auth .sig-slot { display: block; min-height: 24px; }
-.idcard .auth .sig-img { display: block; height: 24px; width: auto; max-width: 96px; object-fit: contain;
+.idcard .auth .sig-slot { display: block; min-height: 34px; }
+.idcard .auth .sig-img { display: block; height: 34px; width: auto; max-width: 96px; object-fit: contain;
   margin: 0 0 1px auto; }
 .idcard .auth .sig-line { border-top: 1px solid #111; width: 96px; margin-left: auto; }
+
 .idcard .auth .auth-label { font-size: 9.5px; font-weight: 700; margin-top: 2px; }
 .idcard .back-title { text-align: center; font-weight: 700; font-size: 10.5px; margin-top: 14px; }
 .idcard .back-block { text-align: center; font-size: 10px; font-weight: 700; line-height: 1.45; margin-top: 6px; }
