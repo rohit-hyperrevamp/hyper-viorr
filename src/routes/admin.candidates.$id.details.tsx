@@ -58,6 +58,7 @@ import {
 import { useCurrentPermissions } from "@/lib/rbac";
 import { OffboardingRecordsSection } from "@/components/offboarding-records-section";
 import { CandidateCompanyDocuments } from "@/components/CandidateCompanyDocuments";
+import { CandidateEsicCard } from "@/components/CandidateEsicCard";
 import { ensureFormViiForCandidate, ensureIdCardForCandidate } from "@/lib/company-documents";
 
 
@@ -75,6 +76,7 @@ const SECTIONS = [
   { id: "nominee", label: "Nominee", icon: UserCheck },
   { id: "office_assets", label: "Office Assets", icon: Briefcase },
   { id: "company_docs", label: "Company Documents", icon: FileSignature },
+  { id: "esic_card", label: "ESIC Card", icon: FileBadge },
   { id: "offboarding", label: "Offboarding Docs", icon: FileText },
 ] as const;
 
@@ -378,7 +380,11 @@ function CandidateDetailsPage() {
       <div className="space-y-4">
         {/* Section tabs (horizontal) */}
         <nav className="flex flex-wrap gap-1 rounded-lg border bg-card p-1">
-          {SECTIONS.map((s) => {
+          {SECTIONS.filter(
+            (s) =>
+              s.id !== "esic_card" ||
+              ["approved", "active"].includes(String(form.status ?? "").toLowerCase()),
+          ).map((s) => {
             const Icon = s.icon;
             const isActive = active === s.id;
             return (
@@ -445,6 +451,14 @@ function CandidateDetailsPage() {
               employeeCode={form.employee_code || form.candidate_code || ""}
             />
           )}
+          {active === "esic_card" &&
+            ["approved", "active"].includes(String(form.status ?? "").toLowerCase()) && (
+              <CandidateEsicCard
+                candidateId={id}
+                employeeName={form.full_name || ""}
+                employeeCode={form.employee_code || form.candidate_code || ""}
+              />
+            )}
           {active === "offboarding" && (
             <OffboardingRecordsSection details={form.offboarding_details} />
           )}
