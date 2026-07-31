@@ -57,6 +57,7 @@ import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScop
 import { supabase } from "@/integrations/supabase/client";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { ListSkeleton } from "@/components/Skeletons";
+import { AttendanceCharter } from "@/components/AttendanceCharter";
 
 
 export const Route = createFileRoute("/admin/attendance/")({
