@@ -398,7 +398,7 @@ export async function ensureDocForCandidate(
     version: template.version,
     rendered_body: rendered,
     employee_signature_data: employeeSignature,
-    company_signature_data: COMPANY_STAMP_URL,
+    company_signature_data: absoluteAssetUrl(COMPANY_STAMP_URL),
     signed_at: new Date().toISOString(),
   } as any);
   if (error) throw error;
