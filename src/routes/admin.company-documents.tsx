@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import companyStampAsset from "@/assets/company-stamp.png.asset.json";
 import {
   DOC_TYPE_LABELS,
   DOC_TYPE_SHORT,
@@ -427,14 +428,24 @@ function CompanyDocumentsPage() {
               documents.
             </DialogDescription>
           </DialogHeader>
-          <DocumentPreview
-            body={
-              previewing
-                ? renderTemplate(previewing.body, previewPlaceholderMap(isHtmlBody(previewing.body)))
-                : ""
-            }
-            className="max-h-[65vh]"
-          />
+          {previewing?.doc_type === "company_stamp" ? (
+            <div className="flex max-h-[65vh] items-center justify-center overflow-auto rounded-md bg-background p-6">
+              <img
+                src={companyStampAsset.url}
+                alt="Company stamp and authorised signature"
+                className="block h-auto max-h-[55vh] max-w-full object-contain"
+              />
+            </div>
+          ) : (
+            <DocumentPreview
+              body={
+                previewing
+                  ? renderTemplate(previewing.body, previewPlaceholderMap(isHtmlBody(previewing.body)))
+                  : ""
+              }
+              className="max-h-[65vh]"
+            />
+          )}
 
         </DialogContent>
       </Dialog>
