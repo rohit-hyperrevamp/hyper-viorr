@@ -370,7 +370,18 @@ export async function ensureDocForCandidate(
   await del;
 
   const candidate = await fetchCandidateForRender(candidateId);
-  const rendered = renderTemplate(template.body, buildPlaceholderMap(candidate, isHtmlBody(template.body)));
+  let rendered = renderTemplate(template.body, buildPlaceholderMap(candidate, isHtmlBody(template.body)));
+
+  // ID cards are stored as a structured spec; bake the employee photo and the
+  // company stamp into it so the rendered card never carries raw placeholders.
+  if (docType === "id_card") {
+    const spec = parseIdCardSpec(rendered);
+    if (spec) {
+      spec.front.photoUrl = candidate.photo_url || "";
+      spec.front.stampUrl = absoluteAssetUrl(COMPANY_STAMP_URL);
+      rendered = serializeIdCardSpec(spec);
+    }
+  }
 
   // Employee signature captured during onboarding + company stamp/signature.
   const { data: sigRow } = await supabase
