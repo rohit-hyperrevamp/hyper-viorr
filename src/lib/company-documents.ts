@@ -1,18 +1,25 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type DocType = "nda" | "appointment_letter" | "form_vii";
+export type DocType = "nda" | "appointment_letter" | "form_vii" | "company_stamp";
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
   nda: "Non-Disclosure Agreement",
   appointment_letter: "Appointment Letter",
   form_vii: "Form VII — Nomination Form",
+  company_stamp: "Company Stamp and Signatures",
 };
 
 export const DOC_TYPE_SHORT: Record<DocType, string> = {
   nda: "NDA",
   appointment_letter: "Appointment Letter",
   form_vii: "Form VII",
+  company_stamp: "Stamp & Signatures",
 };
+
+/** CDN URL of the official company stamp (with authorised signature). */
+export const COMPANY_STAMP_URL =
+  "/__l5e/assets-v1/87ea9ec6-0ff1-4c65-8122-abc676b013d3/company-stamp.png";
+
 
 export type DocumentTemplate = {
   id: string;
