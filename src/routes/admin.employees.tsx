@@ -4143,6 +4143,7 @@ function CandidateWizard({
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [saveError, setSaveError] = useState<{ title: string; detail?: string } | null>(null);
+  const [invalidField, setInvalidField] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   // Aadhaar is the unique person key — a hit here means this person already
@@ -4776,6 +4777,11 @@ function CandidateWizard({
       setSavingDraft(false);
     }
   };
+
+  React.useEffect(() => {
+    if (invalidField) setInvalidField(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form]);
 
   const failValidation = (message: string, anchor?: string) => {
     setSaveError({ title: "Missing required information", detail: message });
@@ -5531,6 +5537,7 @@ function CandidateWizard({
                     state: form.permanent_state,
                     country: form.permanent_country,
                   }}
+                  anchorPrefix="permanent"
                   onChange={(patch) => {
                     setForm((f) => {
                       const next = { ...f };
@@ -5573,6 +5580,7 @@ function CandidateWizard({
                         state: form.present_state,
                         country: form.present_country,
                       }}
+                      anchorPrefix="present"
                       onChange={(patch) =>
                         setForm((f) => {
                           const next = { ...f };
