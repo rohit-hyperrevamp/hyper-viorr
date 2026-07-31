@@ -1,15 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import {
-  ArrowRight, Building2, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight,
-  ClipboardList, Clock3, FileEdit, MapPinned, RotateCcw, Search, Sparkles, UserCircle2, Users, Wallet, X,
-} from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { type ComponentType, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Building2, MapPinned, Users, X } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { PayrollTabs } from "@/components/PayrollTabs";
-import { Input } from "@/components/ui/input";
+import { HeroTile } from "@/components/HeroTile";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -18,702 +14,87 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
-import { useCurrentPermissions } from "@/lib/rbac";
-import { logActivity } from "@/lib/activity-log";
+import { ListSkeleton } from "@/components/Skeletons";
+import { FinanceCharter } from "@/components/FinanceCharter";
+import { CHARTER_UNITS_QK, fetchCharterUnits } from "@/lib/charter-units";
+import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 
 export const Route = createFileRoute("/admin/payroll/")({
   component: PayrollUnitsPage,
 });
-
-
-type SheetStatus = "approved" | "pending" | "draft" | "rejected";
-
-type SheetRow = {
-  id: string;
-  unit_id: string;
-  period_start: string;
-  period_end: string;
-  approved_at: string | null;
-  status: SheetStatus;
-};
-
-type UnitRow = {
-  id: string;
-  code: string;
-  name: string;
-  location: string;
-  customer_id: string;
-  customer_name: string;
-  active_employee_count: number;
-  employee_ids: string[];
-  periods: { period_start: string; period_end: string; status: SheetStatus }[];
-  statuses: Set<SheetStatus>;
-};
-
-
-type EmployeeOption = { id: string; label: string; name: string; code: string; unit_ids: string[] };
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
 
-function fmtPeriod(start: string, end: string) {
-  const f = (s: string) => {
-    const [y, m, d] = s.split("-").map(Number);
-    return `${String(d).padStart(2, "0")} ${MONTH_NAMES[m - 1].slice(0, 3)} ${y}`;
-  };
-  return `${f(start)} – ${f(end)}`;
-}
-
-function deriveStatus(raw: string | null | undefined): SheetStatus {
-  const s = (raw || "").toLowerCase();
-  if (s === "approved") return "approved";
-  if (s === "submitted" || s === "pending") return "pending";
-  if (s === "rejected") return "rejected";
-  return "draft";
-}
-
 function PayrollUnitsPage() {
   const now = new Date();
-  const [year, setYear] = useState<number>(now.getFullYear());
-  const [month, setMonth] = useState<number>(now.getMonth()); // 0-indexed
   const [q, setQ] = useState("");
-  const [orgFilter, setOrgFilter] = useState("all");
-  const [periodFilter, setPeriodFilter] = useState<string>("all");
-  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | SheetStatus | "unapproved">("all");
-
-  const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
-  const monthEnd = (() => {
-    const d = new Date(year, month + 1, 0);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  })();
+  const [orgFilter, setOrgFilter] = useState<string>("all");
+  const [unitFilter, setUnitFilter] = useState<string>("all");
+  const [monthIdx, setMonthIdx] = useState<number>(now.getMonth());
+  const [year, setYear] = useState<number>(now.getFullYear());
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["payroll-dashboard-v2", year, month],
-    queryFn: async () => {
-      // Include any sheet whose period overlaps the selected calendar month
-      // (e.g. a 21 May – 20 Jun sheet shows up under both May and June).
-      const { data: sheetsRaw, error: sErr } = await supabase
-        .from("attendance_sheets" as never)
-        .select("id, unit_id, period_start, period_end, approved_at, status")
-        .lte("period_start", monthEnd)
-        .gte("period_end", monthStart);
-      if (sErr) throw sErr;
-      const sheets: SheetRow[] = ((sheetsRaw ?? []) as unknown as Array<{
-        id: string; unit_id: string; period_start: string; period_end: string;
-        approved_at: string | null; status: string | null;
-      }>).map((s) => ({
-        id: s.id,
-        unit_id: s.unit_id,
-        period_start: s.period_start,
-        period_end: s.period_end,
-        approved_at: s.approved_at,
-        status: deriveStatus(s.status),
-      }));
-
-      const counts = { approved: 0, draft: 0, pending: 0, rejected: 0 };
-      for (const s of sheets) counts[s.status] += 1;
-
-      const unitIds = Array.from(new Set(sheets.map((s) => s.unit_id)));
-      if (unitIds.length === 0) {
-        return {
-          units: [] as UnitRow[],
-          organizations: [] as { id: string; name: string }[],
-          periods: [] as string[],
-          employees: [] as EmployeeOption[],
-          stats: { ...counts, units: 0, employees: 0, total: sheets.length },
-        };
-      }
-
-      const [{ data: units }, { data: candidates }, { data: customers }, { data: links }] = await Promise.all([
-        supabase
-          .from("units")
-          .select("id, code, name, location, customer_id")
-          .in("id", unitIds),
-        supabase
-          .from("candidates")
-          .select("id, unit_id, full_name, employee_code")
-          .eq("is_enabled", true)
-          .eq("status", "active"),
-        supabase.from("customers").select("id, name"),
-        supabase.from("candidate_units").select("candidate_id, unit_id").in("unit_id", unitIds),
-      ]);
-
-      const custMap = new Map((customers ?? []).map((c) => [c.id, c.name as string]));
-      const unitIdSet = new Set(unitIds);
-
-      const unitsByCandidate = new Map<string, Set<string>>();
-      const candById = new Map<string, { id: string; unit_id: string | null; full_name: string | null; employee_code: string | null }>();
-      for (const c of (candidates ?? []) as Array<{ id: string; unit_id: string | null; full_name: string | null; employee_code: string | null }>) {
-        candById.set(c.id, c);
-        if (c.unit_id && unitIdSet.has(c.unit_id)) {
-          const s = unitsByCandidate.get(c.id) ?? new Set<string>();
-          s.add(c.unit_id);
-          unitsByCandidate.set(c.id, s);
-        }
-      }
-      for (const l of (links ?? []) as Array<{ candidate_id: string; unit_id: string }>) {
-        if (!unitIdSet.has(l.unit_id)) continue;
-        const s = unitsByCandidate.get(l.candidate_id) ?? new Set<string>();
-        s.add(l.unit_id);
-        unitsByCandidate.set(l.candidate_id, s);
-      }
-
-      const employeeCountByUnit = new Map<string, number>();
-      const employeeIdsByUnit = new Map<string, string[]>();
-      const employees: EmployeeOption[] = [];
-      for (const [candId, unitSet] of unitsByCandidate) {
-        const c = candById.get(candId);
-        if (!c) continue;
-        for (const uid of unitSet) {
-          employeeCountByUnit.set(uid, (employeeCountByUnit.get(uid) ?? 0) + 1);
-          const ids = employeeIdsByUnit.get(uid) ?? [];
-          ids.push(candId);
-          employeeIdsByUnit.set(uid, ids);
-        }
-        const name = (c.full_name || "").trim() || "Unnamed";
-        const code = (c.employee_code || "").trim();
-        employees.push({
-          id: candId,
-          name,
-          code,
-          unit_ids: Array.from(unitSet),
-          label: code ? `${name} (${code})` : name,
-        });
-      }
-      employees.sort((a, b) => a.label.localeCompare(b.label));
-
-      const periodsByUnit = new Map<string, { period_start: string; period_end: string; status: SheetStatus }[]>();
-      for (const s of sheets) {
-        const arr = periodsByUnit.get(s.unit_id) ?? [];
-        arr.push({ period_start: s.period_start, period_end: s.period_end, status: s.status });
-        periodsByUnit.set(s.unit_id, arr);
-      }
-
-      const rows: UnitRow[] = (units ?? []).map((u) => {
-        const periods = (periodsByUnit.get(u.id) ?? []).sort((a, b) => b.period_start.localeCompare(a.period_start));
-        return {
-          id: u.id,
-          code: u.code,
-          name: u.name,
-          location: u.location || "",
-          customer_id: u.customer_id || "",
-          customer_name: (u.customer_id && custMap.get(u.customer_id)) || "—",
-          active_employee_count: employeeCountByUnit.get(u.id) ?? 0,
-          employee_ids: employeeIdsByUnit.get(u.id) ?? [],
-          periods,
-          statuses: new Set(periods.map((p) => p.status)),
-        };
-      });
-      rows.sort((a, b) =>
-        a.customer_name !== b.customer_name
-          ? a.customer_name.localeCompare(b.customer_name)
-          : (a.name || a.code).localeCompare(b.name || b.code),
-      );
-
-      const orgs = Array.from(
-        new Map(rows.map((r) => [r.customer_id || r.customer_name, { id: r.customer_id || r.customer_name, name: r.customer_name }])).values(),
-      ).sort((a, b) => a.name.localeCompare(b.name));
-
-      const allPeriods = Array.from(
-        new Set(sheets.map((s) => `${s.period_start}|${s.period_end}`)),
-      ).sort((a, b) => b.localeCompare(a));
-
-      // count unique employees across active units this month
-      const employeeUnique = unitsByCandidate.size;
-
-      return {
-        units: rows,
-        organizations: orgs,
-        periods: allPeriods,
-        employees,
-        stats: { ...counts, units: unitIds.length, employees: employeeUnique, total: sheets.length },
-      };
-    },
+    queryKey: CHARTER_UNITS_QK,
+    queryFn: fetchCharterUnits,
   });
 
-  const units = data?.units ?? [];
-  const organizations = data?.organizations ?? [];
-  const periods = data?.periods ?? [];
-  const employees = data?.employees ?? [];
-  const monthlyStatsData = data?.stats;
-
-  const queryClient = useQueryClient();
-  const { can } = useCurrentPermissions();
-  const canApproveRun = can("payroll", "approve");
-
-  type RunStatus = "draft" | "submitted" | "approved" | "rejected";
-  type RunRow = { id: string; unit_id: string; period_start: string; period_end: string; status: RunStatus };
-  const runsQK = ["payroll-runs-index", year, month];
-  const { data: runsData } = useQuery({
-    queryKey: runsQK,
-    queryFn: async () => {
-      const { data: rows, error } = await supabase
-        .from("payroll_runs" as never)
-        .select("id, unit_id, period_start, period_end, status")
-        .lte("period_start", monthEnd)
-        .gte("period_end", monthStart);
-      if (error) throw error;
-      const map = new Map<string, RunRow>();
-      for (const r of (rows ?? []) as RunRow[]) {
-        map.set(`${r.unit_id}|${r.period_start}|${r.period_end}`, r);
-      }
-      return map;
-    },
-  });
-  const runByKey = runsData ?? new Map<string, RunRow>();
-
-  const reopenRun = useMutation({
-    mutationFn: async (run: RunRow) => {
-      const { error } = await supabase
-        .from("payroll_runs" as never)
-        .update({ status: "draft", approved_at: null, approved_by: null, rejected_at: null, rejected_by: null, rejection_reason: null } as never)
-        .eq("id", run.id);
-      if (error) throw error;
-      void logActivity({
-        module: "Payroll",
-        action: "reopen",
-        entityType: "payroll_runs",
-        entityLabel: `${run.unit_id} ${run.period_start} → ${run.period_end}`,
-        details: { unit_id: run.unit_id, period_start: run.period_start, period_end: run.period_end },
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: runsQK });
-      toast.success("Payroll reopened");
-    },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to reopen"),
-  });
-
-
-
-  const employeeOptions = useMemo(() => {
-    if (orgFilter === "all") return employees;
-    const allowedUnitIds = new Set(units.filter((u) => (u.customer_id || u.customer_name) === orgFilter).map((u) => u.id));
-    return employees.filter((e) => e.unit_ids.some((uid) => allowedUnitIds.has(uid)));
-  }, [employees, orgFilter, units]);
-
-  const employeesByUnit = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const e of employees) {
-      for (const uid of e.unit_ids) {
-        m.set(uid, `${m.get(uid) ?? ""} ${e.label}`);
-      }
-    }
-    return m;
-  }, [employees]);
-
-  const selectedEmployee = useMemo(
-    () => (employeeFilter !== "all" ? employees.find((e) => e.id === employeeFilter) ?? null : null),
-    [employeeFilter, employees],
+  const foScope = useFieldOfficerUnitScope();
+  const rawUnits = data?.units ?? [];
+  const units = useMemo(
+    () => (foScope.isFieldOfficer ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
+    [rawUnits, foScope.isFieldOfficer, foScope.unitIds],
   );
-
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    const selectedUnitIds = selectedEmployee ? new Set(selectedEmployee.unit_ids) : null;
-    return units.filter((u) => {
-      if (orgFilter !== "all" && (u.customer_id || u.customer_name) !== orgFilter) return false;
-      if (selectedUnitIds && !selectedUnitIds.has(u.id)) return false;
-      if (statusFilter !== "all") {
-        if (statusFilter === "unapproved") {
-          if (!u.periods.some((p) => p.status !== "approved")) return false;
-        } else if (!u.statuses.has(statusFilter)) {
-          return false;
-        }
-      }
-      if (periodFilter !== "all") {
-        const [ps, pe] = periodFilter.split("|");
-        if (!u.periods.some((p) => p.period_start === ps && p.period_end === pe)) {
-          return false;
-        }
-      }
-      if (term) {
-        const hay = [
-          u.customer_name,
-          u.name,
-          u.code,
-          u.location,
-          employeesByUnit.get(u.id) ?? "",
-        ].join(" ").toLowerCase();
-        if (!hay.includes(term)) return false;
-      }
-      return true;
-    });
-  }, [q, orgFilter, periodFilter, statusFilter, selectedEmployee, employeesByUnit, units]);
+  const organizations = useMemo(() => {
+    const all = data?.organizations ?? [];
+    if (!foScope.isFieldOfficer) return all;
+    const allowed = new Set(units.map((u) => u.customer_id));
+    return all.filter((o) => allowed.has(o.id));
+  }, [data?.organizations, foScope.isFieldOfficer, units]);
 
   const summary = {
     organizations: organizations.length,
     units: units.length,
     activeEmployees: units.reduce((s, r) => s + r.active_employee_count, 0),
   };
-  const anyFilter = orgFilter !== "all" || periodFilter !== "all" || employeeFilter !== "all" || statusFilter !== "all" || q.trim().length > 0;
 
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return units.filter((u) => {
+      if (orgFilter !== "all" && (u.customer_id || u.customer_name) !== orgFilter) return false;
+      if (unitFilter !== "all" && u.id !== unitFilter) return false;
+      if (term) {
+        const hay = [u.customer_name, u.customer_code, u.name, u.code, u.location, ...u.contract_codes]
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [q, orgFilter, unitFilter, units]);
+
+  const anyFilter = orgFilter !== "all" || unitFilter !== "all" || q.trim().length > 0;
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
-      <PayrollTabs />
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Payroll"
-        description="Monthly payroll dashboard. Approved attendance sheets unlock wage computation; pending and draft sheets stay visible so you can track what's outstanding."
+        description="Payroll value till date against the contracted client value, unit by unit."
         crumbs={[{ label: "Payroll" }]}
       />
 
+      <PayrollTabs />
 
-      <MonthlyDashboard
-        year={year}
-        month={month}
-        onChange={(y, m) => { setYear(y); setMonth(m); }}
-        stats={monthlyStatsData}
-        loading={isLoading}
-        organizations={summary.organizations}
-        activeStatus={statusFilter}
-        onStatusChange={setStatusFilter}
-      />
-
-
-
-      {selectedEmployee && (
-        <EmployeeSpotlight
-          employee={selectedEmployee}
-          units={units.filter((u) => selectedEmployee.unit_ids.includes(u.id))}
-          onClear={() => setEmployeeFilter("all")}
-        />
-      )}
-
-
-      <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm">
-        <div className="space-y-4 border-b border-border/60 px-5 py-5">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-1">
-              <h2 className="text-lg font-semibold text-foreground">Payroll sheets — {MONTH_NAMES[month]} {year}</h2>
-              <p className="text-sm text-muted-foreground">
-                Every unit with an attendance sheet for this month. Approved sheets are ready for wage computation; others show their current status.
-              </p>
-
-            </div>
-            <div className="relative w-full max-w-lg">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search organization, unit, code, location, employee name"
-                className="h-11 rounded-xl border-border/60 bg-background pl-10"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <Filter
-              label="Status"
-              value={statusFilter}
-              onChange={(v) => setStatusFilter(v as typeof statusFilter)}
-              options={[
-                { value: "approved", label: `Approved (${monthlyStatsData?.approved ?? 0})` },
-                { value: "unapproved", label: `Unapproved (${(monthlyStatsData?.pending ?? 0) + (monthlyStatsData?.draft ?? 0) + (monthlyStatsData?.rejected ?? 0)})` },
-                { value: "pending", label: `Pending (${monthlyStatsData?.pending ?? 0})` },
-                { value: "draft", label: `Draft (${monthlyStatsData?.draft ?? 0})` },
-                { value: "rejected", label: `Rejected (${monthlyStatsData?.rejected ?? 0})` },
-              ]}
-              allLabel="All statuses"
-            />
-            <Filter
-              label="Organization"
-              value={orgFilter}
-              onChange={(v) => {
-                setOrgFilter(v);
-                setEmployeeFilter("all");
-              }}
-              options={organizations.map((o) => ({ value: o.id, label: o.name }))}
-              allLabel={`All organizations (${organizations.length})`}
-            />
-            <Filter
-              label="Employee"
-              value={employeeFilter}
-              onChange={setEmployeeFilter}
-              options={employeeOptions.map((e) => ({ value: e.id, label: e.label }))}
-              allLabel={`All employees (${employeeOptions.length})`}
-            />
-            <Filter
-              label="Period"
-              value={periodFilter}
-              onChange={setPeriodFilter}
-              options={periods.map((p) => {
-                const [s, e] = p.split("|");
-                return { value: p, label: fmtPeriod(s, e) };
-              })}
-              allLabel={`All periods (${periods.length})`}
-            />
-          </div>
-
-
-
-          {anyFilter && (
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>
-                Showing <span className="font-semibold text-foreground">{filtered.length}</span> of {units.length} units
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1.5 text-xs"
-                onClick={() => {
-                  setQ("");
-                  setOrgFilter("all");
-                  setPeriodFilter("all");
-                  setEmployeeFilter("all");
-                  setStatusFilter("all");
-                }}
-
-              >
-                <X className="h-3.5 w-3.5" /> Clear filters
-              </Button>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-3 p-5">
-          {isLoading ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">Loading payroll units…</div>
-          ) : error ? (
-            <div className="py-12 text-center text-sm text-destructive">
-              {error instanceof Error ? error.message : "Could not load payroll units."}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
-              {units.length === 0
-                ? "No approved attendance sheets yet. Approve one in Attendance to unlock payroll."
-                : "No units match the current filters."}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-              {filtered.map((unit) => {
-                const approvedLatest = unit.periods.find((p) => p.status === "approved");
-                const targetPeriod =
-                  periodFilter !== "all"
-                    ? (() => {
-                        const [s, e] = periodFilter.split("|");
-                        return { period_start: s, period_end: e };
-                      })()
-                    : approvedLatest;
-                const attendanceApproved = !!targetPeriod;
-                const run = targetPeriod
-                  ? runByKey.get(`${unit.id}|${targetPeriod.period_start}|${targetPeriod.period_end}`) ?? null
-                  : null;
-                const runStatus = run?.status ?? null;
-
-                let statusLabel = "Awaiting attendance";
-                let statusCls = "border-amber-200/60 bg-amber-100/60 text-amber-800";
-                if (attendanceApproved) {
-                  if (runStatus === "approved") { statusLabel = "Approved"; statusCls = "border-emerald-200/60 bg-emerald-100/60 text-emerald-800"; }
-                  else if (runStatus === "submitted") { statusLabel = "Pending approval"; statusCls = "border-amber-200/60 bg-amber-100/60 text-amber-800"; }
-                  else if (runStatus === "rejected") { statusLabel = "Rejected"; statusCls = "border-rose-200/60 bg-rose-100/60 text-rose-800"; }
-                  else if (runStatus === "draft") { statusLabel = "Draft"; statusCls = "border-sky-200/60 bg-sky-100/60 text-sky-800"; }
-                  else { statusLabel = "Ready to compute"; statusCls = "border-sky-200/60 bg-sky-100/60 text-sky-800"; }
-                }
-
-                return (
-                  <div
-                    key={unit.id}
-                    className="group flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition hover:border-border hover:shadow-md sm:flex-row sm:items-start sm:gap-4"
-                  >
-                    {/* Left: Unit + Org */}
-                    <div className="flex min-w-0 flex-1 items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-100/80 text-emerald-700">
-                        <Wallet className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-foreground">{unit.name || unit.code}</div>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                          <span className="inline-flex rounded-md bg-secondary px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-foreground">
-                            {unit.code || "—"}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{unit.customer_name}</span>
-                        </div>
-
-                        {/* Periods */}
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {unit.periods.slice(0, 3).map((p) => {
-                            const cls =
-                              p.status === "approved" ? "border-emerald-200/60 bg-emerald-100/60 text-emerald-800"
-                              : p.status === "pending" ? "border-amber-200/60 bg-amber-100/60 text-amber-800"
-                              : p.status === "rejected" ? "border-rose-200/60 bg-rose-100/60 text-rose-800"
-                              : "border-sky-200/60 bg-sky-100/60 text-sky-800";
-                            return (
-                              <span
-                                key={`${p.period_start}-${p.period_end}`}
-                                className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${cls}`}
-                                title={p.status}
-                              >
-                                {fmtPeriod(p.period_start, p.period_end)} · {p.status}
-                              </span>
-                            );
-                          })}
-                          {unit.periods.length > 3 && (
-                            <span className="text-[11px] text-muted-foreground">+{unit.periods.length - 3}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right: Stats + Status + Action */}
-                    <div className="flex flex-col gap-2.5 sm:items-end sm:text-right">
-                      <div className="flex items-center gap-2 sm:flex-col sm:gap-0">
-                        <span className="text-2xl font-semibold text-foreground">{unit.active_employee_count}</span>
-                        <span className="text-xs text-muted-foreground">employees</span>
-                      </div>
-
-                      <span className={`inline-flex self-start rounded-full border px-2.5 py-1 text-[11px] font-medium sm:self-auto ${statusCls}`}>
-                        {statusLabel}
-                      </span>
-
-                      <div className="mt-1">
-                        {!attendanceApproved ? (
-                          <Link
-                            to="/admin/attendance/$unitId"
-                            params={{ unitId: unit.id }}
-                            data-no-pill
-                            className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:border-amber-400 hover:bg-amber-100"
-                            title="Approve attendance sheet to unlock payroll"
-                          >
-                            <ArrowRight className="h-3.5 w-3.5" /> Approve attendance
-                          </Link>
-                        ) : runStatus === "approved" ? (
-                          canApproveRun ? (
-                            <button
-                              type="button"
-                              disabled={reopenRun.isPending}
-                              onClick={() => run && reopenRun.mutate(run)}
-                              data-no-pill
-                              className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:border-amber-400 hover:bg-amber-100 disabled:opacity-50"
-                              title="Reopen payroll"
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" /> Reopen payroll
-                            </button>
-                          ) : (
-                            <Link
-                              to="/admin/payroll/$unitId"
-                              params={{ unitId: unit.id }}
-                              search={{ start: targetPeriod!.period_start, end: targetPeriod!.period_end }}
-                              data-no-pill
-                              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/60 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
-                              title="View payroll"
-                            >
-                              <ArrowRight className="h-3.5 w-3.5" /> View payroll
-                            </Link>
-                          )
-                        ) : runStatus === "submitted" ? (
-                          <Link
-                            to="/admin/payroll/$unitId"
-                            params={{ unitId: unit.id }}
-                            search={{ start: targetPeriod!.period_start, end: targetPeriod!.period_end }}
-                            data-no-pill
-                            className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent/50 hover:text-accent"
-                            title="Process payroll"
-                          >
-                            <Sparkles className="h-3.5 w-3.5" /> Process payroll
-                          </Link>
-                        ) : (
-                          <Link
-                            to="/admin/payroll/$unitId"
-                            params={{ unitId: unit.id }}
-                            search={{ start: targetPeriod!.period_start, end: targetPeriod!.period_end }}
-                            data-no-pill
-                            className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent/50 hover:text-accent"
-                            title="Compute wages"
-                          >
-                            <Wallet className="h-3.5 w-3.5" /> Compute wages
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type MonthlyStats = {
-  approved: number; draft: number; pending: number; rejected: number;
-  units: number; employees: number; total: number;
-};
-
-type StatusKey = "all" | SheetStatus | "unapproved";
-
-function MonthlyDashboard({
-  year, month, onChange, stats, loading, organizations, activeStatus, onStatusChange,
-}: {
-  year: number; month: number;
-  onChange: (year: number, month: number) => void;
-  stats: MonthlyStats | undefined;
-  loading: boolean;
-  organizations: number;
-  activeStatus: StatusKey;
-  onStatusChange: (s: StatusKey) => void;
-}) {
-
-  const monthName = MONTH_NAMES[month];
-  const shift = (delta: number) => {
-    const d = new Date(year, month + delta, 1);
-    onChange(d.getFullYear(), d.getMonth());
-  };
-  const isCurrent = (() => {
-    const n = new Date();
-    return n.getFullYear() === year && n.getMonth() === month;
-  })();
-
-  const s: MonthlyStats = stats ?? { approved: 0, draft: 0, pending: 0, rejected: 0, units: 0, employees: 0, total: 0 };
-  const total = Math.max(s.total, 1);
-  const segs = [
-    { key: "approved", label: "Approved", value: s.approved, cls: "bg-emerald-500" },
-    { key: "pending", label: "Pending", value: s.pending, cls: "bg-amber-500" },
-    { key: "draft", label: "Draft", value: s.draft, cls: "bg-sky-500" },
-    { key: "rejected", label: "Rejected", value: s.rejected, cls: "bg-rose-500" },
-  ];
-
-  return (
-    <div className="relative overflow-hidden rounded-[28px] border border-border/70 bg-card/85 backdrop-blur-xl shadow-[0_1px_0_0_rgba(255,255,255,0.7)_inset,0_20px_60px_-30px_rgba(10,20,40,0.18)]">
-      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[oklch(0.7_0.16_262/0.18)] blur-3xl" />
-      <div className="pointer-events-none absolute -left-20 -bottom-24 h-64 w-64 rounded-full bg-[oklch(0.75_0.12_200/0.15)] blur-3xl" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-card/80 to-transparent" />
-
-      <div className="relative grid gap-6 p-6 sm:p-7 lg:grid-cols-[1.1fr_1.4fr]">
-        {/* Left: month hero */}
-        <div className="flex flex-col justify-between gap-5">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/60 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground backdrop-blur">
-              <CalendarDays className="h-3.5 w-3.5 text-accent" /> Payroll month
-            </div>
-            <div className="flex items-end gap-3">
-              <div className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-2xl">{monthName}</div>
-              <div className="pb-2 text-2xl font-semibold text-muted-foreground/80">{year}</div>
-              {isCurrent && (
-                <span className="mb-2 inline-flex rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent ring-1 ring-inset ring-accent/30">
-                  Current
-                </span>
-              )}
-            </div>
-            <p className="max-w-md text-sm text-muted-foreground">
-              Snapshot of all payroll activity for this cycle — approved, pending, and in-progress sheets across every unit.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-1.5 backdrop-blur w-fit">
-            <button
-              onClick={() => shift(-1)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              aria-label="Previous month"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <Select value={String(month)} onValueChange={(v) => onChange(year, Number(v))}>
+      <HeroTile
+        eyebrow="Payroll month"
+        title={MONTH_NAMES[monthIdx]}
+        subtitle={String(year)}
+        description="Month-till-date payroll gross earned from actual attendance, next to the contracted client value and the invoice it supports."
+        right={
+          <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-1.5 backdrop-blur">
+            <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
               <SelectTrigger className="h-8 w-[130px] rounded-xl border-0 bg-transparent shadow-none hover:bg-muted focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
@@ -724,135 +105,116 @@ function MonthlyDashboard({
               </SelectContent>
             </Select>
             <div className="h-5 w-px bg-border/70" />
-            <Select value={String(year)} onValueChange={(v) => onChange(Number(v), month)}>
+            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
               <SelectTrigger className="h-8 w-[92px] rounded-xl border-0 bg-transparent shadow-none hover:bg-muted focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 3 + i).map((y) => (
+                {[year - 2, year - 1, year, year + 1].map((y) => (
                   <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <button
-              onClick={() => shift(1)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              aria-label="Next month"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            {!isCurrent && (
-              <button
-                onClick={() => {
-                  const n = new Date();
-                  onChange(n.getFullYear(), n.getMonth());
-                }}
-                className="inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-accent hover:bg-accent/10"
-              >
-                Jump to today
-              </button>
-            )}
           </div>
+        }
+      />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <SummaryPill icon={Building2} label="Organizations" value={summary.organizations} />
+        <SummaryPill icon={MapPinned} label="Units" value={summary.units} />
+        <SummaryPill icon={Users} label="Active employees" value={summary.activeEmployees} />
+      </div>
+
+      <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20">
+        <div className="space-y-3 border-b border-border/60 px-4 py-4 sm:px-5 sm:py-5">
+          <div className="flex flex-col gap-1">
+            <h2 className="font-display text-base font-bold tracking-tight text-foreground sm:text-lg">
+              Payroll charter
+            </h2>
+            <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
+              Contracted value vs month-till-date invoice and payroll. Open any unit for the full payroll register.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <FilterSelect
+              label="Client"
+              value={orgFilter}
+              onChange={setOrgFilter}
+              options={organizations.map((o) => ({
+                value: o.id,
+                label: o.code ? `${o.code} · ${o.name}` : o.name,
+              }))}
+              allLabel={`All clients (${organizations.length})`}
+            />
+            <FilterSelect
+              label="Unit"
+              value={unitFilter}
+              onChange={setUnitFilter}
+              options={units.map((u) => ({
+                value: u.id,
+                label: `${u.name || u.code}${u.customer_name ? ` · ${u.customer_name}` : ""}`,
+              }))}
+              allLabel={`All units (${units.length})`}
+            />
+          </div>
+
+          {anyFilter && (
+            <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+              <span>
+                Showing <span className="font-bold text-foreground">{filtered.length}</span> of {units.length} units
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 text-xs"
+                onClick={() => {
+                  setQ("");
+                  setOrgFilter("all");
+                  setUnitFilter("all");
+                }}
+              >
+                <X className="h-3.5 w-3.5" /> Clear
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Right: stats grid */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <DashStat icon={Clock3} label="Pending" value={s.pending} accent="amber" loading={loading}
-              active={activeStatus === "pending"} onClick={() => onStatusChange(activeStatus === "pending" ? "all" : "pending")} />
-            <DashStat icon={CheckCircle2} label="Approved" value={s.approved} accent="emerald" loading={loading}
-              active={activeStatus === "approved"} onClick={() => onStatusChange(activeStatus === "approved" ? "all" : "approved")} />
-            <DashStat icon={FileEdit} label="Draft" value={s.draft} accent="sky" loading={loading}
-              active={activeStatus === "draft"} onClick={() => onStatusChange(activeStatus === "draft" ? "all" : "draft")} />
-            <DashStat icon={ClipboardList} label="Sheets" value={s.total} accent="violet" loading={loading}
-              active={activeStatus === "all"} onClick={() => onStatusChange("all")} />
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <DashStat icon={Building2} label="Organizations" value={organizations} accent="rose" loading={loading} compact />
-            <DashStat icon={MapPinned} label="Units" value={s.units} accent="cyan" loading={loading} compact />
-            <DashStat icon={Users} label="Employees" value={s.employees} accent="lime" loading={loading} compact />
-          </div>
-
-
-          {/* Stacked progress bar */}
-          <div>
-            <div className="mb-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              <span>Sheet status mix</span>
-              <span>{s.total} total</span>
+        <div className="px-4 py-4 sm:px-5 sm:py-5">
+          {isLoading ? (
+            <ListSkeleton rows={5} />
+          ) : error ? (
+            <div className="px-5 py-12 text-center text-sm text-destructive">
+              {error instanceof Error ? error.message : "Could not load payroll units right now."}
             </div>
-            <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
-              {segs.map((seg) =>
-                seg.value > 0 ? (
-                  <div
-                    key={seg.key}
-                    className={seg.cls}
-                    style={{ width: `${(seg.value / total) * 100}%` }}
-                    title={`${seg.label}: ${seg.value}`}
-                  />
-                ) : null,
-              )}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-              {segs.map((seg) => (
-                <span key={seg.key} className="inline-flex items-center gap-1.5">
-                  <span className={`h-2 w-2 rounded-full ${seg.cls}`} /> {seg.label} {seg.value}
-                </span>
-              ))}
-            </div>
-          </div>
+          ) : (
+            <FinanceCharter
+              mode="payroll"
+              units={filtered}
+              monthIdx={monthIdx}
+              year={year}
+              query={q}
+              onQueryChange={setQ}
+            />
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function DashStat({
-  icon: Icon, label, value, accent, loading, compact, active, onClick,
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+  allLabel,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string; value: number;
-  accent: "amber" | "emerald" | "sky" | "violet" | "rose" | "cyan" | "lime";
-  loading?: boolean; compact?: boolean;
-  active?: boolean;
-  onClick?: () => void;
-}) {
-  const accentMap: Record<string, { bg: string; icon: string; text: string; ring: string }> = {
-    amber:   { bg: "bg-amber-50",   icon: "bg-amber-100 text-amber-700",     text: "text-amber-900",   ring: "ring-amber-300" },
-    emerald: { bg: "bg-emerald-50", icon: "bg-emerald-100 text-emerald-700", text: "text-emerald-900", ring: "ring-emerald-300" },
-    sky:     { bg: "bg-sky-50",     icon: "bg-sky-100 text-sky-700",         text: "text-sky-900",     ring: "ring-sky-300" },
-    violet:  { bg: "bg-violet-50",  icon: "bg-violet-100 text-violet-700",   text: "text-violet-900",  ring: "ring-violet-300" },
-    rose:    { bg: "bg-rose-50",    icon: "bg-rose-100 text-rose-700",       text: "text-rose-900",    ring: "ring-rose-300" },
-    cyan:    { bg: "bg-cyan-50",    icon: "bg-cyan-100 text-cyan-700",       text: "text-cyan-900",    ring: "ring-cyan-300" },
-    lime:    { bg: "bg-lime-50",    icon: "bg-lime-100 text-lime-700",       text: "text-lime-900",    ring: "ring-lime-300" },
-  };
-  const a = accentMap[accent];
-  const Cmp: React.ElementType = onClick ? "button" : "div";
-  return (
-    <Cmp
-      onClick={onClick}
-      className={`group relative w-full text-left overflow-hidden rounded-2xl p-3 border border-border/60 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${a.bg} ${active ? `ring-2 ring-offset-2 ${a.ring}` : ""} ${onClick ? "cursor-pointer" : ""}`}
-    >
-      <div className="flex items-center gap-2">
-        <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${a.icon}`}>
-          <Icon className="h-3.5 w-3.5" />
-        </div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
-      </div>
-      <div className={`mt-1 font-display font-bold tabular-nums tracking-tight ${a.text} ${compact ? "text-2xl" : "text-2xl"}`}>
-        {loading ? <span className="text-muted-foreground/60">—</span> : value.toLocaleString()}
-      </div>
-    </Cmp>
-  );
-}
-
-
-
-
-function Filter({
-  label, value, onChange, options, allLabel,
-}: {
-  label: string; value: string; onChange: (v: string) => void;
-  options: { value: string; label: string }[]; allLabel: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  allLabel: string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -864,7 +226,9 @@ function Filter({
         <SelectContent className="max-h-[320px]">
           <SelectItem value="all">{allLabel}</SelectItem>
           {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -872,151 +236,20 @@ function Filter({
   );
 }
 
-function Tile({
-  icon: Icon, label, value, tone,
+function SummaryPill({
+  icon: Icon,
+  label,
+  value,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string; value: number; tone: "amber" | "sky" | "emerald";
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
 }) {
-  const cls =
-    tone === "amber" ? "bg-amber-100/80 text-amber-700"
-    : tone === "sky" ? "bg-sky-100/80 text-sky-700"
-    : "bg-emerald-100/80 text-emerald-700";
   return (
-    <div className="rounded-3xl border border-border/70 bg-card p-5 shadow-sm">
-      <div className="flex items-center gap-4">
-        <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${cls}`}>
-          <Icon className="h-6 w-6" />
-        </div>
-        <div>
-          <div className="text-2xl font-semibold tracking-tight text-foreground">{value}</div>
-          <div className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{label}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmployeeSpotlight({
-  employee,
-  units,
-  onClear,
-}: {
-  employee: EmployeeOption;
-  units: UnitRow[];
-  onClear: () => void;
-}) {
-  const totalPeriods = units.reduce((s, u) => s + u.periods.length, 0);
-  const initials = employee.name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("") || "E";
-
-  return (
-    <div className="relative overflow-hidden rounded-3xl border border-amber-200/70 bg-gradient-to-br from-amber-50 via-rose-50 to-sky-50 shadow-sm">
-      <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-amber-200/40 blur-3xl" />
-      <div className="pointer-events-none absolute -left-10 -bottom-20 h-56 w-56 rounded-full bg-sky-200/40 blur-3xl" />
-
-      <div className="relative flex flex-col gap-5 p-6 sm:p-7">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-rose-500 text-xl font-semibold text-white shadow-lg shadow-amber-500/20 ring-4 ring-border/60">
-              {initials}
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-700">
-                <Sparkles className="h-3.5 w-3.5" /> Employee payroll spotlight
-              </div>
-              <div className="text-xl font-semibold text-foreground sm:text-2xl">{employee.name}</div>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                {employee.code && (
-                  <span className="inline-flex rounded-md bg-card/80 px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wide text-foreground shadow-sm">
-                    {employee.code}
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1">
-                  <UserCircle2 className="h-3.5 w-3.5" />
-                  Mapped to {units.length} unit{units.length === 1 ? "" : "s"} · {totalPeriods} approved period
-                  {totalPeriods === 1 ? "" : "s"}
-                </span>
-              </div>
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" className="self-start text-xs sm:self-auto" onClick={onClear}>
-            <X className="mr-1 h-3.5 w-3.5" /> Clear employee
-          </Button>
-        </div>
-
-        {units.length === 0 ? (
-          <div className="rounded-2xl bg-card/60 px-4 py-6 text-center text-sm text-muted-foreground">
-            This employee is mapped to units, but none have approved attendance yet.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {units.map((u) => {
-              const latest = u.periods[0];
-              return (
-                <div
-                  key={u.id}
-                  className="group relative flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/85 p-4 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        {u.customer_name}
-                      </div>
-                      <div className="mt-0.5 truncate text-sm font-semibold text-foreground">
-                        {u.name || u.code}
-                      </div>
-                      <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <span className="inline-flex rounded-md bg-secondary px-1.5 py-0.5 font-mono font-semibold uppercase tracking-wide text-foreground">
-                          {u.code || "—"}
-                        </span>
-                        {u.location && <span className="truncate">· {u.location}</span>}
-                      </div>
-                    </div>
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                      <Wallet className="h-4 w-4" />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5">
-                    {u.periods.slice(0, 2).map((p) => (
-                      <span
-                        key={`${p.period_start}-${p.period_end}`}
-                        className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800"
-                      >
-                        {fmtPeriod(p.period_start, p.period_end)}
-                      </span>
-                    ))}
-                    {u.periods.length > 2 && (
-                      <span className="text-[11px] text-muted-foreground">
-                        +{u.periods.length - 2} more
-                      </span>
-                    )}
-                  </div>
-
-                  {latest ? (
-                    <Link
-                      to="/admin/payroll/$unitId"
-                      params={{ unitId: u.id }}
-                      search={{ start: latest.period_start, end: latest.period_end }}
-                      className="mt-auto inline-flex items-center justify-between gap-2 rounded-xl bg-foreground px-3 py-2 text-xs font-semibold text-background transition hover:bg-foreground/90"
-                    >
-                      View wages for {employee.name.split(/\s+/)[0]}
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  ) : (
-                    <div className="mt-auto text-[11px] text-muted-foreground">No approved period</div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+    <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 shadow-sm">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      <span className="text-sm font-semibold tabular-nums text-foreground">{value}</span>
+      <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
     </div>
   );
 }
