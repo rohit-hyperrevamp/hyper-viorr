@@ -451,16 +451,8 @@ function AttendanceUnitsPage() {
   });
 
 
-  const selectedClient = orgFilter !== "all" ? organizations.find((o) => o.id === orgFilter) ?? null : null;
-  const clientEmployees = useMemo(() => {
-    if (!selectedClient) return [] as ClientEmployee[];
-    const list = employeesByCustomer[selectedClient.id] ?? [];
-    const term = q.trim().toLowerCase();
-    if (!term) return list;
-    return list.filter((e) =>
-      [e.name, e.unit_name, e.unit_code].join(" ").toLowerCase().includes(term),
-    );
-  }, [selectedClient, employeesByCustomer, q]);
+
+
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -524,11 +516,12 @@ function AttendanceUnitsPage() {
       />
 
 
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 xl:grid-cols-3">
-        <SummaryTile icon={Building2} label="Organizations" value={summary.organizations} accent="organization" />
-        <SummaryTile icon={MapPinned} label="Units" value={summary.units} accent="unit" />
-        <SummaryTile icon={Users} label="Active employees" value={summary.activeEmployees} accent="employee" />
+      <div className="flex flex-wrap items-center gap-2">
+        <SummaryPill icon={Building2} label="Organizations" value={summary.organizations} />
+        <SummaryPill icon={MapPinned} label="Units" value={summary.units} />
+        <SummaryPill icon={Users} label="Active employees" value={summary.activeEmployees} />
       </div>
+
 
       <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20">
         <div className="space-y-3 border-b border-border/60 px-4 py-4 sm:px-5 sm:py-5">
@@ -588,72 +581,8 @@ function AttendanceUnitsPage() {
 
         </div>
 
-        {selectedClient && (
-          <div className="border-b border-border/60 bg-secondary/20 px-5 py-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-foreground">
-                  Employees under {selectedClient.code ? `${selectedClient.code} · ` : ""}{selectedClient.name}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {clientEmployees.length} employee{clientEmployees.length === 1 ? "" : "s"} across all units of this client.
-                </p>
-              </div>
-            </div>
-            {clientEmployees.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border/60 bg-background px-4 py-6 text-center text-sm text-muted-foreground">
-                No employees found for this client.
-              </div>
-            ) : (
-              <div className="overflow-x-clip rounded-xl border border-border/60 bg-background">
-                <table className="ios-table min-w-full table-auto text-sm">
-                  <thead className="border-b border-border/60 bg-secondary/40 text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium">Employee</th>
-                      <th className="px-4 py-3 text-left font-medium">Unit</th>
-                      <th className="px-4 py-3 text-right font-medium" data-col="actions">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/50">
-                    {clientEmployees.map((e) => (
-                      <tr key={`${e.id}-${e.unit_id}`} className="hover:bg-secondary/30">
-                        <td className="px-4 py-3 font-medium text-foreground">{e.name}</td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {e.unit_name}
-                          {e.unit_code && (
-                            <span className="ml-2 rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide">
-                              {e.unit_code}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex justify-end gap-2">
-                            <Link
-                              to="/admin/payroll/$unitId"
-                              params={{ unitId: e.unit_id }}
-                              search={{ ...monthRange(year, monthIdx), candidate: e.id }}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300/60 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-800 hover:border-emerald-500 dark:bg-emerald-950/30 dark:text-emerald-200"
-                            >
-                              <IndianRupee className="h-3 w-3" /> View salary
-                            </Link>
-                            <Link
-                              to="/admin/attendance/$unitId"
-                              params={{ unitId: e.unit_id }}
-                              search={{ month: monthIdx, year }}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-xs font-medium text-foreground hover:border-accent/50 hover:text-accent"
-                            >
-                              Open attendance <ArrowRight className="h-3 w-3" />
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
+
+
 
 
         <div className="px-4 py-4 sm:px-5 sm:py-5">
@@ -713,68 +642,21 @@ function FilterSelect({
   );
 }
 
-function EmployeeChips({
-  list,
-  empty,
-  tone,
-}: {
-  list: EmployeeRef[];
-  empty: string;
-  tone: "amber" | "emerald";
-}) {
-  if (list.length === 0) return <span className="text-sm text-muted-foreground">{empty}</span>;
-  const cls =
-    tone === "amber"
-      ? "border-amber-200/60 bg-amber-100/60 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
-      : "border-emerald-200/60 bg-emerald-100/60 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200";
-  const visible = list.slice(0, 3);
-  return (
-    <div className="flex max-w-[240px] flex-wrap gap-1.5">
-      {visible.map((p) => (
-        <span
-          key={p.id}
-          className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${cls}`}
-        >
-          {p.name}
-        </span>
-      ))}
-      {list.length > visible.length && (
-        <span className="text-[11px] text-muted-foreground">+{list.length - visible.length}</span>
-      )}
-    </div>
-  );
-}
-
-function SummaryTile({
+function SummaryPill({
   icon: Icon,
   label,
   value,
-  accent,
 }: {
   icon: ComponentType<{ className?: string }>;
   label: string;
   value: number;
-  accent: "organization" | "unit" | "employee";
 }) {
-  const accentClass =
-    accent === "organization"
-      ? "bg-amber-100/80 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
-      : accent === "unit"
-        ? "bg-sky-100/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
-        : "bg-emerald-100/80 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300";
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-2.5 shadow-sm shadow-stone-200/30 dark:shadow-black/10 sm:rounded-3xl sm:p-5">
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-xl sm:h-14 sm:w-14 sm:rounded-2xl ${accentClass}`}>
-          <Icon className="h-4 w-4 sm:h-6 sm:w-6" />
-        </div>
-        <div className="min-w-0">
-          <div className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{value}</div>
-          <div className="mt-0.5 truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:mt-1 sm:text-xs sm:tracking-[0.2em]">
-            {label}
-          </div>
-        </div>
-      </div>
+    <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 shadow-sm">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      <span className="text-sm font-semibold tabular-nums text-foreground">{value}</span>
+      <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
     </div>
   );
 }
+
