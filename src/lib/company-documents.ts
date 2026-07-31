@@ -1180,7 +1180,9 @@ export async function generateHtmlDocumentPdf(opts: {
     const compSigCard = await resolveImageDataUrl(opts.companySignatureDataUrl ?? absoluteAssetUrl(COMPANY_STAMP_URL));
     const host = document.createElement("div");
     host.style.cssText = "position:fixed;left:-10000px;top:0;background:#fff;";
-    host.innerHTML = buildDocumentPageHtml(injectSignatureImages(opts.body, undefined, compSigCard));
+    host.innerHTML = buildDocumentPageHtml(
+      injectSignatureImages(expandIdCardBody(opts.body), undefined, compSigCard),
+    );
     document.body.appendChild(host);
     try {
       const faces = Array.from(host.querySelectorAll(".idcard")) as HTMLElement[];
