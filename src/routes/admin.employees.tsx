@@ -5743,7 +5743,7 @@ function CandidateWizard({
               )}
 
               <Section title="Nominee">
-                <NomineeSection form={form} setSection={setSection} />
+                <NomineeSection form={form} setSection={setSection} set={set} />
               </Section>
 
             </div>

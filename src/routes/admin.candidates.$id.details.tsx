@@ -421,7 +421,7 @@ function CandidateDetailsPage() {
             <CriminalSection form={form} set={set} />
           )}
           {active === "nominee" && (
-            <NomineeSection form={form} setSection={setSection} />
+            <NomineeSection form={form} setSection={setSection} set={set} />
           )}
           {active === "office_assets" && (
             <OfficeAssetsSection candidateId={id} candidate={form} onToggleNonBillable={(v: boolean) => set("non_billable", v)} />
