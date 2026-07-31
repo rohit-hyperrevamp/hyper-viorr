@@ -5,13 +5,18 @@ import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Search, ExternalLin
 import { supabase } from "@/integrations/supabase/client";
 import {
   fetchMonthPunches,
-  getAttendanceCodeForWorkedHours,
   distanceMeters,
   formatDistance,
   mapsUrl,
   DEVIATION_THRESHOLD_M,
   type SelfPunch,
 } from "@/lib/self-attendance";
+import {
+  attendanceCodeForShift,
+  fetchShiftHoursMap,
+  shiftHoursFor,
+  DEFAULT_SHIFT_HOURS,
+} from "@/lib/shift-hours";
 
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { PageHeader } from "@/components/PageHeader";
