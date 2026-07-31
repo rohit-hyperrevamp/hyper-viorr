@@ -415,7 +415,7 @@ function PercentInput({ value, disabled, onChange }: { value: number; disabled?:
   );
 }
 
-export function NomineeSection({ form, setSection }: { form: any; setSection: SetSection }) {
+export function NomineeSection({ form, setSection, set }: { form: any; setSection: SetSection; set?: SetField }) {
   const compliance = form.compliance ?? {};
   const contacts: any[] = Array.isArray(form.contacts) ? form.contacts : [];
   const raw = compliance.nominees;
