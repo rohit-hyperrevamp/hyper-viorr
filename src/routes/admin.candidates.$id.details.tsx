@@ -450,6 +450,14 @@ function CandidateDetailsPage() {
               employeeCode={form.employee_code || form.candidate_code || ""}
             />
           )}
+          {active === "esic_card" &&
+            ["approved", "active"].includes(String(form.status ?? "").toLowerCase()) && (
+              <CandidateEsicCard
+                candidateId={id}
+                employeeName={form.full_name || ""}
+                employeeCode={form.employee_code || form.candidate_code || ""}
+              />
+            )}
           {active === "offboarding" && (
             <OffboardingRecordsSection details={form.offboarding_details} />
           )}
