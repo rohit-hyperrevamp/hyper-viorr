@@ -4502,7 +4502,7 @@ function CandidateWizard({
     { key: "Aadhaar number", ok: /^\d{12}$/.test(form.aadhaar_number) },
     { key: "Date of birth", ok: !!form.date_of_birth },
     { key: "Gender", ok: !!form.gender },
-    { key: "Mobile", ok: !!form.mobile.trim() },
+    
     
     { key: "Permanent address", ok: !!form.permanent_address1.trim() && !!form.permanent_pincode },
     { key: "District", ok: !!form.permanent_district.trim() && (form.same_as_permanent || !!form.present_district.trim()) },
