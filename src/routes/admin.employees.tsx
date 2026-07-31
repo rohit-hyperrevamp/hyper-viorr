@@ -1892,8 +1892,8 @@ function EmployeesPage() {
       // Auto-attach Form VII (nomination form) to the newly approved employee.
       void (async () => {
         try {
-          const { ensureFormViiForCandidate } = await import("@/lib/company-documents");
-          await ensureFormViiForCandidate(c.id);
+          const { autoAttachFormVii } = await import("@/lib/company-documents");
+          autoAttachFormVii(c.id);
         } catch (e) {
           console.error("Form VII generation failed", e);
         }
