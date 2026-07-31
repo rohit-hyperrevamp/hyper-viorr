@@ -5180,20 +5180,9 @@ function CandidateWizard({
                 </div>
               </Section>
 
-              <Section title="Contact Information">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <Field label="Mobile" required>
-                    <Input value={form.mobile} inputMode="numeric" maxLength={10} placeholder="10-digit mobile" onChange={(e) => set("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))} />
-                  </Field>
-                  <Field label="Alternate Mobile">
-                    <Input value={form.alt_mobile} inputMode="numeric" maxLength={10} placeholder="10-digit mobile" onChange={(e) => set("alt_mobile", e.target.value.replace(/\D/g, "").slice(0, 10))} />
-                  </Field>
-                  <Field label="Personal Email (optional)">
-                    <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="name@example.com" />
-                  </Field>
-                </div>
+              <Section title="Emergency Contact">
+                <div>
 
-                <div className="mt-5 border-t border-border pt-4">
                   {(() => {
                     const ct: CandidateContact =
                       form.contacts[0] ?? { name: "", relation: "", mobile: "", is_emergency: true };
