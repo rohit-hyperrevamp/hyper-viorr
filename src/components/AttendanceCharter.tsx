@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ChevronDown, Download, Gauge, Search, TrendingDown, UserCheck, Users } from "lucide-react";
+import { ChevronDown, Download, Gauge, Search, TrendingDown, UserCheck, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,18 +64,21 @@ function pct(actual: number, projected: number) {
   return Math.round((actual / projected) * 100);
 }
 
+function toneFor(value: number) {
+  if (value >= 100) return "emerald";
+  if (value >= 85) return "amber";
+  return "rose";
+}
+
 function CoverageChip({ value, suffix = "%" }: { value: number; suffix?: string }) {
-  const tone =
-    value >= 100
-      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/25"
-      : value >= 85
-        ? "bg-amber-500/10 text-amber-600 border-amber-500/25"
-        : "bg-destructive/10 text-destructive border-destructive/25";
+  const tone = toneFor(value);
   return (
     <span
       className={cn(
-        "inline-flex min-w-[54px] items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-semibold tabular-nums",
-        tone,
+        "inline-flex min-w-[52px] items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-semibold tabular-nums",
+        tone === "emerald" && "border-emerald-500/25 bg-emerald-500/10 text-emerald-600",
+        tone === "amber" && "border-amber-500/25 bg-amber-500/10 text-amber-600",
+        tone === "rose" && "border-destructive/25 bg-destructive/10 text-destructive",
       )}
     >
       {value}
@@ -86,17 +89,13 @@ function CoverageChip({ value, suffix = "%" }: { value: number; suffix?: string 
 
 function VarianceChip({ committed, actual }: { committed: number; actual: number }) {
   const diff = actual - committed;
-  const tone =
-    diff === 0
-      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/25"
-      : diff < 0
-        ? "bg-destructive/10 text-destructive border-destructive/25"
-        : "bg-amber-500/10 text-amber-600 border-amber-500/25";
   return (
     <span
       className={cn(
-        "inline-flex min-w-[46px] items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-semibold tabular-nums",
-        tone,
+        "inline-flex min-w-[44px] items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-semibold tabular-nums",
+        diff === 0 && "border-emerald-500/25 bg-emerald-500/10 text-emerald-600",
+        diff < 0 && "border-destructive/25 bg-destructive/10 text-destructive",
+        diff > 0 && "border-amber-500/25 bg-amber-500/10 text-amber-600",
       )}
     >
       {diff > 0 ? `+${diff}` : diff}
@@ -104,7 +103,42 @@ function VarianceChip({ committed, actual }: { committed: number; actual: number
   );
 }
 
-function Tile({
+/** Circular MTD gauge used as the row's visual anchor. */
+function Dial({ value }: { value: number }) {
+  const clamped = Math.max(0, Math.min(value, 130));
+  const tone = toneFor(value);
+  const stroke =
+    tone === "emerald"
+      ? "var(--color-emerald-500, #10b981)"
+      : tone === "amber"
+        ? "var(--color-amber-500, #f59e0b)"
+        : "hsl(var(--destructive))";
+  const r = 17;
+  const c = 2 * Math.PI * r;
+  const dash = (Math.min(clamped, 100) / 100) * c;
+  return (
+    <div className="relative h-11 w-11 shrink-0">
+      <svg viewBox="0 0 40 40" className="h-11 w-11 -rotate-90">
+        <circle cx="20" cy="20" r={r} fill="none" strokeWidth="3.5" className="stroke-border" />
+        <circle
+          cx="20"
+          cy="20"
+          r={r}
+          fill="none"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          stroke={stroke}
+          strokeDasharray={`${dash} ${c}`}
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold tabular-nums text-foreground">
+        {value}%
+      </span>
+    </div>
+  );
+}
+
+function Stat({
   label,
   value,
   sub,
@@ -118,20 +152,20 @@ function Tile({
   tone?: "accent" | "warning" | "destructive";
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-background/60 p-3">
-      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-background/80 to-muted/40 p-3 backdrop-blur">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
         <Icon
           className={cn(
-            "h-3.5 w-3.5",
+            "h-3.5 w-3.5 text-muted-foreground",
             tone === "accent" && "text-primary",
             tone === "warning" && "text-amber-500",
             tone === "destructive" && "text-destructive",
           )}
         />
-        {label}
       </div>
-      <div className="mt-1 text-xl font-semibold tabular-nums">{value}</div>
-      {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
+      <div className="mt-1.5 text-[22px] font-semibold leading-none tracking-tight tabular-nums">{value}</div>
+      {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
     </div>
   );
 }
@@ -306,27 +340,26 @@ export function AttendanceCharter({
   const loading = entriesQ.isLoading || shiftQ.isLoading;
 
   return (
-    <div className="space-y-3">
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <Tile label="Committed" value={totals.committed} icon={Users} tone="accent" />
-        <Tile label="Actual deployed" value={totals.actual} icon={UserCheck} />
-        <Tile
-          label="Variance"
-          value={totals.gap > 0 ? `+${totals.gap}` : totals.gap}
-          icon={TrendingDown}
-          tone={totals.gap < 0 ? "destructive" : "warning"}
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <Stat
+          label="Deployment"
+          value={`${totals.actual}/${totals.committed}`}
+          sub={`${totals.coverage}% coverage · ${totals.gap > 0 ? `+${totals.gap}` : totals.gap} variance`}
+          icon={Users}
+          tone="accent"
         />
-        <Tile label="Coverage" value={`${totals.coverage}%`} icon={Gauge} />
-      </div>
-
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <Tile label="Projected man-hours (MTD)" value={fmtHours(totals.projectedHours)} sub={`${elapsedDays} day(s) elapsed`} icon={Gauge} />
-        <Tile label="Actual man-hours (MTD)" value={fmtHours(totals.actualHours)} icon={UserCheck} tone="accent" />
-        <Tile label="Overtime (MTD)" value={fmtHours(totals.otHours)} icon={TrendingDown} tone="warning" />
-        <Tile
+        <Stat
+          label="Actual man-hours"
+          value={fmtHours(totals.actualHours)}
+          sub={`of ${fmtHours(totals.projectedHours)} projected`}
+          icon={UserCheck}
+        />
+        <Stat label="Overtime" value={fmtHours(totals.otHours)} sub="month till date" icon={TrendingDown} tone="warning" />
+        <Stat
           label="MTD attendance"
           value={`${totals.mtdPct}%`}
-          sub="actual vs projected"
+          sub={`${elapsedDays} day(s) elapsed`}
           icon={Gauge}
           tone={totals.mtdPct < 85 ? "destructive" : undefined}
         />
@@ -339,20 +372,20 @@ export function AttendanceCharter({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Search by unit, client or contract…"
-            className="h-9 rounded-lg pl-9"
+            className="h-9 rounded-xl pl-9"
           />
         </div>
-        <Button variant="outline" className="h-9 rounded-lg" onClick={exportCsv}>
+        <Button variant="outline" className="h-9 rounded-xl" onClick={exportCsv}>
           <Download className="mr-1.5 h-4 w-4" /> Export
         </Button>
       </div>
 
       {loading ? (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
           Loading month-till-date attendance…
         </div>
       ) : rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
           No units match this search.
         </div>
       ) : (
@@ -360,38 +393,53 @@ export function AttendanceCharter({
           {rows.map((r) => {
             const isOpen = !!expanded[r.unit.id];
             return (
-              <div key={r.unit.id} className="overflow-hidden rounded-xl border border-border bg-background/50">
-                <div className="flex items-center gap-2 px-3 py-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setExpanded((p) => ({ ...p, [r.unit.id]: !p[r.unit.id] }))}
-                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+              <div
+                key={r.unit.id}
+                className={cn(
+                  "group overflow-hidden rounded-2xl border border-border/70 bg-card transition-all",
+                  "hover:border-primary/40 hover:shadow-[0_8px_24px_-16px_rgba(0,0,0,0.45)]",
+                  isOpen && "border-primary/40",
+                )}
+              >
+                <div className="flex items-stretch">
+                  {/* Whole row opens the muster roll. */}
+                  <Link
+                    to="/admin/attendance/$unitId"
+                    params={{ unitId: r.unit.id }}
+                    search={{ month: monthIdx, year }}
+                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3 sm:px-4"
                   >
-                    <ChevronDown
-                      className={cn(
-                        "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-                        isOpen && "rotate-180",
-                      )}
-                    />
+                    <Dial value={r.mtdPct} />
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="truncate text-sm font-semibold">{r.unit.name || r.unit.code}</span>
-                        <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="truncate text-sm font-semibold group-hover:text-primary">
+                          {r.unit.name || r.unit.code}
+                        </span>
+                        <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {r.unitShift}h shift
                         </span>
                       </div>
                       <div className="truncate text-xs text-muted-foreground">
                         {r.unit.customer_name} · {r.contractCode}
                       </div>
-                    </div>
-                    <div className="hidden shrink-0 items-center gap-3 text-sm tabular-nums sm:flex">
-                      <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Committed</div>
-                        <div className="font-semibold">{r.committed}</div>
+                      <div className="mt-1.5 flex items-center gap-2 text-[11px] tabular-nums text-muted-foreground sm:hidden">
+                        <span>
+                          {r.actual}/{r.committed} deployed
+                        </span>
+                        <span>·</span>
+                        <span>
+                          {fmtHours(r.actualHours)} / {fmtHours(r.projectedHours)}
+                        </span>
                       </div>
+                    </div>
+
+                    <div className="hidden shrink-0 items-center gap-5 pr-1 text-sm tabular-nums sm:flex">
                       <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Actual</div>
-                        <div className="font-semibold">{r.actual}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Deployed</div>
+                        <div className="font-semibold">
+                          {r.actual}
+                          <span className="text-muted-foreground">/{r.committed}</span>
+                        </div>
                       </div>
                       <VarianceChip committed={r.committed} actual={r.actual} />
                       <div className="text-right">
@@ -401,92 +449,86 @@ export function AttendanceCharter({
                           <span className="text-muted-foreground"> / {fmtHours(r.projectedHours)}</span>
                         </div>
                       </div>
-                      <CoverageChip value={r.mtdPct} />
+                      <div className="text-right">
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">OT</div>
+                        <div className="font-semibold">{fmtHours(r.otHours)}</div>
+                      </div>
                     </div>
-                  </button>
-                  <Link
-                    to="/admin/attendance/$unitId"
-                    params={{ unitId: r.unit.id }}
-                    search={{ month: monthIdx, year }}
-                    className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border border-border bg-background px-2.5 text-xs font-semibold text-foreground hover:border-accent/50 hover:text-accent"
-                  >
-                    Open attendance <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
-                </div>
 
-                <div className="flex items-center gap-2 border-t border-border/60 px-3 py-2 text-xs tabular-nums sm:hidden">
-                  <span className="text-muted-foreground">
-                    {r.actual}/{r.committed} deployed
-                  </span>
-                  <span className="text-muted-foreground">
-                    {fmtHours(r.actualHours)} / {fmtHours(r.projectedHours)}
-                  </span>
-                  <CoverageChip value={r.mtdPct} />
+                  <button
+                    type="button"
+                    aria-label={isOpen ? "Hide breakdown" : "Show breakdown"}
+                    onClick={() => setExpanded((p) => ({ ...p, [r.unit.id]: !p[r.unit.id] }))}
+                    className="flex w-11 shrink-0 items-center justify-center border-l border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+                  </button>
                 </div>
 
                 {isOpen && (
-                  <div className="space-y-3 border-t border-border bg-muted/30 px-3 py-2">
+                  <div className="space-y-4 border-t border-border/60 bg-muted/25 px-3 py-3 sm:px-4">
                     {r.lines.length > 0 && (
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                            <th className="py-1 text-left font-medium">Role</th>
-                            <th className="py-1 text-right font-medium">Committed</th>
-                            <th className="py-1 text-right font-medium">Actual</th>
-                            <th className="py-1 text-right font-medium">Variance</th>
-                          </tr>
-                        </thead>
-                        <tbody>
+                      <div>
+                        <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                          Role-wise commitment
+                        </div>
+                        <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
                           {r.lines.map((l) => (
-                            <tr key={l.role} className="border-t border-border/60">
-                              <td className="py-1.5 pr-2">{l.role}</td>
-                              <td className="py-1.5 text-right tabular-nums">{l.committed}</td>
-                              <td className="py-1.5 text-right tabular-nums">{l.actual}</td>
-                              <td className="py-1.5 text-right">
+                            <div
+                              key={l.role}
+                              className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/70 px-3 py-2"
+                            >
+                              <span className="truncate text-xs font-medium">{l.role}</span>
+                              <span className="flex items-center gap-2 text-xs tabular-nums">
+                                <span className="font-semibold">
+                                  {l.actual}
+                                  <span className="text-muted-foreground">/{l.committed}</span>
+                                </span>
                                 <VarianceChip committed={l.committed} actual={l.actual} />
-                              </td>
-                            </tr>
+                              </span>
+                            </div>
                           ))}
-                        </tbody>
-                      </table>
+                        </div>
+                      </div>
                     )}
 
                     <div>
-                      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Month-till-date attendance per employee
+                      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                        Month-till-date per employee
                       </div>
                       {r.people.length === 0 ? (
-                        <p className="py-2 text-xs text-muted-foreground">
+                        <p className="rounded-xl border border-dashed border-border/60 bg-background/60 px-3 py-4 text-center text-xs text-muted-foreground">
                           No attendance marked for this unit yet this month.
                         </p>
                       ) : (
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/70">
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                                <th className="py-1 text-left font-medium">Employee</th>
-                                <th className="py-1 text-right font-medium">Shift</th>
-                                <th className="py-1 text-right font-medium">Days</th>
-                                <th className="py-1 text-right font-medium">OT hrs</th>
-                                <th className="py-1 text-right font-medium">Actual hrs</th>
-                                <th className="py-1 text-right font-medium">Projected</th>
-                                <th className="py-1 text-right font-medium">MTD %</th>
+                              <tr className="border-b border-border/60 text-[10px] uppercase tracking-wide text-muted-foreground">
+                                <th className="px-3 py-2 text-left font-medium">Employee</th>
+                                <th className="px-2 py-2 text-right font-medium">Shift</th>
+                                <th className="px-2 py-2 text-right font-medium">Days</th>
+                                <th className="px-2 py-2 text-right font-medium">OT hrs</th>
+                                <th className="px-2 py-2 text-right font-medium">Actual</th>
+                                <th className="px-2 py-2 text-right font-medium">Projected</th>
+                                <th className="px-3 py-2 text-right font-medium">MTD</th>
                               </tr>
                             </thead>
                             <tbody>
                               {r.people.map((p) => (
-                                <tr key={p.id} className="border-t border-border/60">
-                                  <td className="py-1.5 pr-2">{p.name}</td>
-                                  <td className="py-1.5 text-right tabular-nums">{p.shiftHours}h</td>
-                                  <td className="py-1.5 text-right tabular-nums">{p.presentDays}</td>
-                                  <td className="py-1.5 text-right tabular-nums">
+                                <tr key={p.id} className="border-t border-border/50 hover:bg-muted/40">
+                                  <td className="px-3 py-1.5 font-medium">{p.name}</td>
+                                  <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{p.shiftHours}h</td>
+                                  <td className="px-2 py-1.5 text-right tabular-nums">{p.presentDays}</td>
+                                  <td className="px-2 py-1.5 text-right tabular-nums">
                                     {Math.round(p.otDays * p.shiftHours)}
                                   </td>
-                                  <td className="py-1.5 text-right tabular-nums">{fmtHours(p.actualHours)}</td>
-                                  <td className="py-1.5 text-right tabular-nums text-muted-foreground">
+                                  <td className="px-2 py-1.5 text-right tabular-nums">{fmtHours(p.actualHours)}</td>
+                                  <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">
                                     {fmtHours(p.projectedHours)}
                                   </td>
-                                  <td className="py-1.5 text-right">
+                                  <td className="px-3 py-1.5 text-right">
                                     <CoverageChip value={pct(p.actualHours, p.projectedHours)} />
                                   </td>
                                 </tr>
