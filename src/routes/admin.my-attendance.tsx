@@ -5,13 +5,18 @@ import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Search, ExternalLin
 import { supabase } from "@/integrations/supabase/client";
 import {
   fetchMonthPunches,
-  getAttendanceCodeForWorkedHours,
   distanceMeters,
   formatDistance,
   mapsUrl,
   DEVIATION_THRESHOLD_M,
   type SelfPunch,
 } from "@/lib/self-attendance";
+import {
+  attendanceCodeForShift,
+  fetchShiftHoursMap,
+  shiftHoursFor,
+  DEFAULT_SHIFT_HOURS,
+} from "@/lib/shift-hours";
 
 import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { PageHeader } from "@/components/PageHeader";
@@ -57,11 +62,16 @@ function workedHoursFromPunch(punch: SelfPunch | undefined): number | null {
   return Math.max(0, mins / 60);
 }
 
-function punchAttendanceCode(punch: SelfPunch | undefined, date: string, todayIso: string): "P" | "HD" | "A" | null {
+function punchAttendanceCode(
+  punch: SelfPunch | undefined,
+  date: string,
+  todayIso: string,
+  shiftHours: number = DEFAULT_SHIFT_HOURS,
+): "P" | "HD" | "A" | null {
   if (!punch?.check_in_at) return null;
   if (!punch.check_out_at) return date < todayIso ? "A" : null;
   const hours = workedHoursFromPunch(punch);
-  return hours == null ? null : getAttendanceCodeForWorkedHours(hours);
+  return hours == null ? null : attendanceCodeForShift(hours, shiftHours);
 }
 
 function attendanceDayValue(code: CodeRow | undefined) {
@@ -71,11 +81,20 @@ function attendanceDayValue(code: CodeRow | undefined) {
 }
 
 function MyAttendancePage() {
-  const [me, setMe] = useState<{ candidate_id: string | null; name: string; code: string; role_key: string | null }>({
+  const [me, setMe] = useState<{
+    candidate_id: string | null;
+    name: string;
+    code: string;
+    role_key: string | null;
+    unit_id: string | null;
+    designation_id: string | null;
+  }>({
     candidate_id: null,
     name: "",
     code: "",
     role_key: null,
+    unit_id: null,
+    designation_id: null,
   });
   const [monthDate, setMonthDate] = useState<Date>(() => new Date());
   const [search, setSearch] = useState("");
@@ -88,15 +107,24 @@ function MyAttendancePage() {
       if (!phone) return;
       const { data: c } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code,role_key")
+        .select("id,full_name,employee_code,role_key,unit_id,designation_id")
         .eq("mobile", phone)
         .maybeSingle();
-      const row = c as { id?: string; full_name?: string; employee_code?: string; role_key?: string } | null;
+      const row = c as {
+        id?: string;
+        full_name?: string;
+        employee_code?: string;
+        role_key?: string;
+        unit_id?: string | null;
+        designation_id?: string | null;
+      } | null;
       setMe({
         candidate_id: row?.id ?? null,
         name: row?.full_name ?? "",
         code: row?.employee_code ?? "",
         role_key: row?.role_key ?? null,
+        unit_id: row?.unit_id ?? null,
+        designation_id: row?.designation_id ?? null,
       });
     })();
   }, []);
@@ -163,6 +191,14 @@ function MyAttendancePage() {
   });
 
 
+  // Contractual shift length (8h / 12h) drives half-day + OT thresholds.
+  const shiftQ = useQuery({
+    queryKey: ["shift-hours-map", me.unit_id],
+    enabled: !!me.unit_id,
+    queryFn: () => fetchShiftHoursMap([me.unit_id!]),
+  });
+  const myShiftHours = shiftHoursFor(shiftQ.data, me.unit_id, me.designation_id) || DEFAULT_SHIFT_HOURS;
+
   const codeMap = useMemo(() => {
     const m = new Map<string, CodeRow>();
     for (const c of codesQ.data ?? []) m.set(c.code, c);
@@ -202,7 +238,7 @@ function MyAttendancePage() {
     for (const d of days) {
       if (d.isFuture) continue;
       const rec = byDay.get(d.date);
-      const punchCode = punchAttendanceCode(rec?.punch, d.date, todayIso);
+      const punchCode = punchAttendanceCode(rec?.punch, d.date, todayIso, myShiftHours);
       if (rec?.punch?.check_in_at && !rec.punch.check_out_at && !punchCode) continue;
       const code = punchCode ? codeMap.get(punchCode) : rec?.entry?.code ? codeMap.get(rec.entry.code) : undefined;
       if (code?.is_leave) leave += attendanceDayValue(code);
@@ -210,7 +246,7 @@ function MyAttendancePage() {
       else absent += 1;
     }
     return { present, absent, leave };
-  }, [days, byDay, codeMap]);
+  }, [days, byDay, codeMap, myShiftHours]);
 
   function shiftMonth(delta: number) {
     const d = new Date(monthDate);
@@ -278,7 +314,7 @@ function MyAttendancePage() {
           const rec = byDay.get(d.date);
           const p = rec?.punch;
           const todayIso = iso(new Date());
-          const punchCode = punchAttendanceCode(p, d.date, todayIso);
+          const punchCode = punchAttendanceCode(p, d.date, todayIso, myShiftHours);
           const code = punchCode ? codeMap.get(punchCode) : rec?.entry?.code ? codeMap.get(rec.entry.code) : undefined;
           const punchDuration = p?.check_in_at && p.check_out_at ? duration(p.check_in_at, p.check_out_at) : null;
           type Tone = "emerald" | "rose" | "amber" | "sky" | "muted";

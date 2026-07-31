@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
-import { getAttendanceCodeForWorkedHours } from "@/lib/self-attendance";
+import { attendanceCodeForShift, fetchShiftHoursMap, overtimeDaysForShift, shiftHoursFor } from "@/lib/shift-hours";
 import { cn } from "@/lib/utils";
 import { useCurrentPermissions } from "@/lib/rbac";
 
@@ -707,6 +707,14 @@ function MusterRollPage() {
     enabled: selfPunchCandidateIds.length > 0,
   });
 
+  // Contractual shift hours (8h / 12h) per designation for this unit — the
+  // foundation for attendance codes and overtime.
+  const { data: shiftMap } = useQuery({
+    queryKey: ["shift-hours-map", unitId],
+    queryFn: () => fetchShiftHoursMap([unitId]),
+    enabled: Boolean(unitId),
+  });
+
   const derivedSelfEntries = useMemo(() => {
     const desigByCand = new Map<string, string | null>(
       (employees ?? []).map((e) => [e.id, e.designation_id ?? null]),
@@ -733,19 +741,20 @@ function MusterRollPage() {
       }
       const mins = (new Date(p.check_out_at).getTime() - new Date(p.check_in_at).getTime()) / 60000;
       const hours = Math.max(0, mins / 60);
-      const otHours = Math.max(0, hours - 8);
-      const otDays = roundHalf(otHours / 8);
-      const code = getAttendanceCodeForWorkedHours(hours);
+      const designationId = desigByCand.get(p.candidate_id) ?? null;
+      const shift = shiftHoursFor(shiftMap, unitId, designationId);
+      const otDays = overtimeDaysForShift(hours, shift);
+      const code = attendanceCodeForShift(hours, shift);
       rows.push({
         candidate_id: p.candidate_id,
-        designation_id: desigByCand.get(p.candidate_id) ?? null,
+        designation_id: designationId,
         entry_date: p.punch_date,
         code,
         ot_hours: otDays,
       });
     }
     return rows;
-  }, [selfPunches, employees]);
+  }, [selfPunches, employees, shiftMap, unitId]);
 
   const entryMap = useMemo(() => {
     const m = new Map<string, EntryRow>();
