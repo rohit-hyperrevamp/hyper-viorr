@@ -57,11 +57,16 @@ function workedHoursFromPunch(punch: SelfPunch | undefined): number | null {
   return Math.max(0, mins / 60);
 }
 
-function punchAttendanceCode(punch: SelfPunch | undefined, date: string, todayIso: string): "P" | "HD" | "A" | null {
+function punchAttendanceCode(
+  punch: SelfPunch | undefined,
+  date: string,
+  todayIso: string,
+  shiftHours: number = DEFAULT_SHIFT_HOURS,
+): "P" | "HD" | "A" | null {
   if (!punch?.check_in_at) return null;
   if (!punch.check_out_at) return date < todayIso ? "A" : null;
   const hours = workedHoursFromPunch(punch);
-  return hours == null ? null : getAttendanceCodeForWorkedHours(hours);
+  return hours == null ? null : attendanceCodeForShift(hours, shiftHours);
 }
 
 function attendanceDayValue(code: CodeRow | undefined) {
