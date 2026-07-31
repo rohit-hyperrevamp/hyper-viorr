@@ -2044,7 +2044,13 @@ function ClientContractsPage() {
         kpis={
           <>
             <PageStat label="Clients + Prospects" value={overview.total} />
-            <PageStat label="Active Clients" value={overview.activeClients} tone="accent" />
+            <PageStat
+              label="Active"
+              value={overview.active}
+              tone="accent"
+              active={statusFilter === "active"}
+              onClick={() => applyStatusTile("active")}
+            />
             <PageStat
               label="Renewals ≤ 6 months"
               value={renewalCount6m}
@@ -2056,10 +2062,35 @@ function ClientContractsPage() {
                 setRenewalOnly((v) => !v);
               }}
             />
-            <PageStat label="Inactive / Expired" value={overview.inactiveClients} tone="warning" />
-            <PageStat label="Awaiting Approval" value={overview.pendingProspects} tone="warning" />
-            <PageStat label="Rejected" value={overview.rejectedProspects} tone="destructive" />
-            <PageStat label="Lost" value={overview.lostProspects} tone="destructive" />
+            <PageStat
+              label="Inactive"
+              value={overview.inactive}
+              tone="warning"
+              active={statusFilter === "inactive"}
+              onClick={() => applyStatusTile("inactive")}
+            />
+            <PageStat
+              label="Expired"
+              value={overview.expired}
+              tone="destructive"
+              active={statusFilter === "expired"}
+              onClick={() => applyStatusTile("expired")}
+            />
+            <PageStat
+              label="Pending Approval"
+              value={overview.pending_approval}
+              tone="warning"
+              active={statusFilter === "pending_approval"}
+              onClick={() => applyStatusTile("pending_approval")}
+            />
+            <PageStat
+              label="Lost"
+              value={overview.lost}
+              tone="destructive"
+              active={statusFilter === "lost"}
+              onClick={() => applyStatusTile("lost")}
+            />
+
 
           </>
         }
