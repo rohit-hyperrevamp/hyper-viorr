@@ -1,15 +1,13 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Cake, PartyPopper, ShieldAlert, UserCheck, Users, UserPlus, RefreshCw, ArrowRight } from "lucide-react";
+import { ShieldAlert, UserCheck, Users, UserPlus, RefreshCw, ArrowRight } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelineCard";
 import { stepByOrder } from "@/lib/workflows";
-
-type TabKey = "sixty" | "anniversaries" | "birthdays" | "rehire";
 
 function useEmployeeCounts() {
   return useQuery({
@@ -37,7 +35,7 @@ function useEmployeeCounts() {
 }
 
 function Stat({
-  icon: Icon, label, value, hint, loading, tone = "neutral",
+  icon: Icon, label, value, hint, loading, tone = "neutral", active, onClick, to, search,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -45,6 +43,10 @@ function Stat({
   hint?: string;
   loading?: boolean;
   tone?: "neutral" | "accent" | "amber";
+  active?: boolean;
+  onClick?: () => void;
+  to?: string;
+  search?: Record<string, unknown>;
 }) {
   const toneCls =
     tone === "accent"
@@ -52,8 +54,8 @@ function Stat({
       : tone === "amber"
         ? "bg-amber-500/15 text-amber-700 ring-amber-500/25 dark:text-amber-300"
         : "bg-muted text-muted-foreground ring-border";
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card/80 p-3.5 backdrop-blur-xl sm:p-4">
+  const body = (
+    <>
       <div className="flex items-center gap-2.5">
         <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ring-1 ring-inset ${toneCls}`}>
           <Icon className="h-3.5 w-3.5" />
@@ -66,7 +68,22 @@ function Stat({
         </div>
       </div>
       {hint && <div className="mt-2 truncate text-[11px] text-muted-foreground">{hint}</div>}
-    </div>
+    </>
+  );
+  const cls = `block w-full rounded-2xl border p-3.5 text-left backdrop-blur-xl transition sm:p-4 ${
+    active ? "border-accent/50 bg-accent/5 shadow-sm" : "border-border/60 bg-card/80 hover:border-accent/40 hover:bg-accent/5"
+  }`;
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={cls}>
+        {body}
+      </button>
+    );
+  }
+  return (
+    <Link to={to ?? "/admin/employees"} search={search as never} className={cls}>
+      {body}
+    </Link>
   );
 }
 
@@ -122,25 +139,18 @@ function RehireList() {
 }
 
 /**
- * Dedicated "Employees" block for leadership / super-admin dashboards:
- * headcount + candidate + rehire counts, with a sorted drill-down for
- * 60+, work anniversaries, birthdays and the rehire pipeline.
+ * Full-width "Employees" block for leadership / super-admin dashboards:
+ * clickable headcount / candidate / rehire / 60+ stats with birthdays and
+ * work anniversaries always visible, and an inline rehire pipeline.
  */
 export function EmployeeInsightsSection() {
   const counts = useEmployeeCounts();
   const insights = usePeopleInsights();
   const rehire = useRehirePipeline();
-  const [tab, setTab] = React.useState<TabKey>("sixty");
-
-  const tabs: Array<{ key: TabKey; label: string; count: number; Icon: React.ComponentType<{ className?: string }> }> = [
-    { key: "sixty", label: "60+ employees", count: insights.sixtyPlus.length, Icon: ShieldAlert },
-    { key: "anniversaries", label: "Work anniversaries", count: insights.anniversaries.length, Icon: PartyPopper },
-    { key: "birthdays", label: "Birthdays", count: insights.birthdays.length, Icon: Cake },
-    { key: "rehire", label: "Rehire pipeline", count: rehire.data?.pendingCount ?? 0, Icon: RefreshCw },
-  ];
+  const [showRehire, setShowRehire] = React.useState(false);
 
   return (
-    <section className="overflow-hidden rounded-[24px] border border-border/60 bg-card/70 p-4 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)] sm:p-5">
+    <section className="w-full overflow-hidden rounded-[24px] border border-border/60 bg-card/70 p-4 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)] sm:p-5">
       <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Workforce</div>
@@ -155,45 +165,31 @@ export function EmployeeInsightsSection() {
       </header>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat icon={Users} label="Employees" value={counts.data?.employees ?? 0} hint="Active & enabled" loading={counts.isLoading} tone="accent" />
-        <Stat icon={UserPlus} label="Candidates" value={counts.data?.candidates ?? 0} hint={`${counts.data?.pendingApproval ?? 0} awaiting approval`} loading={counts.isLoading} />
-        <Stat icon={RefreshCw} label="Rehire open" value={rehire.data?.pendingCount ?? 0} hint={`${rehire.data?.completedCount ?? 0} completed · ${rehire.data?.rejectedCount ?? 0} rejected`} loading={rehire.isLoading} tone="amber" />
-        <Stat icon={ShieldAlert} label="60+ employees" value={insights.sixtyPlus.length} hint="Retirement watchlist" loading={insights.isLoading} />
+        <Stat icon={Users} label="Employees" value={counts.data?.employees ?? 0} hint="Active & enabled" loading={counts.isLoading} tone="accent" to="/admin/employees" search={{ tab: "employee" }} />
+        <Stat icon={UserPlus} label="Candidates" value={counts.data?.candidates ?? 0} hint={`${counts.data?.pendingApproval ?? 0} awaiting approval`} loading={counts.isLoading} to="/admin/employees" search={{ tab: "candidate" }} />
+        <Stat
+          icon={RefreshCw}
+          label="Rehire open"
+          value={rehire.data?.pendingCount ?? 0}
+          hint={showRehire ? "Hide pipeline" : `${rehire.data?.completedCount ?? 0} completed · ${rehire.data?.rejectedCount ?? 0} rejected`}
+          loading={rehire.isLoading}
+          tone="amber"
+          active={showRehire}
+          onClick={() => setShowRehire((v) => !v)}
+        />
+        <Stat icon={ShieldAlert} label="60+ employees" value={insights.sixtyPlus.length} hint="Retirement watchlist" loading={insights.isLoading} to="/admin/employees" search={{ tab: "employee" }} />
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-1.5 rounded-2xl border border-border/60 bg-muted/40 p-1">
-        {tabs.map((t) => {
-          const active = tab === t.key;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              className={`inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-[11px] font-semibold transition ${
-                active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <t.Icon className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{t.label}</span>
-              <span className="sm:hidden">{t.label.split(" ")[0]}</span>
-              <span className="rounded-full bg-foreground/10 px-1.5 text-[10px] font-bold">{t.count}</span>
-            </button>
-          );
-        })}
-      </div>
+      {showRehire && (
+        <div className="mt-3 overflow-hidden rounded-[20px] border border-border/60 bg-card/80">
+          <RehireList />
+        </div>
+      )}
 
-      <div className="mt-3">
-        {tab === "rehire" ? (
-          <div className="overflow-hidden rounded-[20px] border border-border/60 bg-card/80">
-            <RehireList />
-          </div>
-        ) : tab === "sixty" ? (
-          <PeopleInsightsCard kind="sixty-plus" items={insights.sixtyPlus} isLoading={insights.isLoading} />
-        ) : tab === "anniversaries" ? (
-          <PeopleInsightsCard kind="anniversaries" items={insights.anniversaries} isLoading={insights.isLoading} />
-        ) : (
-          <PeopleInsightsCard kind="birthdays" items={insights.birthdays} isLoading={insights.isLoading} />
-        )}
+      <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-3">
+        <PeopleInsightsCard kind="sixty-plus" items={insights.sixtyPlus} isLoading={insights.isLoading} />
+        <PeopleInsightsCard kind="birthdays" items={insights.birthdays} isLoading={insights.isLoading} />
+        <PeopleInsightsCard kind="anniversaries" items={insights.anniversaries} isLoading={insights.isLoading} />
       </div>
     </section>
   );

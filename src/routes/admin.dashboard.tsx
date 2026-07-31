@@ -602,7 +602,7 @@ function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={pnlBlock}>
+      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{pnlBlock}</>}>
 
       <PageHeader
         title="Dashboard"
@@ -668,8 +668,6 @@ function DashboardPage() {
       </div>
 
       <RehireApprovalsCard />
-
-      {can("employees") && <EmployeeInsightsSection />}
 
       {/* Insights — gradient chart + speedometer (each gated by RBAC) */}
       {(() => {
