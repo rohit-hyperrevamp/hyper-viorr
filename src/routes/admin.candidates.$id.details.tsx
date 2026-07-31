@@ -75,6 +75,7 @@ const SECTIONS = [
   { id: "nominee", label: "Nominee", icon: UserCheck },
   { id: "office_assets", label: "Office Assets", icon: Briefcase },
   { id: "company_docs", label: "Company Documents", icon: FileSignature },
+  { id: "esic_card", label: "ESIC Card", icon: FileBadge },
   { id: "offboarding", label: "Offboarding Docs", icon: FileText },
 ] as const;
 
