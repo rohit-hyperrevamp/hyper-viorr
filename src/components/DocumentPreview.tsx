@@ -35,12 +35,23 @@ export function DocumentPreview({
   }
 
   const html = buildDocumentPageHtml(injectSignatureImages(body, employeeSignatureUrl, companySignatureUrl));
+  const card = isIdCardBody(body);
 
   return (
     <div className={`overflow-auto rounded-md bg-secondary/40 p-3 ${className}`}>
-      <div className="mx-auto w-fit origin-top scale-[0.85] shadow-lg sm:scale-100">
-        <div style={{ width: A4_WIDTH_PX }} dangerouslySetInnerHTML={{ __html: html }} />
+      <div
+        className={
+          card
+            ? "mx-auto w-fit origin-top"
+            : "mx-auto w-fit origin-top scale-[0.85] shadow-lg sm:scale-100"
+        }
+      >
+        <div
+          style={card ? undefined : { width: A4_WIDTH_PX }}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
       </div>
     </div>
   );
 }
+
