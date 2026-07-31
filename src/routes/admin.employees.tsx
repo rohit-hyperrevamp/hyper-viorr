@@ -15,7 +15,7 @@ import {
 } from "@/components/candidate-extra-sections";
 import { GuardReportingManagersEditor } from "@/components/GuardReportingManagersEditor";
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClientOnlyFn, useServerFn } from "@tanstack/react-start";
 import {
@@ -4143,6 +4143,7 @@ function CandidateWizard({
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [saveError, setSaveError] = useState<{ title: string; detail?: string } | null>(null);
+  const [invalidField, setInvalidField] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   // Aadhaar is the unique person key — a hit here means this person already
@@ -4501,6 +4502,7 @@ function CandidateWizard({
     { key: "PAN upload", ok: !!form.pan_image_url },
     { key: "Signature", ok: !!form.signature_url },
     { key: "Full name", ok: !!form.full_name.trim() },
+    { key: "Mobile", ok: /^[6-9]\d{9}$/.test(form.mobile.trim()) },
     { key: "Aadhaar number", ok: /^\d{12}$/.test(form.aadhaar_number) },
     { key: "Date of birth", ok: !!form.date_of_birth },
     { key: "Gender", ok: !!form.gender },
@@ -4776,9 +4778,24 @@ function CandidateWizard({
     }
   };
 
-  const failValidation = (message: string) => {
+  useEffect(() => {
+    if (invalidField) setInvalidField(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form]);
+
+  const failValidation = (message: string, anchor?: string) => {
     setSaveError({ title: "Missing required information", detail: message });
     toast.error(message);
+    setInvalidField(anchor ?? null);
+    if (anchor) {
+      window.setTimeout(() => {
+        const el = document.getElementById(`fld-${anchor}`);
+        if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        const focusable = el.querySelector<HTMLElement>("input, select, textarea, button");
+        focusable?.focus({ preventScroll: true });
+      }, 60);
+    }
   };
 
   const submit = async () => {
@@ -4788,14 +4805,15 @@ function CandidateWizard({
       if (!form.aadhaar_image_url) return failValidation("Aadhaar upload is required");
       if (!form.signature_url) return failValidation("Signature is required");
       if (!form.pan_image_url) return failValidation("PAN card upload is required");
-      if (!form.full_name.trim()) return failValidation("Name is required");
-      if (!form.mobile.trim()) return failValidation("Mobile is required");
+      if (!form.full_name.trim()) return failValidation("Full name is required (Basic Information)", "full_name");
+      if (!/^[6-9]\d{9}$/.test(form.mobile.trim()))
+        return failValidation("A valid 10-digit mobile number is required (Basic Information) — it is also the login ID", "mobile");
       if (!String(((form.physical_health ?? {}) as Record<string, unknown>).blood_group ?? "").trim())
-        return failValidation("Blood group is required (Physical & Health section) — it is printed on the employee ID card");
+        return failValidation("Blood group is required (Physical & Health section) — it is printed on the employee ID card", "blood_group");
 
-      if (!form.permanent_district.trim()) return failValidation("District is required in the permanent address");
+      if (!form.permanent_district.trim()) return failValidation("District is required in the permanent address", "permanent_district");
       if (!form.same_as_permanent && !form.present_district.trim())
-        return failValidation("District is required in the present address");
+        return failValidation("District is required in the present address", "present_district");
       const uanValue = String(((form.compliance ?? {}) as Record<string, unknown>).uan ?? "").trim();
       if (!uanValue) return failValidation("UAN is required (Compliance section)");
       if (!/^1\d{11}$/.test(uanValue))
@@ -4813,11 +4831,11 @@ function CandidateWizard({
         return failValidation("ESIC Branch is missing. Please map a branch from ESIC Branch Manager (Compliance section).");
       }
       if (form.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(form.pan_number.trim().toUpperCase()))
-        return failValidation("PAN number format is invalid (e.g. ABCDE1234F)");
+        return failValidation("PAN number format is invalid (e.g. ABCDE1234F)", "pan_number");
       if (form.bank_ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(form.bank_ifsc.trim().toUpperCase()))
-        return failValidation("IFSC code format is invalid (e.g. SBIN0001234)");
+        return failValidation("IFSC code format is invalid (e.g. SBIN0001234)", "bank_ifsc");
       if (form.bank_account_number && !/^\d{6,18}$/.test(form.bank_account_number.trim()))
-        return failValidation("Bank account number must be 6–18 digits");
+        return failValidation("Bank account number must be 6–18 digits", "bank_account_number");
     }
     setSubmitting(true);
     try {
@@ -4858,6 +4876,7 @@ function CandidateWizard({
   }, [open]);
 
   return (
+    <InvalidFieldContext.Provider value={invalidField}>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent ref={wizardScrollRef} className="candidate-wizard-page z-[100] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 overflow-y-auto overscroll-contain rounded-none border-0 p-0 sm:h-auto sm:max-h-[92dvh] sm:w-[96vw] sm:max-w-4xl sm:overflow-hidden sm:rounded-lg sm:border">
 
@@ -5078,8 +5097,27 @@ function CandidateWizard({
 
               <Section title="Basic Information">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field label="Full Name" required>
+                  <Field label="Full Name" required anchor="full_name">
                     <Input value={form.full_name} onChange={(e) => set("full_name", e.target.value)} />
+                  </Field>
+                  <Field label="Mobile" required anchor="mobile">
+                    <Input
+                      value={form.mobile}
+                      inputMode="numeric"
+                      placeholder="10-digit mobile"
+                      className="font-mono"
+                      onChange={(e) => set("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    />
+                    <p className="mt-1 text-[11px] text-muted-foreground">Used as the login ID for this person.</p>
+                  </Field>
+                  <Field label="Alternate Mobile">
+                    <Input
+                      value={form.alt_mobile}
+                      inputMode="numeric"
+                      placeholder="Optional"
+                      className="font-mono"
+                      onChange={(e) => set("alt_mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    />
                   </Field>
                   <Field label="Date of Birth">
                     <Popover>
@@ -5443,7 +5481,7 @@ function CandidateWizard({
                       placeholder="As per bank records"
                     />
                   </Field>
-                  <Field label="Account Number">
+                  <Field label="Account Number" anchor="bank_account_number">
                     <Input
                       value={form.bank_account_number}
                       inputMode="numeric"
@@ -5453,7 +5491,7 @@ function CandidateWizard({
                       className="font-mono"
                     />
                   </Field>
-                  <Field label="IFSC Code">
+                  <Field label="IFSC Code" anchor="bank_ifsc">
                     <Input
                       value={form.bank_ifsc}
                       onChange={(e) => set("bank_ifsc", e.target.value.toUpperCase().slice(0, 11))}
@@ -5478,7 +5516,7 @@ function CandidateWizard({
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label="PAN Number">
+                  <Field label="PAN Number" anchor="pan_number">
                     <Input
                       format="pan"
                       value={form.pan_number}
@@ -5500,6 +5538,7 @@ function CandidateWizard({
                     state: form.permanent_state,
                     country: form.permanent_country,
                   }}
+                  anchorPrefix="permanent"
                   onChange={(patch) => {
                     setForm((f) => {
                       const next = { ...f };
@@ -5542,6 +5581,7 @@ function CandidateWizard({
                         state: form.present_state,
                         country: form.present_country,
                       }}
+                      anchorPrefix="present"
                       onChange={(patch) =>
                         setForm((f) => {
                           const next = { ...f };
@@ -5846,6 +5886,7 @@ function CandidateWizard({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </InvalidFieldContext.Provider>
   );
 }
 
@@ -5862,13 +5903,32 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+const InvalidFieldContext = createContext<string | null>(null);
+
+function Field({
+  label,
+  required,
+  anchor,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  anchor?: string;
+  children: React.ReactNode;
+}) {
+  const invalidAnchor = useContext(InvalidFieldContext);
+  const invalid = !!anchor && invalidAnchor === anchor;
   return (
-    <div>
+    <div
+      id={anchor ? `fld-${anchor}` : undefined}
+      data-invalid={invalid ? "true" : undefined}
+      className={invalid ? "rounded-xl bg-rose-500/5 p-2 ring-2 ring-rose-500/60 [&_input]:border-rose-500 [&_button]:border-rose-500" : undefined}
+    >
       <Label className="mb-1.5 block">
         {label} {required && <span className="text-rose-500">*</span>}
       </Label>
       {children}
+      {invalid && <p className="mt-1 text-[11px] font-semibold text-rose-600">This field needs your attention</p>}
     </div>
   );
 }
@@ -5922,13 +5982,15 @@ function DatePickerInput({
 function CandidateAddressFields({
   block,
   onChange,
+  anchorPrefix,
 }: {
   block: AddressBlock;
   onChange: (patch: Partial<AddressBlock>) => void;
+  anchorPrefix?: string;
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <Field label="District" required>
+      <Field label="District" required anchor={anchorPrefix ? `${anchorPrefix}_district` : undefined}>
         <Input value={block.district} onChange={(e) => onChange({ district: e.target.value })} />
       </Field>
       <Field label="Address line 1">
