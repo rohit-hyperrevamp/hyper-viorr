@@ -151,7 +151,7 @@ export function CandidateCompanyDocuments({
         </div>
       ) : docs.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          No company documents generated yet. Use “Generate / Refresh Form VII”.
+          No company documents generated yet. Use “Generate / Refresh Documents”.
         </div>
       ) : (
         <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
