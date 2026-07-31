@@ -2601,60 +2601,32 @@ function ClientContractsPage() {
   );
 }
 
-function ApprovalBadge({ status, reason }: { status: ApprovalStatus; reason?: string }) {
-  const map: Record<ApprovalStatus, { cls: string; label: string }> = {
-    pending: { cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400", label: "Pending" },
-    approved: { cls: "bg-accent/15 text-accent", label: "Approved" },
-    rejected: { cls: "bg-destructive/15 text-destructive", label: "Rejected" },
+function StatusBadge({ status, reason }: { status: UnifiedStatus; reason?: string }) {
+  const map: Record<UnifiedStatus, string> = {
+    active: "bg-accent/15 text-accent",
+    inactive: "bg-muted text-muted-foreground",
+    expired: "bg-destructive/15 text-destructive",
+    pending_approval: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    lost: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
   };
-  const { cls, label } = map[status];
   return (
     <div className="flex flex-col gap-0.5">
       <span
         className={cn(
-          "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider",
-          cls,
+          "inline-flex w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider",
+          map[status],
         )}
-        title={status === "rejected" && reason ? reason : undefined}
+        title={reason || undefined}
       >
         <span className="h-1.5 w-1.5 rounded-full bg-current" />
-        {label}
+        {STATUS_LABEL[status]}
       </span>
-      {status === "rejected" && reason ? (
+      {reason ? (
         <span className="max-w-[220px] truncate text-[11px] text-destructive/80" title={reason}>
           {reason}
         </span>
       ) : null}
     </div>
-  );
-}
-
-function LostBadge() {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      Lost
-    </span>
-  );
-}
-
-
-function StatusBadge({ status }: { status: ContractStatus }) {
-  const map: Record<ContractStatus, string> = {
-    active: "bg-accent/15 text-accent",
-    inactive: "bg-muted text-muted-foreground",
-    expired: "bg-destructive/15 text-destructive",
-  };
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider",
-        map[status],
-      )}
-    >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {status}
-    </span>
   );
 }
 
