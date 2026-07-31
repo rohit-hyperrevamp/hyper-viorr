@@ -57,6 +57,7 @@ import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScop
 import { supabase } from "@/integrations/supabase/client";
 import { useFieldOfficerUnitScope } from "@/lib/use-fo-unit-scope";
 import { ListSkeleton } from "@/components/Skeletons";
+import { AttendanceCharter } from "@/components/AttendanceCharter";
 
 
 export const Route = createFileRoute("/admin/attendance/")({
@@ -533,22 +534,13 @@ function AttendanceUnitsPage() {
         <div className="space-y-3 border-b border-border/60 px-4 py-4 sm:px-5 sm:py-5">
           <div className="flex flex-col gap-1">
             <h2 className="font-display text-base font-bold tracking-tight text-foreground sm:text-lg">
-              Attendance unit register
+              Attendance charter
             </h2>
             <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
-              Open any unit to view its month-wise muster roll.
+              Committed vs actual deployment with month-till-date attendance. Open any unit for its full muster roll.
             </p>
           </div>
 
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search unit, client, code, employee…"
-              className="h-11 rounded-2xl border-border/60 bg-background pl-10 text-sm"
-            />
-          </div>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <FilterSelect
@@ -650,7 +642,7 @@ function AttendanceUnitsPage() {
                               search={{ month: monthIdx, year }}
                               className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-xs font-medium text-foreground hover:border-accent/50 hover:text-accent"
                             >
-                              Open roll <ArrowRight className="h-3 w-3" />
+                              Open attendance <ArrowRight className="h-3 w-3" />
                             </Link>
                           </div>
                         </td>
@@ -664,193 +656,21 @@ function AttendanceUnitsPage() {
         )}
 
 
-        <div className="divide-y divide-border/50">
+        <div className="px-4 py-4 sm:px-5 sm:py-5">
           {isLoading ? (
             <ListSkeleton rows={5} />
-
           ) : error ? (
             <div className="px-5 py-12 text-center text-sm text-destructive">
               {error instanceof Error ? error.message : "Could not load attendance units right now."}
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-              {units.length === 0 ? "No units with active contracts yet." : "No units match the current filters."}
-            </div>
           ) : (
-            <>
-              {/* Desktop header */}
-              <div
-                className="hidden px-5 py-3 text-left text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground lg:grid lg:items-center lg:gap-5 bg-secondary/40"
-                style={{ gridTemplateColumns: "minmax(0,2.2fr) minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,2fr) 90px 150px 130px" }}
-              >
-                <div className="min-w-0">Unit</div>
-                <div className="min-w-0">Organization</div>
-                <div className="min-w-0">Location</div>
-                <div className="min-w-0">Security guards</div>
-                <div className="text-right">Active</div>
-                <div>Status</div>
-                <div className="text-right">Action</div>
-              </div>
-              {filtered.map((unit) => {
-              const sheet = sheetsByUnit?.get(unit.id) ?? null;
-              const sheetStatus: SheetStatus | "none" = sheet?.status ?? "none";
-              const statusBadge = (() => {
-                if (sheetStatus === "approved")
-                  return { label: "Approved", cls: "border-emerald-300/60 bg-emerald-100/70 text-emerald-800", Icon: CheckCircle2 };
-                if (sheetStatus === "submitted")
-                  return { label: "Awaiting approval", cls: "border-amber-300/60 bg-amber-100/70 text-amber-800", Icon: Clock3 };
-                if (sheetStatus === "rejected")
-                  return { label: "Rejected — open", cls: "border-rose-300/60 bg-rose-100/70 text-rose-800", Icon: ClipboardList };
-                return { label: "Open", cls: "border-sky-300/60 bg-sky-100/70 text-sky-800", Icon: ClipboardList };
-              })();
-              return (
-                <div
-                  key={unit.id}
-                  className="group px-3.5 py-3.5 transition-colors hover:bg-amber-50/30 dark:hover:bg-amber-500/5 sm:px-5 sm:py-5 lg:grid lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_minmax(0,2fr)_90px_150px_130px] lg:items-start lg:gap-5"
-                >
-                  {/* Mobile card layout */}
-                  <div className="lg:hidden">
-                    <div className="flex items-start gap-3">
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
-                        <MapPinned className="h-[18px] w-[18px]" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="break-words text-[14px] font-bold leading-snug text-foreground">
-                          {unit.name || unit.code}
-                        </div>
-                        <div className="mt-0.5 break-words text-[12px] font-medium text-muted-foreground">
-                          {unit.customer_name}
-                          {unit.location ? ` · ${unit.location}` : ""}
-                        </div>
-                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                          <span className="inline-flex rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-foreground">
-                            {unit.code || "—"}
-                          </span>
-                          {unit.contract_codes.slice(0, 2).map((cc) => (
-                            <span key={cc} className="inline-flex rounded-full border border-accent/20 bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
-                              {cc}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusBadge.cls}`}>
-                        <statusBadge.Icon className="h-3 w-3" /> {statusBadge.label}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 flex items-center gap-3 rounded-2xl border border-border/60 bg-secondary/30 px-3 py-2.5">
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-display text-xl font-bold tabular-nums leading-none text-foreground">{unit.active_employee_count}</span>
-                        <span className="text-[11px] font-medium text-muted-foreground">active</span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <EmployeeChips list={unit.security_guards} empty="—" tone="emerald" />
-                      </div>
-                      {sheetStatus === "approved" && canApprove ? (
-                        <button
-                          type="button"
-                          data-no-pill
-                          onClick={() => sheet && reopenSheet.mutate(sheet)}
-                          disabled={!sheet || reopenSheet.isPending}
-                          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full border border-amber-300/60 bg-amber-50 px-3 text-[11.5px] font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-60"
-                        >
-                          <RotateCcw className="h-3.5 w-3.5" /> Reopen
-                        </button>
-                      ) : (
-                        <Link
-                          to="/admin/attendance/$unitId"
-                          params={{ unitId: unit.id }}
-                          search={{ month: monthIdx, year }}
-                          data-no-pill
-                          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-primary px-3.5 text-[11.5px] font-bold text-primary-foreground shadow-sm hover:opacity-90"
-                        >
-                          Open <ArrowRight className="h-3.5 w-3.5" />
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-
-
-                  {/* Desktop grid cells */}
-                  <div className="hidden min-w-0 items-start gap-3 lg:flex">
-                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-100/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
-                      <MapPinned className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="break-words text-sm font-semibold leading-snug text-foreground">
-                        {unit.name || unit.code}
-                      </div>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <span className="inline-flex whitespace-nowrap rounded-md bg-secondary px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-foreground">
-                          {unit.code || "—"}
-                        </span>
-                        {unit.contract_codes.slice(0, 2).map((cc) => (
-                          <span key={cc} className="inline-flex whitespace-nowrap rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent">
-                            {cc}
-                          </span>
-                        ))}
-                        {unit.contract_codes.length > 2 && (
-                          <span className="text-[10px] text-muted-foreground">+{unit.contract_codes.length - 2}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="hidden min-w-0 text-sm lg:block break-words text-foreground">{unit.customer_name}</div>
-                  <div className="hidden min-w-0 text-sm lg:block break-words text-muted-foreground">{unit.location || "—"}</div>
-                  <div className="hidden min-w-0 lg:block">
-                    <EmployeeChips list={unit.security_guards} empty="—" tone="emerald" />
-                  </div>
-                  <div className="hidden min-w-0 lg:block lg:text-right">
-                    <div className="text-xl font-semibold tracking-tight text-foreground leading-none sm:text-2xl">
-                      {unit.active_employee_count}
-                    </div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">employees</div>
-                  </div>
-                  <div className="hidden min-w-0 lg:block">
-                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusBadge.cls}`}>
-                      <statusBadge.Icon className="h-3.5 w-3.5 shrink-0" /> {statusBadge.label}
-                    </span>
-                  </div>
-                  <div className="hidden min-w-0 lg:block lg:text-right">
-                    {sheetStatus === "approved" ? (
-                      canApprove ? (
-                        <button
-                          type="button"
-                          data-no-pill
-                          onClick={() => sheet && reopenSheet.mutate(sheet)}
-                          disabled={!sheet || reopenSheet.isPending}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 text-xs font-semibold text-amber-900 hover:border-amber-400 hover:bg-amber-100 disabled:opacity-60"
-                        >
-                          <RotateCcw className="h-3.5 w-3.5" /> Reopen
-                        </button>
-                      ) : (
-                        <Link
-                          to="/admin/attendance/$unitId"
-                          params={{ unitId: unit.id }}
-                          search={{ month: monthIdx, year }}
-                          data-no-pill
-                          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 text-xs font-semibold text-muted-foreground hover:border-accent/50 hover:text-accent"
-                        >
-                          View roll <ArrowRight className="h-3.5 w-3.5" />
-                        </Link>
-                      )
-                    ) : (
-                      <Link
-                        to="/admin/attendance/$unitId"
-                        params={{ unitId: unit.id }}
-                        search={{ month: monthIdx, year }}
-                        data-no-pill
-                        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 text-xs font-semibold text-foreground hover:border-accent/50 hover:text-accent"
-                      >
-                        Open roll <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </>
+            <AttendanceCharter
+              units={filtered}
+              monthIdx={monthIdx}
+              year={year}
+              query={q}
+              onQueryChange={setQ}
+            />
           )}
         </div>
       </div>
