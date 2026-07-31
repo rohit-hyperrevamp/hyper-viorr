@@ -623,6 +623,9 @@ export type Database = {
           emergency_contact_name: string
           emergency_contact_relation: string
           employee_code: string
+          esic_card_uploaded_at: string | null
+          esic_card_uploaded_by: string | null
+          esic_card_url: string | null
           ex_service_id: string | null
           experiences: Json
           extra_curricular: Json
@@ -711,6 +714,9 @@ export type Database = {
           emergency_contact_name?: string
           emergency_contact_relation?: string
           employee_code?: string
+          esic_card_uploaded_at?: string | null
+          esic_card_uploaded_by?: string | null
+          esic_card_url?: string | null
           ex_service_id?: string | null
           experiences?: Json
           extra_curricular?: Json
@@ -799,6 +805,9 @@ export type Database = {
           emergency_contact_name?: string
           emergency_contact_relation?: string
           employee_code?: string
+          esic_card_uploaded_at?: string | null
+          esic_card_uploaded_by?: string | null
+          esic_card_url?: string | null
           ex_service_id?: string | null
           experiences?: Json
           extra_curricular?: Json
