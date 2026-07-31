@@ -976,13 +976,18 @@ export const ID_CARD_CSS = `
 .idcard .row .k { width: 56px; font-weight: 700; flex: 0 0 56px; }
 .idcard .row .c { width: 8px; flex: 0 0 8px; }
 .idcard .row .v { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.idcard .auth { margin-top: auto; text-align: right; }
-.idcard .auth .sig-slot { display: block; min-height: 34px; }
-.idcard .auth .sig-img { display: block; height: 34px; width: auto; max-width: 96px; object-fit: contain;
-  margin: 0 0 1px auto; }
-.idcard .auth .sig-line { border-top: 1px solid #111; width: 96px; margin-left: auto; }
+.idcard .auth { margin-top: auto; text-align: right; padding-bottom: 2px; }
+.idcard .sig-slot { display: block; min-height: 26px; }
+/* Any signature/stamp image on the card is hard-capped so it can never bleed
+   past the card edge, whichever slot it was injected into. */
+.idcard .sig-img,
+.idcard .auth .sig-img,
+.idcard .auth .sig-company { display: block; height: 26px; width: auto; max-width: 78px;
+  object-fit: contain; margin: 0 0 1px auto; }
+.idcard .auth .sig-line { border-top: 1px solid #111; width: 78px; margin-left: auto; }
 
-.idcard .auth .auth-label { font-size: 9.5px; font-weight: 700; margin-top: 2px; }
+.idcard .auth .auth-label { font-size: 9px; font-weight: 700; margin-top: 2px; }
+
 .idcard .back-title { text-align: center; font-weight: 700; font-size: 10.5px; margin-top: 14px; }
 .idcard .back-block { text-align: center; font-size: 10px; font-weight: 700; line-height: 1.45; margin-top: 6px; }
 .idcard .back-contact { text-align: center; font-size: 10px; line-height: 1.7; margin-top: 14px; }
