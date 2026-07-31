@@ -599,6 +599,8 @@ function TemplateEditorDialog({
             </div>
           </div>
         </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
