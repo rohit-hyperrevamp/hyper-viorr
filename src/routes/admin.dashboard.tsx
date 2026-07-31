@@ -600,9 +600,63 @@ function DashboardPage() {
     </div>
   ) : null;
 
+  const insightsCharts = (() => {
+        if (isLoading || !data) return null;
+        const showInvoiceChart = can("invoice") && data.pnlRows.length > 0;
+        const sheetTotal = data.sheetCounts.approved + data.sheetCounts.pending + data.sheetCounts.draft + data.sheetCounts.rejected;
+        const showGauge = can("attendance") && sheetTotal > 0;
+        if (!showInvoiceChart && !showGauge) return null;
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            className={`grid grid-cols-1 gap-4 ${showInvoiceChart && showGauge ? "lg:grid-cols-3" : "lg:grid-cols-1"}`}
+          >
+            {showInvoiceChart && (
+              <div className={`glass relative overflow-hidden rounded-3xl p-5 ${showGauge ? "lg:col-span-2" : ""}`}>
+                <div className="mb-3 flex items-end justify-between">
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Top units · this cycle</div>
+                    <div className="font-display text-lg font-semibold tracking-tight text-foreground">{can("payroll") ? "Invoice vs Payroll" : "Invoice"}</div>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[oklch(0.55_0.22_255)]" /> Invoice</span>
+                    {can("payroll") && <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[oklch(0.85_0.18_95)]" /> Payroll</span>}
+                  </div>
+                </div>
+                <GradientBarChart
+                  id="dash-invoice"
+                  data={data.pnlRows.slice(0, 7).map((r) => ({
+                    label: (r.unit_code || r.unit_name || "").slice(0, 8),
+                    value: Math.round(r.invoice_amount),
+                  }))}
+                  formatValue={(n) => n >= 100000 ? `${(n / 100000).toFixed(1)}L` : n >= 1000 ? `${(n / 1000).toFixed(0)}k` : String(n)}
+                  height={240}
+                />
+              </div>
+            )}
+            {showGauge && (
+              <div className="glass relative flex flex-col items-center justify-center overflow-hidden rounded-3xl p-5">
+                <div className="mb-2 text-center">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Approval rate</div>
+                  <div className="font-display text-lg font-semibold tracking-tight text-foreground">Cycle health</div>
+                </div>
+                <RadialGauge
+                  value={sheetTotal === 0 ? 0 : Math.round((data.sheetCounts.approved / sheetTotal) * 100)}
+                  label="Attendance approved"
+                  sublabel={`${data.sheetCounts.approved} of ${sheetTotal} sheets`}
+                  size={220}
+                />
+              </div>
+            )}
+          </motion.div>
+        );
+      })();
+
   return (
     <div className="p-4 sm:p-6">
-      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{pnlBlock}</>}>
+      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{insightsCharts}{pnlBlock}</>}>
 
       <PageHeader
         title="Dashboard"
@@ -668,61 +722,6 @@ function DashboardPage() {
       </div>
 
       <RehireApprovalsCard />
-
-      {/* Insights — gradient chart + speedometer (each gated by RBAC) */}
-      {(() => {
-        if (isLoading || !data) return null;
-        const showInvoiceChart = can("invoice") && data.pnlRows.length > 0;
-        const sheetTotal = data.sheetCounts.approved + data.sheetCounts.pending + data.sheetCounts.draft + data.sheetCounts.rejected;
-        const showGauge = can("attendance") && sheetTotal > 0;
-        if (!showInvoiceChart && !showGauge) return null;
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className={`grid grid-cols-1 gap-4 ${showInvoiceChart && showGauge ? "lg:grid-cols-3" : "lg:grid-cols-1"}`}
-          >
-            {showInvoiceChart && (
-              <div className={`glass relative overflow-hidden rounded-3xl p-5 ${showGauge ? "lg:col-span-2" : ""}`}>
-                <div className="mb-3 flex items-end justify-between">
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Top units · this cycle</div>
-                    <div className="font-display text-lg font-semibold tracking-tight text-foreground">{can("payroll") ? "Invoice vs Payroll" : "Invoice"}</div>
-                  </div>
-                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[oklch(0.55_0.22_255)]" /> Invoice</span>
-                    {can("payroll") && <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[oklch(0.85_0.18_95)]" /> Payroll</span>}
-                  </div>
-                </div>
-                <GradientBarChart
-                  id="dash-invoice"
-                  data={data.pnlRows.slice(0, 7).map((r) => ({
-                    label: (r.unit_code || r.unit_name || "").slice(0, 8),
-                    value: Math.round(r.invoice_amount),
-                  }))}
-                  formatValue={(n) => n >= 100000 ? `${(n / 100000).toFixed(1)}L` : n >= 1000 ? `${(n / 1000).toFixed(0)}k` : String(n)}
-                  height={240}
-                />
-              </div>
-            )}
-            {showGauge && (
-              <div className="glass relative flex flex-col items-center justify-center overflow-hidden rounded-3xl p-5">
-                <div className="mb-2 text-center">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Approval rate</div>
-                  <div className="font-display text-lg font-semibold tracking-tight text-foreground">Cycle health</div>
-                </div>
-                <RadialGauge
-                  value={sheetTotal === 0 ? 0 : Math.round((data.sheetCounts.approved / sheetTotal) * 100)}
-                  label="Attendance approved"
-                  sublabel={`${data.sheetCounts.approved} of ${sheetTotal} sheets`}
-                  size={220}
-                />
-              </div>
-            )}
-          </motion.div>
-        );
-      })()}
 
       {/* P&L renders full-width below the shell via fullWidthBelow */}
 

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ShieldAlert, UserCheck, Users, UserPlus, RefreshCw, ArrowRight } from "lucide-react";
+import { UserMinus, ShieldAlert, UserCheck, Users, UserPlus, RefreshCw, ArrowRight } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { usePeopleInsights } from "@/lib/people-insights";
@@ -164,7 +164,7 @@ export function EmployeeInsightsSection() {
         </Link>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat icon={Users} label="Employees" value={counts.data?.employees ?? 0} hint="Active & enabled" loading={counts.isLoading} tone="accent" to="/admin/employees" search={{ tab: "employee" }} />
         <Stat icon={UserPlus} label="Candidates" value={counts.data?.candidates ?? 0} hint={`${counts.data?.pendingApproval ?? 0} awaiting approval`} loading={counts.isLoading} to="/admin/employees" search={{ tab: "candidate" }} />
         <Stat
@@ -177,6 +177,7 @@ export function EmployeeInsightsSection() {
           active={showRehire}
           onClick={() => setShowRehire((v) => !v)}
         />
+        <Stat icon={UserMinus} label="Offboarded" value={counts.data?.offboarded ?? 0} hint="Exited / disabled" loading={counts.isLoading} to="/admin/employees" search={{ tab: "employee" }} />
         <Stat icon={ShieldAlert} label="60+ employees" value={insights.sixtyPlus.length} hint="Retirement watchlist" loading={insights.isLoading} to="/admin/employees" search={{ tab: "employee" }} />
       </div>
 
@@ -186,8 +187,7 @@ export function EmployeeInsightsSection() {
         </div>
       )}
 
-      <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-3">
-        <PeopleInsightsCard kind="sixty-plus" items={insights.sixtyPlus} isLoading={insights.isLoading} />
+      <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
         <PeopleInsightsCard kind="birthdays" items={insights.birthdays} isLoading={insights.isLoading} />
         <PeopleInsightsCard kind="anniversaries" items={insights.anniversaries} isLoading={insights.isLoading} />
       </div>
