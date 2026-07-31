@@ -2306,7 +2306,7 @@ function ClientContractsPage() {
                 ) : (
                   <th className="px-5 py-3" data-col="date">Start</th>
                 )}
-                <th className="px-5 py-3" data-col={tab === "client" ? "status" : "approval"}>{tab === "client" ? "Status" : "Approval"}</th>
+                <th className="px-5 py-3" data-col="status">Status</th>
                 <th className="px-5 py-3 text-right" data-col="actions">Actions</th>
               </tr>
             </thead>
