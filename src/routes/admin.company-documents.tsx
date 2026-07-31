@@ -526,10 +526,12 @@ function TemplateEditorDialog({
   }, [open, template?.id]);
 
   const effectiveDocType = (template?.doc_type ?? docType) as DocType | undefined;
+  const idCardSpec =
+    effectiveDocType === "id_card" ? (parseIdCardSpec(body) ?? DEFAULT_ID_CARD_SPEC) : null;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {mode === "edit"
@@ -539,12 +541,27 @@ function TemplateEditorDialog({
                 }`}
           </DialogTitle>
           <DialogDescription>
-            {mode === "publish"
-              ? "Pre-filled from the currently active version. Publishing will archive the previous active version automatically."
-              : "Edit the template in place. Use $placeholders for dynamic fields."}
+            {idCardSpec
+              ? "Edit the card text directly. Labels are free text; values marked with $ are filled from each employee's profile."
+              : mode === "publish"
+                ? "Pre-filled from the currently active version. Publishing will archive the previous active version automatically."
+                : "Edit the template in place. Use $placeholders for dynamic fields."}
           </DialogDescription>
         </DialogHeader>
+        {idCardSpec ? (
+          <div className="space-y-3">
+            <div className="grid gap-2">
+              <Label>Title</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <IdCardEditor
+              spec={idCardSpec}
+              onChange={(next) => setBody(serializeIdCardSpec(next))}
+            />
+          </div>
+        ) : (
         <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
+
           <div className="space-y-3">
             <div className="grid gap-2">
               <Label>Title</Label>
