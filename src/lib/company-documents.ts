@@ -97,13 +97,11 @@ export type CandidateForRender = {
  * Assets are served from Lovable's CDN path. PDFs and previews on custom
  * domains need the absolute URL, so resolve it against the current origin.
  */
+export const DOCUMENT_ASSET_ORIGIN = "https://radiant-guard-services.lovable.app";
+
 export function absoluteAssetUrl(path: string): string {
   if (/^https?:/i.test(path)) return path;
-  const origin =
-    typeof window !== "undefined" && window.location?.origin
-      ? window.location.origin
-      : "https://radiant-guard-services.lovable.app";
-  return `${origin}${path}`;
+  return `${DOCUMENT_ASSET_ORIGIN}${path}`;
 }
 
 
@@ -671,7 +669,7 @@ export function downloadBlob(blob: Blob, filename: string) {
 
 /** A template body is treated as a statutory HTML form when it starts with a tag. */
 export function isHtmlBody(body: string | null | undefined): boolean {
-  return !!body && /^\s*</.test(body);
+  return !!body && (/^\s*</.test(body) || isIdCardBody(body));
 }
 
 /** A4 at 96dpi. Used identically for on-screen preview and the printed PDF. */
@@ -896,7 +894,7 @@ function esicFamilyTableText(members: EsicFamilyForRender[]): string {
  */
 export function buildDocumentPageHtml(body: string): string {
   if (isIdCardBody(body)) {
-    return `<style>${ID_CARD_CSS}</style>${body}`;
+    return `<style>${ID_CARD_CSS}</style>${expandIdCardBody(body)}`;
   }
   return `<style>${DOCUMENT_PAGE_CSS}</style><div class="govdoc">${body}</div>`;
 }
@@ -910,7 +908,9 @@ export const ID_CARD_WIDTH_PX = 204;
 export const ID_CARD_HEIGHT_PX = 324;
 
 export function isIdCardBody(body: string | null | undefined): boolean {
-  return !!body && /idcard-sheet/.test(body);
+  if (!body) return false;
+  if (/idcard-sheet/.test(body)) return true;
+  return !!parseIdCardSpec(body);
 }
 
 export const ID_CARD_CSS = `
@@ -999,6 +999,168 @@ export const DEFAULT_ID_CARD_TEMPLATE = `<div class="idcard-sheet">
   </div>
 </div>`;
 
+/* ------------------------------------------------------------------ */
+/* ID card structured spec (form-editable)                             */
+/* ------------------------------------------------------------------ */
+
+export type IdCardField = { label: string; value: string };
+
+export type IdCardSpec = {
+  kind: "id_card";
+  logoUrl: string;
+  frontLogoHeight: number;
+  backLogoHeight: number;
+  front: {
+    companyName: string;
+    showPhoto: boolean;
+    showPhotoStamp: boolean;
+    fields: IdCardField[];
+    authorityLabel: string;
+    showAuthoritySignature: boolean;
+  };
+  back: {
+    companyName: string;
+    addressTitle: string;
+    addressLines: string[];
+    contactLines: string[];
+    validityLine: string;
+  };
+};
+
+export const DEFAULT_ID_CARD_SPEC: IdCardSpec = {
+  kind: "id_card",
+  logoUrl: COMPANY_LOGO_URL,
+  frontLogoHeight: 52,
+  backLogoHeight: 64,
+  front: {
+    companyName: "Radiant Guard Services Pvt.Ltd.",
+    showPhoto: true,
+    showPhotoStamp: true,
+    fields: [
+      { label: "Name", value: "$employee_name" },
+      { label: "Rank", value: "$rank" },
+      { label: "I. D. No.", value: "$id_no" },
+      { label: "BG", value: "$blood_group" },
+      { label: "DOJ", value: "$joining_date" },
+    ],
+    authorityLabel: "Issuing Authority",
+    showAuthoritySignature: true,
+  },
+  back: {
+    companyName: "Radiant Guard Services Pvt.Ltd.",
+    addressTitle: "Corporate Office :",
+    addressLines: ["818, Clover Hills Plaza", "NIBM Road, Kondhwa", "Pune - 411048"],
+    contactLines: ["Ph. No. - 020 48622515", "Mob.No. : 09156453001"],
+    validityLine: "Validity : 1 Year from date of Issue",
+  },
+};
+
+/** Parses a stored ID card body as a structured spec, or returns null for HTML bodies. */
+export function parseIdCardSpec(body: string | null | undefined): IdCardSpec | null {
+  if (!body || !/^\s*\{/.test(body)) return null;
+  try {
+    const raw = JSON.parse(body) as Partial<IdCardSpec>;
+    if (raw?.kind !== "id_card") return null;
+    const d = DEFAULT_ID_CARD_SPEC;
+    return {
+      kind: "id_card",
+      logoUrl: raw.logoUrl || d.logoUrl,
+      frontLogoHeight: Number(raw.frontLogoHeight) || d.frontLogoHeight,
+      backLogoHeight: Number(raw.backLogoHeight) || d.backLogoHeight,
+      front: {
+        companyName: raw.front?.companyName ?? d.front.companyName,
+        showPhoto: raw.front?.showPhoto ?? true,
+        showPhotoStamp: raw.front?.showPhotoStamp ?? true,
+        fields: Array.isArray(raw.front?.fields) && raw.front!.fields.length
+          ? raw.front!.fields.map((f) => ({ label: String(f?.label ?? ""), value: String(f?.value ?? "") }))
+          : d.front.fields,
+        authorityLabel: raw.front?.authorityLabel ?? d.front.authorityLabel,
+        showAuthoritySignature: raw.front?.showAuthoritySignature ?? true,
+      },
+      back: {
+        companyName: raw.back?.companyName ?? d.back.companyName,
+        addressTitle: raw.back?.addressTitle ?? d.back.addressTitle,
+        addressLines: Array.isArray(raw.back?.addressLines) ? raw.back!.addressLines.map(String) : d.back.addressLines,
+        contactLines: Array.isArray(raw.back?.contactLines) ? raw.back!.contactLines.map(String) : d.back.contactLines,
+        validityLine: raw.back?.validityLine ?? d.back.validityLine,
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function serializeIdCardSpec(spec: IdCardSpec): string {
+  return JSON.stringify(spec, null, 2);
+}
+
+/** Builds the ID card markup (with $placeholders intact) from a structured spec. */
+export function renderIdCardHtml(spec: IdCardSpec): string {
+  const logo = spec.logoUrl;
+  const rows = spec.front.fields
+    .map(
+      (f) =>
+        `<div class="row"><span class="k">${esc(f.label)}</span><span class="c">:</span><span class="v">${esc(
+          f.value,
+        )}</span></div>`,
+    )
+    .join("\n          ");
+
+  const photo = spec.front.showPhoto
+    ? `<div class="photo-wrap">
+          <img class="photo" src="$employee_photo" alt="Employee photo" onerror="this.style.visibility='hidden'" />
+          ${spec.front.showPhotoStamp ? `<img class="photo-stamp" src="$company_stamp" alt="Company stamp" />` : ""}
+        </div>`
+    : "";
+
+  const auth = `<div class="auth">
+          ${spec.front.showAuthoritySignature ? `<span class="sig-slot" data-signature-slot="company"></span>` : ""}
+          <div class="sig-line"></div>
+          <div class="auth-label">${esc(spec.front.authorityLabel)}</div>
+        </div>`;
+
+  return `<div class="idcard-sheet">
+  <div class="idcard-face">
+    <div class="idcard-caption">Front</div>
+    <div class="idcard idcard-front">
+      <div class="wm" style="background-image:url('${logo}')"></div>
+      <div class="body">
+        <img class="logo" style="height:${spec.frontLogoHeight}px" src="${logo}" alt="Company logo" />
+        <div class="company">${esc(spec.front.companyName)}</div>
+        ${photo}
+        <div class="rows">
+          ${rows}
+        </div>
+        ${auth}
+      </div>
+    </div>
+  </div>
+
+  <div class="idcard-face">
+    <div class="idcard-caption">Back</div>
+    <div class="idcard idcard-back">
+      <div class="wm" style="background-image:url('${logo}')"></div>
+      <div class="body">
+        <img class="logo" style="height:${spec.backLogoHeight}px;margin-top:12px" src="${logo}" alt="Company logo" />
+        <div class="company" style="margin-top:10px">${esc(spec.back.companyName)}</div>
+        <div class="back-title">${esc(spec.back.addressTitle)}</div>
+        <div class="back-block">${spec.back.addressLines.map(esc).join("<br/>")}</div>
+        <div class="back-contact">${spec.back.contactLines.map(esc).join("<br/>")}</div>
+        <div class="back-validity">${esc(spec.back.validityLine)}</div>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+/** Expands a structured ID card body into renderable HTML; passes other bodies through. */
+export function expandIdCardBody(body: string): string {
+  const spec = parseIdCardSpec(body);
+  return spec ? renderIdCardHtml(spec) : body;
+}
+
+
+
 
 /**
  * Rasterise an HTML statutory form to a pixel-accurate A4 PDF.
@@ -1015,10 +1177,12 @@ export async function generateHtmlDocumentPdf(opts: {
   ]);
 
   if (isIdCardBody(opts.body)) {
-    const compSigCard = await resolveImageDataUrl(opts.companySignatureDataUrl);
+    const compSigCard = await resolveImageDataUrl(opts.companySignatureDataUrl ?? absoluteAssetUrl(COMPANY_STAMP_URL));
     const host = document.createElement("div");
     host.style.cssText = "position:fixed;left:-10000px;top:0;background:#fff;";
-    host.innerHTML = buildDocumentPageHtml(injectSignatureImages(opts.body, undefined, compSigCard));
+    host.innerHTML = buildDocumentPageHtml(
+      injectSignatureImages(expandIdCardBody(opts.body), undefined, compSigCard),
+    );
     document.body.appendChild(host);
     try {
       const faces = Array.from(host.querySelectorAll(".idcard")) as HTMLElement[];

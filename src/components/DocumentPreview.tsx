@@ -3,6 +3,7 @@ import {
   injectSignatureImages,
   isHtmlBody,
   isIdCardBody,
+  expandIdCardBody,
   A4_WIDTH_PX,
 } from "@/lib/company-documents";
 
@@ -34,8 +35,10 @@ export function DocumentPreview({
     );
   }
 
-  const html = buildDocumentPageHtml(injectSignatureImages(body, employeeSignatureUrl, companySignatureUrl));
   const card = isIdCardBody(body);
+  const html = buildDocumentPageHtml(
+    injectSignatureImages(expandIdCardBody(body), employeeSignatureUrl, companySignatureUrl),
+  );
 
   return (
     <div className={`overflow-auto rounded-md bg-secondary/40 p-3 ${className}`}>
