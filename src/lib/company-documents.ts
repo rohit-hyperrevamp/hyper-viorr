@@ -263,7 +263,7 @@ export async function fetchCandidateForRender(id: string): Promise<CandidateForR
   const { data, error } = await supabase
     .from("candidates")
     .select(
-      "id,full_name,employee_code,candidate_code,email,mobile,aadhaar_number,date_of_birth,unit_id,designation_id,present_address1,present_address2,present_city,present_state,present_pincode,preferred_joining_date,gender,marital_status,other_info,contacts,compliance,permanent_address1,permanent_address2,permanent_city,permanent_state,permanent_pincode,photo_url",
+      "id,full_name,employee_code,candidate_code,email,mobile,aadhaar_number,date_of_birth,unit_id,designation_id,present_address1,present_address2,present_city,present_state,present_pincode,preferred_joining_date,gender,marital_status,other_info,physical_health,contacts,compliance,permanent_address1,permanent_address2,permanent_city,permanent_state,permanent_pincode,photo_url",
     )
     .eq("id", id)
     .maybeSingle();
@@ -292,6 +292,7 @@ export async function fetchCandidateForRender(id: string): Promise<CandidateForR
   }
 
   const other = (data as any).other_info ?? {};
+  const physical = (data as any).physical_health ?? {};
   const maritalRaw = ((data as any).marital_status as string) ?? "";
   const isMarried = maritalRaw.toLowerCase().startsWith("married");
   const permanent_address = [
@@ -331,7 +332,7 @@ export async function fetchCandidateForRender(id: string): Promise<CandidateForR
     permanent_address,
     nominees: resolveNominees(data),
     esic_family: resolveEsicFamily(data),
-    blood_group: String(other.blood_group ?? ""),
+    blood_group: String(physical.blood_group ?? other.blood_group ?? ""),
     photo_url: ((data as any).photo_url as string) ?? "",
   };
 }
