@@ -191,6 +191,14 @@ function MyAttendancePage() {
   });
 
 
+  // Contractual shift length (8h / 12h) drives half-day + OT thresholds.
+  const shiftQ = useQuery({
+    queryKey: ["shift-hours-map", me.unit_id],
+    enabled: !!me.unit_id,
+    queryFn: () => fetchShiftHoursMap([me.unit_id!]),
+  });
+  const myShiftHours = shiftHoursFor(shiftQ.data, me.unit_id, me.designation_id) || DEFAULT_SHIFT_HOURS;
+
   const codeMap = useMemo(() => {
     const m = new Map<string, CodeRow>();
     for (const c of codesQ.data ?? []) m.set(c.code, c);
