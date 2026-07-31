@@ -86,7 +86,31 @@ export function IdCardEditor({
   const setFront = (patch: Partial<IdCardSpec["front"]>) => set({ front: { ...spec.front, ...patch } });
   const setBack = (patch: Partial<IdCardSpec["back"]>) => set({ back: { ...spec.back, ...patch } });
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function uploadLogo(file: File | null) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `id-card-logo-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("org-logos")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data } = supabase.storage.from("org-logos").getPublicUrl(path);
+      set({ logoUrl: data.publicUrl });
+      toast.success("Logo uploaded");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Logo upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const previewBody = renderTemplate(serializeIdCardSpec(spec), previewPlaceholderMap(true));
+
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
