@@ -39,6 +39,10 @@ import {
   DOC_TYPE_LABELS,
   DOC_TYPE_SHORT,
   PLACEHOLDERS,
+  renderTemplate,
+  previewPlaceholderMap,
+  isHtmlBody,
+
   type DocType,
   type DocumentTemplate,
 } from "@/lib/company-documents";
@@ -423,7 +427,15 @@ function CompanyDocumentsPage() {
               documents.
             </DialogDescription>
           </DialogHeader>
-          <DocumentPreview body={previewing?.body ?? ""} className="max-h-[65vh]" />
+          <DocumentPreview
+            body={
+              previewing
+                ? renderTemplate(previewing.body, previewPlaceholderMap(isHtmlBody(previewing.body)))
+                : ""
+            }
+            className="max-h-[65vh]"
+          />
+
         </DialogContent>
       </Dialog>
     </div>
