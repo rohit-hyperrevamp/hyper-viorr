@@ -2686,7 +2686,7 @@ function ContractViewDialog({
             <span className="font-mono">
               {isClient ? contract.contractCode : contract.prospectCode}
             </span>
-            {isClient ? <StatusBadge status={contract.status} /> : null}
+            <StatusBadge status={deriveStatus(contract)} />
           </DialogTitle>
           <DialogDescription>
             {contract.orgName} · {contract.unitCode} {contract.unitName}
