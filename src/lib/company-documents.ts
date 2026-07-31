@@ -1118,7 +1118,7 @@ export function serializeIdCardSpec(spec: IdCardSpec): string {
 
 /** Builds the ID card markup (with $placeholders intact) from a structured spec. */
 export function renderIdCardHtml(spec: IdCardSpec): string {
-  const logo = spec.logoUrl;
+  const logo = absoluteAssetUrl(spec.logoUrl);
   const rows = spec.front.fields
     .map(
       (f) =>

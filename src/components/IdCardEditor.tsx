@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import {
+  absoluteAssetUrl,
   PLACEHOLDERS,
   previewPlaceholderMap,
   renderTemplate,
@@ -119,7 +120,7 @@ export function IdCardEditor({
           <div className="flex items-center gap-3">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-white">
               {spec.logoUrl ? (
-                <img src={spec.logoUrl} alt="ID card logo" className="max-h-full max-w-full object-contain" />
+                <img src={absoluteAssetUrl(spec.logoUrl)} alt="ID card logo" className="max-h-full max-w-full object-contain" />
               ) : (
                 <ImageIcon className="h-5 w-5 text-muted-foreground" />
               )}
