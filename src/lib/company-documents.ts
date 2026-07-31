@@ -89,7 +89,23 @@ export type CandidateForRender = {
   permanent_address: string;
   nominees: NomineeForRender[];
   esic_family?: EsicFamilyForRender[];
+  blood_group?: string;
+  photo_url?: string;
 };
+
+/**
+ * Assets are served from Lovable's CDN path. PDFs and previews on custom
+ * domains need the absolute URL, so resolve it against the current origin.
+ */
+export function absoluteAssetUrl(path: string): string {
+  if (/^https?:/i.test(path)) return path;
+  const origin =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : "https://radiant-guard-services.lovable.app";
+  return `${origin}${path}`;
+}
+
 
 export const PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "employee_name", label: "Employee Full Name" },
