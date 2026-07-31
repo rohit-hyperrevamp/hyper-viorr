@@ -32,7 +32,7 @@ import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
-import { RehireApprovalsCard } from "@/components/RehirePipelineCard";
+
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 
 function PeopleInsightsSection({ compact }: { compact?: boolean }) {
@@ -720,8 +720,6 @@ function DashboardPage() {
           ))
         )}
       </div>
-
-      <RehireApprovalsCard />
 
       {/* P&L renders full-width below the shell via fullWidthBelow */}
 
