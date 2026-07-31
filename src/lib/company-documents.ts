@@ -1036,6 +1036,10 @@ export type IdCardSpec = {
     companyName: string;
     showPhoto: boolean;
     showPhotoStamp: boolean;
+    /** Resolved at generation time from the candidate's profile photo. */
+    photoUrl?: string;
+    /** Resolved at generation time from the company stamp asset. */
+    stampUrl?: string;
     fields: IdCardField[];
     authorityLabel: string;
     showAuthoritySignature: boolean;
