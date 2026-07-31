@@ -815,7 +815,7 @@ function useContracts() {
     onSuccess: invalidate,
   });
 
-  return { items, addMut, updateMut, deleteMut, updateStageMut, resubmitMut };
+  return { items, addMut, updateMut, deleteMut, duplicateMut, updateStageMut, resubmitMut };
 }
 
 function useServiceTypes() {
