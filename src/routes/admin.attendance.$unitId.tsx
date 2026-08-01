@@ -254,6 +254,11 @@ function MusterRollPage() {
       }
       const all = [...(prim ?? []), ...(extra ?? [])];
       const dedup = Array.from(new Map(all.map((c) => [c.id, c])).values());
+      // Candidates whose home unit IS this unit are permanently mapped and can
+      // never be removed from the muster. Everyone else reaches this roll via a
+      // candidate_units link / unit scope — i.e. a reliever.
+      const homeMapped = new Set((prim ?? []).map((c) => c.id));
+
 
       const desigIds = Array.from(
         new Set(dedup.map((c) => c.designation_id).filter(Boolean)),
