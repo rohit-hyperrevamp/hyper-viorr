@@ -167,8 +167,18 @@ export function FinanceCharter({
   onQueryChange: (v: string) => void;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const { start, mtdEnd, elapsedDays, daysInMonth } = useMemo(() => monthBounds(year, monthIdx), [year, monthIdx]);
+  const { start, end, mtdEnd, elapsedDays, daysInMonth } = useMemo(
+    () => monthBounds(year, monthIdx),
+    [year, monthIdx],
+  );
   const unitIds = useMemo(() => units.map((u) => u.id), [units]);
+  const qc = useQueryClient();
+  const { can, isAdmin } = useCurrentPermissions();
+  const canProcess = isAdmin || can(mode === "invoice" ? "invoice" : "payroll", "approve");
+
+  // Attendance edits (including overtime) push straight through to these
+  // numbers — no refresh, no stale cache.
+  useAttendanceMoneyRealtime();
 
   const codesQ = useQuery({
     queryKey: ["attendance-codes-charter"],
@@ -189,8 +199,37 @@ export function FinanceCharter({
   const entriesQ = useQuery({
     queryKey: ["finance-charter-entries", unitIds.join(","), start, mtdEnd],
     enabled: unitIds.length > 0,
+    staleTime: 0,
     queryFn: () => fetchAttendanceEntriesForPeriod({ unitIds, start, end: mtdEnd, includeUnitId: true }),
   });
+
+  const statusQ = useQuery({
+    queryKey: periodStatusQueryKey(unitIds, start, end),
+    enabled: unitIds.length > 0,
+    staleTime: 0,
+    queryFn: () => fetchPeriodStatuses(unitIds, start, end),
+  });
+
+  const processMutation = useMutation({
+    mutationFn: (vars: { unitId: string; next: "processed" | "open" }) =>
+      setMoneyStatus({
+        unitId: vars.unitId,
+        periodStart: start,
+        periodEnd: end,
+        kind: mode,
+        next: vars.next,
+      }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: [periodStatusQueryKey(unitIds, start, end)[0]] });
+      toast.success(
+        vars.next === "processed"
+          ? `${mode === "invoice" ? "Invoice" : "Payroll"} marked processed`
+          : `${mode === "invoice" ? "Invoice" : "Payroll"} reopened`,
+      );
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not update status"),
+  });
+
 
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
