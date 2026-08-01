@@ -1120,22 +1120,37 @@ function PayrollUnitPage() {
             Projected column = full billable amount · Actual column = billable based on T Days
           </span>
         </div>
-        {rows.filter((r) => r.wages && r.resource).map((r) => (
+        {rows.filter((r) => r.wages && r.resource).map((r) => {
+          const projBillable =
+            r.resource!.components.reduce((s, c) => s + (Number(c.amount) || 0), 0) +
+            r.resource!.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0);
+          return (
           <SalaryBreakdownPreview
             key={r.rowKey}
             employeeName={r.name}
             employeeCode={r.employeeCode}
             designationName={r.designation}
             tDays={r.totals.tDays}
+            otHours={r.totals.otHours}
             baseDays={r.wages!.baseDays}
             components={r.resource!.components.map((c) => ({ name: c.name, amount: Number(c.amount) || 0 }))}
             benefits={(r.resource!.benefits ?? []).map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
             deductions={(r.resource!.deductions ?? []).map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
+            employerContributions={(r.resource!.employerContributions ?? []).map((b) => ({ name: b.name, amount: contractTotalAmount(b) }))}
+            earnedComponents={r.wages!.components.map((c) => ({ name: c.name, amount: Number(c.amount) || 0 }))}
+            earnedGross={r.wages!.earnedGross}
+            earnedEmployerContributions={r.wages!.employerContributions.map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
             earnedDeductions={r.wages!.deductions.map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
             totalEarnedDeductions={r.wages!.totalDeductions}
             earnedNetPayable={r.wages!.netPay}
+            projectedBillable={projBillable}
+            actualBillable={billableFor(r)}
+            gstRate={GST_RATE}
+            intraState={isIntraStateCurrent}
           />
-        ))}
+          );
+        })}
+
         {rows.filter((r) => !r.wages).length > 0 && (
           <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-900">
             {rows.filter((r) => !r.wages).length} employee(s) have no contract mapped for their designation and were excluded from the breakdown.
@@ -1151,25 +1166,43 @@ function SalaryBreakdownPreview({
   employeeCode,
   designationName,
   tDays,
+  otHours,
   baseDays,
   components,
   benefits,
   deductions,
+  employerContributions,
+  earnedComponents,
+  earnedGross: earnedGrossProp,
+  earnedEmployerContributions,
   earnedDeductions,
   totalEarnedDeductions,
   earnedNetPayable,
+  projectedBillable,
+  actualBillable,
+  gstRate,
+  intraState,
 }: {
   employeeName: string;
   employeeCode: string;
   designationName: string;
   tDays: number;
+  otHours: number;
   baseDays: number;
   components: { name: string; amount: number }[];
   benefits: { name: string; amount: number }[];
   deductions: { name: string; amount: number }[];
+  employerContributions: { name: string; amount: number }[];
+  earnedComponents: { name: string; amount: number }[];
+  earnedGross: number;
+  earnedEmployerContributions: { name: string; amount: number }[];
   earnedDeductions: { name: string; amount: number }[];
   totalEarnedDeductions: number;
   earnedNetPayable: number;
+  projectedBillable: number;
+  actualBillable: number;
+  gstRate: number;
+  intraState: boolean;
 }) {
   const componentsTotal = components.reduce((s, c) => s + c.amount, 0);
   const benefitsTotal = benefits.reduce((s, b) => s + b.amount, 0);
@@ -1179,13 +1212,34 @@ function SalaryBreakdownPreview({
 
   const ratio = baseDays > 0 ? tDays / baseDays : 0;
   const earnedFor = (amount: number) => Math.round(amount * ratio * 100) / 100;
-  const earnedGross = earnedFor(gross);
+  const earnedGross = earnedGrossProp;
+  const earnedComponentFor = (name: string, amount: number) =>
+    earnedComponents.find((c) => c.name === name)?.amount ?? earnedFor(amount);
   const earnedDeductionFor = (name: string, amount: number) =>
     earnedDeductions.find((d) => d.name === name)?.amount ?? earnedFor(amount);
+  const earnedEmployerFor = (name: string, amount: number) =>
+    earnedEmployerContributions.find((d) => d.name === name)?.amount ?? earnedFor(amount);
 
   const visibleComponents = components.filter((c) => c.amount > 0);
   const visibleBenefits = benefits.filter((b) => b.amount > 0);
   const visibleDeductions = deductions.filter((b) => b.amount > 0 || isEsiItem(b));
+  const visibleEmployer = employerContributions.filter(
+    (b) => b.amount > 0 || earnedEmployerFor(b.name, b.amount) > 0,
+  );
+
+  // Extra earned lines not present in contract config (Overtime, Paid Holiday,
+  // ad-hoc additions) so the rows sum exactly to Earned Gross.
+  const contractNames = new Set([...components, ...benefits].map((c) => c.name.toLowerCase()));
+  const extraEarnedLines = earnedComponents.filter(
+    (c) => c.amount > 0 && !contractNames.has(c.name.toLowerCase()),
+  );
+
+  const employerTotal = employerContributions.reduce((s, b) => s + b.amount, 0);
+  const earnedEmployerTotal =
+    Math.round(earnedEmployerContributions.reduce((s, b) => s + b.amount, 0) * 100) / 100;
+  const projGst = Math.round(projectedBillable * (gstRate / 100) * 100) / 100;
+  const actGst = Math.round(actualBillable * (gstRate / 100) * 100) / 100;
+
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -1232,7 +1286,7 @@ function SalaryBreakdownPreview({
                     <td>{c.name}</td>
                     <td className="text-center tabular-nums">{c.amount.toFixed(2)}</td>
                     <td />
-                    <td className="text-right tabular-nums">{earnedFor(c.amount).toFixed(2)}</td>
+                    <td className="text-right tabular-nums">{earnedComponentFor(c.name, c.amount).toFixed(2)}</td>
                   </tr>
                 ))}
                 {visibleBenefits.map((b) => (
@@ -1240,7 +1294,20 @@ function SalaryBreakdownPreview({
                     <td>{b.name}</td>
                     <td className="text-center tabular-nums">{b.amount.toFixed(2)}</td>
                     <td />
-                    <td className="text-right tabular-nums">{earnedFor(b.amount).toFixed(2)}</td>
+                    <td className="text-right tabular-nums">{earnedComponentFor(b.name, b.amount).toFixed(2)}</td>
+                  </tr>
+                ))}
+                {extraEarnedLines.map((c) => (
+                  <tr key={`x-${c.name}`}>
+                    <td>
+                      {c.name}
+                      {/overtime|ot/i.test(c.name) && otHours > 0 && (
+                        <span className="ml-2 text-[11px] text-muted-foreground">{otHours} hrs</span>
+                      )}
+                    </td>
+                    <td className="text-center text-xs text-muted-foreground">—</td>
+                    <td />
+                    <td className="text-right tabular-nums">{c.amount.toFixed(2)}</td>
                   </tr>
                 ))}
               </>
@@ -1280,11 +1347,77 @@ function SalaryBreakdownPreview({
               <td className="text-right tabular-nums">{totalEarnedDeductions.toFixed(2)}</td>
             </tr>
             <tr className="bg-cyan-100 font-bold dark:bg-cyan-500/20">
-              <td className="uppercase">Total Amount (Payable) Rs.</td>
+              <td className="uppercase">Net Pay to Employee Rs.</td>
               <td className="text-center tabular-nums">{netPayable.toFixed(2)}</td>
               <td />
               <td className="text-right text-base tabular-nums">{earnedNetPayable.toFixed(2)}</td>
             </tr>
+
+            {/* Client-billing view: statutory employer cost + service value + GST */}
+            <tr className="bg-muted/40">
+              <td className="font-bold uppercase text-foreground">Employer Contributions (billable)</td>
+              <td className="text-center font-bold">Contracted</td>
+              <td />
+              <td className="text-right font-bold tracking-wider">( EARNED ) Rs.</td>
+            </tr>
+            {visibleEmployer.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-3 text-center text-xs text-muted-foreground">
+                  No employer contributions configured.
+                </td>
+              </tr>
+            ) : (
+              visibleEmployer.map((b) => (
+                <tr key={`ec-${b.name}`}>
+                  <td>{b.name}</td>
+                  <td className="text-center tabular-nums">{b.amount.toFixed(2)}</td>
+                  <td />
+                  <td className="text-right tabular-nums">{earnedEmployerFor(b.name, b.amount).toFixed(2)}</td>
+                </tr>
+              ))
+            )}
+            <tr className="bg-amber-100/70 font-semibold dark:bg-amber-500/20">
+              <td className="uppercase">Total Employer Contributions Rs.</td>
+              <td className="text-center tabular-nums">{employerTotal.toFixed(2)}</td>
+              <td />
+              <td className="text-right tabular-nums">{earnedEmployerTotal.toFixed(2)}</td>
+            </tr>
+            <tr className="bg-slate-100 font-bold dark:bg-slate-500/20">
+              <td className="uppercase">Taxable Value (Billable) Rs.</td>
+              <td className="text-center tabular-nums">{projectedBillable.toFixed(2)}</td>
+              <td />
+              <td className="text-right text-base tabular-nums">{actualBillable.toFixed(2)}</td>
+            </tr>
+            {intraState ? (
+              <>
+                <tr>
+                  <td>CGST @ {gstRate / 2}%</td>
+                  <td className="text-center tabular-nums">{(projGst / 2).toFixed(2)}</td>
+                  <td />
+                  <td className="text-right tabular-nums">{(actGst / 2).toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td>SGST @ {gstRate / 2}%</td>
+                  <td className="text-center tabular-nums">{(projGst / 2).toFixed(2)}</td>
+                  <td />
+                  <td className="text-right tabular-nums">{(actGst / 2).toFixed(2)}</td>
+                </tr>
+              </>
+            ) : (
+              <tr>
+                <td>IGST @ {gstRate}%</td>
+                <td className="text-center tabular-nums">{projGst.toFixed(2)}</td>
+                <td />
+                <td className="text-right tabular-nums">{actGst.toFixed(2)}</td>
+              </tr>
+            )}
+            <tr className="bg-emerald-100 font-bold dark:bg-emerald-500/20">
+              <td className="uppercase">Total Invoice Value Rs.</td>
+              <td className="text-center tabular-nums">{(projectedBillable + projGst).toFixed(2)}</td>
+              <td />
+              <td className="text-right text-base tabular-nums">{(actualBillable + actGst).toFixed(2)}</td>
+            </tr>
+
           </tbody>
         </table>
       </div>
