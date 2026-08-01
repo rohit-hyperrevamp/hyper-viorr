@@ -1286,7 +1286,7 @@ function SalaryBreakdownPreview({
                     <td>{c.name}</td>
                     <td className="text-center tabular-nums">{c.amount.toFixed(2)}</td>
                     <td />
-                    <td className="text-right tabular-nums">{earnedFor(c.amount).toFixed(2)}</td>
+                    <td className="text-right tabular-nums">{earnedComponentFor(c.name, c.amount).toFixed(2)}</td>
                   </tr>
                 ))}
                 {visibleBenefits.map((b) => (
@@ -1294,7 +1294,20 @@ function SalaryBreakdownPreview({
                     <td>{b.name}</td>
                     <td className="text-center tabular-nums">{b.amount.toFixed(2)}</td>
                     <td />
-                    <td className="text-right tabular-nums">{earnedFor(b.amount).toFixed(2)}</td>
+                    <td className="text-right tabular-nums">{earnedComponentFor(b.name, b.amount).toFixed(2)}</td>
+                  </tr>
+                ))}
+                {extraEarnedLines.map((c) => (
+                  <tr key={`x-${c.name}`}>
+                    <td>
+                      {c.name}
+                      {/overtime|ot/i.test(c.name) && otHours > 0 && (
+                        <span className="ml-2 text-[11px] text-muted-foreground">{otHours} hrs</span>
+                      )}
+                    </td>
+                    <td className="text-center text-xs text-muted-foreground">—</td>
+                    <td />
+                    <td className="text-right tabular-nums">{c.amount.toFixed(2)}</td>
                   </tr>
                 ))}
               </>
@@ -1334,11 +1347,77 @@ function SalaryBreakdownPreview({
               <td className="text-right tabular-nums">{totalEarnedDeductions.toFixed(2)}</td>
             </tr>
             <tr className="bg-cyan-100 font-bold dark:bg-cyan-500/20">
-              <td className="uppercase">Total Amount (Payable) Rs.</td>
+              <td className="uppercase">Net Pay to Employee Rs.</td>
               <td className="text-center tabular-nums">{netPayable.toFixed(2)}</td>
               <td />
               <td className="text-right text-base tabular-nums">{earnedNetPayable.toFixed(2)}</td>
             </tr>
+
+            {/* Client-billing view: statutory employer cost + service value + GST */}
+            <tr className="bg-muted/40">
+              <td className="font-bold uppercase text-foreground">Employer Contributions (billable)</td>
+              <td className="text-center font-bold">Contracted</td>
+              <td />
+              <td className="text-right font-bold tracking-wider">( EARNED ) Rs.</td>
+            </tr>
+            {visibleEmployer.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-3 text-center text-xs text-muted-foreground">
+                  No employer contributions configured.
+                </td>
+              </tr>
+            ) : (
+              visibleEmployer.map((b) => (
+                <tr key={`ec-${b.name}`}>
+                  <td>{b.name}</td>
+                  <td className="text-center tabular-nums">{b.amount.toFixed(2)}</td>
+                  <td />
+                  <td className="text-right tabular-nums">{earnedEmployerFor(b.name, b.amount).toFixed(2)}</td>
+                </tr>
+              ))
+            )}
+            <tr className="bg-amber-100/70 font-semibold dark:bg-amber-500/20">
+              <td className="uppercase">Total Employer Contributions Rs.</td>
+              <td className="text-center tabular-nums">{employerTotal.toFixed(2)}</td>
+              <td />
+              <td className="text-right tabular-nums">{earnedEmployerTotal.toFixed(2)}</td>
+            </tr>
+            <tr className="bg-slate-100 font-bold dark:bg-slate-500/20">
+              <td className="uppercase">Taxable Value (Billable) Rs.</td>
+              <td className="text-center tabular-nums">{projectedBillable.toFixed(2)}</td>
+              <td />
+              <td className="text-right text-base tabular-nums">{actualBillable.toFixed(2)}</td>
+            </tr>
+            {intraState ? (
+              <>
+                <tr>
+                  <td>CGST @ {gstRate / 2}%</td>
+                  <td className="text-center tabular-nums">{(projGst / 2).toFixed(2)}</td>
+                  <td />
+                  <td className="text-right tabular-nums">{(actGst / 2).toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td>SGST @ {gstRate / 2}%</td>
+                  <td className="text-center tabular-nums">{(projGst / 2).toFixed(2)}</td>
+                  <td />
+                  <td className="text-right tabular-nums">{(actGst / 2).toFixed(2)}</td>
+                </tr>
+              </>
+            ) : (
+              <tr>
+                <td>IGST @ {gstRate}%</td>
+                <td className="text-center tabular-nums">{projGst.toFixed(2)}</td>
+                <td />
+                <td className="text-right tabular-nums">{actGst.toFixed(2)}</td>
+              </tr>
+            )}
+            <tr className="bg-emerald-100 font-bold dark:bg-emerald-500/20">
+              <td className="uppercase">Total Invoice Value Rs.</td>
+              <td className="text-center tabular-nums">{(projectedBillable + projGst).toFixed(2)}</td>
+              <td />
+              <td className="text-right text-base tabular-nums">{(actualBillable + actGst).toFixed(2)}</td>
+            </tr>
+
           </tbody>
         </table>
       </div>
