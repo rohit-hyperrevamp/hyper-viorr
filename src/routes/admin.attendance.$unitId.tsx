@@ -2486,17 +2486,21 @@ function MusterRollPage() {
                             <span>{mr.emp.full_name || "—"}</span>
                           )}
 
-                          {!mr.isPrimary && (
+                          {mr.reliever && !mr.vacant && (
                             <button
                               type="button"
-                              title="Remove this extra line and delete its attendance entries in this period"
+                              title="Remove this reliever line and delete its attendance entries in this period"
                               disabled={!editable}
                               onClick={async () => {
                                 if (!editable) return;
                                 const hasEntries = entries.some(
                                   (e) => e.candidate_id === mr.candidateId && e.designation_id === mr.designationId,
                                 );
-                                if (hasEntries && !window.confirm(`Remove extra line "${mr.designationName}" for ${mr.emp.full_name}? This deletes attendance entries on this line for ${periodStart} → ${periodEnd}.`)) {
+                                if (!window.confirm(
+                                  hasEntries
+                                    ? `Remove reliever line "${mr.designationName}" for ${mr.emp.full_name}? This deletes attendance entries on this line for ${periodStart} → ${periodEnd}.`
+                                    : `Remove reliever line "${mr.designationName}" for ${mr.emp.full_name} from this muster?`,
+                                )) {
                                   return;
                                 }
                                 try {
@@ -2514,13 +2518,25 @@ function MusterRollPage() {
                                     const { error } = await q;
                                     if (error) throw error;
                                   }
+                                  // A reliever who reached this muster through a
+                                  // candidate_units link (their home unit is elsewhere)
+                                  // is unmapped entirely when their last line goes.
+                                  if (mr.isPrimary) {
+                                    const { error: unlinkError } = await supabase
+                                      .from("candidate_units")
+                                      .delete()
+                                      .eq("unit_id", unitId)
+                                      .eq("candidate_id", mr.candidateId);
+                                    if (unlinkError) throw unlinkError;
+                                  }
                                   setExtraRows((prev) => {
                                     const next = new Set(prev);
                                     next.delete(mr.key);
                                     return next;
                                   });
                                   queryClient.invalidateQueries({ queryKey: entriesQK });
-                                  toast.success("Extra line removed");
+                                  queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
+                                  toast.success("Reliever line removed");
                                 } catch (e) {
                                   toast.error(e instanceof Error ? e.message : "Failed to remove line");
                                 }
@@ -2530,6 +2546,7 @@ function MusterRollPage() {
                               <X className="h-3 w-3" />
                             </button>
                           )}
+
                         </div>
                       </td>
                       <td className={cn(cellBase, "p-1 text-left")} rowSpan={2}>
