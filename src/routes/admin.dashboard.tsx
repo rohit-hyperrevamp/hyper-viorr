@@ -587,23 +587,42 @@ function DashboardPage() {
             ) : (
               (data?.pnlRows ?? []).map((r) => {
                 const pos = r.variance >= 0;
+                // No attendance billed and no payroll cost → the cycle simply
+                // has no activity. Showing a green "₹0 (0.0%)" profit chip in
+                // that case reads as a real (zero-margin) result, so idle units
+                // get a neutral chip instead.
+                const idle = r.invoice_amount === 0 && r.payroll_cost === 0;
                 return (
                   <tr key={r.unit_id} className="group">
                     <td>
-                      <div className="text-[14px] font-semibold leading-tight text-foreground">{r.unit_name || r.unit_code}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[14px] font-semibold leading-tight text-foreground">{r.unit_name || r.unit_code}</span>
+                        {r.internal && (
+                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Internal
+                          </span>
+                        )}
+                      </div>
                       <div className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">{r.unit_code}</div>
                     </td>
                     <td className="text-[13px] text-muted-foreground">{r.customer_name}</td>
-                    <td className="num text-right text-muted-foreground">{fmtINR(r.contract_value)}</td>
-                    <td className="num text-right text-foreground">{fmtINR(r.invoice_amount)}</td>
+                    <td className="num text-right text-muted-foreground">{r.internal ? "—" : fmtINR(r.contract_value)}</td>
+                    <td className="num text-right text-foreground">{r.internal ? "—" : fmtINR(r.invoice_amount)}</td>
                     <td className="num text-right text-foreground">{fmtINR(r.payroll_cost)}</td>
                     <td className="text-right">
-                      <span className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold num ring-1 ring-inset ${pos ? "bg-emerald-50 text-emerald-700 ring-emerald-200/70" : "bg-rose-50 text-rose-700 ring-rose-200/70"}`}>
-                        {pos ? <TrendingUp className="h-3 w-3 shrink-0" /> : <TrendingDown className="h-3 w-3 shrink-0" />}
-                        <span>{fmtINR(r.variance)}</span>
-                        <span className="opacity-60">({r.variance_pct.toFixed(1)}%)</span>
-                      </span>
+                      {idle ? (
+                        <span className="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-muted px-2.5 py-1 text-[12px] font-semibold text-muted-foreground ring-1 ring-inset ring-border">
+                          No activity
+                        </span>
+                      ) : (
+                        <span className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold num ring-1 ring-inset ${pos ? "bg-emerald-50 text-emerald-700 ring-emerald-200/70" : "bg-rose-50 text-rose-700 ring-rose-200/70"}`}>
+                          {pos ? <TrendingUp className="h-3 w-3 shrink-0" /> : <TrendingDown className="h-3 w-3 shrink-0" />}
+                          <span>{fmtINR(r.variance)}</span>
+                          <span className="opacity-60">({r.invoice_amount > 0 ? `${r.variance_pct.toFixed(1)}%` : "n/a"})</span>
+                        </span>
+                      )}
                     </td>
+
                     <td className="text-right">
                       <Link
                         to="/admin/payroll/$unitId"
