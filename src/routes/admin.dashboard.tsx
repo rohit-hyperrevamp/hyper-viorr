@@ -77,7 +77,10 @@ type PnLRow = {
   payroll_cost: number;
   variance: number;
   variance_pct: number;
+  /** Internal (own-company) unit: cost centre, never billed to a customer. */
+  internal: boolean;
 };
+
 
 function DashboardPage() {
   const now = new Date();
