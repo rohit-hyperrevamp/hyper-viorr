@@ -474,7 +474,16 @@ function DeploymentCharterDialog({
                           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
                             Actual
                           </div>
-                          <div className="font-semibold">{r.actual}</div>
+                          <div
+                            className={cn(
+                              "font-semibold",
+                              shortfallTone(r.committed, r.actual) === "destructive" && "text-destructive",
+                              shortfallTone(r.committed, r.actual) === "warning" && "text-amber-600",
+                            )}
+                          >
+                            {r.actual}
+                          </div>
+
                         </div>
                         <VarianceChip committed={r.committed} actual={r.actual} />
                       </div>
