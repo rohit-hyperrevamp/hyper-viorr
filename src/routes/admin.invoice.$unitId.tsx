@@ -185,7 +185,7 @@ function PayrollUnitPage() {
     enabled: !!ptSlabs && !!pincodeRanges && !!lwfRows,
     queryFn: async () => {
       // 1. Roster: candidates mapped to this unit (primary + secondary).
-      const [{ data: primary }, { data: links }] = await Promise.all([
+      const [primaryRes, linksRes] = await Promise.all([
         supabase
           .from("candidates")
           .select("id, employee_code, full_name, designation_id, gender, is_disabled")
@@ -194,17 +194,23 @@ function PayrollUnitPage() {
           .eq("status", "active"),
         supabase.from("candidate_units").select("candidate_id").eq("unit_id", unitId),
       ]);
+      if (primaryRes.error) throw primaryRes.error;
+      if (linksRes.error) throw linksRes.error;
+      const primary = primaryRes.data;
+      const links = linksRes.data;
       const linkIds = (links ?? []).map((l) => l.candidate_id);
       let secondary: typeof primary = [];
       if (linkIds.length > 0) {
-        const { data } = await supabase
+        const { data, error: secErr } = await supabase
           .from("candidates")
           .select("id, employee_code, full_name, designation_id, gender, is_disabled")
           .in("id", linkIds)
           .eq("is_enabled", true)
           .eq("status", "active");
+        if (secErr) throw secErr;
         secondary = data ?? [];
       }
+
       const roster = Array.from(
         new Map([...(primary ?? []), ...(secondary ?? [])].map((c) => [c.id, c])).values(),
       );
