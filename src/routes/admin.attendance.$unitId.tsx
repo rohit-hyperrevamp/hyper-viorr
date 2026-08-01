@@ -611,6 +611,17 @@ function MusterRollPage() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to reopen"),
   });
 
+  // Approval IS the handoff: once the sheet is approved, payroll & invoice are
+  // notified automatically — no separate "send" click.
+  const autoHandoffRef = useRef<string | null>(null);
+  const handoffKey = `${unitId}:${periodStart}:${periodEnd}`;
+  useEffect(() => {
+    if (status !== "approved" || !canApprove || sentToPayroll) return;
+    if (sendToPayroll.isPending || autoHandoffRef.current === handoffKey) return;
+    autoHandoffRef.current = handoffKey;
+    sendToPayroll.mutate();
+  }, [status, canApprove, sentToPayroll, handoffKey, sendToPayroll]);
+
   const { data: codes = [] } = useQuery({
     queryKey: ["attendance-codes-enabled"],
     queryFn: async () => {
