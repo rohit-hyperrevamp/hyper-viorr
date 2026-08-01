@@ -1347,7 +1347,7 @@ function PayrollUnitPage() {
               <tfoot className="border-t border-border/60 bg-secondary/30 text-sm font-semibold">
                 <tr>
                   <td className="px-4 py-3" />
-                  <td className="px-4 py-3" colSpan={5}>Totals</td>
+                  <td className="px-4 py-3" colSpan={7}>Totals</td>
                   <td className="px-4 py-3 text-left text-muted-foreground">{fmtINR(rows.reduce((s, r) => s + (r.wages?.contractGross ?? 0), 0))}</td>
                   <td className="px-4 py-3 text-left">{fmtINR(totals.earnedGross)}</td>
                   <td className="px-4 py-3 text-left">{fmtINR(totals.deductions)}</td>
