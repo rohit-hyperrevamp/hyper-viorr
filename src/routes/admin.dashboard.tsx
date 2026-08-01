@@ -28,6 +28,8 @@ import {
   type ContractResourceLike,
 } from "@/lib/payroll-calc";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
+import { resolvePayrollDayCount } from "@/lib/payroll-days";
 import { PeopleInsightsCard } from "@/components/PeopleInsightsCard";
 import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
@@ -158,7 +160,7 @@ function DashboardPage() {
           .eq("status", "active")
           .lte("start_date", monthEnd)
           .or(`end_date.is.null,end_date.gte.${monthStart}`),
-        supabase.from("units").select("id, code, name, customer_id"),
+        supabase.from("units").select("id, code, name, customer_id, epf_cap_enabled"),
       ]);
 
       const sheets = (sheetsMonth ?? []) as Array<{ status: string | null }>;
@@ -194,11 +196,25 @@ function DashboardPage() {
         id: string;
         unit_id: string | null;
         is_internal: boolean | null;
+        start_date: string;
       }>;
 
-      const contractIds = activeContracts.map((c) => c.id);
+      // A unit can briefly have overlapping active contracts during renewal.
+      // The finance registers use one current contract, so the dashboard must
+      // do the same instead of pricing the same attendance more than once.
+      const currentContractByUnit = new Map<string, (typeof activeContracts)[number]>();
+      for (const contract of activeContracts) {
+        if (!contract.unit_id) continue;
+        const current = currentContractByUnit.get(contract.unit_id);
+        if (!current || contract.start_date > current.start_date) {
+          currentContractByUnit.set(contract.unit_id, contract);
+        }
+      }
+      const currentContracts = Array.from(currentContractByUnit.values());
+
+      const contractIds = currentContracts.map((c) => c.id);
       const unitIdsInScope = Array.from(
-        new Set(activeContracts.map((c) => c.unit_id).filter((v): v is string => !!v)),
+        new Set(currentContracts.map((c) => c.unit_id).filter((v): v is string => !!v)),
       );
       const unitsById = new Map((unitsForPnl ?? []).map((u) => [u.id, u]));
       const customerIds = Array.from(
@@ -269,7 +285,9 @@ function DashboardPage() {
         ot_hours: number | string | null;
       };
       const resources = (resourcesRaw ?? []) as ResourceRow[];
-      const attendance = await fetchAttendanceEntriesForPeriod({ unitIds: unitIdsInScope, start: monthStart, end: monthEnd, includeUnitId: true }) as AttRow[];
+      const selectedMonthIsCurrent = year === now.getFullYear() && month === now.getMonth();
+      const attendanceEnd = selectedMonthIsCurrent && todayStr < monthEnd ? todayStr : monthEnd;
+      const attendance = await fetchAttendanceEntriesForPeriod({ unitIds: unitIdsInScope, start: monthStart, end: attendanceEnd, includeUnitId: true }) as AttRow[];
       const codes = (codesRaw ?? []) as AttendanceCodeLike[];
       const primaryCands = (primaryRoster ?? []) as Array<{
         id: string; full_name: string | null; designation_id: string | null; unit_id: string | null;
@@ -283,16 +301,19 @@ function DashboardPage() {
       const { data: pdbs } = pdbIds.length
         ? await supabase
             .from("payroll_day_bases")
-            .select("id, method, fixed_days, weekly_off_day")
+            .select("id, method, fixed_days, weekly_off_day, included_weekdays")
             .in("id", pdbIds)
         : { data: [] as Array<{ id: string; method: string; fixed_days: number | null; weekly_off_day: number | null }> };
       const pdbMap = new Map<string, NonNullable<ContractResourceLike["payrollDayBase"]>>(
         (pdbs ?? []).map((p) => [
           p.id,
           {
-            method: p.method as "actual_days" | "fixed_days" | "actual_minus_weekly_off",
+            method: p.method as "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays",
             fixedDays: p.fixed_days,
             weeklyOffDay: p.weekly_off_day,
+            includedWeekdays: Array.isArray((p as unknown as { included_weekdays?: unknown }).included_weekdays)
+              ? (p as unknown as { included_weekdays: unknown[] }).included_weekdays.map(Number)
+              : null,
           },
         ]),
       );
@@ -336,27 +357,24 @@ function DashboardPage() {
 
       const toResource = (r: ResourceRow): ContractResourceLike => ({
         designationId: r.designation_id ?? "",
-        components: Array.isArray(r.components)
-          ? (r.components as { name: string; amount: number }[]).map((c) => ({
-              name: String(c.name ?? ""),
-              amount: Number(c.amount) || 0,
-            }))
-          : [],
-        benefits: Array.isArray(r.benefits) ? (r.benefits as { name: string; amount: number }[]) : [],
-        deductions: Array.isArray(r.deductions) ? (r.deductions as { name: string; amount: number }[]) : [],
+        components: Array.isArray(r.components) ? (r.components as ContractResourceLike["components"]) : [],
+        benefits: Array.isArray(r.benefits) ? (r.benefits as ContractResourceLike["benefits"]) : [],
+        deductions: Array.isArray(r.deductions) ? (r.deductions as ContractResourceLike["deductions"]) : [],
         employerContributions: Array.isArray(r.employer_contributions)
-          ? (r.employer_contributions as { name: string; amount: number }[])
+          ? (r.employer_contributions as ContractResourceLike["employerContributions"])
           : [],
         payrollDayBase: r.payroll_day_base_id ? pdbMap.get(r.payroll_day_base_id) ?? null : null,
       });
 
-      const sumArr = (v: unknown) => {
-        if (!Array.isArray(v)) return 0;
-        return (v as Array<{ amount?: number | string }>).reduce(
-          (s, x) => s + (Number(x?.amount) || 0),
-          0,
-        );
-      };
+      const hydratedResources = await hydrateFormulasFromMaster(resources.map(toResource));
+      const hydratedByContractDesignation = new Map(
+        resources.map((row, index) => [
+          `${row.contract_id}|${row.designation_id ?? ""}`,
+          hydratedResources[index] ?? toResource(row),
+        ]),
+      );
+      const isNonBillableInvoiceItem = (item: { name?: string }) =>
+        /\besi(c)?\b|\bprofessional\s*tax\b|\bpt\b/i.test(String(item.name ?? ""));
 
       // Period dates.
       const periodDates: string[] = [];
@@ -369,7 +387,7 @@ function DashboardPage() {
       }
 
       const pnlByUnit = new Map<string, PnLRow>();
-      for (const contract of activeContracts) {
+      for (const contract of currentContracts) {
         if (!contract.unit_id) continue;
         const u = unitsById.get(contract.unit_id);
         if (!u) continue;
@@ -385,8 +403,17 @@ function DashboardPage() {
         for (const r of resMap.values()) {
           const qty = Number(r.quantity) || 0;
           committedStrength += qty;
-          const payrollPerHead = sumArr(r.components) + sumArr(r.benefits);
-          const invoicePerHead = payrollPerHead + sumArr(r.employer_contributions);
+          const resource = hydratedByContractDesignation.get(
+            `${r.contract_id}|${r.designation_id ?? ""}`,
+          ) ?? toResource(r);
+          const payrollPerHead = resource.components.reduce(
+            (sum, item) => sum + (Number(item.amount) || 0),
+            0,
+          );
+          const invoicePerHead = payrollPerHead + resource.employerContributions.reduce(
+            (sum, item) => sum + (isNonBillableInvoiceItem(item) ? 0 : Number(item.amount) || 0),
+            0,
+          );
           committedPayroll += qty * payrollPerHead;
           if (!isInternal) {
             contractValue += qty * invoicePerHead;
@@ -432,15 +459,25 @@ function DashboardPage() {
               ot_hours: e.ot_hours,
             })) as AttendanceEntryLike[];
           const totals = computeAttendanceTotals(p.candidateId, periodDates, lineEntries, codes);
-          const wages = computeWages(totals, toResource(resRow), periodDates.length);
-          // Payroll = earned gross + earned benefits. Invoice adds employer
-          // contributions, preserving invoice >= payroll for billable work.
-          const earnedBenefits = wages.benefits.reduce(
-            (s, b) => s + (Number(b.amount) || 0),
+          const resource = hydratedByContractDesignation.get(
+            `${contract.id}|${p.designationId}`,
+          ) ?? toResource(resRow);
+          const wages = computeWages(totals, resource, periodDates.length, {
+            periodDates: periodDates.map((date) => new Date(`${date}T00:00:00`)),
+            epfCapEnabled: u.epf_cap_enabled ?? true,
+          });
+          const earnedPayroll = wages.earnedGross;
+          const contractedInvoice = resource.components.reduce(
+            (sum, item) => sum + (Number(item.amount) || 0),
+            0,
+          ) + resource.employerContributions.reduce(
+            (sum, item) => sum + (isNonBillableInvoiceItem(item) ? 0 : Number(item.amount) || 0),
             0,
           );
-          const earnedPayroll = wages.earnedGross + earnedBenefits;
-          const earnedInvoice = earnedPayroll + wages.totalEmployerContributions;
+          const payrollDays = resolvePayrollDayCount(resource.payrollDayBase, periodDates) ?? wages.baseDays;
+          const earnedInvoice = payrollDays > 0
+            ? (contractedInvoice / payrollDays) * totals.tDays
+            : 0;
           if (!isInternal) invoiceAmount += earnedInvoice;
           payrollCost += earnedPayroll;
         }
