@@ -1184,34 +1184,28 @@ export function renderIdCardHtml(spec: IdCardSpec): string {
           <div class="auth-label">${esc(spec.front.authorityLabel)}</div>
         </div>`;
 
+  const contact = `<div class="contact">
+          ${spec.footer.addressTitle ? `<div class="contact-title">${esc(spec.footer.addressTitle)}</div>` : ""}
+          ${spec.footer.addressLines.length ? `<div class="contact-block">${spec.footer.addressLines.map(esc).join("<br/>")}</div>` : ""}
+          ${spec.footer.contactLines.length ? `<div class="contact-lines">${spec.footer.contactLines.map(esc).join("<br/>")}</div>` : ""}
+          ${spec.footer.validityLine ? `<div class="contact-validity">${esc(spec.footer.validityLine)}</div>` : ""}
+        </div>`;
+
   return `<div class="idcard-sheet">
   <div class="idcard-face">
-    <div class="idcard-caption">Front</div>
     <div class="idcard idcard-front">
       <div class="wm" style="background-image:url('${logo}')"></div>
       <div class="body">
-        <img class="logo" style="height:${spec.frontLogoHeight}px" src="${logo}" alt="Company logo" />
-        <div class="company">${esc(spec.front.companyName)}</div>
+        <div class="idhead">
+          <img class="logo" style="height:${spec.frontLogoHeight}px" src="${logo}" alt="Company logo" />
+          <div class="company">${esc(spec.front.companyName)}</div>
+        </div>
         ${photo}
         <div class="rows">
           ${rows}
         </div>
+        ${contact}
         ${auth}
-      </div>
-    </div>
-  </div>
-
-  <div class="idcard-face">
-    <div class="idcard-caption">Back</div>
-    <div class="idcard idcard-back">
-      <div class="wm" style="background-image:url('${logo}')"></div>
-      <div class="body">
-        <img class="logo" style="height:${spec.backLogoHeight}px;margin-top:12px" src="${logo}" alt="Company logo" />
-        <div class="company" style="margin-top:10px">${esc(spec.back.companyName)}</div>
-        <div class="back-title">${esc(spec.back.addressTitle)}</div>
-        <div class="back-block">${spec.back.addressLines.map(esc).join("<br/>")}</div>
-        <div class="back-contact">${spec.back.contactLines.map(esc).join("<br/>")}</div>
-        <div class="back-validity">${esc(spec.back.validityLine)}</div>
       </div>
     </div>
   </div>
