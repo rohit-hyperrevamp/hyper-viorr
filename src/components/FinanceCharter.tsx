@@ -633,9 +633,22 @@ export function FinanceCharter({
                                 <th className="px-3 py-2 text-left font-medium">Employee</th>
                                 <th className="px-2 py-2 text-right font-medium">Paid days</th>
                                 <th className="px-2 py-2 text-right font-medium">OT days</th>
-                                <th className="px-2 py-2 text-right font-medium">Invoice</th>
-                                <th className="px-2 py-2 text-right font-medium">Payroll</th>
-                                <th className="px-3 py-2 text-right font-medium">Margin</th>
+                                {mode === "payroll" ? (
+                                  <>
+                                    <th className="px-2 py-2 text-right font-medium">Gross</th>
+                                    <th className="px-2 py-2 text-right font-medium">Deductions</th>
+                                    <th className="px-2 py-2 text-right font-medium">Net pay</th>
+                                  </>
+                                ) : (
+                                  <>
+                                    <th className="px-2 py-2 text-right font-medium">Invoice</th>
+                                    <th className="px-2 py-2 text-right font-medium">Payroll</th>
+                                    <th className="px-2 py-2 text-right font-medium">Margin</th>
+                                  </>
+                                )}
+                                <th className="px-3 py-2 text-right font-medium">
+                                  {mode === "payroll" ? "Pay sheet" : "Invoice line"}
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
@@ -644,26 +657,55 @@ export function FinanceCharter({
                                   <td className="px-3 py-1.5 font-medium">{p.name}</td>
                                   <td className="px-2 py-1.5 text-right tabular-nums">{p.paidDays}</td>
                                   <td className="px-2 py-1.5 text-right tabular-nums">{p.otDays}</td>
-                                  <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
-                                    {fmtMoney(p.invoiceAmount)}
-                                  </td>
-                                  <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
-                                    {fmtMoney(p.payrollAmount)}
-                                  </td>
+                                  {mode === "payroll" ? (
+                                    <>
+                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
+                                        {fmtMoney(p.payrollAmount)}
+                                      </td>
+                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
+                                        {p.deductionAmount > 0 ? `− ${fmtMoney(p.deductionAmount)}` : fmtMoney(0)}
+                                      </td>
+                                      <td className="whitespace-nowrap px-2 py-1.5 text-right font-semibold tabular-nums">
+                                        {fmtMoney(p.netPayrollAmount)}
+                                      </td>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
+                                        {fmtMoney(p.invoiceAmount)}
+                                      </td>
+                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
+                                        {fmtMoney(p.payrollAmount)}
+                                      </td>
+                                      <td className="px-2 py-1.5 text-right">
+                                        <MarginChip
+                                          value={
+                                            p.invoiceAmount > 0
+                                              ? Math.round(
+                                                  ((p.invoiceAmount - p.payrollAmount) / p.invoiceAmount) * 100,
+                                                )
+                                              : 0
+                                          }
+                                        />
+                                      </td>
+                                    </>
+                                  )}
                                   <td className="px-3 py-1.5 text-right">
-                                    <MarginChip
-                                      value={
-                                        p.invoiceAmount > 0
-                                          ? Math.round(((p.invoiceAmount - p.payrollAmount) / p.invoiceAmount) * 100)
-                                          : 0
-                                      }
-                                    />
+                                    <Link
+                                      to={linkTo}
+                                      params={{ unitId: r.unit.id }}
+                                      search={{ start: r.period.start, end: r.period.end, candidate: p.id }}
+                                      className="text-xs font-medium text-primary hover:underline"
+                                    >
+                                      View
+                                    </Link>
                                   </td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
                         </div>
+
                       )}
                     </div>
                   </div>
