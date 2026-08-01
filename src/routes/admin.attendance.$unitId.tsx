@@ -945,6 +945,12 @@ function MusterRollPage() {
       designationName: string;
       emp: NonNullable<typeof employees>[number];
       isPrimary: boolean;
+      /**
+       * Reliever line — either an extra designation for the same person, or a
+       * person who is not permanently mapped to this unit. Relievers can be
+       * removed from the muster; permanently mapped people cannot.
+       */
+      reliever?: boolean;
       /** Contracted designation slot with nobody mapped yet — read-only placeholder. */
       vacant?: boolean;
     }> = [];
@@ -952,6 +958,7 @@ function MusterRollPage() {
     const desigNameMap = new Map(contractDesignations.map((d) => [d.designationId, d.designationName]));
 
     for (const emp of employees ?? []) {
+      const homeMapped = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
       // Primary row from candidate's own designation
       const primaryKey = rowKey(emp.id, emp.designation_id);
       out.push({
@@ -961,6 +968,7 @@ function MusterRollPage() {
         designationName: emp.designation || "—",
         emp,
         isPrimary: true,
+        reliever: !homeMapped,
       });
       seen.add(primaryKey);
 
@@ -986,6 +994,7 @@ function MusterRollPage() {
           designationName: dName,
           emp,
           isPrimary: false,
+          reliever: true,
         });
       }
 
@@ -1004,9 +1013,11 @@ function MusterRollPage() {
           designationName: dName,
           emp,
           isPrimary: false,
+          reliever: true,
         });
       }
     }
+
 
     // Contracted designations always appear on the muster, even with nobody
     // mapped. For each designation we render `quantity` slots; slots already
