@@ -2673,25 +2673,33 @@ function MusterRollPage() {
       <Dialog open={otPickerOpen} onOpenChange={setOtPickerOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Set OT days</DialogTitle>
+            <DialogTitle>Set OT hours</DialogTitle>
             <DialogDescription>
-              0.5 = half OT day, 1 = one OT day. {otPickerDates.length} day{otPickerDates.length > 1 ? "s" : ""} selected
+              Pick overtime in hours (0.5 – 16). Converted to OT days at the row&apos;s contractual{" "}
+              {rowShiftHours(otPickerRowKey)}h shift. {otPickerDates.length} day
+              {otPickerDates.length > 1 ? "s" : ""} selected
               {otPickerRowKey
                 ? ` for ${findRow(otPickerRowKey)?.emp.full_name ?? ""} — ${findRow(otPickerRowKey)?.designationName ?? ""}`
                 : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-4 gap-2">
-            {[0.5, 1, 1.5, 2].map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => applyOtToSelection(n)}
-                className="rounded-md border border-amber-200 bg-amber-50 px-2 py-3 text-base font-bold text-amber-800 transition hover:border-amber-400 hover:bg-amber-100"
-              >
-                {n}
-              </button>
-            ))}
+          <div className="grid max-h-[45vh] grid-cols-4 gap-2 overflow-y-auto pr-1">
+            {Array.from({ length: 32 }, (_, i) => (i + 1) * 0.5).map((n) => {
+              const shift = rowShiftHours(otPickerRowKey);
+              const days = Math.round((n / shift) * 100) / 100;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => applyOtToSelection(n)}
+                  title={`${n}h = ${days} OT day${days === 1 ? "" : "s"}`}
+                  className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-sm font-bold leading-tight text-amber-800 transition hover:border-amber-400 hover:bg-amber-100"
+                >
+                  {n}h
+                  <span className="block text-[9px] font-medium text-amber-600">{days}d</span>
+                </button>
+              );
+            })}
           </div>
           <button
             type="button"
