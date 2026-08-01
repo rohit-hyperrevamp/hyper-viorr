@@ -2637,7 +2637,9 @@ function MusterRollPage() {
                                 : codeMeta?.color ? `${codeMeta.color}22` : undefined,
                             }}
                             title={
-                              beforeDoj
+                              mr.otOnly
+                                ? "Reliever line — tracked as overtime only. Use the OT row below."
+                                : beforeDoj
                                 ? `Before joining date (${mr.emp.doj})`
                                 : isFuture
                                 ? "Future date — cannot mark attendance"
