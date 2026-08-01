@@ -451,10 +451,13 @@ export function FinanceCharter({
                         <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {r.actual}/{r.committed} deployed
                         </span>
+                        <AttendanceStatusBadge status={r.status.attendance} />
+                        <MoneyStatusBadge kind={mode} status={mode === "invoice" ? r.status.invoice : r.status.payroll} />
                       </div>
                       <div className="truncate text-xs text-muted-foreground">
                         {r.unit.customer_name} · {r.contractCode}
                       </div>
+
                       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] tabular-nums text-muted-foreground sm:hidden">
                         <span className="whitespace-nowrap">Inv {fmtMoneyCompact(r.invoiceAmount)}</span>
                         <span>·</span>
