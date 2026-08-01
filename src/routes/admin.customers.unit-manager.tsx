@@ -45,6 +45,8 @@ import {
   useCustomers,
   useStates,
   useUnits,
+  BONUS_FREQUENCY_OPTIONS,
+  type BonusFrequency,
   type ReportingOfficer,
   type Unit,
 } from "@/lib/admin-data";
@@ -131,6 +133,8 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     recruitmentFeeAmount: 0,
     gpaipEnabled: false,
     gpaipAmount: 0,
+    bonusEnabled: false,
+    bonusFrequency: null,
   };
 }
 
@@ -1188,6 +1192,58 @@ function UnitFormDialog({
                       value={String(form.gpaipAmount ?? 0)}
                       onChange={(e) => set("gpaipAmount", Math.max(0, Number(e.target.value) || 0))}
                     />
+                  </Field>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 rounded-xl border border-border/60 bg-background p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-semibold">Bonus</div>
+                    <Badge
+                      className={cn(
+                        "border-0 text-[10px] font-semibold uppercase tracking-wide",
+                        form.bonusEnabled
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {form.bonusEnabled ? "Applicable" : "Off"}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+                    Statutory / contractual bonus for this unit. Turn on and choose how it is paid out.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.bonusEnabled}
+                  onCheckedChange={(v) => {
+                    set("bonusEnabled", v);
+                    if (v && !form.bonusFrequency) set("bonusFrequency", "monthly");
+                    if (!v) set("bonusFrequency", null);
+                  }}
+                />
+              </div>
+              {form.bonusEnabled && (
+                <div className="mt-3 max-w-xs">
+                  <Field label="Bonus payout">
+                    <Select
+                      value={form.bonusFrequency ?? "monthly"}
+                      onValueChange={(v) => set("bonusFrequency", v as BonusFrequency)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payout" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BONUS_FREQUENCY_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                 </div>
               )}
