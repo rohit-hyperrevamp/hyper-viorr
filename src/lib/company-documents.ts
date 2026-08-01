@@ -1,6 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type DocType = "nda" | "appointment_letter" | "form_vii" | "company_stamp" | "id_card";
+export type DocType =
+  | "nda"
+  | "appointment_letter"
+  | "form_vii"
+  | "company_stamp"
+  | "id_card"
+  | "posting_order"
+  | "posting_order_email"
+  | "posting_order_whatsapp";
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
   nda: "Non-Disclosure Agreement",
@@ -8,6 +16,9 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   form_vii: "Form VII — Nomination Form",
   company_stamp: "Company Stamp and Signatures",
   id_card: "Employee ID",
+  posting_order: "Posting Order",
+  posting_order_email: "Posting Order — Email Template",
+  posting_order_whatsapp: "Posting Order — WhatsApp Template",
 };
 
 export const DOC_TYPE_SHORT: Record<DocType, string> = {
@@ -16,7 +27,11 @@ export const DOC_TYPE_SHORT: Record<DocType, string> = {
   form_vii: "Form VII",
   company_stamp: "Stamp & Signatures",
   id_card: "Employee ID",
+  posting_order: "Posting Order",
+  posting_order_email: "Posting Order Email",
+  posting_order_whatsapp: "Posting Order WhatsApp",
 };
+
 
 /** CDN URL of the official company stamp (with authorised signature). */
 export const COMPANY_STAMP_URL =
@@ -138,8 +153,82 @@ export const PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "employee_photo", label: "Employee Photo URL (ID card)" },
   { key: "company_logo", label: "Company Logo URL (ID card)" },
   { key: "company_stamp", label: "Company Stamp URL" },
-
+  { key: "posting_order_no", label: "Posting Order No." },
+  { key: "posting_date", label: "Posting Order Date" },
+  { key: "client_name", label: "Client Name" },
+  { key: "site_name", label: "Site / Branch" },
+  { key: "site_address", label: "Site Address" },
+  { key: "reporting_date", label: "Date of Reporting" },
+  { key: "reporting_time", label: "Reporting Time" },
+  { key: "duty_shift", label: "Duty Shift / Timing" },
+  { key: "site_supervisor", label: "Site Supervisor / Reporting Officer" },
+  { key: "authorised_signatory", label: "Authorised Signatory Name" },
+  { key: "signatory_designation", label: "Authorised Signatory Designation" },
+  { key: "company_address", label: "Company Corporate Office Address" },
+  { key: "company_mobile", label: "Company Mobile Number" },
+  { key: "company_email", label: "Company Email" },
 ];
+
+/** Site posting details captured when a billable employee is deputed to a client site. */
+export type PostingDetails = {
+  posting_order_no: string;
+  posting_date: string;
+  client_name: string;
+  site_name: string;
+  site_address: string;
+  reporting_date: string;
+  reporting_time: string;
+  duty_shift: string;
+  site_supervisor: string;
+  authorised_signatory: string;
+  signatory_designation: string;
+};
+
+export const EMPTY_POSTING_DETAILS: PostingDetails = {
+  posting_order_no: "",
+  posting_date: "",
+  client_name: "",
+  site_name: "",
+  site_address: "",
+  reporting_date: "",
+  reporting_time: "",
+  duty_shift: "",
+  site_supervisor: "",
+  authorised_signatory: "",
+  signatory_designation: "",
+};
+
+export const COMPANY_CONTACT = {
+  address: "818, Clover Hills Plaza, NIBM Road, Kondhwa, Pune - 411048",
+  mobile: "09156453001",
+  email: "info@radiantguardservices.com",
+};
+
+/** Merge posting-site fields onto a normal placeholder map. */
+export function withPostingPlaceholders(
+  map: Record<string, string>,
+  posting: Partial<PostingDetails>,
+): Record<string, string> {
+  const v = (s: string | undefined) => (s && s.trim() ? s.trim() : "_______");
+  return {
+    ...map,
+    posting_order_no: v(posting.posting_order_no),
+    posting_date: v(posting.posting_date),
+    client_name: v(posting.client_name),
+    site_name: v(posting.site_name),
+    site_address: v(posting.site_address),
+    reporting_date: v(posting.reporting_date),
+    reporting_time: v(posting.reporting_time),
+    duty_shift: v(posting.duty_shift),
+    site_supervisor: v(posting.site_supervisor),
+    authorised_signatory: v(posting.authorised_signatory),
+    signatory_designation: v(posting.signatory_designation),
+    company_address: COMPANY_CONTACT.address,
+    company_mobile: COMPANY_CONTACT.mobile,
+    company_email: COMPANY_CONTACT.email,
+  };
+}
+
 
 function fmtDate(s: string | null | undefined): string {
   if (!s) return "_______";
@@ -856,7 +945,7 @@ function nomineeTableHtml(nominees: NomineeForRender[]): string {
 
 /** Sample candidate used to preview a template with realistic data (Control Center). */
 export function previewPlaceholderMap(html: boolean): Record<string, string> {
-  return buildPlaceholderMap(
+  return withPostingPlaceholders(buildPlaceholderMap(
     {
       id: "preview",
       full_name: "SAMPLE EMPLOYEE NAME",
@@ -888,7 +977,19 @@ export function previewPlaceholderMap(html: boolean): Record<string, string> {
 
     },
     html,
-  );
+  ), {
+    posting_order_no: "PO-2026-0001",
+    posting_date: "01 Apr 2026",
+    client_name: "SAMPLE CLIENT PVT. LTD.",
+    site_name: "Koregaon Park Branch",
+    site_address: "Lane 5, Koregaon Park, Pune - 411001",
+    reporting_date: "05 Apr 2026",
+    reporting_time: "08:00 AM",
+    duty_shift: "Day Shift (08:00 - 20:00)",
+    site_supervisor: "SAMPLE SUPERVISOR",
+    authorised_signatory: "SAMPLE SIGNATORY",
+    signatory_designation: "Operations Manager",
+  });
 }
 
 
@@ -942,7 +1043,7 @@ export function buildDocumentPageHtml(body: string): string {
   if (isIdCardBody(body)) {
     return `<style>${ID_CARD_CSS}</style>${expandIdCardBody(body)}`;
   }
-  return `<style>${DOCUMENT_PAGE_CSS}</style><div class="govdoc">${body}</div>`;
+  return `<style>${DOCUMENT_PAGE_CSS}${POSTING_ORDER_CSS}</style><div class="govdoc">${body}</div>`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1312,3 +1413,160 @@ export async function generateHtmlDocumentPdf(opts: {
   }
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Posting Order — document, email and WhatsApp master templates       */
+/* ------------------------------------------------------------------ */
+
+export const DEFAULT_POSTING_ORDER_TEMPLATE = `<div class="po">
+  <div class="po-letterhead">
+    <img class="po-logo" src="$company_logo" alt="Company logo" />
+    <div class="po-lh-text">
+      <div class="po-company">RADIANT GUARD SERVICES PVT. LTD.</div>
+      <div class="po-contact">Corporate Office: $company_address</div>
+      <div class="po-contact">Mobile: $company_mobile &nbsp;|&nbsp; Email: $company_email</div>
+    </div>
+  </div>
+  <div class="po-rule"></div>
+
+  <div class="po-title">POSTING ORDER</div>
+
+  <table class="plain po-meta">
+    <tr><td>Posting Order No.: <b>$posting_order_no</b></td><td class="right">Date: <b>$posting_date</b></td></tr>
+  </table>
+
+  <div class="sec">Employee Details</div>
+  <table class="plain po-fields">
+    <tr><td class="k">Name</td><td>: $employee_name</td></tr>
+    <tr><td class="k">Employee ID</td><td>: $employee_code</td></tr>
+    <tr><td class="k">Designation</td><td>: $designation</td></tr>
+  </table>
+
+  <p>You are hereby posted and deputed for security duties at the following client site:</p>
+
+  <table class="plain po-fields">
+    <tr><td class="k">Client Name</td><td>: $client_name</td></tr>
+    <tr><td class="k">Site / Branch</td><td>: $site_name</td></tr>
+    <tr><td class="k">Site Address</td><td>: $site_address</td></tr>
+    <tr><td class="k">Date of Reporting</td><td>: $reporting_date</td></tr>
+    <tr><td class="k">Reporting Time</td><td>: $reporting_time</td></tr>
+    <tr><td class="k">Duty Shift / Timing</td><td>: $duty_shift</td></tr>
+    <tr><td class="k">Site Supervisor</td><td>: $site_supervisor</td></tr>
+  </table>
+
+  <p>You are directed to report at the above site on the specified date and time in complete and proper uniform, carrying your Company identity card and other required documents.</p>
+
+  <p>During your deployment, you shall:</p>
+  <ol class="po-list">
+    <li>Perform your duties diligently in accordance with the site instructions, Company SOPs and lawful directions of the authorised client and Company representatives.</li>
+    <li>Remain punctual, alert, disciplined, courteous and properly groomed while on duty.</li>
+    <li>Maintain access-control, visitor, material, key, incident and other prescribed records accurately.</li>
+    <li>Immediately report any theft, accident, fire, security breach, suspicious activity or unusual occurrence to the Site Supervisor and the Company Operations Officer.</li>
+    <li>Maintain strict confidentiality regarding the client's premises, employees, operations, documents and security arrangements.</li>
+    <li>Not remain absent, leave the post or change duty without prior approval and proper relief.</li>
+    <li>Not sleep, consume alcohol or prohibited substances, smoke in restricted areas, gamble or use a mobile phone unnecessarily while on duty.</li>
+    <li>Properly hand over and take over charge, including keys, equipment, registers and pending incidents.</li>
+    <li>Comply with all Company policies, client safety requirements and applicable laws.</li>
+  </ol>
+
+  <p>This posting is transferable and may be changed or withdrawn by the Company based on operational requirements. Your deployment at the client site shall not create any employer-employee relationship between you and the client. You shall continue to remain an employee of Radiant Guard Services Pvt. Ltd.</p>
+
+  <p>Non-compliance with this posting order, site instructions or Company policies may result in withdrawal from the site and disciplinary action.</p>
+
+  <div class="po-sign">
+    <div>For <b>Radiant Guard Services Pvt. Ltd.</b></div>
+    <span class="sig-slot" data-signature-slot="company"></span>
+    <div class="sig-line-sm"></div>
+    <div>Authorised Signatory: $authorised_signatory</div>
+    <div>Designation: $signatory_designation</div>
+    <div class="po-seal">Company Seal</div>
+  </div>
+
+  <div class="po-divider"></div>
+
+  <div class="sec">Employee Acknowledgement</div>
+  <p>I acknowledge receipt of this posting order and agree to report at the assigned site and perform my duties in accordance with the instructions stated above.</p>
+  <table class="plain po-fields">
+    <tr><td class="k">Employee Signature</td><td>: <span class="sig-slot" data-signature-slot="employee"></span></td></tr>
+    <tr><td class="k">Name</td><td>: $employee_name</td></tr>
+    <tr><td class="k">Date</td><td>: ______________</td></tr>
+  </table>
+
+  <div class="sec">Site Reporting Confirmation</div>
+  <p>The above employee reported at the assigned site on ____________ at ____________.</p>
+  <p>Site Supervisor's Name and Signature: ______________________</p>
+</div>`;
+
+export const DEFAULT_POSTING_ORDER_EMAIL_TEMPLATE = `<div class="po-email">
+  <p>Dear $employee_name,</p>
+  <p>Please find below your posting order issued by <b>Radiant Guard Services Pvt. Ltd.</b></p>
+  <table class="plain po-fields">
+    <tr><td class="k">Posting Order No.</td><td>: $posting_order_no</td></tr>
+    <tr><td class="k">Employee ID</td><td>: $employee_code</td></tr>
+    <tr><td class="k">Designation</td><td>: $designation</td></tr>
+    <tr><td class="k">Client</td><td>: $client_name</td></tr>
+    <tr><td class="k">Site / Branch</td><td>: $site_name</td></tr>
+    <tr><td class="k">Site Address</td><td>: $site_address</td></tr>
+    <tr><td class="k">Reporting Date</td><td>: $reporting_date</td></tr>
+    <tr><td class="k">Reporting Time</td><td>: $reporting_time</td></tr>
+    <tr><td class="k">Duty Shift</td><td>: $duty_shift</td></tr>
+    <tr><td class="k">Site Supervisor</td><td>: $site_supervisor</td></tr>
+  </table>
+  <p>You are directed to report at the above site on the specified date and time in complete and proper uniform, carrying your Company identity card. The complete posting order is attached / reproduced below and forms part of this communication.</p>
+  <p>For any clarification, contact the Operations desk at $company_mobile.</p>
+  <p>Regards,<br/>$authorised_signatory<br/>$signatory_designation<br/>Radiant Guard Services Pvt. Ltd.<br/>$company_address</p>
+</div>`;
+
+export const DEFAULT_POSTING_ORDER_WHATSAPP_TEMPLATE = `*Radiant Guard Services Pvt. Ltd. - Posting Order*
+
+Dear $employee_name ($employee_code),
+
+You are posted for security duty as per the details below:
+
+Posting Order No.: $posting_order_no
+Client: $client_name
+Site: $site_name
+Address: $site_address
+Reporting Date: $reporting_date
+Reporting Time: $reporting_time
+Shift: $duty_shift
+Site Supervisor: $site_supervisor
+
+Report in complete uniform with your Company ID card. Follow all site instructions and Company SOPs.
+
+- $authorised_signatory, $signatory_designation
+Radiant Guard Services Pvt. Ltd. | $company_mobile`;
+
+/** Subject line used for the posting order email. */
+export const POSTING_ORDER_EMAIL_SUBJECT =
+  "Posting Order - Radiant Guard Services Pvt. Ltd. ($posting_order_no)";
+
+/** Starter body used when a document type has no template yet. */
+export const DEFAULT_TEMPLATE_BODY: Partial<Record<DocType, string>> = {
+  id_card: DEFAULT_ID_CARD_TEMPLATE,
+  posting_order: DEFAULT_POSTING_ORDER_TEMPLATE,
+  posting_order_email: DEFAULT_POSTING_ORDER_EMAIL_TEMPLATE,
+  posting_order_whatsapp: DEFAULT_POSTING_ORDER_WHATSAPP_TEMPLATE,
+};
+
+/** Extra styles for the posting order letterhead, appended to the shared page CSS. */
+export const POSTING_ORDER_CSS = `
+.govdoc .po { font-size: 13px; line-height: 1.35; }
+.govdoc .po-letterhead { display: flex; align-items: center; gap: 14px; }
+.govdoc .po-logo { height: 46px; width: auto; max-width: 120px; object-fit: contain; }
+.govdoc .po-company { font-size: 18px; font-weight: 700; letter-spacing: .4px; }
+.govdoc .po-contact { font-size: 11.5px; }
+.govdoc .po-rule { border-bottom: 2px solid #000; margin: 8px 0 14px; }
+.govdoc .po-title { text-align: center; font-weight: 700; font-size: 15px; text-decoration: underline; letter-spacing: 1px; }
+.govdoc .po-meta { width: 100%; margin-top: 12px; font-size: 13px; }
+.govdoc .po-meta .right { text-align: right; }
+.govdoc .po-fields { width: 100%; margin: 6px 0 10px; }
+.govdoc .po-fields .k { width: 180px; font-weight: 700; }
+.govdoc .po-list { margin: 6px 0 10px 22px; padding: 0; }
+.govdoc .po-list li { margin: 3px 0; text-align: justify; }
+.govdoc .po-sign { margin-top: 18px; }
+.govdoc .po-sign .sig-line-sm { border-top: 1px solid #000; width: 190px; margin-top: 4px; }
+.govdoc .po-seal { margin-top: 10px; font-size: 12px; }
+.govdoc .po-divider { border-top: 1px dashed #666; margin: 18px 0; }
+.govdoc .po-email .k { width: 150px; }
+`;

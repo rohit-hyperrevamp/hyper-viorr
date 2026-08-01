@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import companyStampAsset from "@/assets/company-stamp.png.asset.json";
 import {
   DOC_TYPE_LABELS,
+  DEFAULT_TEMPLATE_BODY,
   DOC_TYPE_SHORT,
   PLACEHOLDERS,
   renderTemplate,
@@ -342,6 +343,30 @@ function CompanyDocumentsPage() {
           <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
             No {view === "archived" ? "archived" : "active"} versions yet for{" "}
             {DOC_TYPE_LABELS[docType]}.
+            {view === "active" && DEFAULT_TEMPLATE_BODY[docType] && (
+              <div className="mt-4">
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    publishNewMut.mutate(
+                      {
+                        docType,
+                        title: DOC_TYPE_LABELS[docType],
+                        body: DEFAULT_TEMPLATE_BODY[docType] as string,
+                      },
+                      {
+                        onSuccess: () => toast.success(`${DOC_TYPE_LABELS[docType]} template created`),
+                        onError: (e) =>
+                          toast.error(e instanceof Error ? e.message : "Could not create template"),
+                      },
+                    )
+                  }
+                  disabled={publishNewMut.isPending}
+                >
+                  Create default {DOC_TYPE_LABELS[docType]} template
+                </Button>
+              </div>
+            )}
           </div>
         )}
         {filtered.map((t) => (
