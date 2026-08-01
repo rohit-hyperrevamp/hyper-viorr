@@ -105,7 +105,7 @@ function PayrollUnitPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("units")
-        .select("id, code, name, customer_id, billing_state, billing_pincode")
+        .select("id, code, name, customer_id, billing_state, billing_pincode, epf_cap_enabled")
         .eq("id", unitId)
         .maybeSingle();
       if (!data) return null;
@@ -583,7 +583,7 @@ function PayrollUnitPage() {
         const resource = resourceByDesignation.get(did);
         const phOverride = isPrimaryForAdj ? phCashByCandidate.get(c.id) : undefined;
         const wages = resource
-          ? computeWages(totals, resource, periodDates.length, { phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(d)), dayBases })
+          ? computeWages(totals, resource, periodDates.length, { phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(d)), dayBases, epfCapEnabled })
           : null;
         const isPrimary = (c.designation_id ?? null) === p.designationId;
         const candidateGender = ((c as unknown as { gender?: string | null }).gender ?? "").toString();
@@ -641,7 +641,7 @@ function PayrollUnitPage() {
         // Split EPF employer contribution into statutory (EPS + EPF) sub-lines.
         // Total employer cost is preserved.
         if (wages && isPrimary) {
-          Object.assign(wages, applyEpfBreakdownToWageComputation(wages));
+          Object.assign(wages, applyEpfBreakdownToWageComputation(wages, { epfCapEnabled }));
         }
 
 

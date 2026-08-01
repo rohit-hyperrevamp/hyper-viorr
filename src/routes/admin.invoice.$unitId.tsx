@@ -99,7 +99,7 @@ function PayrollUnitPage() {
       const { data } = await supabase
         .from("units")
         .select(
-          "id, code, name, customer_id, gst_number, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country",
+          "id, code, name, customer_id, epf_cap_enabled, gst_number, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country",
         )
         .eq("id", unitId)
         .maybeSingle();
@@ -567,7 +567,7 @@ function PayrollUnitPage() {
           }
 
           // Statutory EPF employer split (EPS + EPF); total unchanged.
-          Object.assign(wages, applyEpfBreakdownToWageComputation(wages));
+          Object.assign(wages, applyEpfBreakdownToWageComputation(wages, { epfCapEnabled }));
         }
 
         // Merge split components (e.g. "HRA 5%" + "HRA 15%" -> "HRA") across
