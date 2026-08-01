@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Download } from "lucide-react";
+import { ChevronLeft, Download, FileText } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { InvoicePreviewDialog } from "@/components/InvoicePreviewDialog";
+
 import { supabase } from "@/integrations/supabase/client";
 import {
   applyEpfBreakdownToWageComputation,
