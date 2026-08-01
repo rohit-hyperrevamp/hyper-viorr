@@ -16,6 +16,8 @@ import { ConfirmProvider } from "@/components/ConfirmProvider";
 import { ExportChooser } from "@/components/ExportChooser";
 import { LanguageProvider } from "@/lib/i18n";
 import { initNative } from "@/lib/native";
+import { supabaseSessionReady } from "@/lib/supabase-ready";
+
 import { NativeAppLock } from "@/components/NativeAppLock";
 
 
@@ -136,6 +138,22 @@ function RootComponent() {
   useEffect(() => {
     void initNative();
   }, []);
+
+  // The Supabase session hydrates asynchronously. Queries that fired before
+  // the bearer token was attached come back empty (RLS returns zero rows with
+  // no error) — that is the "everything shows 0 until I refresh again" bug.
+  // Once the session is ready, refetch everything that loaded too early.
+  useEffect(() => {
+    let cancelled = false;
+    void supabaseSessionReady().then((hasSession) => {
+      if (cancelled || !hasSession) return;
+      void queryClient.invalidateQueries();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [queryClient]);
+
 
   // Promote any [title] into [data-tip] (to suppress the slow native tooltip)
   // and render a portal-mounted floating pill on hover/focus. Using a fixed
