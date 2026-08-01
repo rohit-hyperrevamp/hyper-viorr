@@ -914,7 +914,9 @@ function MusterRollPage() {
       logActivity({
         module: "Attendance",
         action: "update",
-        summary: `Mapped ${cand.full_name} to ${mapSlot.designationName} slot on ${unit?.name ?? unitId}`,
+        entityType: "muster_slot",
+        entityId: cand.id,
+        entityLabel: `${cand.full_name} → ${mapSlot.designationName} @ ${unit?.name ?? unitId}`,
       });
       toast.success(`${cand.full_name} mapped to ${mapSlot.designationName}`);
       setMapSlot(null);
