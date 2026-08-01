@@ -1174,7 +1174,7 @@ function PayrollUnitPage() {
 
       <div className="rounded-3xl border border-border/70 bg-card shadow-sm">
         <div className="overflow-x-auto overscroll-x-contain rounded-3xl [scrollbar-gutter:stable] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-muted/30">
-          <table className="ios-table min-w-[1900px] table-auto text-sm whitespace-nowrap">
+          <table className="ios-table min-w-[1180px] table-auto text-sm whitespace-nowrap">
             <thead className="border-b border-border/60 bg-secondary/40">
               <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
                 <th className="px-4 py-3 font-medium w-[60px]"></th>
@@ -1185,9 +1185,8 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium" title="Paid Holiday days (incl. additions)">PH Days</th>
                 <th className="px-4 py-3 font-medium" title="OT Days (0.5 = half OT day, 1 = one OT day)">OT Days</th>
                 <th className="px-4 py-3 font-medium" title="Total payable days (P + PH + Other Paid + OT)">T Days</th>
-                <th className="px-4 py-3 text-left font-medium" title="Same as OT Days — raw stored value">OT (raw)</th>
                 <th className="px-4 py-3 text-left font-medium" title="Full contract gross — what would be paid for a full month">Projected</th>
-                <th className="px-4 py-3 text-left font-medium" title="Per-day × T Days based on actual attendance">Earned gross</th>
+                <th className="px-4 py-3 text-left font-medium" title="Sum of every earned wage line, including overtime and paid holiday">Earned gross</th>
                 <th className="px-4 py-3 text-left font-medium">Deductions</th>
                 <th className="px-4 py-3 text-left font-medium">Net pay</th>
                 <th className="px-4 py-3 text-left font-medium">Employer cost</th>
@@ -1195,11 +1194,11 @@ function PayrollUnitPage() {
             </thead>
             <tbody className="divide-y divide-border/50">
               {isLoading ? (
-                <tr><td colSpan={14} className="px-4 py-10 text-center text-muted-foreground">Computing wages…</td></tr>
+                <tr><td colSpan={13} className="px-4 py-10 text-center text-muted-foreground">Computing wages…</td></tr>
               ) : error ? (
-                <tr><td colSpan={14} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
+                <tr><td colSpan={13} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={14} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
+                <tr><td colSpan={13} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
               ) : rows.map((r) => {
                 const isHighlighted = highlightCandidate === r.id;
                 const isExpanded = expandedRows.has(r.rowKey);
@@ -1230,7 +1229,6 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 text-left tabular-nums">{r.totals.phDays}</td>
                   <td className="px-4 py-3 text-left tabular-nums">{r.totals.otDays}</td>
                   <td className="px-4 py-3 text-left tabular-nums font-medium">{r.totals.tDays}</td>
-                  <td className="px-4 py-3 text-left tabular-nums">{r.totals.otHours}</td>
                   <td className="px-4 py-3 text-left text-muted-foreground">{r.wages ? fmtINR(r.wages.contractGross) : <span className="text-xs text-amber-600">no contract</span>}</td>
                   <td className="px-4 py-3 text-left font-medium">{r.wages ? fmtINR(r.wages.earnedGross) : "—"}</td>
                   <td className="px-4 py-3 text-left">{r.wages ? fmtINR(r.wages.totalDeductions) : "—"}</td>
@@ -1239,103 +1237,8 @@ function PayrollUnitPage() {
                 </tr>
                 {isExpanded && r.wages && r.resource && (
                   <tr key={`${r.rowKey}-detail`} className="bg-secondary/20">
-                    <td colSpan={14} className="px-4 py-0">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs my-3 rounded-lg border border-border/60 overflow-hidden">
-                          <tbody>
-                            <tr className="bg-muted/40">
-                              <td className="px-3 py-2 font-bold uppercase">Salary Particulars</td>
-                              <td className="px-3 py-2 text-center font-bold">{r.wages.baseDays} Days (contract)</td>
-                              <td className="px-3 py-2 text-right font-bold">Earned Rs.</td>
-                            </tr>
-                            {r.resource.components.filter((c) => Number(c.amount) > 0).map((c) => {
-                              const basePaidDays = r.totals.pDays + r.totals.otherPaidDays;
-                              const ratio = r.wages!.baseDays > 0 ? basePaidDays / r.wages!.baseDays : 0;
-                              const earned = Math.round(Number(c.amount) * ratio * 100) / 100;
-                              return (
-                                <tr key={`c-${c.name}`} className="border-b border-border/40">
-                                  <td className="px-3 py-2">{c.name}</td>
-                                  <td className="px-3 py-2 text-center tabular-nums">{Number(c.amount).toFixed(2)}</td>
-                                  <td className="px-3 py-2 text-right tabular-nums">{earned.toFixed(2)}</td>
-                                </tr>
-                              );
-                            })}
-                            {r.resource.benefits?.filter((b) => Number(b.amount) > 0).map((b) => {
-                              const basePaidDays = r.totals.pDays + r.totals.otherPaidDays;
-                              const ratio = r.wages!.baseDays > 0 ? basePaidDays / r.wages!.baseDays : 0;
-                              const earned = Math.round(Number(b.amount) * ratio * 100) / 100;
-                              return (
-                                <tr key={`b-${b.name}`} className="border-b border-border/40">
-                                  <td className="px-3 py-2">{b.name}</td>
-                                  <td className="px-3 py-2 text-center tabular-nums">{Number(b.amount).toFixed(2)}</td>
-                                  <td className="px-3 py-2 text-right tabular-nums">{earned.toFixed(2)}</td>
-                                </tr>
-                              );
-                            })}
-                            {(r.resource.components.filter((c) => Number(c.amount) > 0).length === 0 && (r.resource.benefits?.filter((b) => Number(b.amount) > 0).length ?? 0) === 0) && (
-                              <tr><td colSpan={3} className="px-3 py-3 text-center text-muted-foreground">No salary particulars configured.</td></tr>
-                            )}
-                            <tr className="bg-sky-100 font-bold dark:bg-sky-500/20">
-                              <td className="px-3 py-2 uppercase">TOTAL Gross Rs.</td>
-                              <td className="px-3 py-2 text-center tabular-nums">{(r.resource.components.reduce((s, c) => s + Number(c.amount), 0) + (r.resource.benefits?.reduce((s, b) => s + Number(b.amount), 0) ?? 0)).toFixed(2)}</td>
-                              <td className="px-3 py-2 text-right tabular-nums">{r.wages.earnedGross.toFixed(2)}</td>
-                            </tr>
-                            <tr className="bg-muted/40">
-                              <td className="px-3 py-2 font-bold uppercase">Deductions</td>
-                              <td className="px-3 py-2" />
-                              <td className="px-3 py-2 text-right font-bold">Earned Rs.</td>
-                            </tr>
-                            {r.wages.deductions.filter((d) => Number(d.amount) > 0).map((d) => {
-                              const isEsi = /\besi(c)?\b/i.test(d.name);
-                              const isPt = /\bprofessional\s*tax\b|\bpt\b/i.test(d.name);
-                              const contract = r.resource!.deductions?.find((x) => x.name === d.name);
-                              const contractAmt = contract ? contractTotalAmount(contract) : 0;
-                              return (
-                                <tr key={`d-${d.name}`} className="border-b border-border/40">
-                                  <td className="px-3 py-2">
-                                    {d.name}
-                                    {isEsi && (
-                                      <span className="ml-2 text-[10px] text-muted-foreground">
-                                        @ 0.75% of Earned Gross − Washing − Conveyance, rounded up
-                                      </span>
-                                    )}
-                                    {isPt && r.pt && (
-                                      <span className="ml-2 text-[10px] text-muted-foreground">
-                                        {r.pt.source === "resolved"
-                                          ? `Per ${r.pt.state}${r.pt.regionLabel && !/all\s*pincodes/i.test(r.pt.regionLabel) ? ` · ${r.pt.regionLabel}` : ""} slab`
-                                          : r.pt.source === "no_state"
-                                          ? "Unit state not set"
-                                          : r.pt.source === "no_slab"
-                                          ? "No PT slab for unit state"
-                                          : "No matching slab"}
-                                      </span>
-                                    )}
-                                  </td>
-                                   <td className="px-3 py-2 text-center tabular-nums text-muted-foreground">
-                                     {isEsi || isPt ? "—" : contractAmt.toFixed(2)}
-                                   </td>
-                                  <td className="px-3 py-2 text-right tabular-nums">{d.amount.toFixed(2)}</td>
-                                </tr>
-                              );
-                            })}
-                            {r.wages.deductions.filter((d) => Number(d.amount) > 0).length === 0 && (
-                              <tr><td colSpan={3} className="px-3 py-3 text-center text-muted-foreground">No deductions configured.</td></tr>
-                            )}
-                            <tr className="bg-rose-100 font-semibold dark:bg-rose-500/20">
-                              <td className="px-3 py-2 uppercase">Total Deductions Rs.</td>
-                               <td className="px-3 py-2 text-center tabular-nums">
-                                 {(r.resource.deductions?.reduce((s, d) => s + contractTotalAmount(d), 0) ?? 0).toFixed(2)}
-                               </td>
-                              <td className="px-3 py-2 text-right tabular-nums">{r.wages.totalDeductions.toFixed(2)}</td>
-                            </tr>
-                            <tr className="bg-cyan-100 font-bold dark:bg-cyan-500/20">
-                              <td className="px-3 py-2 uppercase">Total Amount (Payable) Rs.</td>
-                              <td className="px-3 py-2 text-center tabular-nums">{((r.resource.components.reduce((s, c) => s + Number(c.amount), 0) + (r.resource.benefits?.reduce((s, b) => s + Number(b.amount), 0) ?? 0)) - (r.resource.deductions?.reduce((s, d) => s + contractTotalAmount(d), 0) ?? 0)).toFixed(2)}</td>
-                              <td className="px-3 py-2 text-right tabular-nums">{r.wages.netPay.toFixed(2)}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
+                    <td colSpan={13} className="px-4 py-0">
+                      <PaySheetPanel r={r as unknown as PaySheetRow} />
                     </td>
                   </tr>
                 )}
@@ -1347,7 +1250,7 @@ function PayrollUnitPage() {
               <tfoot className="border-t border-border/60 bg-secondary/30 text-sm font-semibold">
                 <tr>
                   <td className="px-4 py-3" />
-                  <td className="px-4 py-3" colSpan={5}>Totals</td>
+                  <td className="px-4 py-3" colSpan={7}>Totals</td>
                   <td className="px-4 py-3 text-left text-muted-foreground">{fmtINR(rows.reduce((s, r) => s + (r.wages?.contractGross ?? 0), 0))}</td>
                   <td className="px-4 py-3 text-left">{fmtINR(totals.earnedGross)}</td>
                   <td className="px-4 py-3 text-left">{fmtINR(totals.deductions)}</td>
@@ -1360,7 +1263,7 @@ function PayrollUnitPage() {
         </div>
       </div>
 
-      {rows.length > 0 && <MisDetailSheet rows={rows} />}
+      
     </div>
   );
 }
@@ -1376,16 +1279,16 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "em
 }
 
 // --------------------------------------------------------------------------
-// MIS-style detail sheet: wide horizontally scrollable grid with column groups
-// for Attendance, Earnings, Additions, Deductions, Employer contributions,
-// and Totals. Sticky first three columns. Per-column totals row at the bottom.
+// Pay sheet panel: full per-employee breakdown rendered INLINE under the row.
+// Every figure comes from the computed wage result, so the lines always add
+// up to Earned Gross (Overtime / Paid Holiday / formula lines included).
+// No horizontal scrolling — sections stack and wrap responsively.
 // --------------------------------------------------------------------------
-type MisRow = {
-  rowKey: string;
-  employeeCode: string;
-  name: string;
-  designation: string;
-  totals: { pDays: number; otHours: number; otDays: number; phDays: number; otherPaidDays: number; tDays: number };
+type Line = { name: string; amount: number };
+
+type PaySheetRow = {
+  totals: { pDays: number; otDays: number; phDays: number; otherPaidDays: number; tDays: number };
+  pt?: { source: string; state?: string | null; regionLabel?: string | null } | null;
   wages: {
     baseDays: number;
     contractGross: number;
@@ -1394,143 +1297,198 @@ type MisRow = {
     netPay: number;
     employerCost: number;
     totalEmployerContributions: number;
-    components: { name: string; amount: number }[];
-    deductions: { name: string; amount: number }[];
-    employerContributions: { name: string; amount: number }[];
-    additions?: { name: string; amount: number }[];
-  } | null;
-  resource: { components: { name: string; amount: number }[] } | null;
+    components: Line[];
+    deductions: Line[];
+    employerContributions: Line[];
+    additions?: Line[];
+  };
+  resource: {
+    components: Line[];
+    benefits?: Line[] | null;
+    deductions?: Line[] | null;
+    employerContributions?: Line[] | null;
+  };
 };
 
-function MisDetailSheet({ rows }: { rows: MisRow[] }) {
-  const [open, setOpen] = useState(true);
+const normName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
-  const lookup = (items: { name: string; amount: number }[] | undefined, label: string) => {
-    if (!items) return 0;
-    const t = norm(label);
-    const hit = items.find((i) => norm(i.name) === t);
-    return hit ? Number(hit.amount) || 0 : 0;
-  };
-  const collectUnique = (pick: (r: MisRow) => { name: string }[] | undefined) => {
-    const seen = new Map<string, string>();
-    rows.forEach((r) => (pick(r) ?? []).forEach((it) => {
-      const k = norm(it.name);
-      if (!k || seen.has(k)) return;
-      seen.set(k, it.name);
-    }));
-    return Array.from(seen.values());
-  };
-  const keepNonZero = (names: string[], get: (r: MisRow, n: string) => number) =>
-    names.filter((n) => rows.some((r) => Math.abs(get(r, n)) > 0.005));
+function contractLookup(items: Line[] | null | undefined, name: string): number | null {
+  if (!items) return null;
+  const t = normName(name);
+  const hit = items.find((i) => normName(i.name) === t);
+  return hit ? Number(hit.amount) || 0 : null;
+}
 
-  const earnedCols    = keepNonZero(collectUnique((r) => r.wages?.components), (r, n) => lookup(r.wages?.components, n));
-  const additionCols  = keepNonZero(collectUnique((r) => r.wages?.additions), (r, n) => lookup(r.wages?.additions, n));
-  const deductionCols = keepNonZero(collectUnique((r) => r.wages?.deductions), (r, n) => lookup(r.wages?.deductions, n));
-  const employerCols  = keepNonZero(collectUnique((r) => r.wages?.employerContributions), (r, n) => lookup(r.wages?.employerContributions, n));
-
-  const totalsFor = (get: (r: MisRow) => number) => round2(rows.reduce((s, r) => s + get(r), 0));
-
-  const cellNum = "px-2 py-2 text-right tabular-nums whitespace-nowrap";
-  const cellHead = "px-2 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap";
-
-  const grpAttClass    = "bg-sky-50 dark:bg-sky-500/10";
-  const grpEarnClass   = "bg-emerald-50 dark:bg-emerald-500/10";
-  const grpAddClass    = "bg-amber-50 dark:bg-amber-500/10";
-  const grpDedClass    = "bg-rose-50 dark:bg-rose-500/10";
-  const grpEmpClass    = "bg-violet-50 dark:bg-violet-500/10";
-  const grpTotClass    = "bg-cyan-50 dark:bg-cyan-500/10";
-
+function BreakdownSection({
+  title,
+  tone,
+  lines,
+  contractOf,
+  totalLabel,
+  totalContract,
+  totalEarned,
+  note,
+}: {
+  title: string;
+  tone: "emerald" | "rose" | "violet" | "amber";
+  lines: Line[];
+  contractOf: (name: string) => number | null;
+  totalLabel: string;
+  totalContract: number | null;
+  totalEarned: number;
+  note?: (name: string) => string | null;
+}) {
+  const toneMap = {
+    emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    rose: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
+    violet: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
+    amber: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  } as const;
+  const visible = lines.filter((l) => Math.abs(Number(l.amount) || 0) > 0.004);
   return (
-    <div className="rounded-3xl border border-border/70 bg-card shadow-sm">
-      <div className="flex items-center justify-between border-b border-border/60 px-5 py-3">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">MIS Detail View</div>
-          <div className="text-sm text-muted-foreground">Wide register with every component, addition, deduction, and employer cost.</div>
-        </div>
-        <Button size="sm" variant="outline" onClick={() => setOpen((o) => !o)}>
-          {open ? "Collapse" : "Expand"}
-        </Button>
+    <div className="overflow-hidden rounded-2xl border border-border/60 bg-background">
+      <div className={`flex items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] ${toneMap[tone]}`}>
+        <span>{title}</span>
+        <span className="flex gap-6 text-[10px] tracking-normal">
+          <span className="w-20 text-right normal-case">Contract</span>
+          <span className="w-24 text-right normal-case">Earned ₹</span>
+        </span>
       </div>
-      {open && (
-        <div className="overflow-x-auto overscroll-x-contain">
-          <table className="min-w-max text-xs">
-            <thead>
-              <tr className="border-b border-border/60 bg-secondary/40">
-                <th className={cellHead + " sticky left-0 z-20 bg-secondary/80 text-left"} style={{ minWidth: 100 }}>Emp ID</th>
-                <th className={cellHead + " sticky left-[100px] z-20 bg-secondary/80 text-left"} style={{ minWidth: 180 }}>Name</th>
-                <th className={cellHead + " sticky left-[280px] z-20 bg-secondary/80 text-left"} style={{ minWidth: 140 }}>Designation</th>
-                <th className={cellHead + " " + grpAttClass}>FD</th>
-                <th className={cellHead + " " + grpAttClass}>P</th>
-                <th className={cellHead + " " + grpAttClass}>WO</th>
-                <th className={cellHead + " " + grpAttClass}>PH</th>
-                <th className={cellHead + " " + grpAttClass}>OT Days (raw)</th>
-                <th className={cellHead + " " + grpAttClass}>OT</th>
-                <th className={cellHead + " " + grpAttClass}>T Days</th>
-                {earnedCols.map((c) => (<th key={`e-${c}`} className={cellHead + " " + grpEarnClass}>{c}</th>))}
-                <th className={cellHead + " " + grpEarnClass}>Earned Gross</th>
-                {additionCols.map((c) => (<th key={`a-${c}`} className={cellHead + " " + grpAddClass}>{c}</th>))}
-                {deductionCols.map((c) => (<th key={`d-${c}`} className={cellHead + " " + grpDedClass}>{c}</th>))}
-                <th className={cellHead + " " + grpDedClass}>Total Ded</th>
-                {employerCols.map((c) => (<th key={`ec-${c}`} className={cellHead + " " + grpEmpClass}>{c}</th>))}
-                <th className={cellHead + " " + grpEmpClass}>Employer Total</th>
-                <th className={cellHead + " " + grpTotClass}>Net Pay</th>
-                <th className={cellHead + " " + grpTotClass}>CTC</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {rows.map((r) => (
-                <tr key={r.rowKey} className="hover:bg-muted/30">
-                  <td className="px-2 py-2 font-mono text-[11px] sticky left-0 z-10 bg-card whitespace-nowrap" style={{ minWidth: 100 }}>{r.employeeCode || "—"}</td>
-                  <td className="px-2 py-2 font-medium sticky left-[100px] z-10 bg-card whitespace-nowrap" style={{ minWidth: 180 }}>{r.name}</td>
-                  <td className="px-2 py-2 text-muted-foreground sticky left-[280px] z-10 bg-card whitespace-nowrap" style={{ minWidth: 140 }}>{r.designation}</td>
-                  <td className={cellNum + " " + grpAttClass}>{r.wages?.baseDays ?? 0}</td>
-                  <td className={cellNum + " " + grpAttClass}>{r.totals.pDays}</td>
-                  <td className={cellNum + " " + grpAttClass}>{r.totals.otherPaidDays}</td>
-                  <td className={cellNum + " " + grpAttClass}>{r.totals.phDays}</td>
-                  <td className={cellNum + " " + grpAttClass}>{r.totals.otHours}</td>
-                  <td className={cellNum + " " + grpAttClass}>{r.totals.otDays}</td>
-                  <td className={cellNum + " " + grpAttClass}>{r.totals.tDays}</td>
-                  {earnedCols.map((c) => (<td key={`e-${r.rowKey}-${c}`} className={cellNum + " " + grpEarnClass}>{lookup(r.wages?.components, c).toFixed(2)}</td>))}
-                  <td className={cellNum + " " + grpEarnClass + " font-semibold"}>{(r.wages?.earnedGross ?? 0).toFixed(2)}</td>
-                  {additionCols.map((c) => (<td key={`a-${r.rowKey}-${c}`} className={cellNum + " " + grpAddClass}>{lookup(r.wages?.additions, c).toFixed(2)}</td>))}
-                  {deductionCols.map((c) => (<td key={`d-${r.rowKey}-${c}`} className={cellNum + " " + grpDedClass}>{lookup(r.wages?.deductions, c).toFixed(2)}</td>))}
-                  <td className={cellNum + " " + grpDedClass + " font-semibold"}>{(r.wages?.totalDeductions ?? 0).toFixed(2)}</td>
-                  {employerCols.map((c) => (<td key={`ec-${r.rowKey}-${c}`} className={cellNum + " " + grpEmpClass}>{lookup(r.wages?.employerContributions, c).toFixed(2)}</td>))}
-                  <td className={cellNum + " " + grpEmpClass + " font-semibold"}>{(r.wages?.totalEmployerContributions ?? 0).toFixed(2)}</td>
-                  <td className={cellNum + " " + grpTotClass + " font-semibold text-emerald-700"}>{(r.wages?.netPay ?? 0).toFixed(2)}</td>
-                  <td className={cellNum + " " + grpTotClass + " font-semibold text-amber-700"}>{(r.wages?.employerCost ?? 0).toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-border/60 bg-secondary/40 font-semibold">
-                <td className="px-2 py-2 sticky left-0 z-10 bg-secondary/80" />
-                <td className="px-2 py-2 sticky left-[100px] z-10 bg-secondary/80">TOTAL</td>
-                <td className="px-2 py-2 sticky left-[280px] z-10 bg-secondary/80" />
-                <td className={cellNum + " " + grpAttClass}>—</td>
-                <td className={cellNum + " " + grpAttClass}>{totalsFor((r) => r.totals.pDays)}</td>
-                <td className={cellNum + " " + grpAttClass}>{totalsFor((r) => r.totals.otherPaidDays)}</td>
-                <td className={cellNum + " " + grpAttClass}>{totalsFor((r) => r.totals.phDays)}</td>
-                <td className={cellNum + " " + grpAttClass}>{totalsFor((r) => r.totals.otHours)}</td>
-                <td className={cellNum + " " + grpAttClass}>{totalsFor((r) => r.totals.otDays)}</td>
-                <td className={cellNum + " " + grpAttClass}>{totalsFor((r) => r.totals.tDays)}</td>
-                {earnedCols.map((c) => (<td key={`te-${c}`} className={cellNum + " " + grpEarnClass}>{totalsFor((r) => lookup(r.wages?.components, c)).toFixed(2)}</td>))}
-                <td className={cellNum + " " + grpEarnClass}>{totalsFor((r) => r.wages?.earnedGross ?? 0).toFixed(2)}</td>
-                {additionCols.map((c) => (<td key={`ta-${c}`} className={cellNum + " " + grpAddClass}>{totalsFor((r) => lookup(r.wages?.additions, c)).toFixed(2)}</td>))}
-                {deductionCols.map((c) => (<td key={`td-${c}`} className={cellNum + " " + grpDedClass}>{totalsFor((r) => lookup(r.wages?.deductions, c)).toFixed(2)}</td>))}
-                <td className={cellNum + " " + grpDedClass}>{totalsFor((r) => r.wages?.totalDeductions ?? 0).toFixed(2)}</td>
-                {employerCols.map((c) => (<td key={`tec-${c}`} className={cellNum + " " + grpEmpClass}>{totalsFor((r) => lookup(r.wages?.employerContributions, c)).toFixed(2)}</td>))}
-                <td className={cellNum + " " + grpEmpClass}>{totalsFor((r) => r.wages?.totalEmployerContributions ?? 0).toFixed(2)}</td>
-                <td className={cellNum + " " + grpTotClass + " text-emerald-700"}>{totalsFor((r) => r.wages?.netPay ?? 0).toFixed(2)}</td>
-                <td className={cellNum + " " + grpTotClass + " text-amber-700"}>{totalsFor((r) => r.wages?.employerCost ?? 0).toFixed(2)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      )}
+      <div className="divide-y divide-border/40">
+        {visible.length === 0 ? (
+          <div className="px-3 py-3 text-center text-xs text-muted-foreground">None applicable.</div>
+        ) : (
+          visible.map((l) => {
+            const contract = contractOf(l.name);
+            const hint = note?.(l.name);
+            return (
+              <div key={l.name} className="flex items-center justify-between gap-3 px-3 py-1.5 text-xs">
+                <span className="min-w-0 flex-1 truncate">
+                  {l.name}
+                  {hint && <span className="ml-1.5 text-[10px] text-muted-foreground">{hint}</span>}
+                </span>
+                <span className="w-20 shrink-0 text-right tabular-nums text-muted-foreground">
+                  {contract == null ? "—" : contract.toFixed(2)}
+                </span>
+                <span className="w-24 shrink-0 text-right tabular-nums font-medium">
+                  {(Number(l.amount) || 0).toFixed(2)}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-3 border-t border-border/60 bg-muted/40 px-3 py-2 text-xs font-semibold">
+        <span className="min-w-0 flex-1 truncate uppercase tracking-wide">{totalLabel}</span>
+        <span className="w-20 shrink-0 text-right tabular-nums text-muted-foreground">
+          {totalContract == null ? "—" : totalContract.toFixed(2)}
+        </span>
+        <span className="w-24 shrink-0 text-right tabular-nums">{totalEarned.toFixed(2)}</span>
+      </div>
     </div>
   );
 }
+
+function PaySheetPanel({ r }: { r: PaySheetRow }) {
+  const w = r.wages;
+  const contractComponents = [...(r.resource.components ?? []), ...(r.resource.benefits ?? [])];
+  const contractGrossTotal = contractComponents.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const additions = w.additions ?? [];
+  const additionsTotal = additions.reduce((s, a) => s + (Number(a.amount) || 0), 0);
+
+  const dayChips = [
+    { label: "Contract days", value: w.baseDays },
+    { label: "Present", value: r.totals.pDays },
+    { label: "Paid holiday", value: r.totals.phDays },
+    { label: "Other paid", value: r.totals.otherPaidDays },
+    { label: "Overtime days", value: r.totals.otDays },
+    { label: "Total days", value: r.totals.tDays },
+  ];
+
+  return (
+    <div className="space-y-3 py-3">
+      <div className="flex flex-wrap gap-1.5">
+        {dayChips.map((c) => (
+          <span
+            key={c.label}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px]"
+          >
+            <span className="text-muted-foreground">{c.label}</span>
+            <span className="font-semibold tabular-nums">{c.value}</span>
+          </span>
+        ))}
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <BreakdownSection
+          title="Earnings"
+          tone="emerald"
+          lines={w.components}
+          contractOf={(n) => contractLookup(contractComponents, n)}
+          totalLabel="Earned gross"
+          totalContract={contractGrossTotal}
+          totalEarned={w.earnedGross}
+        />
+        <BreakdownSection
+          title="Deductions"
+          tone="rose"
+          lines={w.deductions}
+          contractOf={(n) => contractLookup(r.resource.deductions, n)}
+          totalLabel="Total deductions"
+          totalContract={null}
+          totalEarned={w.totalDeductions}
+          note={(n) => {
+            if (/\besi(c)?\b/i.test(n)) return "0.75% of earned gross − washing − conveyance";
+            if (/\bprofessional\s*tax\b|\bpt\b/i.test(n)) {
+              if (!r.pt) return null;
+              return r.pt.source === "resolved"
+                ? `Per ${r.pt.state ?? ""} slab`
+                : r.pt.source === "no_state"
+                ? "Unit state not set"
+                : "No matching slab";
+            }
+            return null;
+          }}
+        />
+        {additions.length > 0 && (
+          <BreakdownSection
+            title="Additions"
+            tone="amber"
+            lines={additions}
+            contractOf={() => null}
+            totalLabel="Total additions"
+            totalContract={null}
+            totalEarned={additionsTotal}
+          />
+        )}
+        <BreakdownSection
+          title="Employer contributions"
+          tone="violet"
+          lines={w.employerContributions}
+          contractOf={(n) => contractLookup(r.resource.employerContributions, n)}
+          totalLabel="Employer total"
+          totalContract={null}
+          totalEarned={w.totalEmployerContributions}
+        />
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-3">
+        <SummaryCell label="Earned gross" value={w.earnedGross} />
+        <SummaryCell label="Net pay" value={w.netPay} tone="emerald" />
+        <SummaryCell label="CTC (employer cost)" value={w.employerCost} tone="amber" />
+      </div>
+    </div>
+  );
+}
+
+function SummaryCell({ label, value, tone }: { label: string; value: number; tone?: "emerald" | "amber" }) {
+  const cls = tone === "emerald" ? "text-emerald-700" : tone === "amber" ? "text-amber-700" : "text-foreground";
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background px-3 py-2">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <div className={`mt-0.5 text-base font-semibold tabular-nums ${cls}`}>{fmtINR(value)}</div>
+    </div>
+  );
+}
+
 
