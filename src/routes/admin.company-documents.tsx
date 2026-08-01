@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import companyStampAsset from "@/assets/company-stamp.png.asset.json";
 import {
   DOC_TYPE_LABELS,
+  DEFAULT_TEMPLATE_BODY,
   DOC_TYPE_SHORT,
   PLACEHOLDERS,
   renderTemplate,
