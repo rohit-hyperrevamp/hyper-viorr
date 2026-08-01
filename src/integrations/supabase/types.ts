@@ -5209,6 +5209,7 @@ export type Database = {
         Args: { _id: string; p: Json }
         Returns: undefined
       }
+      autofill_daily_attendance: { Args: never; Returns: undefined }
       can_phone_login: { Args: { _mobile: string }; Returns: boolean }
       candidate_branch_ids: {
         Args: { _candidate_id: string }
