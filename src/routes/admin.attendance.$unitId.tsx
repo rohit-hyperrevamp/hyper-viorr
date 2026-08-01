@@ -1144,8 +1144,8 @@ function MusterRollPage() {
       const v = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
       return v;
     };
-    const cap =
-      (designation_id ? maxPDaysByDesignation.get(designation_id) ?? null : null) ?? unitMaxPDays;
+    const desigCap = designation_id ? maxPDaysByDesignation.get(designation_id) : undefined;
+    const cap = desigCap != null ? desigCap : unitMaxPDays;
     let capped = filtered;
     let rejectedDays = 0;
     if (cap != null) {
