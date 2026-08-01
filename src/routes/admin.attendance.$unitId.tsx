@@ -2447,9 +2447,24 @@ function MusterRollPage() {
                       <td className={cn(cellBase, "p-1")} rowSpan={2}>{mr.emp.employee_code || "—"}</td>
                       <td className={cn(cellBase, "p-1 text-left")} rowSpan={2}>
                         <div className="flex items-center gap-1.5">
-                          <span className={cn(mr.vacant && "italic text-slate-400")}>
-                            {mr.vacant ? "Unassigned" : mr.emp.full_name || "—"}
-                          </span>
+                          {mr.vacant ? (
+                            <button
+                              type="button"
+                              disabled={!editable}
+                              onClick={() => {
+                                setMapQuery("");
+                                setMapSlot({ designationId: mr.designationId, designationName: mr.designationName });
+                              }}
+                              className="flex items-center gap-1 rounded border border-dashed border-slate-300 px-1.5 py-0.5 text-[11px] italic text-slate-400 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                              title="Search and map an employee to this slot"
+                            >
+                              <Search className="h-3 w-3" />
+                              Unassigned
+                            </button>
+                          ) : (
+                            <span>{mr.emp.full_name || "—"}</span>
+                          )}
+
                           {!mr.isPrimary && (
                             <button
                               type="button"
