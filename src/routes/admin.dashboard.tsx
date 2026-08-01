@@ -196,11 +196,25 @@ function DashboardPage() {
         id: string;
         unit_id: string | null;
         is_internal: boolean | null;
+        start_date: string;
       }>;
 
-      const contractIds = activeContracts.map((c) => c.id);
+      // A unit can briefly have overlapping active contracts during renewal.
+      // The finance registers use one current contract, so the dashboard must
+      // do the same instead of pricing the same attendance more than once.
+      const currentContractByUnit = new Map<string, (typeof activeContracts)[number]>();
+      for (const contract of activeContracts) {
+        if (!contract.unit_id) continue;
+        const current = currentContractByUnit.get(contract.unit_id);
+        if (!current || contract.start_date > current.start_date) {
+          currentContractByUnit.set(contract.unit_id, contract);
+        }
+      }
+      const currentContracts = Array.from(currentContractByUnit.values());
+
+      const contractIds = currentContracts.map((c) => c.id);
       const unitIdsInScope = Array.from(
-        new Set(activeContracts.map((c) => c.unit_id).filter((v): v is string => !!v)),
+        new Set(currentContracts.map((c) => c.unit_id).filter((v): v is string => !!v)),
       );
       const unitsById = new Map((unitsForPnl ?? []).map((u) => [u.id, u]));
       const customerIds = Array.from(
@@ -271,7 +285,9 @@ function DashboardPage() {
         ot_hours: number | string | null;
       };
       const resources = (resourcesRaw ?? []) as ResourceRow[];
-      const attendance = await fetchAttendanceEntriesForPeriod({ unitIds: unitIdsInScope, start: monthStart, end: monthEnd, includeUnitId: true }) as AttRow[];
+      const selectedMonthIsCurrent = year === now.getFullYear() && month === now.getMonth();
+      const attendanceEnd = selectedMonthIsCurrent && todayStr < monthEnd ? todayStr : monthEnd;
+      const attendance = await fetchAttendanceEntriesForPeriod({ unitIds: unitIdsInScope, start: monthStart, end: attendanceEnd, includeUnitId: true }) as AttRow[];
       const codes = (codesRaw ?? []) as AttendanceCodeLike[];
       const primaryCands = (primaryRoster ?? []) as Array<{
         id: string; full_name: string | null; designation_id: string | null; unit_id: string | null;
@@ -351,8 +367,11 @@ function DashboardPage() {
       });
 
       const hydratedResources = await hydrateFormulasFromMaster(resources.map(toResource));
-      const hydratedByDesignation = new Map(
-        hydratedResources.map((resource) => [resource.designationId, resource]),
+      const hydratedByContractDesignation = new Map(
+        resources.map((row, index) => [
+          `${row.contract_id}|${row.designation_id ?? ""}`,
+          hydratedResources[index] ?? toResource(row),
+        ]),
       );
       const isNonBillableInvoiceItem = (item: { name?: string }) =>
         /\besi(c)?\b|\bprofessional\s*tax\b|\bpt\b/i.test(String(item.name ?? ""));
@@ -368,7 +387,7 @@ function DashboardPage() {
       }
 
       const pnlByUnit = new Map<string, PnLRow>();
-      for (const contract of activeContracts) {
+      for (const contract of currentContracts) {
         if (!contract.unit_id) continue;
         const u = unitsById.get(contract.unit_id);
         if (!u) continue;
@@ -384,7 +403,9 @@ function DashboardPage() {
         for (const r of resMap.values()) {
           const qty = Number(r.quantity) || 0;
           committedStrength += qty;
-          const resource = hydratedByDesignation.get(r.designation_id ?? "") ?? toResource(r);
+          const resource = hydratedByContractDesignation.get(
+            `${r.contract_id}|${r.designation_id ?? ""}`,
+          ) ?? toResource(r);
           const payrollPerHead = resource.components.reduce(
             (sum, item) => sum + (Number(item.amount) || 0),
             0,
@@ -438,7 +459,9 @@ function DashboardPage() {
               ot_hours: e.ot_hours,
             })) as AttendanceEntryLike[];
           const totals = computeAttendanceTotals(p.candidateId, periodDates, lineEntries, codes);
-          const resource = hydratedByDesignation.get(p.designationId) ?? toResource(resRow);
+          const resource = hydratedByContractDesignation.get(
+            `${contract.id}|${p.designationId}`,
+          ) ?? toResource(resRow);
           const wages = computeWages(totals, resource, periodDates.length, {
             periodDates: periodDates.map((date) => new Date(`${date}T00:00:00`)),
           });
