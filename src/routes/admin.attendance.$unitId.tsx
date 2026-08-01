@@ -399,6 +399,20 @@ function MusterRollPage() {
   const periodStart = periodCells[0]?.date ?? ymd(year, monthIdx, 1);
   const periodEnd = periodCells[periodCells.length - 1]?.date ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
 
+  // Max "P" days allowed per designation for this period, driven by the
+  // contract resource's Payroll Days entry (26 fixed, actual days, actual
+  // minus weekly off, custom weekdays...). Anything beyond goes to OT.
+  const maxPDaysByDesignation = useMemo(() => {
+    const dates = periodCells.map((c) => c.date);
+    const m = new Map<string, number>();
+    for (const d of contractDesignations) {
+      const cap = resolvePayrollDayCount(d.payrollDayBase, dates);
+      if (cap != null && cap > 0) m.set(d.designationId, cap);
+    }
+    return m;
+  }, [contractDesignations, periodCells]);
+
+
   const queryClient = useQueryClient();
   const { can } = useCurrentPermissions();
   const canApprove = can("attendance", "approve");
