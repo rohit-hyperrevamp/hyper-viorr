@@ -3994,7 +3994,8 @@ function ResourceFormDialog({
         );
         const synced = {
           ...c,
-          includeInOt: at.includeInOt,
+          // includeInOt is a per-resource OT choice — never overwritten by the master
+          includeInOt: c.includeInOt !== false,
           formulaMode: at.formulaMode ?? null,
           formulaExpression: at.formulaExpression ?? null,
           formulaVersion: at.formulaVersion ?? null,
@@ -4003,7 +4004,6 @@ function ResourceFormDialog({
         const metaChanged =
           c.allowanceId !== synced.allowanceId ||
           c.name !== synced.name ||
-          c.includeInOt !== synced.includeInOt ||
           c.formulaMode !== synced.formulaMode ||
           c.formulaExpression !== synced.formulaExpression ||
           c.formulaVersion !== synced.formulaVersion;
