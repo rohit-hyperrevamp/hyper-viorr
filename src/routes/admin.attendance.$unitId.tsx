@@ -2257,7 +2257,7 @@ function MusterRollPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={clearOtSelection}>Clear</Button>
-            <Button size="sm" onClick={openOtPickerForSelection}>Set OT days</Button>
+            <Button size="sm" onClick={openOtPickerForSelection}>Set OT hours</Button>
           </div>
         </div>
       )}
@@ -2350,7 +2350,7 @@ function MusterRollPage() {
                     </th>
                   );
                 })}
-                <th className="border border-slate-400 p-1 text-[9px] font-medium">OT<br />Days</th>
+                <th className="border border-slate-400 p-1 text-[9px] font-medium">OT<br />Hrs</th>
               </tr>
             </thead>
             <tbody>
@@ -2631,7 +2631,7 @@ function MusterRollPage() {
         </div>
 
         <div className="mt-3 text-[10px] text-slate-600">
-          Att = Attendance · OT = Overtime hours · Each (employee × designation) is a separate payroll line.
+          Att = Attendance · OT row = Overtime hours (converted to OT days at the contractual shift length) · Each (employee × designation) is a separate payroll line.
         </div>
       </div>
 
