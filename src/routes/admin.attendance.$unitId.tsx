@@ -1044,7 +1044,13 @@ function MusterRollPage() {
       .from("attendance_entries")
       .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" });
     if (error) throw error;
+    if (overflowDays > 0) {
+      toast.info(
+        `Payroll days limit (${cap}) reached — ${overflowDays} day${overflowDays === 1 ? "" : "s"} moved to overtime`,
+      );
+    }
   };
+
 
   const confirm = useConfirm();
   const [clearingAll, setClearingAll] = useState(false);
