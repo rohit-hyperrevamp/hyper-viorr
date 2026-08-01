@@ -783,8 +783,9 @@ function UnitFormDialog({
       }
       onOpenChange(false);
       if (result.id) {
-        const syncErr = await syncFieldOfficerAssignments(result.id);
-        if (syncErr) toast.error(`Unit saved, but field officer assignments could not be updated: ${syncErr}`);
+        void syncFieldOfficerAssignments(result.id).then((syncErr) => {
+          if (syncErr) toast.error(`Unit saved, but field officer assignments could not be updated: ${syncErr}`);
+        });
       }
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "Could not save the unit. Please try again.";
@@ -1339,7 +1340,7 @@ function UnitFormDialog({
 
           <DialogFooter className="sticky bottom-0 z-20 -mx-6 mt-2 border-t border-border/60 bg-background/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>Cancel</Button>
-            <Button type="submit" disabled={isSaving || foSyncing} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button type="submit" disabled={isSaving} className="bg-primary text-primary-foreground hover:bg-primary/90">
               {isSaving ? "Saving…" : editing ? "Save changes" : "Create unit"}
             </Button>
           </DialogFooter>
