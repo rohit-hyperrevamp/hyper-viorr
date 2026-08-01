@@ -212,7 +212,7 @@ function MusterRollPage() {
         { data: rawUnit, error: rawUnitError },
         { data: scopeAssignments, error: scopeAssignmentsError },
       ] = await Promise.all([
-        supabase.from("candidate_units").select("candidate_id").eq("unit_id", unitId),
+        supabase.from("candidate_units").select("candidate_id, is_reliever").eq("unit_id", unitId),
         supabase.from("units").select("id, branch_id, customer_id, billing_state").eq("id", unitId).maybeSingle(),
         supabase.from("employee_scope_assignments").select("candidate_id, scope_type, scope_id").limit(5000),
       ]);
