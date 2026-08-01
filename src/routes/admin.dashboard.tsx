@@ -36,6 +36,12 @@ import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
 import { WorkforceCoverageCard } from "@/components/WorkforceCoverage";
+import {
+  PayrollCoverageCard,
+  InvoiceCoverageCard,
+  ProfitabilityCard,
+  type UnitFinanceRow,
+} from "@/components/FinanceCoverage";
 
 
 function PeopleInsightsSection({ compact }: { compact?: boolean }) {
@@ -77,6 +83,11 @@ type PnLRow = {
   payroll_cost: number;
   variance: number;
   variance_pct: number;
+  /** Full-month contracted payroll cost (components + ER + benefits) × headcount. */
+  committed_payroll: number;
+  /** Contracted headcount and employees actually mapped to the unit. */
+  committed_strength: number;
+  actual_strength: number;
   /** Internal (own-company) unit: cost centre, never billed to a customer. */
   internal: boolean;
 };
@@ -371,9 +382,15 @@ function DashboardPage() {
         // Mirrors Invoice module's projected (components + employer contributions),
         // multiplied by configured headcount. Internal contracts are not revenue.
         let contractValue = 0;
-        if (!isInternal) {
-          for (const r of resMap.values()) {
-            const qty = Number(r.quantity) || 0;
+        let committedPayroll = 0;
+        let committedStrength = 0;
+        for (const r of resMap.values()) {
+          const qty = Number(r.quantity) || 0;
+          committedStrength += qty;
+          // Payroll commitment is a cost for internal units too.
+          committedPayroll +=
+            qty * (sumArr(r.components) + sumArr(r.employer_contributions) + sumArr(r.benefits));
+          if (!isInternal) {
             contractValue += qty * (sumArr(r.components) + sumArr(r.employer_contributions));
           }
         }
@@ -431,6 +448,7 @@ function DashboardPage() {
           payrollCost += wages.employerCost + earnedBenefits;
         }
 
+        const actualStrength = unitRoster.size;
         const variance = invoiceAmount - payrollCost;
         const variancePct = invoiceAmount > 0 ? (variance / invoiceAmount) * 100 : 0;
         const existing = pnlByUnit.get(u.id);
@@ -438,6 +456,8 @@ function DashboardPage() {
           existing.contract_value += contractValue;
           existing.invoice_amount += invoiceAmount;
           existing.payroll_cost += payrollCost;
+          existing.committed_payroll += committedPayroll;
+          existing.committed_strength += committedStrength;
           existing.internal = existing.internal && isInternal;
           existing.variance = existing.invoice_amount - existing.payroll_cost;
           existing.variance_pct = existing.invoice_amount > 0
@@ -455,6 +475,9 @@ function DashboardPage() {
             variance,
             variance_pct: variancePct,
             internal: isInternal,
+            committed_payroll: committedPayroll,
+            committed_strength: committedStrength,
+            actual_strength: actualStrength,
           });
         }
       }
@@ -539,6 +562,20 @@ function DashboardPage() {
   }
 
 
+  const financeRows: UnitFinanceRow[] = (data?.pnlRows ?? []).map((r) => ({
+    unit_id: r.unit_id,
+    unit_code: r.unit_code,
+    unit_name: r.unit_name,
+    customer_name: r.customer_name,
+    internal: r.internal,
+    committed_strength: r.committed_strength,
+    actual_strength: r.actual_strength,
+    committed_payroll: r.committed_payroll,
+    actual_payroll: r.payroll_cost,
+    committed_invoice: r.contract_value,
+    actual_invoice: r.invoice_amount,
+  }));
+
   const insightsCharts = (() => {
         if (isLoading || !data) return null;
         const showInvoiceChart = can("invoice") && data.pnlRows.length > 0;
@@ -595,7 +632,7 @@ function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{insightsCharts}</>}>
+      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{(can("payroll") || can("invoice")) && <ProfitabilityCard rows={financeRows} />}{insightsCharts}</>}>
 
       <PageHeader
         title="Dashboard"
