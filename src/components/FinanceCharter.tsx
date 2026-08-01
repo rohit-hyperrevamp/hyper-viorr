@@ -39,6 +39,10 @@ type PersonMoney = {
   designationName: string;
   paidDays: number;
   otDays: number;
+  /** Flat contracted monthly gross per head — no OT, no pro-rating. */
+  contractedGross: number;
+  /** Flat contracted monthly bill rate per head — no OT, no pro-rating. */
+  contractedBill: number;
   invoiceAmount: number;
   /** Earned gross wages for the days paid. */
   payrollAmount: number;
@@ -279,6 +283,8 @@ export function FinanceCharter({
           designationName: rate?.designationName ?? "—",
           paidDays: 0,
           otDays: 0,
+          contractedGross: rate?.grossRate ?? 0,
+          contractedBill: rate?.billRate ?? 0,
           invoiceAmount: 0,
           payrollAmount: 0,
           deductionAmount: 0,
@@ -635,12 +641,14 @@ export function FinanceCharter({
                                 <th className="px-2 py-2 text-right font-medium">OT days</th>
                                 {mode === "payroll" ? (
                                   <>
+                                    <th className="px-2 py-2 text-right font-medium">Contracted</th>
                                     <th className="px-2 py-2 text-right font-medium">Gross</th>
                                     <th className="px-2 py-2 text-right font-medium">Deductions</th>
                                     <th className="px-2 py-2 text-right font-medium">Net pay</th>
                                   </>
                                 ) : (
                                   <>
+                                    <th className="px-2 py-2 text-right font-medium">Contracted</th>
                                     <th className="px-2 py-2 text-right font-medium">Invoice</th>
                                     <th className="px-2 py-2 text-right font-medium">Payroll</th>
                                     <th className="px-2 py-2 text-right font-medium">Margin</th>
@@ -659,6 +667,9 @@ export function FinanceCharter({
                                   <td className="px-2 py-1.5 text-right tabular-nums">{p.otDays}</td>
                                   {mode === "payroll" ? (
                                     <>
+                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
+                                        {fmtMoney(p.contractedGross)}
+                                      </td>
                                       <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
                                         {fmtMoney(p.payrollAmount)}
                                       </td>
@@ -671,6 +682,9 @@ export function FinanceCharter({
                                     </>
                                   ) : (
                                     <>
+                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
+                                        {fmtMoney(p.contractedBill)}
+                                      </td>
                                       <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
                                         {fmtMoney(p.invoiceAmount)}
                                       </td>
