@@ -89,8 +89,14 @@ import { WorkforceCoverageCard } from "@/components/WorkforceCoverage";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/contracts/client-contracts")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    status: typeof search.status === "string" ? search.status : undefined,
+    tab: search.tab === "prospect" || search.tab === "client" ? search.tab : undefined,
+    renewals: search.renewals === true || search.renewals === "true" ? true : undefined,
+  }),
   component: ClientContractsPage,
 });
+
 
 type GstOption = "csgst" | "igst" | "none";
 type ContractStatus = "active" | "inactive" | "expired";
