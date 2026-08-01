@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import companyStampAsset from "@/assets/company-stamp.png.asset.json";
 import {
   DOC_TYPE_LABELS,
+  COMPANY_DOCUMENT_TYPES,
   DEFAULT_TEMPLATE_BODY,
   DOC_TYPE_SHORT,
   PLACEHOLDERS,
@@ -49,6 +50,8 @@ import {
   parseIdCardSpec,
   serializeIdCardSpec,
   DEFAULT_ID_CARD_SPEC,
+  parsePostingOrderConfig,
+  serializePostingOrderConfig,
   syncCompanyDocumentsForAllEmployees,
 
   type DocType,
@@ -57,6 +60,16 @@ import {
 
 export const Route = createFileRoute("/admin/company-documents")({
   component: CompanyDocumentsPage,
+  head: () => ({
+    meta: [
+      { title: "Company Documents | Radiant Guard Services" },
+      { name: "description", content: "Configure company documents and employee communication templates." },
+      { property: "og:title", content: "Company Documents | Radiant Guard Services" },
+      { property: "og:description", content: "Configure company documents and employee communication templates." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 const QK = ["admin", "company-document-templates"] as const;
@@ -256,7 +269,7 @@ function CompanyDocumentsPage() {
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        {(Object.keys(DOC_TYPE_LABELS) as DocType[]).map((t) => (
+        {COMPANY_DOCUMENT_TYPES.map((t) => (
           <button
             key={t}
             type="button"
@@ -459,7 +472,7 @@ function CompanyDocumentsPage() {
                 )}
               </div>
             </div>
-            {t.doc_type !== "id_card" && (
+            {t.doc_type !== "id_card" && t.doc_type !== "posting_order" && (
               <div className="mt-3 max-h-32 overflow-hidden rounded-md bg-secondary/40 p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
                 {t.body.slice(0, 360)}
                 {t.body.length > 360 && "…"}
@@ -515,6 +528,8 @@ function CompanyDocumentsPage() {
                 className="block h-auto max-h-[55vh] max-w-full object-contain"
               />
             </div>
+          ) : previewing?.doc_type === "posting_order" ? (
+            <PostingOrderTemplatePreview body={previewing.body} />
           ) : (
             <DocumentPreview
               body={
@@ -565,6 +580,7 @@ function TemplateEditorDialog({
   const effectiveDocType = (template?.doc_type ?? docType) as DocType | undefined;
   const idCardSpec =
     effectiveDocType === "id_card" ? (parseIdCardSpec(body) ?? DEFAULT_ID_CARD_SPEC) : null;
+  const postingOrderSpec = effectiveDocType === "posting_order" ? parsePostingOrderConfig(body) : null;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -596,6 +612,13 @@ function TemplateEditorDialog({
               onChange={(next) => setBody(serializeIdCardSpec(next))}
             />
           </div>
+        ) : postingOrderSpec ? (
+          <PostingOrderTemplateEditor
+            title={title}
+            onTitleChange={setTitle}
+            body={body}
+            onBodyChange={setBody}
+          />
         ) : (
         <div className="grid gap-4 lg:grid-cols-[1fr_240px]">
 
@@ -661,5 +684,75 @@ function TemplateEditorDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PostingOrderTemplateEditor({
+  title,
+  onTitleChange,
+  body,
+  onBodyChange,
+}: {
+  title: string;
+  onTitleChange: (value: string) => void;
+  body: string;
+  onBodyChange: (value: string) => void;
+}) {
+  const config = parsePostingOrderConfig(body);
+  const update = (patch: Partial<typeof config>) =>
+    onBodyChange(serializePostingOrderConfig({ ...config, ...patch }));
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-2">
+        <Label>Title</Label>
+        <Input value={title} onChange={(event) => onTitleChange(event.target.value)} />
+      </div>
+      <div className="grid gap-2">
+        <Label>Posting Order</Label>
+        <Textarea value={config.document} onChange={(event) => update({ document: event.target.value })} rows={16} className="font-mono text-xs leading-relaxed" />
+      </div>
+      <div className="border-t border-border pt-5">
+        <div className="grid gap-2">
+          <Label>Email subject</Label>
+          <Input value={config.emailSubject} onChange={(event) => update({ emailSubject: event.target.value })} />
+        </div>
+        <div className="mt-3 grid gap-2">
+          <Label>Email template</Label>
+          <Textarea value={config.emailBody} onChange={(event) => update({ emailBody: event.target.value })} rows={10} className="font-mono text-xs leading-relaxed" />
+        </div>
+      </div>
+      <div className="border-t border-border pt-5">
+        <div className="grid gap-2">
+          <Label>WhatsApp template</Label>
+          <Textarea value={config.whatsappBody} onChange={(event) => update({ whatsappBody: event.target.value })} rows={10} className="font-mono text-xs leading-relaxed" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PostingOrderTemplatePreview({ body }: { body: string }) {
+  const config = parsePostingOrderConfig(body);
+  const htmlMap = previewPlaceholderMap(true);
+  const textMap = previewPlaceholderMap(false);
+  return (
+    <Tabs defaultValue="document">
+      <TabsList>
+        <TabsTrigger value="document">Posting Order</TabsTrigger>
+        <TabsTrigger value="email">Email</TabsTrigger>
+        <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+      </TabsList>
+      <TabsContent value="document">
+        <DocumentPreview body={renderTemplate(config.document, htmlMap)} className="max-h-[60vh]" />
+      </TabsContent>
+      <TabsContent value="email" className="space-y-3">
+        <div className="rounded-md border border-border bg-secondary/30 px-4 py-3 text-sm"><b>Subject:</b> {renderTemplate(config.emailSubject, textMap)}</div>
+        <DocumentPreview body={renderTemplate(config.emailBody, htmlMap)} className="max-h-[52vh]" />
+      </TabsContent>
+      <TabsContent value="whatsapp">
+        <pre className="max-h-[58vh] overflow-auto whitespace-pre-wrap rounded-md border border-border bg-secondary/30 p-4 font-sans text-sm">{renderTemplate(config.whatsappBody, textMap)}</pre>
+      </TabsContent>
+    </Tabs>
   );
 }

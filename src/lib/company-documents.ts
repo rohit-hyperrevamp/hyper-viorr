@@ -32,6 +32,16 @@ export const DOC_TYPE_SHORT: Record<DocType, string> = {
   posting_order_whatsapp: "Posting Order WhatsApp",
 };
 
+/** Types shown in Company Documents. Posting-order delivery content is edited inside one record. */
+export const COMPANY_DOCUMENT_TYPES: DocType[] = [
+  "nda",
+  "appointment_letter",
+  "form_vii",
+  "company_stamp",
+  "id_card",
+  "posting_order",
+];
+
 
 /** CDN URL of the official company stamp (with authorised signature). */
 export const COMPANY_STAMP_URL =
@@ -1541,12 +1551,46 @@ Radiant Guard Services Pvt. Ltd. | $company_mobile`;
 export const POSTING_ORDER_EMAIL_SUBJECT =
   "Posting Order - Radiant Guard Services Pvt. Ltd. ($posting_order_no)";
 
+export type PostingOrderTemplateConfig = {
+  document: string;
+  emailSubject: string;
+  emailBody: string;
+  whatsappBody: string;
+};
+
+export const DEFAULT_POSTING_ORDER_CONFIG: PostingOrderTemplateConfig = {
+  document: DEFAULT_POSTING_ORDER_TEMPLATE,
+  emailSubject: POSTING_ORDER_EMAIL_SUBJECT,
+  emailBody: DEFAULT_POSTING_ORDER_EMAIL_TEMPLATE,
+  whatsappBody: DEFAULT_POSTING_ORDER_WHATSAPP_TEMPLATE,
+};
+
+export function serializePostingOrderConfig(config: PostingOrderTemplateConfig): string {
+  return JSON.stringify({ kind: "posting-order-config", ...config });
+}
+
+/** Legacy single-document records automatically receive the supplied email and WhatsApp defaults. */
+export function parsePostingOrderConfig(body: string): PostingOrderTemplateConfig {
+  try {
+    const parsed = JSON.parse(body) as Partial<PostingOrderTemplateConfig> & { kind?: string };
+    if (parsed.kind === "posting-order-config") {
+      return {
+        document: parsed.document || DEFAULT_POSTING_ORDER_TEMPLATE,
+        emailSubject: parsed.emailSubject || POSTING_ORDER_EMAIL_SUBJECT,
+        emailBody: parsed.emailBody || DEFAULT_POSTING_ORDER_EMAIL_TEMPLATE,
+        whatsappBody: parsed.whatsappBody || DEFAULT_POSTING_ORDER_WHATSAPP_TEMPLATE,
+      };
+    }
+  } catch {
+    // Existing Posting Order templates stored only the printable document.
+  }
+  return { ...DEFAULT_POSTING_ORDER_CONFIG, document: body || DEFAULT_POSTING_ORDER_TEMPLATE };
+}
+
 /** Starter body used when a document type has no template yet. */
 export const DEFAULT_TEMPLATE_BODY: Partial<Record<DocType, string>> = {
   id_card: DEFAULT_ID_CARD_TEMPLATE,
-  posting_order: DEFAULT_POSTING_ORDER_TEMPLATE,
-  posting_order_email: DEFAULT_POSTING_ORDER_EMAIL_TEMPLATE,
-  posting_order_whatsapp: DEFAULT_POSTING_ORDER_WHATSAPP_TEMPLATE,
+  posting_order: serializePostingOrderConfig(DEFAULT_POSTING_ORDER_CONFIG),
 };
 
 /** Extra styles for the posting order letterhead, appended to the shared page CSS. */
