@@ -549,48 +549,18 @@ export function applyLwfToWageComputation(
   };
 }
 
-// ---- Statutory EPF employer split (EPS + EPF Employer) ----
-// Splits the single "EPF Employer" contribution into the statutory pair
-// (EPS 8.33% capped at ₹1,250 + EPF Employer remainder). Total employer
-// contribution is preserved so employerCost is unchanged.
-// Safe no-op if the row is missing, zero, or already split.
+// ---- Employer EPF row ----
+// The employer PF contribution stays as ONE row, using the exact component
+// name configured on the contract (e.g. "ER-EPF nocap"). We deliberately do
+// NOT split it into an EPS + EPF Employer pair — the register must mirror the
+// contract line-for-line. Kept as a no-op for call-site compatibility.
 export function applyEpfBreakdownToWageComputation(
   wages: WageComputation,
-  options?: { epfCapEnabled?: boolean },
+  _options?: { epfCapEnabled?: boolean },
 ): WageComputation {
-  const excluded = /\b(eps|edli|admin)\b/i;
-  const idx = wages.employerContributions.findIndex(
-    (i) => EPF_NAME_RE.test(i.name) && !excluded.test(i.name),
-  );
-  if (idx < 0) return wages;
-  const original = wages.employerContributions[idx];
-  const originalAmount = Number(original.amount) || 0;
-  if (originalAmount <= 0) return wages;
-
-  const basicDA = wages.components.reduce((s, c) => {
-    const n = c.name.toLowerCase();
-    if (n.includes("basic") || /\bda\b/.test(n)) return s + (Number(c.amount) || 0);
-    return s;
-  }, 0);
-  const noCap = options?.epfCapEnabled === false;
-  const cappedBase = noCap ? basicDA : Math.min(basicDA, EPF_WAGE_CEILING);
-  const eps = noCap ? round2(cappedBase * 0.0833) : Math.min(round2(cappedBase * 0.0833), EPS_CAP);
-  const epfEmployer = round2(Math.max(0, originalAmount - eps));
-
-  const employerContributions = [
-    ...wages.employerContributions.slice(0, idx),
-    { ...original, name: "EPS Employer Contribution", amount: eps },
-    { ...original, name: "EPF Employer Contribution", amount: epfEmployer },
-    ...wages.employerContributions.slice(idx + 1),
-  ];
-  const totalEmployerContributions = employerContributions.reduce((s, i) => s + i.amount, 0);
-  return {
-    ...wages,
-    employerContributions,
-    totalEmployerContributions: round2(totalEmployerContributions),
-    employerCost: round2(wages.earnedGross + totalEmployerContributions),
-  };
+  return wages;
 }
+
 
 // ---- Statutory constants (industry defaults, exported for future engine work) ----
 // These are the standard India statutory limits. They are exported here so
