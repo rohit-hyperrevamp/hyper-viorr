@@ -2923,7 +2923,7 @@ function MusterRollPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid max-h-[45vh] grid-cols-4 gap-2 overflow-y-auto pr-1">
-            {Array.from({ length: 32 }, (_, i) => (i + 1) * 0.5).map((n) => {
+            {[0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].map((n) => {
               const shift = rowShiftHours(otPickerRowKey);
               const days = Math.round((n / shift) * 100) / 100;
               return (
