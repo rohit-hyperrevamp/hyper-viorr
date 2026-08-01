@@ -1344,6 +1344,7 @@ function UnitFormDialog({
             <Button
               type="button"
               disabled={isSaving}
+              data-force-enabled="true"
               onClick={() => void saveUnit()}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
