@@ -997,7 +997,8 @@ function MusterRollPage() {
     }
 
     // ---- Payroll-days cap: max present days = contract's Payroll Days base.
-    // Present marks beyond the cap are auto-converted to overtime days.
+    // Present marks beyond the cap are rejected — the user must record those
+    // extra days as overtime hours on the OT row instead.
     const dayValueOf = (code: string) => {
       const c = codeMap.get(code);
       if (!c || !c.counts_as_present) return 0;
@@ -1006,7 +1007,7 @@ function MusterRollPage() {
     };
     const cap = designation_id ? maxPDaysByDesignation.get(designation_id) ?? null : null;
     let capped = filtered;
-    let overflowDays = 0;
+    let rejectedDays = 0;
     if (cap != null) {
       const rk = rowKey(candidate_id, designation_id);
       const touched = new Set(filtered.map((r) => r.entry_date));
@@ -1019,16 +1020,23 @@ function MusterRollPage() {
       }
       capped = [...filtered]
         .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
-        .map((r) => {
+        .filter((r) => {
           const dv = dayValueOf(r.code);
-          if (dv <= 0) return r;
+          if (dv <= 0) return true;
           if (used + dv <= cap) {
             used += dv;
-            return r;
+            return true;
           }
-          overflowDays += dv;
-          return { ...r, code: "", ot_hours: Math.max(Number(r.ot_hours) || 0, dv) };
+          rejectedDays += dv;
+          return false;
         });
+    }
+
+    if (capped.length === 0) {
+      toast.error(
+        `Payroll days limit (${cap}) reached — mark the extra ${rejectedDays} day${rejectedDays === 1 ? "" : "s"} as OT hours instead`,
+      );
+      return;
     }
 
     const payload = capped.map((r) => ({
@@ -1044,9 +1052,9 @@ function MusterRollPage() {
       .from("attendance_entries")
       .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" });
     if (error) throw error;
-    if (overflowDays > 0) {
-      toast.info(
-        `Payroll days limit (${cap}) reached — ${overflowDays} day${overflowDays === 1 ? "" : "s"} moved to overtime`,
+    if (rejectedDays > 0) {
+      toast.warning(
+        `Payroll days limit (${cap}) reached — ${rejectedDays} day${rejectedDays === 1 ? "" : "s"} not marked; record them as OT hours`,
       );
     }
   };
@@ -1706,6 +1714,13 @@ function MusterRollPage() {
 
   const findRow = (k: string | null) => musterRows.find((r) => r.key === k);
 
+  // Contractual shift length for a muster row (8h / 12h) — never hard-coded,
+  // it comes from the unit's active contract resource line.
+  const rowShiftHours = (k: string | null) => {
+    const row = findRow(k);
+    return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null);
+  };
+
   const applyCodeToSelection = async (code: string) => {
     const row = findRow(pickerRowKey);
     if (!row) return;
@@ -1726,14 +1741,18 @@ function MusterRollPage() {
     }
   };
 
+  // `hours` is OT in clock hours (0.5 – 16). It is stored as OT *days*,
+  // converted with the row's contractual shift length (8h or 12h).
   const applyOtToSelection = async (hours: number) => {
     const row = findRow(otPickerRowKey);
     if (!row) return;
+    const shift = shiftHoursFor(shiftMap, unitId, row.designationId ?? null);
+    const otDays = Math.round((hours / shift) * 100) / 100;
     try {
       const rows = otPickerDates.map((d) => ({
         entry_date: d,
         code: entryMap.get(`${row.key}|${d}`)?.code ?? "",
-        ot_hours: hours,
+        ot_hours: otDays,
       }));
       await upsertEntries(row.candidateId, row.designationId, rows);
       queryClient.invalidateQueries({ queryKey: entriesQK });
@@ -1742,7 +1761,7 @@ function MusterRollPage() {
       setOtDragRowKey(null);
       toast.success(
         hours > 0
-          ? `Set ${hours} OT day${hours === 1 ? "" : "s"} on ${otPickerDates.length} day${otPickerDates.length > 1 ? "s" : ""}`
+          ? `Set ${hours}h OT (${otDays} day${otDays === 1 ? "" : "s"} @ ${shift}h shift) on ${otPickerDates.length} day${otPickerDates.length > 1 ? "s" : ""}`
           : `Cleared OT on ${otPickerDates.length} day${otPickerDates.length > 1 ? "s" : ""}`,
       );
     } catch (e) {
@@ -2238,7 +2257,7 @@ function MusterRollPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={clearOtSelection}>Clear</Button>
-            <Button size="sm" onClick={openOtPickerForSelection}>Set OT days</Button>
+            <Button size="sm" onClick={openOtPickerForSelection}>Set OT hours</Button>
           </div>
         </div>
       )}
@@ -2331,7 +2350,7 @@ function MusterRollPage() {
                     </th>
                   );
                 })}
-                <th className="border border-slate-400 p-1 text-[9px] font-medium">OT<br />Days</th>
+                <th className="border border-slate-400 p-1 text-[9px] font-medium">OT<br />Hrs</th>
               </tr>
             </thead>
             <tbody>
@@ -2516,7 +2535,9 @@ function MusterRollPage() {
                         const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
                         const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant);
                         const entry = entryMap.get(`${mr.key}|${date}`);
-                        const hrs = Number(entry?.ot_hours) || 0;
+                        const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null);
+                        const otDaysCell = Number(entry?.ot_hours) || 0;
+                        const hrs = Math.round(otDaysCell * rowShift * 100) / 100;
                         const isSelected = otDragRowKey === mr.key && otSelectedDates.has(date);
                         return (
                           <td
@@ -2610,7 +2631,7 @@ function MusterRollPage() {
         </div>
 
         <div className="mt-3 text-[10px] text-slate-600">
-          Att = Attendance · OT = Overtime hours · Each (employee × designation) is a separate payroll line.
+          Att = Attendance · OT row = Overtime hours (converted to OT days at the contractual shift length) · Each (employee × designation) is a separate payroll line.
         </div>
       </div>
 
@@ -2652,25 +2673,33 @@ function MusterRollPage() {
       <Dialog open={otPickerOpen} onOpenChange={setOtPickerOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Set OT days</DialogTitle>
+            <DialogTitle>Set OT hours</DialogTitle>
             <DialogDescription>
-              0.5 = half OT day, 1 = one OT day. {otPickerDates.length} day{otPickerDates.length > 1 ? "s" : ""} selected
+              Pick overtime in hours (0.5 – 16). Converted to OT days at the row&apos;s contractual{" "}
+              {rowShiftHours(otPickerRowKey)}h shift. {otPickerDates.length} day
+              {otPickerDates.length > 1 ? "s" : ""} selected
               {otPickerRowKey
                 ? ` for ${findRow(otPickerRowKey)?.emp.full_name ?? ""} — ${findRow(otPickerRowKey)?.designationName ?? ""}`
                 : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-4 gap-2">
-            {[0.5, 1, 1.5, 2].map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => applyOtToSelection(n)}
-                className="rounded-md border border-amber-200 bg-amber-50 px-2 py-3 text-base font-bold text-amber-800 transition hover:border-amber-400 hover:bg-amber-100"
-              >
-                {n}
-              </button>
-            ))}
+          <div className="grid max-h-[45vh] grid-cols-4 gap-2 overflow-y-auto pr-1">
+            {Array.from({ length: 32 }, (_, i) => (i + 1) * 0.5).map((n) => {
+              const shift = rowShiftHours(otPickerRowKey);
+              const days = Math.round((n / shift) * 100) / 100;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => applyOtToSelection(n)}
+                  title={`${n}h = ${days} OT day${days === 1 ? "" : "s"}`}
+                  className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-sm font-bold leading-tight text-amber-800 transition hover:border-amber-400 hover:bg-amber-100"
+                >
+                  {n}h
+                  <span className="block text-[9px] font-medium text-amber-600">{days}d</span>
+                </button>
+              );
+            })}
           </div>
           <button
             type="button"
