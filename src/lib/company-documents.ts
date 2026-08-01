@@ -945,7 +945,7 @@ function nomineeTableHtml(nominees: NomineeForRender[]): string {
 
 /** Sample candidate used to preview a template with realistic data (Control Center). */
 export function previewPlaceholderMap(html: boolean): Record<string, string> {
-  return buildPlaceholderMap(
+  return withPostingPlaceholders(buildPlaceholderMap(
     {
       id: "preview",
       full_name: "SAMPLE EMPLOYEE NAME",
