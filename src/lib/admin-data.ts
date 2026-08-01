@@ -845,11 +845,14 @@ export function useUnits() {
 
   const updateMut = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Omit<Unit, "id"> }) => {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("units")
         .update(unitToRow(data))
-        .eq("id", id);
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
       if (error) throw error;
+      if (!updated) throw new Error("The unit was not updated. Please check your access and try again.");
       void logActivity({ module: "Unit Manager", action: "update", entityType: "units", entityId: id, entityLabel: (data as unknown as { name?: string; code?: string }).name || (data as unknown as { code?: string }).code || "", details: data as unknown as Record<string, unknown> });
     },
     onSuccess: invalidate,
