@@ -29,29 +29,25 @@ function inclusiveDays(start: Date, end: Date) {
   return Math.max(0, Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1);
 }
 
-/** Resolve the contract payroll period represented by a selected payroll month. */
+/**
+ * Resolve the payroll period represented by a selected payroll month.
+ *
+ * The period is ALWAYS the calendar month: 1 → last day of that month,
+ * derived from the real calendar so month lengths (28/29/30/31) and leap
+ * years are always correct. July = 31 days, February 2028 = 29 days.
+ *
+ * The contract's payroll window (e.g. 21 → 20) is retained on the contract as
+ * the submission / processing cut-off, but it never changes the number of days
+ * in the register or the payroll denominator.
+ */
 export function payrollPeriodForMonth(
   year: number,
   monthIdx: number,
-  window?: PayrollWindow | null,
+  _window?: PayrollWindow | null,
   today = new Date(),
 ): PayrollPeriod {
-  const startDay = window?.windowStartDay ?? 1;
-  const endDay = window?.windowEndDay ?? 31;
-  const crossesMonth = startDay > endDay;
-  const startMonth = crossesMonth ? monthIdx - 1 : monthIdx;
-  const startBase = new Date(year, startMonth, 1);
-  const endBase = new Date(year, monthIdx, 1);
-  const start = new Date(
-    startBase.getFullYear(),
-    startBase.getMonth(),
-    Math.min(startDay, daysInMonth(startBase.getFullYear(), startBase.getMonth())),
-  );
-  const end = new Date(
-    endBase.getFullYear(),
-    endBase.getMonth(),
-    Math.min(endDay, daysInMonth(endBase.getFullYear(), endBase.getMonth())),
-  );
+  const start = new Date(year, monthIdx, 1);
+  const end = new Date(year, monthIdx, daysInMonth(year, monthIdx));
   const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const capped = todayDate < start ? start : todayDate > end ? end : todayDate;
 
@@ -63,6 +59,7 @@ export function payrollPeriodForMonth(
     totalDays: inclusiveDays(start, end),
   };
 }
+
 
 /** Load the active client contract's payroll window for every unit. */
 export async function fetchPayrollWindowsByUnit(unitIds: string[]): Promise<Map<string, PayrollWindow>> {
