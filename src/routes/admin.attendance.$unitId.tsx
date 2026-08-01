@@ -974,10 +974,15 @@ function MusterRollPage() {
       isPrimary: boolean;
       /**
        * Reliever line — either an extra designation for the same person, or a
-       * person who is not permanently mapped to this unit. Relievers can be
-       * removed from the muster; permanently mapped people cannot.
+       * stand-in HR added ad-hoc from the muster search. Relievers can be
+       * removed from the muster; regular deployed people cannot.
        */
       reliever?: boolean;
+      /**
+       * Ad-hoc stand-in: tracked as overtime only, so the attendance row is
+       * read-only and only the OT row can be filled.
+       */
+      otOnly?: boolean;
       /** Contracted designation slot with nobody mapped yet — read-only placeholder. */
       vacant?: boolean;
     }> = [];
@@ -985,7 +990,9 @@ function MusterRollPage() {
     const desigNameMap = new Map(contractDesignations.map((d) => [d.designationId, d.designationName]));
 
     for (const emp of employees ?? []) {
-      const homeMapped = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
+      // A guard may be deployed at many units — "is_home_mapped" here means
+      // "regularly assigned to this unit", not "this is their only unit".
+      const assigned = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
       // Primary row from candidate's own designation
       const primaryKey = rowKey(emp.id, emp.designation_id);
       out.push({
@@ -995,7 +1002,8 @@ function MusterRollPage() {
         designationName: emp.designation || "—",
         emp,
         isPrimary: true,
-        reliever: !homeMapped,
+        reliever: !assigned,
+        otOnly: !assigned,
       });
       seen.add(primaryKey);
 
