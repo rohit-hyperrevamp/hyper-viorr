@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchUnitFinance, rateFor, fmtMoney, fmtMoneyCompact, type UnitFinance } from "@/lib/contract-finance";
 import {
-  fetchPeriodStatuses,
-  periodStatusQueryKey,
+  fetchPeriodStatusesForUnitPeriods,
+  PERIOD_STATUS_QK,
   setMoneyStatus,
   useAttendanceMoneyRealtime,
   type PeriodStatus,
@@ -20,6 +20,7 @@ import {
 import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
 import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
+import { fetchPayrollWindowsByUnit, payrollPeriodForMonth } from "@/lib/payroll-period";
 
 
 // ---------------------------------------------------------------------------
@@ -41,21 +42,6 @@ type PersonMoney = {
   invoiceAmount: number;
   payrollAmount: number;
 };
-
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-function monthBounds(year: number, monthIdx: number) {
-  const last = new Date(year, monthIdx + 1, 0).getDate();
-  const start = `${year}-${pad(monthIdx + 1)}-01`;
-  const end = `${year}-${pad(monthIdx + 1)}-${pad(last)}`;
-  const today = new Date();
-  const todayIso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-  const mtdEnd = todayIso < end ? (todayIso < start ? start : todayIso) : end;
-  const elapsedDays = todayIso < start ? 0 : Number(mtdEnd.slice(8, 10));
-  return { start, end, mtdEnd, elapsedDays, daysInMonth: last };
-}
 
 function pct(actual: number, projected: number) {
   if (projected <= 0) return 0;
@@ -167,10 +153,6 @@ export function FinanceCharter({
   onQueryChange: (v: string) => void;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const { start, end, mtdEnd, elapsedDays, daysInMonth } = useMemo(
-    () => monthBounds(year, monthIdx),
-    [year, monthIdx],
-  );
   const unitIds = useMemo(() => units.map((u) => u.id), [units]);
   const qc = useQueryClient();
   const { can, isSuperAdmin } = useCurrentPermissions();
@@ -179,6 +161,21 @@ export function FinanceCharter({
   // Attendance edits (including overtime) push straight through to these
   // numbers — no refresh, no stale cache.
   useAttendanceMoneyRealtime();
+
+  const windowsQ = useQuery({
+    queryKey: ["charter-payroll-windows", unitIds.join(",")],
+    enabled: unitIds.length > 0,
+    queryFn: () => fetchPayrollWindowsByUnit(unitIds),
+  });
+  const periodsByUnit = useMemo(() => {
+    const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
+    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsQ.data?.get(unitId)));
+    return out;
+  }, [unitIds, year, monthIdx, windowsQ.data]);
+  const periodKey = useMemo(
+    () => Array.from(periodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
+    [periodsByUnit],
+  );
 
   const codesQ = useQuery({
     queryKey: ["attendance-codes-charter"],
@@ -197,30 +194,44 @@ export function FinanceCharter({
   });
 
   const entriesQ = useQuery({
-    queryKey: ["finance-charter-entries", unitIds.join(","), start, mtdEnd],
-    enabled: unitIds.length > 0,
+    queryKey: ["finance-charter-entries", periodKey],
+    enabled: unitIds.length > 0 && !windowsQ.isLoading,
     staleTime: 0,
-    queryFn: () => fetchAttendanceEntriesForPeriod({ unitIds, start, end: mtdEnd, includeUnitId: true }),
+    queryFn: async () => {
+      const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
+      for (const [unitId, period] of periodsByUnit) {
+        const key = `${period.start}|${period.mtdEnd}`;
+        const group = groups.get(key) ?? { start: period.start, end: period.mtdEnd, unitIds: [] };
+        group.unitIds.push(unitId);
+        groups.set(key, group);
+      }
+      const pages = await Promise.all(
+        Array.from(groups.values()).map((group) =>
+          fetchAttendanceEntriesForPeriod({ unitIds: group.unitIds, start: group.start, end: group.end, includeUnitId: true }),
+        ),
+      );
+      return pages.flat();
+    },
   });
 
   const statusQ = useQuery({
-    queryKey: periodStatusQueryKey(unitIds, start, end),
-    enabled: unitIds.length > 0,
+    queryKey: [PERIOD_STATUS_QK, periodKey],
+    enabled: unitIds.length > 0 && !windowsQ.isLoading,
     staleTime: 0,
-    queryFn: () => fetchPeriodStatuses(unitIds, start, end),
+    queryFn: () => fetchPeriodStatusesForUnitPeriods(periodsByUnit),
   });
 
   const processMutation = useMutation({
     mutationFn: (vars: { unitId: string; next: "processed" | "open" }) =>
       setMoneyStatus({
         unitId: vars.unitId,
-        periodStart: start,
-        periodEnd: end,
+        periodStart: periodsByUnit.get(vars.unitId)?.start ?? payrollPeriodForMonth(year, monthIdx).start,
+        periodEnd: periodsByUnit.get(vars.unitId)?.end ?? payrollPeriodForMonth(year, monthIdx).end,
         kind: mode,
         next: vars.next,
       }),
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: [periodStatusQueryKey(unitIds, start, end)[0]] });
+      qc.invalidateQueries({ queryKey: [PERIOD_STATUS_QK] });
       toast.success(
         vars.next === "processed"
           ? `${mode === "invoice" ? "Invoice" : "Payroll"} marked processed`
@@ -250,6 +261,7 @@ export function FinanceCharter({
       if (!unitId) continue;
       const finance = financeQ.data?.get(unitId);
       const rate = rateFor(finance, e.designation_id);
+      const periodDays = periodsByUnit.get(unitId)?.totalDays ?? 1;
       if (!out.has(unitId)) out.set(unitId, new Map());
       const bucket = out.get(unitId)!;
       let person = bucket.get(e.candidate_id);
@@ -275,22 +287,23 @@ export function FinanceCharter({
       person.otDays += ot;
       const payable = counted + ot;
       if (rate) {
-        person.invoiceAmount += (rate.billRate / daysInMonth) * payable;
-        person.payrollAmount += (rate.grossRate / daysInMonth) * payable;
+        person.invoiceAmount += (rate.billRate / periodDays) * payable;
+        person.payrollAmount += (rate.grossRate / periodDays) * payable;
       }
     }
     return out;
-  }, [entriesQ.data, financeQ.data, codeMap, nameById, daysInMonth]);
+  }, [entriesQ.data, financeQ.data, codeMap, nameById, periodsByUnit]);
 
   const rows = useMemo(() => {
     return units
       .map((u) => {
         const finance: UnitFinance | undefined = financeQ.data?.get(u.id);
+        const period = periodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
         const people = Array.from(statsByUnit.get(u.id)?.values() ?? []).sort((a, b) =>
           a.name.localeCompare(b.name),
         );
         const monthlyContracted = finance?.monthlyContracted ?? 0;
-        const contractedMtd = (monthlyContracted / daysInMonth) * elapsedDays;
+        const contractedMtd = (monthlyContracted / period.totalDays) * period.elapsedDays;
         const invoiceAmount = people.reduce((s, p) => s + p.invoiceAmount, 0);
         const payrollAmount = people.reduce((s, p) => s + p.payrollAmount, 0);
         const status: PeriodStatus = statusQ.data?.get(u.id) ?? {
@@ -316,6 +329,7 @@ export function FinanceCharter({
           margin: invoiceAmount - payrollAmount,
           marginPct: invoiceAmount > 0 ? Math.round(((invoiceAmount - payrollAmount) / invoiceAmount) * 100) : 0,
           realisationPct: pct(invoiceAmount, contractedMtd),
+          period,
         };
       })
       .filter((r) => {
@@ -326,7 +340,7 @@ export function FinanceCharter({
           .some((v) => v.toLowerCase().includes(q));
       })
       .sort((a, b) => a.unit.name.localeCompare(b.unit.name));
-  }, [units, financeQ.data, statsByUnit, statusQ.data, daysInMonth, elapsedDays, query]);
+  }, [units, financeQ.data, statsByUnit, statusQ.data, periodsByUnit, year, monthIdx, query]);
 
 
   const totals = useMemo(() => {
@@ -364,7 +378,7 @@ export function FinanceCharter({
     );
   };
 
-  const loading = entriesQ.isLoading || financeQ.isLoading;
+  const loading = entriesQ.isLoading || financeQ.isLoading || windowsQ.isLoading;
   const linkTo = mode === "invoice" ? "/admin/invoice/$unitId" : "/admin/payroll/$unitId";
 
   return (
@@ -393,7 +407,7 @@ export function FinanceCharter({
         <Stat
           label="Margin"
           value={fmtMoneyCompact(totals.margin)}
-          sub={`${totals.marginPct}% · ${elapsedDays} day(s) elapsed`}
+          sub={`${totals.marginPct}% · current payroll periods`}
           icon={Gauge}
           tone={totals.margin < 0 ? "destructive" : undefined}
         />
@@ -439,7 +453,7 @@ export function FinanceCharter({
                   <Link
                     to={linkTo}
                     params={{ unitId: r.unit.id }}
-                    search={{ start, end: mtdEnd }}
+                    search={{ start: r.period.start, end: r.period.end }}
                     className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3 sm:px-4"
                   >
                     <Dial value={r.realisationPct} />
