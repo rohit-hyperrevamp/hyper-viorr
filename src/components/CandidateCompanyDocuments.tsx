@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Eye, Loader2, RefreshCw, FileSignature } from "lucide-react";
+import { Download, Eye, Loader2, RefreshCw, FileSignature, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { PostingOrderDialog } from "@/components/PostingOrderDialog";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ export function CandidateCompanyDocuments({
   const qc = useQueryClient();
   const [previewing, setPreviewing] = useState<SignedDocRow | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [posting, setPosting] = useState(false);
 
   const QK = ["candidate-signed-docs", candidateId] as const;
 
