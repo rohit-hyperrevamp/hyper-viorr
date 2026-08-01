@@ -997,7 +997,8 @@ function MusterRollPage() {
     }
 
     // ---- Payroll-days cap: max present days = contract's Payroll Days base.
-    // Present marks beyond the cap are auto-converted to overtime days.
+    // Present marks beyond the cap are rejected — the user must record those
+    // extra days as overtime hours on the OT row instead.
     const dayValueOf = (code: string) => {
       const c = codeMap.get(code);
       if (!c || !c.counts_as_present) return 0;
@@ -1006,7 +1007,7 @@ function MusterRollPage() {
     };
     const cap = designation_id ? maxPDaysByDesignation.get(designation_id) ?? null : null;
     let capped = filtered;
-    let overflowDays = 0;
+    let rejectedDays = 0;
     if (cap != null) {
       const rk = rowKey(candidate_id, designation_id);
       const touched = new Set(filtered.map((r) => r.entry_date));
@@ -1019,16 +1020,23 @@ function MusterRollPage() {
       }
       capped = [...filtered]
         .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
-        .map((r) => {
+        .filter((r) => {
           const dv = dayValueOf(r.code);
-          if (dv <= 0) return r;
+          if (dv <= 0) return true;
           if (used + dv <= cap) {
             used += dv;
-            return r;
+            return true;
           }
-          overflowDays += dv;
-          return { ...r, code: "", ot_hours: Math.max(Number(r.ot_hours) || 0, dv) };
+          rejectedDays += dv;
+          return false;
         });
+    }
+
+    if (capped.length === 0) {
+      toast.error(
+        `Payroll days limit (${cap}) reached — mark the extra ${rejectedDays} day${rejectedDays === 1 ? "" : "s"} as OT hours instead`,
+      );
+      return;
     }
 
     const payload = capped.map((r) => ({
