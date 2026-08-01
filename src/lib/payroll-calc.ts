@@ -865,7 +865,7 @@ export function computeWages(
   // exactly which wage components feed overtime (includeInOt). When at least
   // one component is explicitly selected we use that selection; otherwise we
   // fall back to the legacy basis (full contract gross minus uniform).
-  const otSelected = resource.components.filter((c) => c.includeInOt === true);
+  const otSelected = resource.components.filter((c) => c.includeInOt !== false);
   let otBase: number;
   if (otSelected.length > 0) {
     otBase = Math.max(
