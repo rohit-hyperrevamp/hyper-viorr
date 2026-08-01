@@ -1174,7 +1174,7 @@ function PayrollUnitPage() {
 
       <div className="rounded-3xl border border-border/70 bg-card shadow-sm">
         <div className="overflow-x-auto overscroll-x-contain rounded-3xl [scrollbar-gutter:stable] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-muted/30">
-          <table className="ios-table min-w-[1900px] table-auto text-sm whitespace-nowrap">
+          <table className="ios-table min-w-[1180px] table-auto text-sm whitespace-nowrap">
             <thead className="border-b border-border/60 bg-secondary/40">
               <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
                 <th className="px-4 py-3 font-medium w-[60px]"></th>
@@ -1185,9 +1185,8 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium" title="Paid Holiday days (incl. additions)">PH Days</th>
                 <th className="px-4 py-3 font-medium" title="OT Days (0.5 = half OT day, 1 = one OT day)">OT Days</th>
                 <th className="px-4 py-3 font-medium" title="Total payable days (P + PH + Other Paid + OT)">T Days</th>
-                <th className="px-4 py-3 text-left font-medium" title="Same as OT Days — raw stored value">OT (raw)</th>
                 <th className="px-4 py-3 text-left font-medium" title="Full contract gross — what would be paid for a full month">Projected</th>
-                <th className="px-4 py-3 text-left font-medium" title="Per-day × T Days based on actual attendance">Earned gross</th>
+                <th className="px-4 py-3 text-left font-medium" title="Sum of every earned wage line, including overtime and paid holiday">Earned gross</th>
                 <th className="px-4 py-3 text-left font-medium">Deductions</th>
                 <th className="px-4 py-3 text-left font-medium">Net pay</th>
                 <th className="px-4 py-3 text-left font-medium">Employer cost</th>
@@ -1195,11 +1194,11 @@ function PayrollUnitPage() {
             </thead>
             <tbody className="divide-y divide-border/50">
               {isLoading ? (
-                <tr><td colSpan={14} className="px-4 py-10 text-center text-muted-foreground">Computing wages…</td></tr>
+                <tr><td colSpan={13} className="px-4 py-10 text-center text-muted-foreground">Computing wages…</td></tr>
               ) : error ? (
-                <tr><td colSpan={14} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
+                <tr><td colSpan={13} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={14} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
+                <tr><td colSpan={13} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
               ) : rows.map((r) => {
                 const isHighlighted = highlightCandidate === r.id;
                 const isExpanded = expandedRows.has(r.rowKey);
