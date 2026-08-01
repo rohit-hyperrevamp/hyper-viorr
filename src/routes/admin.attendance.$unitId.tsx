@@ -880,7 +880,49 @@ function MusterRollPage() {
         });
       }
     }
-    return out;
+
+    // Contracted designations always appear on the muster, even with nobody
+    // mapped. For each designation we render `quantity` slots; slots already
+    // filled by mapped employees are subtracted, the remainder show as
+    // read-only vacant lines (no employee name / code / DOJ).
+    const filledByDesignation = new Map<string, number>();
+    for (const r of out) {
+      if (!r.designationId) continue;
+      filledByDesignation.set(r.designationId, (filledByDesignation.get(r.designationId) ?? 0) + 1);
+    }
+    for (const d of contractDesignations) {
+      const filled = filledByDesignation.get(d.designationId) ?? 0;
+      const vacantCount = Math.max(0, (d.quantity ?? 1) - filled);
+      for (let i = 0; i < vacantCount; i += 1) {
+        out.push({
+          key: `vacant|${d.designationId}|${i}`,
+          candidateId: "",
+          designationId: d.designationId,
+          designationName: d.designationName,
+          emp: {
+            id: "",
+            full_name: "",
+            employee_code: "",
+            designation_id: d.designationId,
+            designation: d.designationName,
+            doj: null,
+          } as unknown as NonNullable<typeof employees>[number],
+          isPrimary: true,
+          vacant: true,
+        });
+      }
+    }
+
+    // Group the sheet by designation so vacant slots sit with their peers.
+    return out
+      .map((r, i) => ({ r, i }))
+      .sort(
+        (a, b) =>
+          a.r.designationName.localeCompare(b.r.designationName) ||
+          Number(a.r.vacant ?? false) - Number(b.r.vacant ?? false) ||
+          a.i - b.i,
+      )
+      .map((x) => x.r);
   }, [employees, entries, extraRows, contractDesignations]);
 
   // Client-side filter: name / employee_code / designation substring match.
