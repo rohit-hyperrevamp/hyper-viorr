@@ -29,6 +29,7 @@ import { downloadCsv, writeXlsx } from "@/lib/csv-export";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
+import { resolvePayrollDayCount } from "@/lib/payroll-days";
 import { useOrgSettings } from "@/lib/org-settings";
 
 const searchSchema = z.object({
@@ -680,16 +681,15 @@ function PayrollUnitPage() {
     return rows.reduce(
       (acc, r) => {
         if (!r.wages) return acc;
-        const projTotal =
-          (r.resource?.components.reduce((s, c) => s + (Number(c.amount) || 0), 0) ?? 0) +
-          (r.resource?.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0) ?? 0);
-        acc.projectedTotal += projTotal;
-        acc.actualTotal += billableFor(r);
+        const m = invoiceMathFor(r);
+        acc.projectedTotal += m.contracted;
+        acc.actualTotal += m.actual;
         acc.tDays += r.totals.tDays;
+        acc.payrollDays += m.payrollDays;
         acc.otHours += r.totals.otHours;
         return acc;
       },
-      { projectedTotal: 0, actualTotal: 0, tDays: 0, otHours: 0 },
+      { projectedTotal: 0, actualTotal: 0, tDays: 0, payrollDays: 0, otHours: 0 },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, billingMode]);
@@ -706,18 +706,12 @@ function PayrollUnitPage() {
 
   const exportCsv = () => {
     const headers = [
-      "Emp ID", "Name", "Designation", "P Days", "PH Days", "OT Hrs", "OT Days", "T Days",
-      "Projected Total (Billable)", "Actual Total (Billable)", "Shortfall",
+      "Emp ID", "Name", "Designation", "P Days", "PH Days", "OT Hrs", "OT Days", "Billed Days",
+      "Payroll Days", "Per Day Rate", "Contracted Invoice", "Actual Invoice", "Variance",
     ];
     const columns = headers.map((h) => ({ key: h, header: h }));
     const dataRows = rows.map((r) => {
-      const w = r.wages;
-      const projTotal = r.resource
-        ? r.resource.components.reduce((s, c) => s + (Number(c.amount) || 0), 0) +
-          r.resource.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0)
-        : 0;
-      const actualTotal = billableFor(r);
-      const shortfall = w ? Math.round((projTotal - actualTotal) * 100) / 100 : "";
+      const m = invoiceMathFor(r);
       const cells: Record<string, unknown> = {
         "Emp ID": r.employeeCode,
         "Name": r.name,
@@ -726,10 +720,12 @@ function PayrollUnitPage() {
         "PH Days": r.totals.phDays,
         "OT Hrs": r.totals.otHours,
         "OT Days": r.totals.otDays,
-        "T Days": r.totals.tDays,
-        "Projected Total (Billable)": projTotal,
-        "Actual Total (Billable)": actualTotal,
-        "Shortfall": shortfall,
+        "Billed Days": m.billedDays,
+        "Payroll Days": m.payrollDays,
+        "Per Day Rate": m.perDay,
+        "Contracted Invoice": m.contracted,
+        "Actual Invoice": r.wages ? m.actual : "",
+        "Variance": r.wages ? m.variance : "",
       };
       return cells;
     });
@@ -807,26 +803,18 @@ function PayrollUnitPage() {
     const billingRows = rows
       .filter((r) => r.wages && r.resource)
       .map((r) => {
-        const monthly =
-          (r.resource!.components.reduce((s, c) => s + (Number(c.amount) || 0), 0)) +
-          (r.resource!.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0));
-        const baseDays = r.wages!.baseDays || 30;
-        const amt = billableFor(r);
-        // Qty & rate presented per billing mode for auditability in Tally.
+        const m = invoiceMathFor(r);
+        const monthly = m.contracted;
+        const amt = m.actual;
+        // Simplified model: qty = days billed, rate = contract / payroll days.
         let qty: number;
         let rate: number;
-        if (billingMode === "man_hours") {
-          qty = Math.round((r.totals.pDays + r.totals.phDays + r.totals.otherPaidDays) * UNIT_DUTY_HOURS + r.totals.otHours);
-          rate = monthly / (baseDays * UNIT_DUTY_HOURS);
-        } else if (billingMode === "man_months") {
-          qty = 1;
-          rate = amt;
-        } else if (billingMode === "lumpsum") {
+        if (billingMode === "lumpsum") {
           qty = 1;
           rate = amt;
         } else {
-          qty = r.totals.tDays;
-          rate = monthly / baseDays;
+          qty = m.billedDays;
+          rate = m.payrollDays > 0 ? monthly / m.payrollDays : 0;
         }
         const cgstAmt = Math.round(amt * (cgstRate / 100) * 100) / 100;
         const sgstAmt = Math.round(amt * (sgstRate / 100) * 100) / 100;
