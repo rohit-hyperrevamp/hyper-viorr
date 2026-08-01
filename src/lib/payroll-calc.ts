@@ -966,21 +966,25 @@ export function computeWages(
   // explicitly overrides the cap. This ensures every EPF contribution
   // respects the PF wage ceiling without requiring admins to remember to
   // type 15000 in Cost Component Manager.
+  // CAP POLICY: the contract / Cost Component Manager is the single source of
+  // truth for wage ceilings. We NEVER inject a statutory ceiling the admin did
+  // not configure — doing so made payroll silently diverge from the contract
+  // (e.g. "EE-EPF NoCap" contracted at 12% of 15,246 = 1,829.52 but paid on a
+  // phantom 15,000 ceiling = 1,800). Only percentage / base defaults are filled.
   const applyEpfDefaults = (i: BenefitLike | undefined): BenefitLike | undefined => {
     if (!i) return i;
     if (hasConfiguredFormula(i)) return i;
-    const cap = Number(i.capAmount) || 0;
     return {
       ...i,
       calcType: i.calcType ?? "percentage",
       percentage: Number(i.percentage) > 0 ? i.percentage : i.calcType === "percentage" ? 12 : i.percentage,
-      capAmount: cap > 0 ? cap : EPF_WAGE_CEILING,
       baseComponents:
         Array.isArray(i.baseComponents) && i.baseComponents.length > 0
           ? i.baseComponents
           : [{ label: "Basic", operator: "+" }, { label: "DA", operator: "+" }],
     };
   };
+
   const findEpf = (items: BenefitLike[]) =>
     items.find((i) => EPF_NAME_RE.test(i.name));
   const employeeEpfItem = applyEpfDefaults(findEpf(resource.deductions));
