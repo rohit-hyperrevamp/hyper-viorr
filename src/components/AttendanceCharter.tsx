@@ -191,8 +191,19 @@ export function AttendanceCharter({
   onQueryChange: (v: string) => void;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const { start, mtdEnd, elapsedDays } = useMemo(() => monthBounds(year, monthIdx), [year, monthIdx]);
+  const { start, end, mtdEnd, elapsedDays } = useMemo(() => monthBounds(year, monthIdx), [year, monthIdx]);
   const unitIds = useMemo(() => units.map((u) => u.id), [units]);
+
+  // Any attendance / OT edit anywhere refreshes this charter instantly.
+  useAttendanceMoneyRealtime();
+
+  const statusQ = useQuery({
+    queryKey: periodStatusQueryKey(unitIds, start, end),
+    enabled: unitIds.length > 0,
+    staleTime: 0,
+    queryFn: () => fetchPeriodStatuses(unitIds, start, end),
+  });
+
 
   const { data: coverage = [] } = useWorkforceCoverage();
   const coverageByUnit = useMemo(() => {
