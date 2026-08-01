@@ -11,12 +11,13 @@ import { useWorkforceCoverage, type UnitCoverage } from "@/components/WorkforceC
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchShiftHoursMap, shiftHoursFor, DEFAULT_SHIFT_HOURS } from "@/lib/shift-hours";
 import {
-  fetchPeriodStatuses,
-  periodStatusQueryKey,
+  fetchPeriodStatusesForUnitPeriods,
+  PERIOD_STATUS_QK,
   useAttendanceMoneyRealtime,
   type PeriodStatus,
 } from "@/lib/period-status";
 import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
+import { fetchPayrollWindowsByUnit, payrollPeriodForMonth } from "@/lib/payroll-period";
 
 // ---------------------------------------------------------------------------
 // Attendance charter — the default attendance landing view.
@@ -45,22 +46,6 @@ type PersonStat = {
   actualHours: number;
   projectedHours: number;
 };
-
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-function monthBounds(year: number, monthIdx: number) {
-  const last = new Date(year, monthIdx + 1, 0).getDate();
-  const start = `${year}-${pad(monthIdx + 1)}-01`;
-  const end = `${year}-${pad(monthIdx + 1)}-${pad(last)}`;
-  const today = new Date();
-  const todayIso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-  // Month-till-date: cap at today for the running month.
-  const mtdEnd = todayIso < end ? (todayIso < start ? start : todayIso) : end;
-  const elapsedDays = todayIso < start ? 0 : Number(mtdEnd.slice(8, 10));
-  return { start, end, mtdEnd, elapsedDays, daysInMonth: last };
-}
 
 function fmtHours(n: number) {
   return `${Math.round(n).toLocaleString("en-IN")}h`;
@@ -191,17 +176,32 @@ export function AttendanceCharter({
   onQueryChange: (v: string) => void;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const { start, end, mtdEnd, elapsedDays } = useMemo(() => monthBounds(year, monthIdx), [year, monthIdx]);
   const unitIds = useMemo(() => units.map((u) => u.id), [units]);
 
   // Any attendance / OT edit anywhere refreshes this charter instantly.
   useAttendanceMoneyRealtime();
 
-  const statusQ = useQuery({
-    queryKey: periodStatusQueryKey(unitIds, start, end),
+  const windowsQ = useQuery({
+    queryKey: ["charter-payroll-windows", unitIds.join(",")],
     enabled: unitIds.length > 0,
+    queryFn: () => fetchPayrollWindowsByUnit(unitIds),
+  });
+
+  const periodsByUnit = useMemo(() => {
+    const out = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
+    for (const unitId of unitIds) out.set(unitId, payrollPeriodForMonth(year, monthIdx, windowsQ.data?.get(unitId)));
+    return out;
+  }, [unitIds, year, monthIdx, windowsQ.data]);
+  const periodKey = useMemo(
+    () => Array.from(periodsByUnit, ([unitId, p]) => `${unitId}:${p.start}:${p.end}`).join("|"),
+    [periodsByUnit],
+  );
+
+  const statusQ = useQuery({
+    queryKey: [PERIOD_STATUS_QK, periodKey],
+    enabled: unitIds.length > 0 && !windowsQ.isLoading,
     staleTime: 0,
-    queryFn: () => fetchPeriodStatuses(unitIds, start, end),
+    queryFn: () => fetchPeriodStatusesForUnitPeriods(periodsByUnit),
   });
 
 
@@ -229,10 +229,24 @@ export function AttendanceCharter({
   });
 
   const entriesQ = useQuery({
-    queryKey: ["attendance-charter-entries", unitIds.join(","), start, mtdEnd],
-    enabled: unitIds.length > 0,
+    queryKey: ["attendance-charter-entries", periodKey],
+    enabled: unitIds.length > 0 && !windowsQ.isLoading,
     staleTime: 0,
-    queryFn: () => fetchAttendanceEntriesForPeriod({ unitIds, start, end: mtdEnd, includeUnitId: true }),
+    queryFn: async () => {
+      const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
+      for (const [unitId, period] of periodsByUnit) {
+        const key = `${period.start}|${period.mtdEnd}`;
+        const group = groups.get(key) ?? { start: period.start, end: period.mtdEnd, unitIds: [] };
+        group.unitIds.push(unitId);
+        groups.set(key, group);
+      }
+      const pages = await Promise.all(
+        Array.from(groups.values()).map((group) =>
+          fetchAttendanceEntriesForPeriod({ unitIds: group.unitIds, start: group.start, end: group.end, includeUnitId: true }),
+        ),
+      );
+      return pages.flat();
+    },
   });
 
   const nameById = useMemo(() => {
@@ -264,7 +278,7 @@ export function AttendanceCharter({
           presentDays: 0,
           otDays: 0,
           actualHours: 0,
-          projectedHours: elapsedDays * shift,
+          projectedHours: (periodsByUnit.get(unitId)?.elapsedDays ?? 0) * shift,
         };
         bucket.set(e.candidate_id, person);
       }
@@ -278,7 +292,7 @@ export function AttendanceCharter({
       person.actualHours += counted * shift + ot * shift;
     }
     return out;
-  }, [entriesQ.data, shiftQ.data, codeMap, nameById, elapsedDays]);
+  }, [entriesQ.data, shiftQ.data, codeMap, nameById, periodsByUnit]);
 
   const rows = useMemo(() => {
     return units
@@ -286,13 +300,14 @@ export function AttendanceCharter({
         const cov = coverageByUnit.get(u.id);
         const committed = cov?.committed ?? 0;
         const actual = cov?.actual ?? u.security_guards.length;
+        const period = periodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
         const unitShift = shiftHoursFor(shiftQ.data, u.id, null) || DEFAULT_SHIFT_HOURS;
         const people = Array.from(statsByUnit.get(u.id)?.values() ?? []).sort((a, b) =>
           a.name.localeCompare(b.name),
         );
         // Projected man-hours come from the contract: committed heads × elapsed days × shift.
         const headsForProjection = committed > 0 ? committed : actual;
-        const projectedHours = headsForProjection * elapsedDays * unitShift;
+        const projectedHours = headsForProjection * period.elapsedDays * unitShift;
         const actualHours = people.reduce((s, p) => s + p.actualHours, 0);
         const otHours = people.reduce((s, p) => s + p.otDays * p.shiftHours, 0);
         const status: PeriodStatus = statusQ.data?.get(u.id) ?? {
@@ -314,6 +329,7 @@ export function AttendanceCharter({
           projectedHours,
           actualHours,
           otHours,
+          period,
           status,
           mtdPct: pct(actualHours, projectedHours),
         };
@@ -326,7 +342,7 @@ export function AttendanceCharter({
           .some((v) => v.toLowerCase().includes(q));
       })
       .sort((a, b) => a.unit.name.localeCompare(b.unit.name));
-  }, [units, coverageByUnit, statsByUnit, shiftQ.data, statusQ.data, elapsedDays, query]);
+  }, [units, coverageByUnit, statsByUnit, shiftQ.data, statusQ.data, periodsByUnit, year, monthIdx, query]);
 
   const totals = useMemo(() => {
     const committed = rows.reduce((s, r) => s + r.committed, 0);
@@ -365,7 +381,7 @@ export function AttendanceCharter({
     );
   };
 
-  const loading = entriesQ.isLoading || shiftQ.isLoading;
+  const loading = entriesQ.isLoading || shiftQ.isLoading || windowsQ.isLoading;
 
   return (
     <div className="space-y-4">
@@ -387,7 +403,7 @@ export function AttendanceCharter({
         <Stat
           label="MTD attendance"
           value={`${totals.mtdPct}%`}
-          sub={`${elapsedDays} day(s) elapsed`}
+          sub="current payroll periods"
           icon={Gauge}
           tone={totals.mtdPct < 85 ? "destructive" : undefined}
         />
