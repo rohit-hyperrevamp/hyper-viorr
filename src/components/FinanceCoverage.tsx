@@ -182,6 +182,8 @@ function CoverageCard({
 }) {
   const [open, setOpen] = useState(false);
 
+  const mp = monthProgress();
+
   const totals = useMemo(() => {
     const committed = rows.reduce((s, r) => s + pick(r).committed, 0);
     const actual = rows.reduce((s, r) => s + pick(r).actual, 0);
@@ -192,16 +194,25 @@ function CoverageCard({
       },
       { committed: 0, actual: 0 },
     );
+    const expected = committed * mp.ratio;
     return {
       committed,
       actual,
-      gap: actual - committed,
+      expected,
+      gap: actual - expected,
+      pace: expected > 0 ? Math.round((actual / expected) * 100) : 0,
       coverage: committed > 0 ? Math.round((actual / committed) * 100) : 0,
-      tone: moneyTone(committed, actual),
+      tone: paceTone(committed, actual, mp.ratio),
       strength,
-      shortUnits: rows.filter((r) => pick(r).actual < pick(r).committed).length,
+      // "Behind" means behind the pro-rated expectation for today, not behind
+      // the full month — a unit is not late on day 3 for having earned 10%.
+      shortUnits: rows.filter(
+        (r) => pick(r).actual < pick(r).committed * mp.ratio * 0.85,
+      ).length,
     };
-  }, [rows, pick, strengthOf]);
+  }, [rows, pick, strengthOf, mp.ratio]);
+
+  const toneTile = totals.tone === "ok" ? undefined : totals.tone;
 
   return (
     <div className="mb-4 rounded-2xl border border-border bg-card p-4">
@@ -224,8 +235,8 @@ function CoverageCard({
           value={fmtINR(totals.committed)}
           sub={
             strengthOf
-              ? `${totals.strength.committed} committed strength`
-              : undefined
+              ? `${totals.strength.committed} committed strength · full month`
+              : "Full month"
           }
           icon={icons.committed}
           tone="accent"
@@ -233,27 +244,37 @@ function CoverageCard({
         <Tile
           label={labels.actual}
           value={fmtINR(totals.actual)}
-          sub={strengthOf ? `${totals.strength.actual} actual strength` : undefined}
+          sub={`Expected by day ${mp.elapsed}: ${fmtINR(Math.round(totals.expected))}`}
           icon={icons.actual}
-          tone={totals.tone === "ok" ? undefined : totals.tone}
+          tone={toneTile}
         />
         <Tile
-          label="Variance"
-          value={`${totals.gap >= 0 ? "+" : "−"}${fmtINR(Math.abs(totals.gap))}`}
+          label="Variance vs plan to date"
+          value={`${totals.gap >= 0 ? "+" : "−"}${fmtINR(Math.abs(Math.round(totals.gap)))}`}
+          sub={`Day ${mp.elapsed} of ${mp.daysInMonth}`}
           icon={TrendingDown}
-          tone={totals.tone === "ok" ? undefined : totals.tone}
+          tone={toneTile}
         />
         <Tile
-          label="Coverage"
-          value={`${totals.coverage}%`}
+          label="Pace vs plan"
+          value={`${totals.pace}%`}
+          sub={`${totals.coverage}% of full-month plan booked`}
           icon={Gauge}
-          tone={totals.tone === "ok" ? undefined : totals.tone}
+          tone={toneTile}
         />
       </div>
 
+      <p className="mt-2 text-xs text-muted-foreground">
+        Committed is the full-month contracted value; actual is earned month-till-date
+        from approved attendance. Day {mp.elapsed} of {mp.daysInMonth} ={" "}
+        {Math.round(mp.ratio * 100)}% of the cycle elapsed, so pace — not raw coverage —
+        is the health signal.
+      </p>
+
       {totals.shortUnits > 0 && (
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-muted-foreground">
           <span className="font-semibold text-destructive">{totals.shortUnits}</span> unit(s)
+
           tracking below commitment this cycle.
         </p>
       )}
