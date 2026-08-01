@@ -1067,7 +1067,7 @@ function MusterRollPage() {
     const filtered = rows.filter((r) => r.entry_date <= todayStr);
     if (filtered.length === 0) {
       toast.error("All selected dates are in the future — nothing marked");
-      return;
+      return 0;
     }
 
     // ---- Payroll-days cap: max present days = contract's Payroll Days base.
@@ -1110,7 +1110,7 @@ function MusterRollPage() {
       toast.error(
         `Payroll days limit (${cap}) reached — mark the extra ${rejectedDays} day${rejectedDays === 1 ? "" : "s"} as OT hours instead`,
       );
-      return;
+      return 0;
     }
 
     const payload = capped.map((r) => ({
@@ -1131,6 +1131,7 @@ function MusterRollPage() {
         `Payroll days limit (${cap}) reached — ${rejectedDays} day${rejectedDays === 1 ? "" : "s"} not marked; record them as OT hours`,
       );
     }
+    return capped.length;
   };
 
 
@@ -1804,12 +1805,14 @@ function MusterRollPage() {
         code,
         ot_hours: entryMap.get(`${row.key}|${d}`)?.ot_hours ?? 0,
       }));
-      await upsertEntries(row.candidateId, row.designationId, rows);
+      const applied = await upsertEntries(row.candidateId, row.designationId, rows);
       queryClient.invalidateQueries({ queryKey: entriesQK });
       setPickerOpen(false);
       setSelectedDates(new Set());
       setDragRowKey(null);
-      toast.success(`Applied ${code || "Clear"} to ${pickerDates.length} day${pickerDates.length > 1 ? "s" : ""}`);
+      if (applied > 0) {
+        toast.success(`Applied ${code || "Clear"} to ${applied} day${applied > 1 ? "s" : ""}`);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save");
     }
