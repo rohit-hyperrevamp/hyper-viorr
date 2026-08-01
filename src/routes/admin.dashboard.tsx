@@ -464,6 +464,7 @@ function DashboardPage() {
           ) ?? toResource(resRow);
           const wages = computeWages(totals, resource, periodDates.length, {
             periodDates: periodDates.map((date) => new Date(`${date}T00:00:00`)),
+            epfCapEnabled: u.epf_cap_enabled ?? true,
           });
           const earnedPayroll = wages.earnedGross;
           const contractedInvoice = resource.components.reduce(
