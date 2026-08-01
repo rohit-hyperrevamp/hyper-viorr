@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Download, Gauge, IndianRupee, Receipt, Search, Wallet } from "lucide-react";
+import { toast } from "sonner";
+import { ChevronDown, Download, Gauge, IndianRupee, Lock, LockOpen, Receipt, Search, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,17 @@ import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchUnitFinance, rateFor, fmtMoney, fmtMoneyCompact, type UnitFinance } from "@/lib/contract-finance";
+import {
+  fetchPeriodStatuses,
+  periodStatusQueryKey,
+  setMoneyStatus,
+  useAttendanceMoneyRealtime,
+  type PeriodStatus,
+} from "@/lib/period-status";
+import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
+import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
+
 
 // ---------------------------------------------------------------------------
 // Finance charter — the shared Invoice / Payroll landing view.
