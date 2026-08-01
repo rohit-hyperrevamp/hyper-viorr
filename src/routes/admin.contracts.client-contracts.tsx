@@ -1247,7 +1247,9 @@ function syncResourceComponentMasterFields(
     ...component,
     allowanceId: at.id,
     name: at.shortName || at.displayName || at.name,
-    includeInOt: at.includeInOt,
+    // Per-resource OT selection — keep the resource's own choice.
+    includeInOt: component.includeInOt !== false,
+
     formulaMode: at.formulaMode ?? null,
     formulaExpression: at.formulaExpression ?? null,
     formulaVersion: at.formulaVersion ?? null,
@@ -3898,7 +3900,7 @@ function ResourceFormDialog({
           allowanceId: a.id,
           name: a.shortName || a.displayName,
           amount: 0,
-          includeInOt: a.includeInOt,
+          includeInOt: a.includeInOt !== false,
           formulaMode: a.formulaMode ?? null,
           formulaExpression: a.formulaExpression ?? null,
           formulaVersion: a.formulaVersion ?? null,
@@ -3994,7 +3996,8 @@ function ResourceFormDialog({
         );
         const synced = {
           ...c,
-          includeInOt: at.includeInOt,
+          // includeInOt is a per-resource OT choice — never overwritten by the master
+          includeInOt: c.includeInOt !== false,
           formulaMode: at.formulaMode ?? null,
           formulaExpression: at.formulaExpression ?? null,
           formulaVersion: at.formulaVersion ?? null,
@@ -4003,7 +4006,6 @@ function ResourceFormDialog({
         const metaChanged =
           c.allowanceId !== synced.allowanceId ||
           c.name !== synced.name ||
-          c.includeInOt !== synced.includeInOt ||
           c.formulaMode !== synced.formulaMode ||
           c.formulaExpression !== synced.formulaExpression ||
           c.formulaVersion !== synced.formulaVersion;
@@ -4153,9 +4155,49 @@ function ResourceFormDialog({
     );
   };
 
+  const toggleOtComponent = (allowanceId: string) => {
+    preserveDialogScroll(() => {
+      setComponents((prev) =>
+        prev.map((c) =>
+          c.allowanceId === allowanceId
+            ? { ...c, includeInOt: c.includeInOt === false }
+            : c,
+        ),
+      );
+    });
+  };
+
+  const setAllOtComponents = (on: boolean) => {
+    preserveDialogScroll(() => {
+      setComponents((prev) => prev.map((c) => ({ ...c, includeInOt: on })));
+    });
+  };
+
+  const otBaseTotal = components
+    .filter((c) => c.includeInOt !== false)
+    .reduce((s, c) => s + (Number(c.amount) || 0), 0);
+
+  const otDivisorDays = useMemo(() => {
+    const base = payrollDayBases.find((p) => p.id === payrollDayBaseId);
+    if (!base) return 0;
+    if (base.method === "fixed_days") return base.fixedDays ?? 26;
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    if (base.method === "actual_days") return daysInMonth;
+    if (base.method === "actual_minus_weekly_off") {
+      let count = 0;
+      for (let d = 1; d <= daysInMonth; d++) {
+        if (new Date(now.getFullYear(), now.getMonth(), d).getDay() !== (base.weeklyOffDay ?? 0)) count++;
+      }
+      return count;
+    }
+    return 0;
+  }, [payrollDayBaseId, payrollDayBases]);
+
   const removeComponent = (allowanceId: string) => {
     setComponents((prev) => prev.filter((c) => c.allowanceId !== allowanceId));
   };
+
 
   const addComponent = (a: AllowanceType) => {
     preserveDialogScroll(() => {
@@ -4164,7 +4206,7 @@ function ResourceFormDialog({
           allowanceId: a.id,
           name: a.shortName || a.displayName,
           amount: 0,
-          includeInOt: a.includeInOt,
+          includeInOt: a.includeInOt !== false,
           formulaMode: a.formulaMode ?? null,
           formulaExpression: a.formulaExpression ?? null,
           formulaVersion: a.formulaVersion ?? null,
@@ -4654,6 +4696,100 @@ function ResourceFormDialog({
               </span>
             </div>
           </div>
+
+          {/* Overtime basis — per-resource selection of wage components */}
+          <div className="rounded-xl border border-border bg-secondary/30 p-3">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Overtime (OT)
+                </h4>
+                <p className="text-[11px] text-muted-foreground">
+                  Pick which wage components form the OT base for this resource. All wage components are included by default — remove any that shouldn't be paid on overtime.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8"
+                  disabled={components.length === 0}
+                  onClick={() => setAllOtComponents(true)}
+                >
+                  Select all
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8"
+                  disabled={components.length === 0}
+                  onClick={() => setAllOtComponents(false)}
+                >
+                  Clear all
+                </Button>
+              </div>
+            </div>
+
+            {components.length === 0 ? (
+              <div className="py-4 text-center text-xs text-muted-foreground">
+                Add wage components first — overtime is calculated from them.
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {components.map((c) => {
+                    const on = c.includeInOt !== false;
+                    return (
+                      <button
+                        key={`ot-${c.allowanceId}`}
+                        type="button"
+                        onClick={() => toggleOtComponent(c.allowanceId)}
+                        className={cn(
+                          "flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition-colors",
+                          on
+                            ? "border-primary/40 bg-primary/10"
+                            : "border-border bg-card opacity-60",
+                        )}
+                        aria-pressed={on}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-xs font-semibold text-foreground">
+                            {c.name}
+                          </span>
+                          <span className="block text-[11px] tabular-nums text-muted-foreground">
+                            {Number(c.amount || 0).toFixed(2)}
+                          </span>
+                        </span>
+                        {on ? (
+                          <Check className="h-4 w-4 shrink-0 text-primary" />
+                        ) : (
+                          <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center justify-end gap-x-6 gap-y-1 border-t border-border pt-3">
+                  <span className="text-[11px] text-muted-foreground">
+                    OT per duty = OT base ÷ payroll days
+                    {otDivisorDays ? ` (${otDivisorDays})` : ""}
+                    {otDivisorDays ? ` = ${(otBaseTotal / otDivisorDays).toFixed(2)}` : ""}
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    OT Base
+                  </span>
+                  <span className="text-base font-bold text-foreground">
+                    {otBaseTotal.toFixed(2)}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
+
 
 
           {/* Deductions Management */}
