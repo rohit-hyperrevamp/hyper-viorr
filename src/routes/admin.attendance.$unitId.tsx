@@ -321,22 +321,50 @@ function MusterRollPage() {
         win = (winRow as Win | null) ?? null;
       }
 
-      let resources: Array<{ designationId: string; designationName: string; quantity: number }> = [];
+      let resources: Array<{
+        designationId: string;
+        designationName: string;
+        quantity: number;
+        payrollDayBase: PayrollDayBaseLike | null;
+      }> = [];
       if (contractId) {
         const { data: r } = await supabase
           .from("contract_resources")
-          .select("designation_id, quantity, sort_order")
+          .select("designation_id, quantity, sort_order, payroll_day_base_id")
           .eq("contract_id", contractId)
           .order("sort_order", { ascending: true });
         const rows = (r ?? []).filter((x) => x.designation_id) as Array<{
           designation_id: string;
           quantity: number | null;
+          payroll_day_base_id: string | null;
         }>;
         const qtyById = new Map<string, number>();
+        const pdbIdByDesig = new Map<string, string>();
         const orderedIds: string[] = [];
         for (const row of rows) {
           if (!qtyById.has(row.designation_id)) orderedIds.push(row.designation_id);
           qtyById.set(row.designation_id, (qtyById.get(row.designation_id) ?? 0) + Math.max(1, Number(row.quantity) || 1));
+          if (row.payroll_day_base_id && !pdbIdByDesig.has(row.designation_id)) {
+            pdbIdByDesig.set(row.designation_id, String(row.payroll_day_base_id));
+          }
+        }
+        const pdbById = new Map<string, PayrollDayBaseLike>();
+        const pdbIds = Array.from(new Set(pdbIdByDesig.values()));
+        if (pdbIds.length) {
+          const { data: bases } = await supabase
+            .from("payroll_day_bases")
+            .select("id, method, fixed_days, weekly_off_day, included_weekdays")
+            .in("id", pdbIds);
+          for (const b of (bases ?? []) as Array<Record<string, unknown>>) {
+            pdbById.set(String(b.id), {
+              method: String(b.method) as PayrollDayBaseLike["method"],
+              fixedDays: b.fixed_days == null ? null : Number(b.fixed_days),
+              weeklyOffDay: b.weekly_off_day == null ? null : Number(b.weekly_off_day),
+              includedWeekdays: Array.isArray(b.included_weekdays)
+                ? (b.included_weekdays as unknown[]).map((n) => Number(n)).filter((n) => n >= 0 && n <= 6)
+                : null,
+            });
+          }
         }
         if (orderedIds.length) {
           const { data: ds } = await supabase
@@ -348,10 +376,12 @@ function MusterRollPage() {
             designationId: id,
             designationName: nameById.get(id) ?? "—",
             quantity: qtyById.get(id) ?? 1,
+            payrollDayBase: pdbById.get(pdbIdByDesig.get(id) ?? "") ?? null,
           }));
         }
       }
       return { window: win, startDate, contractId, resources };
+
     },
     enabled: Boolean(unitId),
   });
