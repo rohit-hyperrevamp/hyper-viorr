@@ -656,7 +656,7 @@ function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{insightsCharts}{pnlBlock}</>}>
+      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{insightsCharts}{pnlBlock}</>}>
 
       <PageHeader
         title="Dashboard"
