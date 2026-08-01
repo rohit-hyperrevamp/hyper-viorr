@@ -281,38 +281,30 @@ export function IdCardEditor({
           </div>
         </Section>
 
-        <Section title="Back card">
-          <div className="grid gap-1.5">
-            <Label className="text-xs">Company name</Label>
-            <Input
-              value={spec.back.companyName}
-              onChange={(e) => setBack({ companyName: e.target.value })}
-              className="h-8 text-xs"
-            />
-          </div>
+        <Section title="Address, contact & validity (printed on the front)">
           <div className="grid gap-1.5">
             <Label className="text-xs">Address heading</Label>
             <Input
-              value={spec.back.addressTitle}
-              onChange={(e) => setBack({ addressTitle: e.target.value })}
+              value={spec.footer.addressTitle}
+              onChange={(e) => setFooter({ addressTitle: e.target.value })}
               className="h-8 text-xs"
             />
           </div>
           <LineList
             label="Address lines"
-            lines={spec.back.addressLines}
-            onChange={(addressLines) => setBack({ addressLines })}
+            lines={spec.footer.addressLines}
+            onChange={(addressLines) => setFooter({ addressLines })}
           />
           <LineList
-            label="Contact lines"
-            lines={spec.back.contactLines}
-            onChange={(contactLines) => setBack({ contactLines })}
+            label="Phone / mobile lines"
+            lines={spec.footer.contactLines}
+            onChange={(contactLines) => setFooter({ contactLines })}
           />
           <div className="grid gap-1.5">
             <Label className="text-xs">Validity line</Label>
             <Input
-              value={spec.back.validityLine}
-              onChange={(e) => setBack({ validityLine: e.target.value })}
+              value={spec.footer.validityLine}
+              onChange={(e) => setFooter({ validityLine: e.target.value })}
               className="h-8 text-xs"
             />
           </div>
