@@ -89,8 +89,14 @@ import { WorkforceCoverageCard } from "@/components/WorkforceCoverage";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/contracts/client-contracts")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    status: typeof search.status === "string" ? search.status : undefined,
+    tab: search.tab === "prospect" || search.tab === "client" ? search.tab : undefined,
+    renewals: search.renewals === true || search.renewals === "true" ? true : undefined,
+  }),
   component: ClientContractsPage,
 });
+
 
 type GstOption = "csgst" | "igst" | "none";
 type ContractStatus = "active" | "inactive" | "expired";
@@ -1931,6 +1937,23 @@ function ClientContractsPage() {
     contract: ClientContract;
     mode: ApprovalMode;
   } | null>(null);
+
+  // Deep-link from the leadership dashboard: /admin/contracts/client-contracts?status=lost
+  const search = Route.useSearch();
+  const appliedDeepLink = useRef(false);
+  useEffect(() => {
+    if (appliedDeepLink.current) return;
+    if (!search.status && !search.tab && !search.renewals) return;
+    appliedDeepLink.current = true;
+    if (search.tab) setTab(search.tab);
+    if (search.status) setStatusFilter(search.status);
+    if (search.renewals) {
+      setTab("client");
+      setStatusFilter("all");
+      setRenewalOnly(true);
+    }
+  }, [search.status, search.tab, search.renewals]);
+
 
   const enriched = useMemo(() => {
     return items.map((c) => {

@@ -180,14 +180,33 @@ export function useWorkforceCoverage() {
   return useQuery({ queryKey: QK_COVERAGE, queryFn: fetchCoverage });
 }
 
+/**
+ * Deployment shortfall tone rule (shared by dashboard + client contracts):
+ *  - fully covered            → neutral / emerald
+ *  - shortfall up to 5%       → orange (amber)
+ *  - shortfall greater than 5% → red (destructive)
+ */
+export function shortfallTone(
+  committed: number,
+  actual: number,
+): "ok" | "warning" | "destructive" {
+  if (committed <= 0) return "ok";
+  if (actual >= committed) return "ok";
+  const deltaPct = ((committed - actual) / committed) * 100;
+  return deltaPct > 5 ? "destructive" : "warning";
+}
+
 function VarianceChip({ committed, actual }: { committed: number; actual: number }) {
   const diff = actual - committed;
+  const t = shortfallTone(committed, actual);
   const tone =
-    diff === 0
-      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/25"
-      : diff < 0
+    diff > 0
+      ? "bg-amber-500/10 text-amber-600 border-amber-500/25"
+      : t === "destructive"
         ? "bg-destructive/10 text-destructive border-destructive/25"
-        : "bg-amber-500/10 text-amber-600 border-amber-500/25";
+        : t === "warning"
+          ? "bg-amber-500/10 text-amber-600 border-amber-500/25"
+          : "bg-emerald-500/10 text-emerald-600 border-emerald-500/25";
   return (
     <span
       className={cn(
@@ -212,7 +231,16 @@ function Tile({
   tone?: "accent" | "warning" | "destructive";
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-background/60 p-3">
+    <div
+      className={cn(
+        "rounded-2xl border p-3",
+        tone === "warning"
+          ? "border-amber-500/40 bg-amber-500/10"
+          : tone === "destructive"
+            ? "border-destructive/40 bg-destructive/10"
+            : "border-border bg-background/60",
+      )}
+    >
       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
         <Icon
           className={cn(
@@ -224,10 +252,19 @@ function Tile({
         />
         {label}
       </div>
-      <div className="mt-1 text-xl font-semibold tabular-nums">{value}</div>
+      <div
+        className={cn(
+          "mt-1 text-xl font-semibold tabular-nums",
+          tone === "warning" && "text-amber-600",
+          tone === "destructive" && "text-destructive",
+        )}
+      >
+        {value}
+      </div>
     </div>
   );
 }
+
 
 export function WorkforceCoverageCard() {
   const { data: rows = [], isLoading } = useWorkforceCoverage();
@@ -243,8 +280,10 @@ export function WorkforceCoverageCard() {
       gap: actual - committed,
       shortUnits,
       coverage: committed > 0 ? Math.round((actual / committed) * 100) : 0,
+      tone: shortfallTone(committed, actual),
     };
   }, [rows]);
+
 
   return (
     <div className="mb-4 rounded-2xl border border-border bg-card p-4">
@@ -271,15 +310,26 @@ export function WorkforceCoverageCard() {
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Tile label="Committed" value={totals.committed} icon={Users} tone="accent" />
-        <Tile label="Actual deployed" value={totals.actual} icon={UserCheck} />
+        <Tile
+          label="Actual deployed"
+          value={totals.actual}
+          icon={UserCheck}
+          tone={totals.tone === "ok" ? undefined : totals.tone}
+        />
         <Tile
           label="Variance"
           value={totals.gap > 0 ? `+${totals.gap}` : totals.gap}
           icon={TrendingDown}
-          tone={totals.gap < 0 ? "destructive" : "warning"}
+          tone={totals.gap > 0 ? "warning" : totals.tone === "ok" ? undefined : totals.tone}
         />
-        <Tile label="Coverage" value={`${totals.coverage}%`} icon={Gauge} />
+        <Tile
+          label="Coverage"
+          value={`${totals.coverage}%`}
+          icon={Gauge}
+          tone={totals.tone === "ok" ? undefined : totals.tone}
+        />
       </div>
+
       {totals.shortUnits > 0 && (
         <p className="mt-2 text-xs text-muted-foreground">
           <span className="font-semibold text-destructive">{totals.shortUnits}</span>{" "}
@@ -424,7 +474,16 @@ function DeploymentCharterDialog({
                           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
                             Actual
                           </div>
-                          <div className="font-semibold">{r.actual}</div>
+                          <div
+                            className={cn(
+                              "font-semibold",
+                              shortfallTone(r.committed, r.actual) === "destructive" && "text-destructive",
+                              shortfallTone(r.committed, r.actual) === "warning" && "text-amber-600",
+                            )}
+                          >
+                            {r.actual}
+                          </div>
+
                         </div>
                         <VarianceChip committed={r.committed} actual={r.actual} />
                       </div>
@@ -453,9 +512,16 @@ function DeploymentCharterDialog({
                                   <td className="py-1.5 text-right tabular-nums">
                                     {l.committed}
                                   </td>
-                                  <td className="py-1.5 text-right tabular-nums">
+                                  <td
+                                    className={cn(
+                                      "py-1.5 text-right tabular-nums",
+                                      shortfallTone(l.committed, l.actual) === "destructive" && "font-semibold text-destructive",
+                                      shortfallTone(l.committed, l.actual) === "warning" && "font-semibold text-amber-600",
+                                    )}
+                                  >
                                     {l.actual}
                                   </td>
+
                                   <td className="py-1.5 text-right">
                                     <VarianceChip
                                       committed={l.committed}
