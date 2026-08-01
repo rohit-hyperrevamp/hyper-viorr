@@ -137,6 +137,22 @@ function RootComponent() {
     void initNative();
   }, []);
 
+  // The Supabase session hydrates asynchronously. Queries that fired before
+  // the bearer token was attached come back empty (RLS returns zero rows with
+  // no error) — that is the "everything shows 0 until I refresh again" bug.
+  // Once the session is ready, refetch everything that loaded too early.
+  useEffect(() => {
+    let cancelled = false;
+    void supabaseSessionReady().then((hasSession) => {
+      if (cancelled || !hasSession) return;
+      void queryClient.invalidateQueries();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [queryClient]);
+
+
   // Promote any [title] into [data-tip] (to suppress the slow native tooltip)
   // and render a portal-mounted floating pill on hover/focus. Using a fixed
   // portal element guarantees the pill escapes any overflow:hidden container
