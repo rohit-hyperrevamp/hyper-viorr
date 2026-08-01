@@ -746,8 +746,18 @@ function PostingOrderTemplatePreview({ body }: { body: string }) {
         <DocumentPreview body={renderTemplate(config.emailBody, htmlMap)} className="max-h-[52vh]" />
       </TabsContent>
       <TabsContent value="whatsapp">
-        <pre className="max-h-[58vh] overflow-auto whitespace-pre-wrap rounded-md border border-border bg-secondary/30 p-4 font-sans text-sm">{renderTemplate(config.whatsappBody, textMap)}</pre>
+        <div className="flex justify-center">
+          <div className="w-full max-w-[320px] rounded-[22px] border border-border bg-[#ece5dd] p-3 dark:bg-secondary/40">
+            <div className="ml-auto max-h-[52vh] w-fit max-w-[92%] overflow-auto rounded-2xl rounded-tr-md bg-[#dcf8c6] px-3 py-2 shadow-sm dark:bg-emerald-900/40">
+              <pre className="whitespace-pre-wrap break-words font-sans text-[12px] leading-snug text-foreground">
+                {renderTemplate(config.whatsappBody, textMap)}
+              </pre>
+              <div className="mt-1 text-right text-[10px] text-muted-foreground">now ✓✓</div>
+            </div>
+          </div>
+        </div>
       </TabsContent>
+
     </Tabs>
   );
 }
