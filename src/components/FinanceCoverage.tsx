@@ -426,12 +426,15 @@ function CharterDialog({
 
 /** Payroll committed vs actual (MTD). */
 export function PayrollCoverageCard({ rows }: { rows: UnitFinanceRow[] }) {
+  // Compare like-for-like with invoice: customer-billable units only.
+  // Internal payroll belongs in overhead reporting, not this coverage charter.
+  const billable = rows.filter((r) => !r.internal);
   return (
     <CoverageCard
       eyebrow="Payroll"
       title="Committed vs Actual Payroll"
       description="Full-month contracted payroll cost across active contracts against payroll actually earned month-till-date."
-      rows={rows}
+      rows={billable}
       pick={(r) => ({ committed: r.committed_payroll, actual: r.actual_payroll })}
       buttonLabel="View full payroll charter"
       labels={{ committed: "Committed payroll", actual: "Actual payroll MTD" }}
