@@ -325,7 +325,7 @@ export function AttendanceCharter({
           .some((v) => v.toLowerCase().includes(q));
       })
       .sort((a, b) => a.unit.name.localeCompare(b.unit.name));
-  }, [units, coverageByUnit, statsByUnit, shiftQ.data, elapsedDays, query]);
+  }, [units, coverageByUnit, statsByUnit, shiftQ.data, statusQ.data, elapsedDays, query]);
 
   const totals = useMemo(() => {
     const committed = rows.reduce((s, r) => s + r.committed, 0);
