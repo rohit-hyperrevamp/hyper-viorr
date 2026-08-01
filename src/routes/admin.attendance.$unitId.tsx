@@ -855,6 +855,78 @@ function MusterRollPage() {
   // Extra (candidate, designation) rows the user added locally — persisted as soon as an entry is saved.
   const [extraRows, setExtraRows] = useState<Set<string>>(new Set());
 
+  // ---- Map an employee onto an unassigned (vacant) contracted slot ----
+  const [mapSlot, setMapSlot] = useState<{ designationId: string | null; designationName: string } | null>(null);
+  const [mapQuery, setMapQuery] = useState("");
+  const [mapSaving, setMapSaving] = useState(false);
+
+  const mapSearch = mapQuery.trim();
+  const { data: mapResults, isFetching: mapSearching } = useQuery({
+    queryKey: ["attendance-map-lookup", unitId, mapSearch],
+    enabled: Boolean(mapSlot) && mapSearch.length >= 2,
+    queryFn: async () => {
+      const like = mapSearch.replace(/[%,]/g, " ");
+      const { data, error } = await supabase
+        .from("candidates")
+        .select("id, full_name, employee_code, candidate_code, designation_id, preferred_joining_date")
+        .eq("is_enabled", true)
+        .in("status", [...ATTENDANCE_EMPLOYEE_STATUSES])
+        .or(`full_name.ilike.%${like}%,employee_code.ilike.%${like}%,candidate_code.ilike.%${like}%`)
+        .order("full_name")
+        .limit(30);
+      if (error) throw error;
+      const rows = data ?? [];
+      const desigIds = Array.from(new Set(rows.map((r) => r.designation_id).filter(Boolean))) as string[];
+      const { data: desigs } = await supabase
+        .from("designations")
+        .select("id, name")
+        .in("id", desigIds.length ? desigIds : ["00000000-0000-0000-0000-000000000000"]);
+      const dMap = new Map((desigs ?? []).map((d) => [d.id as string, d.name as string]));
+      return rows.map((r) => ({
+        id: r.id as string,
+        full_name: (r.full_name as string) || "—",
+        employee_code: (r.employee_code as string) || (r.candidate_code as string) || "—",
+        designation_id: (r.designation_id as string | null) ?? null,
+        designation: (r.designation_id && dMap.get(r.designation_id as string)) || "—",
+        doj: (r.preferred_joining_date as string | null) || "",
+      }));
+    },
+  });
+
+  const rosterIds = useMemo(() => new Set((employees ?? []).map((e) => e.id)), [employees]);
+
+  const mapEmployeeToSlot = async (cand: { id: string; full_name: string; designation_id: string | null }) => {
+    if (!mapSlot) return;
+    setMapSaving(true);
+    try {
+      const { error } = await supabase
+        .from("candidate_units")
+        .upsert({ candidate_id: cand.id, unit_id: unitId }, { onConflict: "candidate_id,unit_id" });
+      if (error) throw error;
+
+      // If the slot's designation differs from the employee's own, surface the
+      // line on the contracted designation so the slot is actually filled.
+      if (mapSlot.designationId && mapSlot.designationId !== cand.designation_id) {
+        setExtraRows((prev) => new Set(prev).add(rowKey(cand.id, mapSlot.designationId)));
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
+      logActivity({
+        module: "Attendance",
+        action: "update",
+        summary: `Mapped ${cand.full_name} to ${mapSlot.designationName} slot on ${unit?.name ?? unitId}`,
+      });
+      toast.success(`${cand.full_name} mapped to ${mapSlot.designationName}`);
+      setMapSlot(null);
+      setMapQuery("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to map employee");
+    } finally {
+      setMapSaving(false);
+    }
+  };
+
+
   // Derived list of muster rows: one per (candidate, designation)
   const musterRows = useMemo(() => {
     const out: Array<{
