@@ -1247,7 +1247,9 @@ function syncResourceComponentMasterFields(
     ...component,
     allowanceId: at.id,
     name: at.shortName || at.displayName || at.name,
-    includeInOt: at.includeInOt,
+    // Per-resource OT selection — keep the resource's own choice.
+    includeInOt: component.includeInOt !== false,
+
     formulaMode: at.formulaMode ?? null,
     formulaExpression: at.formulaExpression ?? null,
     formulaVersion: at.formulaVersion ?? null,
