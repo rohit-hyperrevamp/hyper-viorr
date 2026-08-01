@@ -39,6 +39,10 @@ type PersonMoney = {
   designationName: string;
   paidDays: number;
   otDays: number;
+  /** Flat contracted monthly gross per head — no OT, no pro-rating. */
+  contractedGross: number;
+  /** Flat contracted monthly bill rate per head — no OT, no pro-rating. */
+  contractedBill: number;
   invoiceAmount: number;
   /** Earned gross wages for the days paid. */
   payrollAmount: number;
