@@ -595,11 +595,11 @@ function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{insightsCharts}{pnlBlock}</>}>
+      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{insightsCharts}</>}>
 
       <PageHeader
         title="Dashboard"
-        description="Live snapshot of everything you have access to — tiles, counts, and P&L for the selected cycle."
+        description="Live snapshot of everything you have access to — tiles, counts, and cycle insights."
         crumbs={[{ label: "Dashboard" }]}
       />
 
