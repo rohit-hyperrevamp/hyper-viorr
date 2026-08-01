@@ -317,6 +317,8 @@ export function FinanceCharter({
         const contractedMtd = (monthlyContracted / period.totalDays) * period.elapsedDays;
         const invoiceAmount = people.reduce((s, p) => s + p.invoiceAmount, 0);
         const payrollAmount = people.reduce((s, p) => s + p.payrollAmount, 0);
+        const deductionAmount = people.reduce((s, p) => s + p.deductionAmount, 0);
+        const netPayrollAmount = Math.max(0, payrollAmount - deductionAmount);
         const status: PeriodStatus = statusQ.data?.get(u.id) ?? {
           unitId: u.id,
           attendance: "none",
@@ -336,6 +338,8 @@ export function FinanceCharter({
           contractedMtd,
           invoiceAmount,
           payrollAmount,
+          deductionAmount,
+          netPayrollAmount,
           status,
           margin: invoiceAmount - payrollAmount,
           marginPct: invoiceAmount > 0 ? Math.round(((invoiceAmount - payrollAmount) / invoiceAmount) * 100) : 0,
@@ -343,6 +347,7 @@ export function FinanceCharter({
           period,
         };
       })
+
       .filter((r) => {
         const q = query.trim().toLowerCase();
         if (!q) return true;
