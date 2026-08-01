@@ -1741,14 +1741,18 @@ function MusterRollPage() {
     }
   };
 
+  // `hours` is OT in clock hours (0.5 – 16). It is stored as OT *days*,
+  // converted with the row's contractual shift length (8h or 12h).
   const applyOtToSelection = async (hours: number) => {
     const row = findRow(otPickerRowKey);
     if (!row) return;
+    const shift = shiftHoursFor(shiftMap, unitId, row.designationId ?? null);
+    const otDays = Math.round((hours / shift) * 100) / 100;
     try {
       const rows = otPickerDates.map((d) => ({
         entry_date: d,
         code: entryMap.get(`${row.key}|${d}`)?.code ?? "",
-        ot_hours: hours,
+        ot_hours: otDays,
       }));
       await upsertEntries(row.candidateId, row.designationId, rows);
       queryClient.invalidateQueries({ queryKey: entriesQK });
@@ -1757,7 +1761,7 @@ function MusterRollPage() {
       setOtDragRowKey(null);
       toast.success(
         hours > 0
-          ? `Set ${hours} OT day${hours === 1 ? "" : "s"} on ${otPickerDates.length} day${otPickerDates.length > 1 ? "s" : ""}`
+          ? `Set ${hours}h OT (${otDays} day${otDays === 1 ? "" : "s"} @ ${shift}h shift) on ${otPickerDates.length} day${otPickerDates.length > 1 ? "s" : ""}`
           : `Cleared OT on ${otPickerDates.length} day${otPickerDates.length > 1 ? "s" : ""}`,
       );
     } catch (e) {
