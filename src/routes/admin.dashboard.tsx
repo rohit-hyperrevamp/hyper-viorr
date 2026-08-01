@@ -418,12 +418,17 @@ function DashboardPage() {
             })) as AttendanceEntryLike[];
           const totals = computeAttendanceTotals(p.candidateId, periodDates, lineEntries, codes);
           const wages = computeWages(totals, toResource(resRow), periodDates.length);
-          // Invoice billable mirrors Invoice module's "Actual total":
-          invoiceAmount += wages.employerCost;
-          // Payroll cost = same outflow + scaled benefits (paid to employee, not billed).
-          const scaledBenefits =
-            sumArr(resRow.benefits) * (wages.ratio || 0);
-          payrollCost += wages.employerCost + scaledBenefits;
+          // Invoice billable mirrors Invoice module's "Actual total"
+          // (earned gross + earned employer contributions). Internal units
+          // are never billed to a customer, so they earn no invoice value.
+          if (!isInternal) invoiceAmount += wages.employerCost;
+          // Payroll cost = same outflow + benefits already scaled by the wage
+          // engine (per-duty benefits are not a flat ratio, so use its output).
+          const earnedBenefits = wages.benefits.reduce(
+            (s, b) => s + (Number(b.amount) || 0),
+            0,
+          );
+          payrollCost += wages.employerCost + earnedBenefits;
         }
 
         const variance = invoiceAmount - payrollCost;
@@ -433,6 +438,7 @@ function DashboardPage() {
           existing.contract_value += contractValue;
           existing.invoice_amount += invoiceAmount;
           existing.payroll_cost += payrollCost;
+          existing.internal = existing.internal && isInternal;
           existing.variance = existing.invoice_amount - existing.payroll_cost;
           existing.variance_pct = existing.invoice_amount > 0
             ? (existing.variance / existing.invoice_amount) * 100
@@ -448,11 +454,13 @@ function DashboardPage() {
             payroll_cost: payrollCost,
             variance,
             variance_pct: variancePct,
+            internal: isInternal,
           });
         }
       }
       void emptyUuid;
       const pnlRows = Array.from(pnlByUnit.values()).sort((a, b) => b.contract_value - a.contract_value);
+
       const pnlTotals = pnlRows.reduce(
         (s, r) => ({ contract: s.contract + r.contract_value, invoice: s.invoice + r.invoice_amount, payroll: s.payroll + r.payroll_cost }),
         { contract: 0, invoice: 0, payroll: 0 },
