@@ -1120,22 +1120,37 @@ function PayrollUnitPage() {
             Projected column = full billable amount · Actual column = billable based on T Days
           </span>
         </div>
-        {rows.filter((r) => r.wages && r.resource).map((r) => (
+        {rows.filter((r) => r.wages && r.resource).map((r) => {
+          const projBillable =
+            r.resource!.components.reduce((s, c) => s + (Number(c.amount) || 0), 0) +
+            r.resource!.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0);
+          return (
           <SalaryBreakdownPreview
             key={r.rowKey}
             employeeName={r.name}
             employeeCode={r.employeeCode}
             designationName={r.designation}
             tDays={r.totals.tDays}
+            otHours={r.totals.otHours}
             baseDays={r.wages!.baseDays}
             components={r.resource!.components.map((c) => ({ name: c.name, amount: Number(c.amount) || 0 }))}
             benefits={(r.resource!.benefits ?? []).map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
             deductions={(r.resource!.deductions ?? []).map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
+            employerContributions={(r.resource!.employerContributions ?? []).map((b) => ({ name: b.name, amount: contractTotalAmount(b) }))}
+            earnedComponents={r.wages!.components.map((c) => ({ name: c.name, amount: Number(c.amount) || 0 }))}
+            earnedGross={r.wages!.earnedGross}
+            earnedEmployerContributions={r.wages!.employerContributions.map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
             earnedDeductions={r.wages!.deductions.map((b) => ({ name: b.name, amount: Number(b.amount) || 0 }))}
             totalEarnedDeductions={r.wages!.totalDeductions}
             earnedNetPayable={r.wages!.netPay}
+            projectedBillable={projBillable}
+            actualBillable={billableFor(r)}
+            gstRate={GST_RATE}
+            intraState={isIntraStateCurrent}
           />
-        ))}
+          );
+        })}
+
         {rows.filter((r) => !r.wages).length > 0 && (
           <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-900">
             {rows.filter((r) => !r.wages).length} employee(s) have no contract mapped for their designation and were excluded from the breakdown.
