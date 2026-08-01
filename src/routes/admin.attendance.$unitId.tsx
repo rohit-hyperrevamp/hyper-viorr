@@ -1714,6 +1714,13 @@ function MusterRollPage() {
 
   const findRow = (k: string | null) => musterRows.find((r) => r.key === k);
 
+  // Contractual shift length for a muster row (8h / 12h) — never hard-coded,
+  // it comes from the unit's active contract resource line.
+  const rowShiftHours = (k: string | null) => {
+    const row = findRow(k);
+    return shiftHoursFor(shiftMap, unitId, row?.designationId ?? null);
+  };
+
   const applyCodeToSelection = async (code: string) => {
     const row = findRow(pickerRowKey);
     if (!row) return;
