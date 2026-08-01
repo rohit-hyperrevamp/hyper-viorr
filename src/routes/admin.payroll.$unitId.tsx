@@ -1360,7 +1360,7 @@ function PayrollUnitPage() {
         </div>
       </div>
 
-      {rows.length > 0 && <MisDetailSheet rows={rows} />}
+      
     </div>
   );
 }
