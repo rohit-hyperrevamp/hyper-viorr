@@ -2327,14 +2327,16 @@ function MusterRollPage() {
                         const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
                         const entry = entryMap.get(`${mr.key}|${date}`);
                         // Implicit "A" for on/after DOJ, on/before today, when no entry exists.
-                        const displayCode = entry?.code
+                        const displayCode = mr.vacant
+                          ? ""
+                          : entry?.code
                           ? entry.code
                           : (!isFuture && !beforeDoj ? "A" : "");
                         const codeMeta = displayCode ? codeMap.get(displayCode) : undefined;
                         const isImplicitAbsent = !entry?.code && displayCode === "A";
                         const isSelected = dragRowKey === mr.key && selectedDates.has(date);
                         const isUncertain = !entry?.code && uncertainCells.has(`${mr.key}|${date}`);
-                        const isBlocked = isFuture || beforeDoj;
+                        const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant);
                         return (
                           <td
                             key={`a-${cell.date}`}
@@ -2421,7 +2423,7 @@ function MusterRollPage() {
                         const date = cell.date;
                         const isFuture = date > todayStr;
                         const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
-                        const isBlocked = isFuture || beforeDoj;
+                        const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant);
                         const entry = entryMap.get(`${mr.key}|${date}`);
                         const hrs = Number(entry?.ot_hours) || 0;
                         const isSelected = otDragRowKey === mr.key && otSelectedDates.has(date);
