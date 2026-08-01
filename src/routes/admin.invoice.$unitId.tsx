@@ -611,6 +611,8 @@ function PayrollUnitPage() {
 
   const rows = data?.rows ?? [];
   const billingMode = data?.billingMode ?? "man_days";
+  const [previewOpen, setPreviewOpen] = useState(false);
+
 
   useEffect(() => {
     if (!highlightCandidate || rows.length === 0) return;
