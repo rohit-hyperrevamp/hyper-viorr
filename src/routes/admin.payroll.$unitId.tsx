@@ -1230,7 +1230,7 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 text-left tabular-nums">{r.totals.phDays}</td>
                   <td className="px-4 py-3 text-left tabular-nums">{r.totals.otDays}</td>
                   <td className="px-4 py-3 text-left tabular-nums font-medium">{r.totals.tDays}</td>
-                  <td className="px-4 py-3 text-left tabular-nums">{r.totals.otHours}</td>
+                  <td className="px-4 py-3 text-left text-muted-foreground">{r.wages ? fmtINR(r.wages.contractGross) : <span className="text-xs text-amber-600">no contract</span>}</td>
                   <td className="px-4 py-3 text-left text-muted-foreground">{r.wages ? fmtINR(r.wages.contractGross) : <span className="text-xs text-amber-600">no contract</span>}</td>
                   <td className="px-4 py-3 text-left font-medium">{r.wages ? fmtINR(r.wages.earnedGross) : "—"}</td>
                   <td className="px-4 py-3 text-left">{r.wages ? fmtINR(r.wages.totalDeductions) : "—"}</td>
