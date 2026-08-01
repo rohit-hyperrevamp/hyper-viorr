@@ -128,7 +128,11 @@ export function CandidateCompanyDocuments({
         desc="Statutory documents generated for this employee, signed with their onboarding signature and the company stamp"
       />
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={() => setPosting(true)}>
+          <Send className="mr-1.5 h-3.5 w-3.5" />
+          Issue Posting Order
+        </Button>
         <Button
           variant="outline"
           size="sm"
@@ -141,9 +145,11 @@ export function CandidateCompanyDocuments({
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
           )}
           Sync Documents
-
         </Button>
       </div>
+
+      <PostingOrderDialog open={posting} onOpenChange={setPosting} candidateId={candidateId} />
+
 
       {isLoading ? (
         <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
