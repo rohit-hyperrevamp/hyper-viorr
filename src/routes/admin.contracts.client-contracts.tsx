@@ -4153,9 +4153,49 @@ function ResourceFormDialog({
     );
   };
 
+  const toggleOtComponent = (allowanceId: string) => {
+    preserveDialogScroll(() => {
+      setComponents((prev) =>
+        prev.map((c) =>
+          c.allowanceId === allowanceId
+            ? { ...c, includeInOt: c.includeInOt === false }
+            : c,
+        ),
+      );
+    });
+  };
+
+  const setAllOtComponents = (on: boolean) => {
+    preserveDialogScroll(() => {
+      setComponents((prev) => prev.map((c) => ({ ...c, includeInOt: on })));
+    });
+  };
+
+  const otBaseTotal = components
+    .filter((c) => c.includeInOt !== false)
+    .reduce((s, c) => s + (Number(c.amount) || 0), 0);
+
+  const otDivisorDays = useMemo(() => {
+    const base = payrollDayBases.find((p) => p.id === payrollDayBaseId);
+    if (!base) return 0;
+    if (base.method === "fixed_days") return base.fixedDays ?? 26;
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    if (base.method === "actual_days") return daysInMonth;
+    if (base.method === "actual_minus_weekly_off") {
+      let count = 0;
+      for (let d = 1; d <= daysInMonth; d++) {
+        if (new Date(now.getFullYear(), now.getMonth(), d).getDay() !== (base.weeklyOffDay ?? 0)) count++;
+      }
+      return count;
+    }
+    return 0;
+  }, [payrollDayBaseId, payrollDayBases]);
+
   const removeComponent = (allowanceId: string) => {
     setComponents((prev) => prev.filter((c) => c.allowanceId !== allowanceId));
   };
+
 
   const addComponent = (a: AllowanceType) => {
     preserveDialogScroll(() => {
