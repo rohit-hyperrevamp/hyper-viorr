@@ -254,6 +254,11 @@ function MusterRollPage() {
       }
       const all = [...(prim ?? []), ...(extra ?? [])];
       const dedup = Array.from(new Map(all.map((c) => [c.id, c])).values());
+      // Candidates whose home unit IS this unit are permanently mapped and can
+      // never be removed from the muster. Everyone else reaches this roll via a
+      // candidate_units link / unit scope — i.e. a reliever.
+      const homeMapped = new Set((prim ?? []).map((c) => c.id));
+
 
       const desigIds = Array.from(
         new Set(dedup.map((c) => c.designation_id).filter(Boolean)),
@@ -278,7 +283,9 @@ function MusterRollPage() {
             employee_type: classifyAttendanceEmployee(c.role_key, (c.designation_id && dMap.get(c.designation_id)) || ""),
             doj: c.preferred_joining_date || "",
             is_non_billable: isNonBillable,
+            is_home_mapped: homeMapped.has(c.id),
             role_key: (c.role_key || "").toLowerCase(),
+
           };
         })
         // Muster rolls are billable-only for client units. Non-billable staff
@@ -938,6 +945,12 @@ function MusterRollPage() {
       designationName: string;
       emp: NonNullable<typeof employees>[number];
       isPrimary: boolean;
+      /**
+       * Reliever line — either an extra designation for the same person, or a
+       * person who is not permanently mapped to this unit. Relievers can be
+       * removed from the muster; permanently mapped people cannot.
+       */
+      reliever?: boolean;
       /** Contracted designation slot with nobody mapped yet — read-only placeholder. */
       vacant?: boolean;
     }> = [];
@@ -945,6 +958,7 @@ function MusterRollPage() {
     const desigNameMap = new Map(contractDesignations.map((d) => [d.designationId, d.designationName]));
 
     for (const emp of employees ?? []) {
+      const homeMapped = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
       // Primary row from candidate's own designation
       const primaryKey = rowKey(emp.id, emp.designation_id);
       out.push({
@@ -954,6 +968,7 @@ function MusterRollPage() {
         designationName: emp.designation || "—",
         emp,
         isPrimary: true,
+        reliever: !homeMapped,
       });
       seen.add(primaryKey);
 
@@ -979,6 +994,7 @@ function MusterRollPage() {
           designationName: dName,
           emp,
           isPrimary: false,
+          reliever: true,
         });
       }
 
@@ -997,9 +1013,11 @@ function MusterRollPage() {
           designationName: dName,
           emp,
           isPrimary: false,
+          reliever: true,
         });
       }
     }
+
 
     // Contracted designations always appear on the muster, even with nobody
     // mapped. For each designation we render `quantity` slots; slots already
@@ -2468,17 +2486,21 @@ function MusterRollPage() {
                             <span>{mr.emp.full_name || "—"}</span>
                           )}
 
-                          {!mr.isPrimary && (
+                          {mr.reliever && !mr.vacant && (
                             <button
                               type="button"
-                              title="Remove this extra line and delete its attendance entries in this period"
+                              title="Remove this reliever line and delete its attendance entries in this period"
                               disabled={!editable}
                               onClick={async () => {
                                 if (!editable) return;
                                 const hasEntries = entries.some(
                                   (e) => e.candidate_id === mr.candidateId && e.designation_id === mr.designationId,
                                 );
-                                if (hasEntries && !window.confirm(`Remove extra line "${mr.designationName}" for ${mr.emp.full_name}? This deletes attendance entries on this line for ${periodStart} → ${periodEnd}.`)) {
+                                if (!window.confirm(
+                                  hasEntries
+                                    ? `Remove reliever line "${mr.designationName}" for ${mr.emp.full_name}? This deletes attendance entries on this line for ${periodStart} → ${periodEnd}.`
+                                    : `Remove reliever line "${mr.designationName}" for ${mr.emp.full_name} from this muster?`,
+                                )) {
                                   return;
                                 }
                                 try {
@@ -2496,13 +2518,25 @@ function MusterRollPage() {
                                     const { error } = await q;
                                     if (error) throw error;
                                   }
+                                  // A reliever who reached this muster through a
+                                  // candidate_units link (their home unit is elsewhere)
+                                  // is unmapped entirely when their last line goes.
+                                  if (mr.isPrimary) {
+                                    const { error: unlinkError } = await supabase
+                                      .from("candidate_units")
+                                      .delete()
+                                      .eq("unit_id", unitId)
+                                      .eq("candidate_id", mr.candidateId);
+                                    if (unlinkError) throw unlinkError;
+                                  }
                                   setExtraRows((prev) => {
                                     const next = new Set(prev);
                                     next.delete(mr.key);
                                     return next;
                                   });
                                   queryClient.invalidateQueries({ queryKey: entriesQK });
-                                  toast.success("Extra line removed");
+                                  queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
+                                  toast.success("Reliever line removed");
                                 } catch (e) {
                                   toast.error(e instanceof Error ? e.message : "Failed to remove line");
                                 }
@@ -2512,14 +2546,21 @@ function MusterRollPage() {
                               <X className="h-3 w-3" />
                             </button>
                           )}
+
                         </div>
                       </td>
                       <td className={cn(cellBase, "p-1 text-left")} rowSpan={2}>
                         {mr.designationName || "—"}
-                        {!mr.isPrimary && (
-                          <span className="ml-1 rounded bg-violet-100 px-1 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-violet-700 print:hidden">extra</span>
+                        {mr.reliever && !mr.vacant && (
+                          <span
+                            className="ml-1 font-semibold text-violet-700"
+                            title="Reliever line"
+                          >
+                            (R)
+                          </span>
                         )}
                       </td>
+
                       <td className={cn(cellBase, "p-1")} rowSpan={2}>
                         {mr.emp.doj ? new Date(mr.emp.doj).toLocaleDateString("en-GB") : "—"}
                       </td>
