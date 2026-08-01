@@ -173,8 +173,8 @@ export function FinanceCharter({
   );
   const unitIds = useMemo(() => units.map((u) => u.id), [units]);
   const qc = useQueryClient();
-  const { can, isAdmin } = useCurrentPermissions();
-  const canProcess = isAdmin || can(mode === "invoice" ? "invoice" : "payroll", "approve");
+  const { can, isSuperAdmin } = useCurrentPermissions();
+  const canProcess = isSuperAdmin || can(mode === "invoice" ? "invoice" : "payroll", "approve");
 
   // Attendance edits (including overtime) push straight through to these
   // numbers — no refresh, no stale cache.
