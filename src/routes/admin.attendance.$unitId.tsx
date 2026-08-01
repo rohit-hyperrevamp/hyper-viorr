@@ -254,10 +254,25 @@ function MusterRollPage() {
       }
       const all = [...(prim ?? []), ...(extra ?? [])];
       const dedup = Array.from(new Map(all.map((c) => [c.id, c])).values());
-      // Candidates whose home unit IS this unit are permanently mapped and can
-      // never be removed from the muster. Everyone else reaches this roll via a
-      // candidate_units link / unit scope — i.e. a reliever.
-      const homeMapped = new Set((prim ?? []).map((c) => c.id));
+      // A guard can be deployed at several units at once — there is no "home unit".
+      // Anyone assigned to this unit (own unit_id, a regular candidate_units link, or
+      // a unit scope) is a regular deployed line. Only people HR added ad-hoc from the
+      // muster search carry is_reliever = true on the link: those are (R) lines and are
+      // tracked as overtime only.
+      const relieverLinks = new Set(
+        ((links ?? []) as Array<{ candidate_id: string; is_reliever?: boolean | null }>)
+          .filter((l) => l.is_reliever === true)
+          .map((l) => l.candidate_id),
+      );
+      const assignedIds = new Set<string>([
+        ...(prim ?? []).map((c) => c.id),
+        ...((links ?? []) as Array<{ candidate_id: string; is_reliever?: boolean | null }>)
+          .filter((l) => l.is_reliever !== true)
+          .map((l) => l.candidate_id),
+        ...scopeIds,
+      ]);
+      const homeMapped = new Set(Array.from(assignedIds).filter((id) => !relieverLinks.has(id)));
+
 
 
       const desigIds = Array.from(
