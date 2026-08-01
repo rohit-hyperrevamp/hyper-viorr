@@ -995,7 +995,43 @@ function MusterRollPage() {
       toast.error("All selected dates are in the future — nothing marked");
       return;
     }
-    const payload = filtered.map((r) => ({
+
+    // ---- Payroll-days cap: max present days = contract's Payroll Days base.
+    // Present marks beyond the cap are auto-converted to overtime days.
+    const dayValueOf = (code: string) => {
+      const c = codeMap.get(code);
+      if (!c || !c.counts_as_present) return 0;
+      const v = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
+      return v;
+    };
+    const cap = designation_id ? maxPDaysByDesignation.get(designation_id) ?? null : null;
+    let capped = filtered;
+    let overflowDays = 0;
+    if (cap != null) {
+      const rk = rowKey(candidate_id, designation_id);
+      const touched = new Set(filtered.map((r) => r.entry_date));
+      let used = 0;
+      for (const cell of periodCells) {
+        if (touched.has(cell.date)) continue;
+        const e = entryMap.get(`${rk}|${cell.date}`);
+        if (!e) continue;
+        used += dayValueOf(e.code);
+      }
+      capped = [...filtered]
+        .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
+        .map((r) => {
+          const dv = dayValueOf(r.code);
+          if (dv <= 0) return r;
+          if (used + dv <= cap) {
+            used += dv;
+            return r;
+          }
+          overflowDays += dv;
+          return { ...r, code: "", ot_hours: Math.max(Number(r.ot_hours) || 0, dv) };
+        });
+    }
+
+    const payload = capped.map((r) => ({
       unit_id: unitId,
       candidate_id,
       designation_id,
@@ -1003,6 +1039,7 @@ function MusterRollPage() {
       code: r.code,
       ot_hours: r.ot_hours,
     }));
+
     const { error } = await supabase
       .from("attendance_entries")
       .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" });
