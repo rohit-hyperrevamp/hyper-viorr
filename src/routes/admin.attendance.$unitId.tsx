@@ -611,6 +611,17 @@ function MusterRollPage() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to reopen"),
   });
 
+  // Approval IS the handoff: once the sheet is approved, payroll & invoice are
+  // notified automatically — no separate "send" click.
+  const autoHandoffRef = useRef<string | null>(null);
+  const handoffKey = `${unitId}:${periodStart}:${periodEnd}`;
+  useEffect(() => {
+    if (status !== "approved" || !canApprove || sentToPayroll) return;
+    if (sendToPayroll.isPending || autoHandoffRef.current === handoffKey) return;
+    autoHandoffRef.current = handoffKey;
+    sendToPayroll.mutate();
+  }, [status, canApprove, sentToPayroll, handoffKey, sendToPayroll]);
+
   const { data: codes = [] } = useQuery({
     queryKey: ["attendance-codes-enabled"],
     queryFn: async () => {
@@ -1901,14 +1912,9 @@ function MusterRollPage() {
           )}
           {status === "approved" && canApprove && !sentToPayroll && (
             <>
-              <Button
-                size="sm"
-                className="bg-primary hover:bg-primary/90"
-                onClick={() => sendToPayroll.mutate()}
-                disabled={sendToPayroll.isPending}
-              >
-                <Send className="mr-1.5 h-4 w-4" /> Send for Payroll &amp; Invoice
-              </Button>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Approved — payroll &amp; invoice updated
+              </span>
               <Button size="sm" variant="outline" onClick={() => transitionSheet.mutate({ status: "draft" })} disabled={transitionSheet.isPending}>
                 <RotateCcw className="mr-1.5 h-4 w-4" /> Reopen
               </Button>
@@ -1917,7 +1923,7 @@ function MusterRollPage() {
           {status === "approved" && canApprove && sentToPayroll && (
             <>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Sent for Payroll &amp; Invoice
+                <CheckCircle2 className="h-3.5 w-3.5" /> Approved — payroll &amp; invoice updated
               </span>
               <Button
                 size="sm"
