@@ -1166,25 +1166,43 @@ function SalaryBreakdownPreview({
   employeeCode,
   designationName,
   tDays,
+  otHours,
   baseDays,
   components,
   benefits,
   deductions,
+  employerContributions,
+  earnedComponents,
+  earnedGross: earnedGrossProp,
+  earnedEmployerContributions,
   earnedDeductions,
   totalEarnedDeductions,
   earnedNetPayable,
+  projectedBillable,
+  actualBillable,
+  gstRate,
+  intraState,
 }: {
   employeeName: string;
   employeeCode: string;
   designationName: string;
   tDays: number;
+  otHours: number;
   baseDays: number;
   components: { name: string; amount: number }[];
   benefits: { name: string; amount: number }[];
   deductions: { name: string; amount: number }[];
+  employerContributions: { name: string; amount: number }[];
+  earnedComponents: { name: string; amount: number }[];
+  earnedGross: number;
+  earnedEmployerContributions: { name: string; amount: number }[];
   earnedDeductions: { name: string; amount: number }[];
   totalEarnedDeductions: number;
   earnedNetPayable: number;
+  projectedBillable: number;
+  actualBillable: number;
+  gstRate: number;
+  intraState: boolean;
 }) {
   const componentsTotal = components.reduce((s, c) => s + c.amount, 0);
   const benefitsTotal = benefits.reduce((s, b) => s + b.amount, 0);
@@ -1194,13 +1212,34 @@ function SalaryBreakdownPreview({
 
   const ratio = baseDays > 0 ? tDays / baseDays : 0;
   const earnedFor = (amount: number) => Math.round(amount * ratio * 100) / 100;
-  const earnedGross = earnedFor(gross);
+  const earnedGross = earnedGrossProp;
+  const earnedComponentFor = (name: string, amount: number) =>
+    earnedComponents.find((c) => c.name === name)?.amount ?? earnedFor(amount);
   const earnedDeductionFor = (name: string, amount: number) =>
     earnedDeductions.find((d) => d.name === name)?.amount ?? earnedFor(amount);
+  const earnedEmployerFor = (name: string, amount: number) =>
+    earnedEmployerContributions.find((d) => d.name === name)?.amount ?? earnedFor(amount);
 
   const visibleComponents = components.filter((c) => c.amount > 0);
   const visibleBenefits = benefits.filter((b) => b.amount > 0);
   const visibleDeductions = deductions.filter((b) => b.amount > 0 || isEsiItem(b));
+  const visibleEmployer = employerContributions.filter(
+    (b) => b.amount > 0 || earnedEmployerFor(b.name, b.amount) > 0,
+  );
+
+  // Extra earned lines not present in contract config (Overtime, Paid Holiday,
+  // ad-hoc additions) so the rows sum exactly to Earned Gross.
+  const contractNames = new Set([...components, ...benefits].map((c) => c.name.toLowerCase()));
+  const extraEarnedLines = earnedComponents.filter(
+    (c) => c.amount > 0 && !contractNames.has(c.name.toLowerCase()),
+  );
+
+  const employerTotal = employerContributions.reduce((s, b) => s + b.amount, 0);
+  const earnedEmployerTotal =
+    Math.round(earnedEmployerContributions.reduce((s, b) => s + b.amount, 0) * 100) / 100;
+  const projGst = Math.round(projectedBillable * (gstRate / 100) * 100) / 100;
+  const actGst = Math.round(actualBillable * (gstRate / 100) * 100) / 100;
+
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
