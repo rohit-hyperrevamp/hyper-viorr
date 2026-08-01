@@ -29,6 +29,7 @@ import { downloadCsv, writeXlsx } from "@/lib/csv-export";
 import { gstinStateCode } from "@/lib/gstin";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
+import { resolvePayrollDayCount } from "@/lib/payroll-days";
 import { useOrgSettings } from "@/lib/org-settings";
 
 const searchSchema = z.object({
@@ -632,43 +633,62 @@ function PayrollUnitPage() {
   const COMPANY_STATE = (orgSettings?.company_state ?? "Maharashtra").trim();
   const COMPANY_STATE_SHORT = COMPANY_STATE.slice(0, 4);
 
-  // Per-mode billable amount for one invoice row. `man_days` (default) uses
-  // the payroll engine's employerCost so invoice == payroll register. Other
-  // modes are re-derived from the contract's projected monthly and attendance.
-  const UNIT_DUTY_HOURS = 8;
-  const billableFor = (r: (typeof rows)[number]): number => {
-    if (!r.wages || !r.resource) return 0;
-    if (billingMode === "man_days") return r.wages.employerCost;
-    const monthly =
-      r.resource.components.reduce((s, c) => s + (Number(c.amount) || 0), 0) +
-      r.resource.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0);
-    const baseDays = r.wages.baseDays || 30;
-    const paidDays = r.totals.pDays + r.totals.phDays + r.totals.otherPaidDays;
-    if (billingMode === "lumpsum") return Math.round(monthly * 100) / 100;
-    if (billingMode === "man_months") {
-      const ratio = baseDays > 0 ? Math.min(1, paidDays / baseDays) : 0;
-      return Math.round(monthly * ratio * 100) / 100;
-    }
-    // man_hours
-    const perHour = monthly / (baseDays * UNIT_DUTY_HOURS);
-    const workedHours = paidDays * UNIT_DUTY_HOURS + r.totals.otHours;
-    return Math.round(perHour * workedHours * 100) / 100;
+  // ---------------------------------------------------------------------
+  // SIMPLIFIED INVOICE MODEL
+  // Contracted invoice = full contract billable value for the designation
+  //   (all salary components + employer contributions).
+  // Payroll days       = the contract's payroll-day base for this period
+  //   (e.g. 26 fixed, actual days, actual minus weekly off) — never hard-coded.
+  // Actual invoice     = contracted / payroll days × days actually billed
+  //   (T days = present + paid holidays + other paid + OT days).
+  // 26 days billed on a 26-day base → exactly the contract amount.
+  // 28 days billed on a 26-day base → contract / 26 × 28.
+  // ---------------------------------------------------------------------
+
+  const invoiceMathFor = (r: (typeof rows)[number]) => {
+    const contracted = r.resource
+      ? Math.round(
+          (r.resource.components.reduce((s, c) => s + (Number(c.amount) || 0), 0) +
+            r.resource.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0)) * 100,
+        ) / 100
+      : 0;
+    const payrollDays =
+      resolvePayrollDayCount(r.resource?.payrollDayBase ?? null, periodDates) ??
+      (r.wages?.baseDays || periodDates.length || 30);
+    const billedDays = Math.round((r.totals.tDays ?? 0) * 100) / 100;
+    const perDay = payrollDays > 0 ? contracted / payrollDays : 0;
+    const actual =
+      !r.wages || !r.resource
+        ? 0
+        : billingMode === "lumpsum"
+          ? contracted
+          : Math.round(perDay * billedDays * 100) / 100;
+    return {
+      contracted,
+      payrollDays,
+      billedDays,
+      perDay: Math.round(perDay * 100) / 100,
+      actual,
+      variance: Math.round((actual - contracted) * 100) / 100,
+    };
   };
+
+  const billableFor = (r: (typeof rows)[number]): number => invoiceMathFor(r).actual;
+
 
   const totals = useMemo(() => {
     return rows.reduce(
       (acc, r) => {
         if (!r.wages) return acc;
-        const projTotal =
-          (r.resource?.components.reduce((s, c) => s + (Number(c.amount) || 0), 0) ?? 0) +
-          (r.resource?.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0) ?? 0);
-        acc.projectedTotal += projTotal;
-        acc.actualTotal += billableFor(r);
+        const m = invoiceMathFor(r);
+        acc.projectedTotal += m.contracted;
+        acc.actualTotal += m.actual;
         acc.tDays += r.totals.tDays;
+        acc.payrollDays += m.payrollDays;
         acc.otHours += r.totals.otHours;
         return acc;
       },
-      { projectedTotal: 0, actualTotal: 0, tDays: 0, otHours: 0 },
+      { projectedTotal: 0, actualTotal: 0, tDays: 0, payrollDays: 0, otHours: 0 },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, billingMode]);
@@ -685,18 +705,12 @@ function PayrollUnitPage() {
 
   const exportCsv = () => {
     const headers = [
-      "Emp ID", "Name", "Designation", "P Days", "PH Days", "OT Hrs", "OT Days", "T Days",
-      "Projected Total (Billable)", "Actual Total (Billable)", "Shortfall",
+      "Emp ID", "Name", "Designation", "P Days", "PH Days", "OT Hrs", "OT Days", "Billed Days",
+      "Payroll Days", "Per Day Rate", "Contracted Invoice", "Actual Invoice", "Variance",
     ];
     const columns = headers.map((h) => ({ key: h, header: h }));
     const dataRows = rows.map((r) => {
-      const w = r.wages;
-      const projTotal = r.resource
-        ? r.resource.components.reduce((s, c) => s + (Number(c.amount) || 0), 0) +
-          r.resource.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0)
-        : 0;
-      const actualTotal = billableFor(r);
-      const shortfall = w ? Math.round((projTotal - actualTotal) * 100) / 100 : "";
+      const m = invoiceMathFor(r);
       const cells: Record<string, unknown> = {
         "Emp ID": r.employeeCode,
         "Name": r.name,
@@ -705,10 +719,12 @@ function PayrollUnitPage() {
         "PH Days": r.totals.phDays,
         "OT Hrs": r.totals.otHours,
         "OT Days": r.totals.otDays,
-        "T Days": r.totals.tDays,
-        "Projected Total (Billable)": projTotal,
-        "Actual Total (Billable)": actualTotal,
-        "Shortfall": shortfall,
+        "Billed Days": m.billedDays,
+        "Payroll Days": m.payrollDays,
+        "Per Day Rate": m.perDay,
+        "Contracted Invoice": m.contracted,
+        "Actual Invoice": r.wages ? m.actual : "",
+        "Variance": r.wages ? m.variance : "",
       };
       return cells;
     });
@@ -786,26 +802,18 @@ function PayrollUnitPage() {
     const billingRows = rows
       .filter((r) => r.wages && r.resource)
       .map((r) => {
-        const monthly =
-          (r.resource!.components.reduce((s, c) => s + (Number(c.amount) || 0), 0)) +
-          (r.resource!.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0));
-        const baseDays = r.wages!.baseDays || 30;
-        const amt = billableFor(r);
-        // Qty & rate presented per billing mode for auditability in Tally.
+        const m = invoiceMathFor(r);
+        const monthly = m.contracted;
+        const amt = m.actual;
+        // Simplified model: qty = days billed, rate = contract / payroll days.
         let qty: number;
         let rate: number;
-        if (billingMode === "man_hours") {
-          qty = Math.round((r.totals.pDays + r.totals.phDays + r.totals.otherPaidDays) * UNIT_DUTY_HOURS + r.totals.otHours);
-          rate = monthly / (baseDays * UNIT_DUTY_HOURS);
-        } else if (billingMode === "man_months") {
-          qty = 1;
-          rate = amt;
-        } else if (billingMode === "lumpsum") {
+        if (billingMode === "lumpsum") {
           qty = 1;
           rate = amt;
         } else {
-          qty = r.totals.tDays;
-          rate = monthly / baseDays;
+          qty = m.billedDays;
+          rate = m.payrollDays > 0 ? monthly / m.payrollDays : 0;
         }
         const cgstAmt = Math.round(amt * (cgstRate / 100) * 100) / 100;
         const sgstAmt = Math.round(amt * (sgstRate / 100) * 100) / 100;
@@ -961,7 +969,7 @@ function PayrollUnitPage() {
             .map((r) => ({
               id: r.id,
               description: `${r.name} · ${r.designation}`,
-              qtyLabel: `${Math.round(r.totals.tDays * 100) / 100} T days`,
+              qtyLabel: `${invoiceMathFor(r).billedDays} of ${invoiceMathFor(r).payrollDays} days`,
               amount: billableFor(r),
             })),
           subtotal: totals.actualTotal,
@@ -1012,10 +1020,10 @@ function PayrollUnitPage() {
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="T Days" value={String(Math.round(totals.tDays * 100) / 100)} />
-          <Stat label="OT hours" value={String(Math.round(totals.otHours * 100) / 100)} />
-          <Stat label="Projected total" value={fmtINR(totals.projectedTotal)} />
-          <Stat label="Actual billable total" value={fmtINR(totals.actualTotal)} tone="emerald" />
+          <Stat label="Days billed" value={String(Math.round(totals.tDays * 100) / 100)} />
+          <Stat label="Payroll days (sum)" value={String(Math.round(totals.payrollDays * 100) / 100)} />
+          <Stat label="Contracted invoice" value={fmtINR(totals.projectedTotal)} />
+          <Stat label="Actual invoice" value={fmtINR(totals.actualTotal)} tone="emerald" />
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -1043,39 +1051,24 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium">Emp ID</th>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
-                <th className="px-4 py-3 text-right font-medium">T Days</th>
-                <th className="px-4 py-3 text-right font-medium">OT Hrs</th>
-                <th className="px-4 py-3 text-right font-medium" title={`Unit of billing based on billing mode "${billingMode}"`}>Qty</th>
-                <th className="px-4 py-3 text-right font-medium" title="Per-unit rate = actual billable / Qty">Rate</th>
-                <th className="px-4 py-3 text-right font-medium" title="Full billable total — what would be invoiced for full attendance">Projected total</th>
-                <th className="px-4 py-3 text-right font-medium" title="Rate × Qty — actual billable total based on attendance">Actual total</th>
-                <th className="px-4 py-3 text-right font-medium" title="Projected − Actual (not billable due to absence)">Shortfall</th>
+                <th className="px-4 py-3 text-right font-medium" title="Days actually billed (present + paid holidays + other paid + OT days)">Days billed</th>
+                <th className="px-4 py-3 text-right font-medium" title="Payroll days for this contract in this period">Payroll days</th>
+                <th className="px-4 py-3 text-right font-medium" title="Contracted invoice ÷ payroll days">Per day</th>
+                <th className="px-4 py-3 text-right font-medium" title="Full contract value for this designation">Contracted invoice</th>
+                <th className="px-4 py-3 text-right font-medium" title="Contracted ÷ payroll days × days billed">Actual invoice</th>
+                <th className="px-4 py-3 text-right font-medium" title="Actual − Contracted">Variance</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
               {isLoading ? (
-                <tr><td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">Computing invoice…</td></tr>
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">Computing invoice…</td></tr>
               ) : error ? (
-                <tr><td colSpan={10} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
               ) : rows.map((r) => {
                 const isHighlighted = highlightCandidate === r.id;
-                const projTotal = r.resource
-                  ? r.resource.components.reduce((s, c) => s + (Number(c.amount) || 0), 0) +
-                    r.resource.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0)
-                  : 0;
-                const actualTotal = billableFor(r);
-                const shortfall = r.wages ? Math.round((projTotal - actualTotal) * 100) / 100 : 0;
-                const baseDays = r.wages?.baseDays || 30;
-                const paidDays = r.totals.pDays + r.totals.phDays + r.totals.otherPaidDays;
-                let qty = 0;
-                let qtyLabel = "";
-                if (billingMode === "man_days") { qty = r.totals.tDays; qtyLabel = "days"; }
-                else if (billingMode === "man_hours") { qty = paidDays * UNIT_DUTY_HOURS + r.totals.otHours; qtyLabel = "hrs"; }
-                else if (billingMode === "man_months") { qty = baseDays > 0 ? Math.min(1, paidDays / baseDays) : 0; qtyLabel = "mo"; }
-                else { qty = 1; qtyLabel = "lump"; }
-                const rate = qty > 0 && r.wages ? actualTotal / qty : 0;
+                const m = invoiceMathFor(r);
                 return (
                 <tr
                   key={r.rowKey}
@@ -1085,13 +1078,12 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 font-mono text-xs">{r.employeeCode || "—"}</td>
                   <td className="px-4 py-3 font-medium">{r.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">{r.designation}</td>
-                  <td className="px-4 py-3 text-right">{r.totals.tDays}</td>
-                  <td className="px-4 py-3 text-right">{r.totals.otHours}</td>
-                  <td className="px-4 py-3 text-right text-xs text-muted-foreground">{r.wages ? `${Math.round(qty * 100) / 100} ${qtyLabel}` : "—"}</td>
-                  <td className="px-4 py-3 text-right text-xs">{r.wages && qty > 0 ? fmtINR(Math.round(rate * 100) / 100) : "—"}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">{r.wages ? fmtINR(projTotal) : <span className="text-xs text-amber-600">no contract</span>}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-emerald-700">{r.wages ? fmtINR(actualTotal) : "—"}</td>
-                  <td className={`px-4 py-3 text-right ${shortfall > 0 ? "text-rose-600" : "text-muted-foreground"}`}>{r.wages ? (shortfall > 0 ? `− ${fmtINR(shortfall)}` : fmtINR(0)) : "—"}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums">{m.billedDays}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{m.payrollDays}</td>
+                  <td className="px-4 py-3 text-right text-xs tabular-nums">{r.wages ? fmtINR(m.perDay) : "—"}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{r.resource ? fmtINR(m.contracted) : <span className="text-xs text-amber-600">no contract</span>}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{r.wages ? fmtINR(m.actual) : "—"}</td>
+                  <td className={`px-4 py-3 text-right tabular-nums ${m.variance > 0 ? "text-emerald-700" : m.variance < 0 ? "text-rose-600" : "text-muted-foreground"}`}>{r.wages ? (m.variance === 0 ? fmtINR(0) : `${m.variance > 0 ? "+" : "−"} ${fmtINR(Math.abs(m.variance))}`) : "—"}</td>
                 </tr>
                 );
               })}
@@ -1099,10 +1091,13 @@ function PayrollUnitPage() {
             {rows.length > 0 && (
               <tfoot className="border-t border-border/60 bg-secondary/30 text-sm font-semibold">
                 <tr>
-                  <td className="px-4 py-3" colSpan={7}>Totals</td>
+                  <td className="px-4 py-3" colSpan={6}>Totals</td>
                   <td className="px-4 py-3 text-right text-muted-foreground">{fmtINR(totals.projectedTotal)}</td>
                   <td className="px-4 py-3 text-right text-emerald-700">{fmtINR(totals.actualTotal)}</td>
-                  <td className="px-4 py-3 text-right text-rose-600">− {fmtINR(Math.max(0, totals.projectedTotal - totals.actualTotal))}</td>
+                  <td className={`px-4 py-3 text-right ${totals.actualTotal - totals.projectedTotal >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                    {totals.actualTotal - totals.projectedTotal >= 0 ? "+ " : "− "}
+                    {fmtINR(Math.abs(Math.round((totals.actualTotal - totals.projectedTotal) * 100) / 100))}
+                  </td>
                 </tr>
               </tfoot>
             )}
