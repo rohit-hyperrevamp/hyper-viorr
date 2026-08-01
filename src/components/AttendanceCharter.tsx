@@ -294,6 +294,14 @@ export function AttendanceCharter({
         const projectedHours = headsForProjection * elapsedDays * unitShift;
         const actualHours = people.reduce((s, p) => s + p.actualHours, 0);
         const otHours = people.reduce((s, p) => s + p.otDays * p.shiftHours, 0);
+        const status: PeriodStatus = statusQ.data?.get(u.id) ?? {
+          unitId: u.id,
+          attendance: "none",
+          handedOff: false,
+          payroll: "open",
+          invoice: "open",
+          runId: null,
+        };
         return {
           unit: u,
           contractCode: cov?.contractCode ?? u.contract_codes[0] ?? "—",
