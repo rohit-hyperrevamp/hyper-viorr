@@ -30,6 +30,8 @@ import {
 import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { attendanceCodeForShift, fetchShiftHoursMap, overtimeDaysForShift, shiftHoursFor } from "@/lib/shift-hours";
+import { resolvePayrollDayCount, type PayrollDayBaseLike } from "@/lib/payroll-days";
+
 import { cn } from "@/lib/utils";
 import { useCurrentPermissions } from "@/lib/rbac";
 
@@ -321,22 +323,50 @@ function MusterRollPage() {
         win = (winRow as Win | null) ?? null;
       }
 
-      let resources: Array<{ designationId: string; designationName: string; quantity: number }> = [];
+      let resources: Array<{
+        designationId: string;
+        designationName: string;
+        quantity: number;
+        payrollDayBase: PayrollDayBaseLike | null;
+      }> = [];
       if (contractId) {
         const { data: r } = await supabase
           .from("contract_resources")
-          .select("designation_id, quantity, sort_order")
+          .select("designation_id, quantity, sort_order, payroll_day_base_id")
           .eq("contract_id", contractId)
           .order("sort_order", { ascending: true });
         const rows = (r ?? []).filter((x) => x.designation_id) as Array<{
           designation_id: string;
           quantity: number | null;
+          payroll_day_base_id: string | null;
         }>;
         const qtyById = new Map<string, number>();
+        const pdbIdByDesig = new Map<string, string>();
         const orderedIds: string[] = [];
         for (const row of rows) {
           if (!qtyById.has(row.designation_id)) orderedIds.push(row.designation_id);
           qtyById.set(row.designation_id, (qtyById.get(row.designation_id) ?? 0) + Math.max(1, Number(row.quantity) || 1));
+          if (row.payroll_day_base_id && !pdbIdByDesig.has(row.designation_id)) {
+            pdbIdByDesig.set(row.designation_id, String(row.payroll_day_base_id));
+          }
+        }
+        const pdbById = new Map<string, PayrollDayBaseLike>();
+        const pdbIds = Array.from(new Set(pdbIdByDesig.values()));
+        if (pdbIds.length) {
+          const { data: bases } = await supabase
+            .from("payroll_day_bases")
+            .select("id, method, fixed_days, weekly_off_day, included_weekdays")
+            .in("id", pdbIds);
+          for (const b of (bases ?? []) as Array<Record<string, unknown>>) {
+            pdbById.set(String(b.id), {
+              method: String(b.method) as PayrollDayBaseLike["method"],
+              fixedDays: b.fixed_days == null ? null : Number(b.fixed_days),
+              weeklyOffDay: b.weekly_off_day == null ? null : Number(b.weekly_off_day),
+              includedWeekdays: Array.isArray(b.included_weekdays)
+                ? (b.included_weekdays as unknown[]).map((n) => Number(n)).filter((n) => n >= 0 && n <= 6)
+                : null,
+            });
+          }
         }
         if (orderedIds.length) {
           const { data: ds } = await supabase
@@ -348,10 +378,12 @@ function MusterRollPage() {
             designationId: id,
             designationName: nameById.get(id) ?? "—",
             quantity: qtyById.get(id) ?? 1,
+            payrollDayBase: pdbById.get(pdbIdByDesig.get(id) ?? "") ?? null,
           }));
         }
       }
       return { window: win, startDate, contractId, resources };
+
     },
     enabled: Boolean(unitId),
   });
@@ -366,6 +398,20 @@ function MusterRollPage() {
   const dayCount = periodCells.length;
   const periodStart = periodCells[0]?.date ?? ymd(year, monthIdx, 1);
   const periodEnd = periodCells[periodCells.length - 1]?.date ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
+
+  // Max "P" days allowed per designation for this period, driven by the
+  // contract resource's Payroll Days entry (26 fixed, actual days, actual
+  // minus weekly off, custom weekdays...). Anything beyond goes to OT.
+  const maxPDaysByDesignation = useMemo(() => {
+    const dates = periodCells.map((c) => c.date);
+    const m = new Map<string, number>();
+    for (const d of contractDesignations) {
+      const cap = resolvePayrollDayCount(d.payrollDayBase, dates);
+      if (cap != null && cap > 0) m.set(d.designationId, cap);
+    }
+    return m;
+  }, [contractDesignations, periodCells]);
+
 
   const queryClient = useQueryClient();
   const { can } = useCurrentPermissions();
@@ -949,7 +995,43 @@ function MusterRollPage() {
       toast.error("All selected dates are in the future — nothing marked");
       return;
     }
-    const payload = filtered.map((r) => ({
+
+    // ---- Payroll-days cap: max present days = contract's Payroll Days base.
+    // Present marks beyond the cap are auto-converted to overtime days.
+    const dayValueOf = (code: string) => {
+      const c = codeMap.get(code);
+      if (!c || !c.counts_as_present) return 0;
+      const v = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
+      return v;
+    };
+    const cap = designation_id ? maxPDaysByDesignation.get(designation_id) ?? null : null;
+    let capped = filtered;
+    let overflowDays = 0;
+    if (cap != null) {
+      const rk = rowKey(candidate_id, designation_id);
+      const touched = new Set(filtered.map((r) => r.entry_date));
+      let used = 0;
+      for (const cell of periodCells) {
+        if (touched.has(cell.date)) continue;
+        const e = entryMap.get(`${rk}|${cell.date}`);
+        if (!e) continue;
+        used += dayValueOf(e.code);
+      }
+      capped = [...filtered]
+        .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
+        .map((r) => {
+          const dv = dayValueOf(r.code);
+          if (dv <= 0) return r;
+          if (used + dv <= cap) {
+            used += dv;
+            return r;
+          }
+          overflowDays += dv;
+          return { ...r, code: "", ot_hours: Math.max(Number(r.ot_hours) || 0, dv) };
+        });
+    }
+
+    const payload = capped.map((r) => ({
       unit_id: unitId,
       candidate_id,
       designation_id,
@@ -957,11 +1039,18 @@ function MusterRollPage() {
       code: r.code,
       ot_hours: r.ot_hours,
     }));
+
     const { error } = await supabase
       .from("attendance_entries")
       .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" });
     if (error) throw error;
+    if (overflowDays > 0) {
+      toast.info(
+        `Payroll days limit (${cap}) reached — ${overflowDays} day${overflowDays === 1 ? "" : "s"} moved to overtime`,
+      );
+    }
   };
+
 
   const confirm = useConfirm();
   const [clearingAll, setClearingAll] = useState(false);
