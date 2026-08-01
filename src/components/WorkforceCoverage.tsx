@@ -280,7 +280,8 @@ export function WorkforceCoverageCard() {
       gap: actual - committed,
       shortUnits,
       coverage: committed > 0 ? Math.round((actual / committed) * 100) : 0,
-    };
+      tone: shortfallTone(committed, actual),
+
   }, [rows]);
 
   return (
