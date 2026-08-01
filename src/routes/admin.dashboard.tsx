@@ -176,11 +176,17 @@ function DashboardPage() {
       // we compute T-Days from attendance, then scale the contract resource by
       // earnedGross/contractGross. Invoice billable = earnedGross + employer
       // contributions (what the customer is billed). Payroll cost = the same
-      // plus benefits (extra employee outflow the agency absorbs).
+      // plus the scaled benefits the agency pays on top.
+      //
+      // Internal contracts (own offices / non-billable staff) are a pure cost
+      // centre: they contribute payroll cost but never contract value or
+      // invoice revenue, otherwise the P&L overstates both.
       const activeContracts = (contractsForPnl ?? []) as Array<{
         id: string;
         unit_id: string | null;
+        is_internal: boolean | null;
       }>;
+
       const contractIds = activeContracts.map((c) => c.id);
       const unitIdsInScope = Array.from(
         new Set(activeContracts.map((c) => c.unit_id).filter((v): v is string => !!v)),
