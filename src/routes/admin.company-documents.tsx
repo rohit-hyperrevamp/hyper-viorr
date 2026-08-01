@@ -255,6 +255,23 @@ function CompanyDocumentsPage() {
       .filter((t) => (view === "archived" ? t.is_archived : !t.is_archived));
   }, [items, docType, view]);
 
+  // Seed built-in default templates (Posting Order, Employee ID) automatically so
+  // users never have to click a "create default" button.
+  const seeded = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (isLoading) return;
+    for (const t of COMPANY_DOCUMENT_TYPES) {
+      const body = DEFAULT_TEMPLATE_BODY[t];
+      if (!body || seeded.current.has(t)) continue;
+      if (items.some((x) => x.doc_type === t)) continue;
+      seeded.current.add(t);
+      publishNewMut.mutate({ docType: t, title: DOC_TYPE_LABELS[t], body });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, items]);
+
+
+
   
 
   return (
