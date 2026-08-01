@@ -2605,8 +2605,9 @@ function MusterRollPage() {
                         const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
                         const entry = entryMap.get(`${mr.key}|${date}`);
                         // Implicit "A" for on/after DOJ, on/before today, when no entry exists.
-                        const displayCode = mr.vacant
-                          ? ""
+                        // Reliever (R) lines are overtime-only, so they never show an implicit A.
+                        const displayCode = mr.vacant || mr.otOnly
+                          ? (mr.otOnly && entry?.code ? entry.code : "")
                           : entry?.code
                           ? entry.code
                           : (!isFuture && !beforeDoj ? "A" : "");
@@ -2614,7 +2615,7 @@ function MusterRollPage() {
                         const isImplicitAbsent = !entry?.code && displayCode === "A";
                         const isSelected = dragRowKey === mr.key && selectedDates.has(date);
                         const isUncertain = !entry?.code && uncertainCells.has(`${mr.key}|${date}`);
-                        const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant);
+                        const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant) || Boolean(mr.otOnly);
                         return (
                           <td
                             key={`a-${cell.date}`}
@@ -2623,6 +2624,7 @@ function MusterRollPage() {
                               "p-0 print:bg-transparent select-none",
                               isFuture && "bg-slate-100 cursor-not-allowed",
                               beforeDoj && "bg-slate-50 cursor-not-allowed",
+                              mr.otOnly && "bg-violet-50/60 cursor-not-allowed",
                               !isBlocked && "cursor-pointer",
                               isSelected && "ring-2 ring-primary ring-inset",
                               isUncertain && "ring-2 ring-rose-500 ring-inset bg-rose-50",
