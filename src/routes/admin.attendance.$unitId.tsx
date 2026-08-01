@@ -952,7 +952,7 @@ function MusterRollPage() {
         entityId: cand.id,
         entityLabel: `${cand.full_name} → ${mapSlot.designationName} @ ${unit?.name ?? unitId}`,
       });
-      toast.success(`${cand.full_name} mapped to ${mapSlot.designationName}`);
+      toast.success(`${cand.full_name} added as reliever (R) on ${mapSlot.designationName} — overtime only`);
       setMapSlot(null);
       setMapQuery("");
     } catch (e) {
