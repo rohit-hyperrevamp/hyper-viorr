@@ -18,7 +18,13 @@ export type ResourceRate = {
   designationName: string;
   quantity: number;
   shiftHours: number;
+  /** Monthly gross = sum of the wage components. Never a stored scalar. */
   grossRate: number;
+  /** Contract-level statutory / recurring employee deductions per month. */
+  deductionRate: number;
+  /** Take-home payroll = gross − deductions. */
+  netRate: number;
+  /** What the client is billed = gross + employer cost lines. */
   billRate: number;
 };
 
@@ -29,6 +35,8 @@ export type UnitFinance = {
   committed: number;
   monthlyContracted: number;
   monthlyPayroll: number;
+  monthlyDeductions: number;
+  monthlyNetPayroll: number;
   rates: ResourceRate[];
   byDesignation: Map<string, ResourceRate>;
   /** Weighted average rate, used when an employee's designation is not on the contract. */
@@ -44,6 +52,7 @@ function sumAmounts(list: unknown): number {
     return s + (Number.isFinite(amount) ? amount : 0);
   }, 0);
 }
+
 
 export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMap> {
   const ids = Array.from(new Set(unitIds.filter(Boolean)));
