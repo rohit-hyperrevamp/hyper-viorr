@@ -1113,14 +1113,18 @@ export const DEFAULT_ID_CARD_SPEC: IdCardSpec = {
 export function parseIdCardSpec(body: string | null | undefined): IdCardSpec | null {
   if (!body || !/^\s*\{/.test(body)) return null;
   try {
-    const raw = JSON.parse(body) as Partial<IdCardSpec>;
+    const raw = JSON.parse(body) as Partial<IdCardSpec> & {
+      backLogoHeight?: number;
+      back?: Partial<IdCardSpec["footer"]>;
+    };
     if (raw?.kind !== "id_card") return null;
     const d = DEFAULT_ID_CARD_SPEC;
+    // Legacy specs stored the address block under `back`; the card is front-only now.
+    const legacy = raw.footer ?? raw.back;
     return {
       kind: "id_card",
       logoUrl: raw.logoUrl || d.logoUrl,
       frontLogoHeight: Number(raw.frontLogoHeight) || d.frontLogoHeight,
-      backLogoHeight: Number(raw.backLogoHeight) || d.backLogoHeight,
       front: {
         companyName: raw.front?.companyName ?? d.front.companyName,
         showPhoto: raw.front?.showPhoto ?? true,
@@ -1133,12 +1137,11 @@ export function parseIdCardSpec(body: string | null | undefined): IdCardSpec | n
         authorityLabel: raw.front?.authorityLabel ?? d.front.authorityLabel,
         showAuthoritySignature: raw.front?.showAuthoritySignature ?? true,
       },
-      back: {
-        companyName: raw.back?.companyName ?? d.back.companyName,
-        addressTitle: raw.back?.addressTitle ?? d.back.addressTitle,
-        addressLines: Array.isArray(raw.back?.addressLines) ? raw.back!.addressLines.map(String) : d.back.addressLines,
-        contactLines: Array.isArray(raw.back?.contactLines) ? raw.back!.contactLines.map(String) : d.back.contactLines,
-        validityLine: raw.back?.validityLine ?? d.back.validityLine,
+      footer: {
+        addressTitle: legacy?.addressTitle ?? d.footer.addressTitle,
+        addressLines: Array.isArray(legacy?.addressLines) ? legacy!.addressLines.map(String) : d.footer.addressLines,
+        contactLines: Array.isArray(legacy?.contactLines) ? legacy!.contactLines.map(String) : d.footer.contactLines,
+        validityLine: legacy?.validityLine ?? d.footer.validityLine,
       },
     };
   } catch {
