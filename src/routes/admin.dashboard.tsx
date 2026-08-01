@@ -387,11 +387,13 @@ function DashboardPage() {
         for (const r of resMap.values()) {
           const qty = Number(r.quantity) || 0;
           committedStrength += qty;
+          // Cost base and billing base must use the SAME components, otherwise
+          // profitability is negative by construction.
+          const perHead = sumArr(r.components) + sumArr(r.employer_contributions) + sumArr(r.benefits);
           // Payroll commitment is a cost for internal units too.
-          committedPayroll +=
-            qty * (sumArr(r.components) + sumArr(r.employer_contributions) + sumArr(r.benefits));
+          committedPayroll += qty * perHead;
           if (!isInternal) {
-            contractValue += qty * (sumArr(r.components) + sumArr(r.employer_contributions));
+            contractValue += qty * perHead;
           }
         }
 
