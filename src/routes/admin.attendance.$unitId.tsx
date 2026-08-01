@@ -932,7 +932,10 @@ function MusterRollPage() {
     try {
       const { error } = await supabase
         .from("candidate_units")
-        .upsert({ candidate_id: cand.id, unit_id: unitId }, { onConflict: "candidate_id,unit_id" });
+        .upsert(
+          { candidate_id: cand.id, unit_id: unitId, is_reliever: true },
+          { onConflict: "candidate_id,unit_id" },
+        );
       if (error) throw error;
 
       // If the slot's designation differs from the employee's own, surface the
