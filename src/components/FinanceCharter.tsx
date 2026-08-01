@@ -364,16 +364,20 @@ export function FinanceCharter({
     const contractedMtd = rows.reduce((s, r) => s + r.contractedMtd, 0);
     const invoiceAmount = rows.reduce((s, r) => s + r.invoiceAmount, 0);
     const payrollAmount = rows.reduce((s, r) => s + r.payrollAmount, 0);
+    const deductionAmount = rows.reduce((s, r) => s + r.deductionAmount, 0);
     return {
       monthlyContracted,
       contractedMtd,
       invoiceAmount,
       payrollAmount,
+      deductionAmount,
+      netPayrollAmount: Math.max(0, payrollAmount - deductionAmount),
       margin: invoiceAmount - payrollAmount,
       marginPct: invoiceAmount > 0 ? Math.round(((invoiceAmount - payrollAmount) / invoiceAmount) * 100) : 0,
       realisationPct: pct(invoiceAmount, contractedMtd),
     };
   }, [rows]);
+
 
   const exportCsv = () => {
     downloadCsv(
