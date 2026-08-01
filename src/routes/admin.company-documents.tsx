@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
@@ -255,6 +255,23 @@ function CompanyDocumentsPage() {
       .filter((t) => (view === "archived" ? t.is_archived : !t.is_archived));
   }, [items, docType, view]);
 
+  // Seed built-in default templates (Posting Order, Employee ID) automatically so
+  // users never have to click a "create default" button.
+  const seeded = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (isLoading) return;
+    for (const t of COMPANY_DOCUMENT_TYPES) {
+      const body = DEFAULT_TEMPLATE_BODY[t];
+      if (!body || seeded.current.has(t)) continue;
+      if (items.some((x) => x.doc_type === t)) continue;
+      seeded.current.add(t);
+      publishNewMut.mutate({ docType: t, title: DOC_TYPE_LABELS[t], body });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, items]);
+
+
+
   
 
   return (
@@ -354,33 +371,11 @@ function CompanyDocumentsPage() {
         )}
         {!isLoading && filtered.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
-            No {view === "archived" ? "archived" : "active"} versions yet for{" "}
-            {DOC_TYPE_LABELS[docType]}.
-            {view === "active" && DEFAULT_TEMPLATE_BODY[docType] && (
-              <div className="mt-4">
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    publishNewMut.mutate(
-                      {
-                        docType,
-                        title: DOC_TYPE_LABELS[docType],
-                        body: DEFAULT_TEMPLATE_BODY[docType] as string,
-                      },
-                      {
-                        onSuccess: () => toast.success(`${DOC_TYPE_LABELS[docType]} template created`),
-                        onError: (e) =>
-                          toast.error(e instanceof Error ? e.message : "Could not create template"),
-                      },
-                    )
-                  }
-                  disabled={publishNewMut.isPending}
-                >
-                  Create default {DOC_TYPE_LABELS[docType]} template
-                </Button>
-              </div>
-            )}
+            {view === "active" && DEFAULT_TEMPLATE_BODY[docType]
+              ? `Preparing the ${DOC_TYPE_LABELS[docType]} template…`
+              : `No ${view === "archived" ? "archived" : "active"} versions yet for ${DOC_TYPE_LABELS[docType]}.`}
           </div>
+
         )}
         {filtered.map((t) => (
           <div
@@ -751,8 +746,18 @@ function PostingOrderTemplatePreview({ body }: { body: string }) {
         <DocumentPreview body={renderTemplate(config.emailBody, htmlMap)} className="max-h-[52vh]" />
       </TabsContent>
       <TabsContent value="whatsapp">
-        <pre className="max-h-[58vh] overflow-auto whitespace-pre-wrap rounded-md border border-border bg-secondary/30 p-4 font-sans text-sm">{renderTemplate(config.whatsappBody, textMap)}</pre>
+        <div className="flex justify-center">
+          <div className="w-full max-w-[320px] rounded-[22px] border border-border bg-[#ece5dd] p-3 dark:bg-secondary/40">
+            <div className="ml-auto max-h-[52vh] w-fit max-w-[92%] overflow-auto rounded-2xl rounded-tr-md bg-[#dcf8c6] px-3 py-2 shadow-sm dark:bg-emerald-900/40">
+              <pre className="whitespace-pre-wrap break-words font-sans text-[12px] leading-snug text-foreground">
+                {renderTemplate(config.whatsappBody, textMap)}
+              </pre>
+              <div className="mt-1 text-right text-[10px] text-muted-foreground">now ✓✓</div>
+            </div>
+          </div>
+        </div>
       </TabsContent>
+
     </Tabs>
   );
 }
