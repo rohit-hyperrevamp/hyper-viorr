@@ -531,9 +531,16 @@ function UnitFormDialog({
   const [selectedFoToAdd, setSelectedFoToAdd] = useState("");
   const [, setFoSyncing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const openedUnitRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      openedUnitRef.current = null;
+      return;
+    }
+    const unitKey = editing?.id ?? "new";
+    if (openedUnitRef.current === unitKey) return;
+    openedUnitRef.current = unitKey;
     if (editing) {
       const { id: _ignored, ...rest } = editing;
       void _ignored;
@@ -806,13 +813,7 @@ function UnitFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            await saveUnit();
-          }}
-          className="space-y-5"
-        >
+        <div className="space-y-5">
           {/* ORG & BRANCH (first) */}
           <Section title="Organisation & branch">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1340,11 +1341,16 @@ function UnitFormDialog({
 
           <DialogFooter className="sticky bottom-0 z-20 -mx-6 mt-2 border-t border-border/60 bg-background/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>Cancel</Button>
-            <Button type="submit" disabled={isSaving} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button
+              type="button"
+              disabled={isSaving}
+              onClick={() => void saveUnit()}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
               {isSaving ? "Saving…" : editing ? "Save changes" : "Create unit"}
             </Button>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
