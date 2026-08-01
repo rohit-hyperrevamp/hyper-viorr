@@ -40,8 +40,14 @@ type PersonMoney = {
   paidDays: number;
   otDays: number;
   invoiceAmount: number;
+  /** Earned gross wages for the days paid. */
   payrollAmount: number;
+  /** Contract-level statutory / recurring deductions earned in the period. */
+  deductionAmount: number;
+  /** Net payable = gross − deductions. */
+  netPayrollAmount: number;
 };
+
 
 function pct(actual: number, projected: number) {
   if (projected <= 0) return 0;
