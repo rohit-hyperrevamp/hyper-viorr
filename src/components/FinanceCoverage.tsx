@@ -525,6 +525,8 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
   // design — including them would make P&L negative by construction.
   const rows = useMemo(() => allRows.filter((r) => !r.internal), [allRows]);
 
+  const mp = monthProgress();
+
   const totals = useMemo(() => {
     const committedProfit = rows.reduce(
       (s, r) => s + (r.committed_invoice - r.committed_payroll),
@@ -533,16 +535,23 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
     const actualProfit = rows.reduce((s, r) => s + (r.actual_invoice - r.actual_payroll), 0);
     const committedInvoice = rows.reduce((s, r) => s + r.committed_invoice, 0);
     const actualInvoice = rows.reduce((s, r) => s + r.actual_invoice, 0);
+    const expectedProfit = committedProfit * mp.ratio;
+    const committedMargin = committedInvoice > 0 ? (committedProfit / committedInvoice) * 100 : 0;
+    const actualMargin = actualInvoice > 0 ? (actualProfit / actualInvoice) * 100 : 0;
     return {
       committedProfit,
       actualProfit,
-      gap: actualProfit - committedProfit,
+      expectedProfit,
+      gap: actualProfit - expectedProfit,
+      pace: expectedProfit > 0 ? Math.round((actualProfit / expectedProfit) * 100) : 0,
       coverage: committedProfit > 0 ? Math.round((actualProfit / committedProfit) * 100) : 0,
-      committedMargin: committedInvoice > 0 ? (committedProfit / committedInvoice) * 100 : 0,
-      actualMargin: actualInvoice > 0 ? (actualProfit / actualInvoice) * 100 : 0,
-      tone: moneyTone(committedProfit, actualProfit),
+      committedMargin,
+      actualMargin,
+      // Margin is time-independent, so it is the honest health signal for P&L.
+      tone: paceTone(committedMargin, actualMargin, 1),
     };
-  }, [rows]);
+  }, [rows, mp.ratio]);
+
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
