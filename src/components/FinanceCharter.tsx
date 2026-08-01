@@ -283,6 +283,8 @@ export function FinanceCharter({
           designationName: rate?.designationName ?? "—",
           paidDays: 0,
           otDays: 0,
+          contractedGross: rate?.grossRate ?? 0,
+          contractedBill: rate?.billRate ?? 0,
           invoiceAmount: 0,
           payrollAmount: 0,
           deductionAmount: 0,
