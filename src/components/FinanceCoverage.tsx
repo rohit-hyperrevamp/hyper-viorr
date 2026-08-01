@@ -264,7 +264,10 @@ function CharterDialog({
     const q = query.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((r) =>
-      [r.unitName(), r.customer_name, r.unit_code].some((v) => v.toLowerCase().includes(q)),
+      [r.unit_name, r.customer_name, r.unit_code].some((v) =>
+        (v ?? "").toLowerCase().includes(q),
+      ),
+
     );
   }, [query, rows]);
 
