@@ -180,7 +180,7 @@ export function IdCardEditor({
           </div>
         </Section>
 
-        <Section title="Front card">
+        <Section title="Card">
           <div className="grid gap-1.5">
             <Label className="text-xs">Company name</Label>
             <Input
