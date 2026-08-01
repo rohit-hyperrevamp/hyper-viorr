@@ -392,6 +392,8 @@ export function FinanceCharter({
         "Contracted value (MTD)": Math.round(r.contractedMtd),
         "Invoice value (MTD)": Math.round(r.invoiceAmount),
         "Payroll gross (MTD)": Math.round(r.payrollAmount),
+        "Deductions (MTD)": Math.round(r.deductionAmount),
+        "Net payable (MTD)": Math.round(r.netPayrollAmount),
         Margin: Math.round(r.margin),
         "Margin %": r.marginPct,
       })),
@@ -420,18 +422,28 @@ export function FinanceCharter({
         <Stat
           label="Payroll gross (MTD)"
           value={fmtMoneyCompact(totals.payrollAmount)}
-          sub="employee wages till date"
+          sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
           icon={Wallet}
           tone="warning"
         />
-        <Stat
-          label="Margin"
-          value={fmtMoneyCompact(totals.margin)}
-          sub={`${totals.marginPct}% · current payroll periods`}
-          icon={Gauge}
-          tone={totals.margin < 0 ? "destructive" : undefined}
-        />
+        {mode === "payroll" ? (
+          <Stat
+            label="Net payable (MTD)"
+            value={fmtMoneyCompact(totals.netPayrollAmount)}
+            sub="gross − deductions"
+            icon={Gauge}
+          />
+        ) : (
+          <Stat
+            label="Margin"
+            value={fmtMoneyCompact(totals.margin)}
+            sub={`${totals.marginPct}% · current payroll periods`}
+            icon={Gauge}
+            tone={totals.margin < 0 ? "destructive" : undefined}
+          />
+        )}
       </div>
+
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">
