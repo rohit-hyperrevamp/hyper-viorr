@@ -584,7 +584,21 @@ export type Unit = {
   recruitmentFeeAmount: number;
   gpaipEnabled: boolean;
   gpaipAmount: number;
+  bonusEnabled: boolean;
+  bonusFrequency: BonusFrequency | null;
 };
+
+export type BonusFrequency = "monthly" | "yearly" | "on_reimbursement";
+
+export const BONUS_FREQUENCY_OPTIONS: { value: BonusFrequency; label: string }[] = [
+  { value: "monthly", label: "Monthly" },
+  { value: "yearly", label: "Yearly" },
+  { value: "on_reimbursement", label: "On reimbursement" },
+];
+
+export function bonusFrequencyLabel(v: string | null | undefined) {
+  return BONUS_FREQUENCY_OPTIONS.find((o) => o.value === v)?.label ?? "—";
+}
 
 export function nextUnitCode(units: { code: string }[]) {
   const nums = units
