@@ -3784,6 +3784,12 @@ export type Database = {
           approved_by: string | null
           created_at: string
           id: string
+          invoice_processed_at: string | null
+          invoice_processed_by: string | null
+          invoice_status: string
+          payroll_processed_at: string | null
+          payroll_processed_by: string | null
+          payroll_status: string
           period_end: string
           period_start: string
           rejected_at: string | null
@@ -3800,6 +3806,12 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           id?: string
+          invoice_processed_at?: string | null
+          invoice_processed_by?: string | null
+          invoice_status?: string
+          payroll_processed_at?: string | null
+          payroll_processed_by?: string | null
+          payroll_status?: string
           period_end: string
           period_start: string
           rejected_at?: string | null
@@ -3816,6 +3828,12 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           id?: string
+          invoice_processed_at?: string | null
+          invoice_processed_by?: string | null
+          invoice_status?: string
+          payroll_processed_at?: string | null
+          payroll_processed_by?: string | null
+          payroll_status?: string
           period_end?: string
           period_start?: string
           rejected_at?: string | null
