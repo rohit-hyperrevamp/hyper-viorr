@@ -4605,6 +4605,8 @@ export type Database = {
           billing_pincode: string
           billing_salutation: string
           billing_state: string
+          bonus_enabled: boolean
+          bonus_frequency: string | null
           branch_id: string | null
           closing_date: string | null
           code: string
@@ -4664,6 +4666,8 @@ export type Database = {
           billing_pincode?: string
           billing_salutation?: string
           billing_state?: string
+          bonus_enabled?: boolean
+          bonus_frequency?: string | null
           branch_id?: string | null
           closing_date?: string | null
           code: string
@@ -4723,6 +4727,8 @@ export type Database = {
           billing_pincode?: string
           billing_salutation?: string
           billing_state?: string
+          bonus_enabled?: boolean
+          bonus_frequency?: string | null
           branch_id?: string | null
           closing_date?: string | null
           code?: string
