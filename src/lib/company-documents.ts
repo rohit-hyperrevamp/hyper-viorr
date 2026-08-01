@@ -7,7 +7,7 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   appointment_letter: "Appointment Letter",
   form_vii: "Form VII — Nomination Form",
   company_stamp: "Company Stamp and Signatures",
-  id_card: "ID Card",
+  id_card: "Employee ID",
 };
 
 export const DOC_TYPE_SHORT: Record<DocType, string> = {
@@ -15,7 +15,7 @@ export const DOC_TYPE_SHORT: Record<DocType, string> = {
   appointment_letter: "Appointment Letter",
   form_vii: "Form VII",
   company_stamp: "Stamp & Signatures",
-  id_card: "ID Card",
+  id_card: "Employee ID",
 };
 
 /** CDN URL of the official company stamp (with authorised signature). */
