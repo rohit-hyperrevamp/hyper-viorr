@@ -46,32 +46,18 @@ export type UnitFinanceRow = {
   actual_invoice: number;
 };
 
-/**
- * Month progress: committed figures are FULL-MONTH contracted values, while
- * actuals are earned month-till-date from approved attendance. Comparing them
- * raw makes day 1 look catastrophic, so every tone/pace calculation is scaled
- * by how much of the payroll month has actually elapsed.
- */
-export function monthProgress(now = new Date()) {
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const elapsed = now.getDate();
-  return { elapsed, daysInMonth, ratio: elapsed / daysInMonth };
-}
-
 export type Tone = "success" | "ok" | "warning" | "destructive";
 
 /**
- * Pace tone — actual MTD vs the pro-rated expectation for today.
- *  >= 98% of expected  → green (on/ahead of plan)
- *  >= 85% of expected  → orange (slipping)
- *  <  85% of expected  → red (materially behind)
+ * Completion tone — actual earned value against the full-month commitment.
+ * No calendar-day extrapolation is used: OT and payroll-day bases make that
+ * comparison misleading, especially at the start of a month.
  */
-export function paceTone(committed: number, actual: number, ratio: number): Tone {
+export function completionTone(committed: number, actual: number): Tone {
   if (committed <= 0) return "ok";
-  const expected = committed * Math.max(ratio, 0.0001);
-  const pace = (actual / expected) * 100;
-  if (pace >= 98) return "success";
-  if (pace >= 85) return "warning";
+  const completion = (actual / committed) * 100;
+  if (completion >= 98) return "success";
+  if (completion >= 85) return "warning";
   return "destructive";
 }
 
@@ -182,8 +168,6 @@ function CoverageCard({
 }) {
   const [open, setOpen] = useState(false);
 
-  const mp = monthProgress();
-
   const totals = useMemo(() => {
     const committed = rows.reduce((s, r) => s + pick(r).committed, 0);
     const actual = rows.reduce((s, r) => s + pick(r).actual, 0);
@@ -194,23 +178,15 @@ function CoverageCard({
       },
       { committed: 0, actual: 0 },
     );
-    const expected = committed * mp.ratio;
     return {
       committed,
       actual,
-      expected,
-      gap: actual - expected,
-      pace: expected > 0 ? Math.round((actual / expected) * 100) : 0,
+      remaining: committed - actual,
       coverage: committed > 0 ? Math.round((actual / committed) * 100) : 0,
-      tone: paceTone(committed, actual, mp.ratio),
+      tone: completionTone(committed, actual),
       strength,
-      // "Behind" means behind the pro-rated expectation for today, not behind
-      // the full month — a unit is not late on day 3 for having earned 10%.
-      shortUnits: rows.filter(
-        (r) => pick(r).actual < pick(r).committed * mp.ratio * 0.85,
-      ).length,
     };
-  }, [rows, pick, strengthOf, mp.ratio]);
+  }, [rows, pick, strengthOf]);
 
   const toneTile = totals.tone === "ok" ? undefined : totals.tone;
 
@@ -244,40 +220,31 @@ function CoverageCard({
         <Tile
           label={labels.actual}
           value={fmtINR(totals.actual)}
-          sub={`Expected by day ${mp.elapsed}: ${fmtINR(Math.round(totals.expected))}`}
+          sub="Earned from attendance this month"
           icon={icons.actual}
           tone={toneTile}
         />
         <Tile
-          label="Variance vs plan to date"
-          value={`${totals.gap >= 0 ? "+" : "−"}${fmtINR(Math.abs(Math.round(totals.gap)))}`}
-          sub={`Day ${mp.elapsed} of ${mp.daysInMonth}`}
+          label="Remaining to full month"
+          value={`${totals.remaining < 0 ? "+" : ""}${fmtINR(Math.abs(Math.round(totals.remaining)))}`}
+          sub={totals.remaining >= 0 ? "Contract value not yet earned" : "Earned above commitment"}
           icon={TrendingDown}
           tone={toneTile}
         />
         <Tile
-          label="Pace vs plan"
-          value={`${totals.pace}%`}
-          sub={`${totals.coverage}% of full-month plan booked`}
+          label="MTD completion"
+          value={`${totals.coverage}%`}
+          sub="Actual ÷ full-month committed"
           icon={Gauge}
           tone={toneTile}
         />
       </div>
 
       <p className="mt-2 text-xs text-muted-foreground">
-        Committed is the full-month contracted value; actual is earned month-till-date
-        from approved attendance. Day {mp.elapsed} of {mp.daysInMonth} ={" "}
-        {Math.round(mp.ratio * 100)}% of the cycle elapsed, so pace — not raw coverage —
-        is the health signal.
+        Actual MTD is calculated from attendance duties and each contract resource&apos;s
+        payroll-day base. Completion is actual divided by the full-month commitment;
+        no calendar-day projection or static target is applied.
       </p>
-
-      {totals.shortUnits > 0 && (
-        <p className="mt-1 text-xs text-muted-foreground">
-          <span className="font-semibold text-destructive">{totals.shortUnits}</span> unit(s)
-          tracking more than 15% behind the pro-rated plan for today.
-
-        </p>
-      )}
 
       <CharterDialog
         open={open}
@@ -525,8 +492,6 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
   // design — including them would make P&L negative by construction.
   const rows = useMemo(() => allRows.filter((r) => !r.internal), [allRows]);
 
-  const mp = monthProgress();
-
   const totals = useMemo(() => {
     const committedProfit = rows.reduce(
       (s, r) => s + (r.committed_invoice - r.committed_payroll),
@@ -535,22 +500,17 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
     const actualProfit = rows.reduce((s, r) => s + (r.actual_invoice - r.actual_payroll), 0);
     const committedInvoice = rows.reduce((s, r) => s + r.committed_invoice, 0);
     const actualInvoice = rows.reduce((s, r) => s + r.actual_invoice, 0);
-    const expectedProfit = committedProfit * mp.ratio;
     const committedMargin = committedInvoice > 0 ? (committedProfit / committedInvoice) * 100 : 0;
     const actualMargin = actualInvoice > 0 ? (actualProfit / actualInvoice) * 100 : 0;
     return {
       committedProfit,
       actualProfit,
-      expectedProfit,
-      gap: actualProfit - expectedProfit,
-      pace: expectedProfit > 0 ? Math.round((actualProfit / expectedProfit) * 100) : 0,
-      coverage: committedProfit > 0 ? Math.round((actualProfit / committedProfit) * 100) : 0,
+      remainingProfit: committedProfit - actualProfit,
       committedMargin,
       actualMargin,
-      // Margin is time-independent, so it is the honest health signal for P&L.
-      tone: paceTone(committedMargin, actualMargin, 1),
+      tone: completionTone(committedMargin, actualMargin),
     };
-  }, [rows, mp.ratio]);
+  }, [rows]);
 
 
   const filtered = useMemo(() => {
@@ -614,16 +574,16 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
           tone={totals.tone === "ok" ? undefined : totals.tone}
         />
         <Tile
-          label="Variance vs plan to date"
-          value={`${totals.gap >= 0 ? "+" : "−"}${fmtINR(Math.abs(Math.round(totals.gap)))}`}
-          sub={`Expected by day ${mp.elapsed}: ${fmtINR(Math.round(totals.expectedProfit))}`}
+          label="Remaining full-month profit"
+          value={`${totals.remainingProfit < 0 ? "+" : ""}${fmtINR(Math.abs(Math.round(totals.remainingProfit)))}`}
+          sub={totals.remainingProfit >= 0 ? "Committed less actual MTD" : "Above committed profit"}
           icon={TrendingDown}
           tone={totals.tone === "ok" ? undefined : totals.tone}
         />
         <Tile
           label="Margin health"
           value={`${totals.actualMargin.toFixed(1)}%`}
-          sub={`vs ${totals.committedMargin.toFixed(1)}% committed · ${totals.pace}% pace`}
+          sub={`vs ${totals.committedMargin.toFixed(1)}% committed margin`}
           icon={Gauge}
           tone={totals.tone === "ok" ? undefined : totals.tone}
         />
