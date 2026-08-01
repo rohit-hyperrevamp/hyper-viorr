@@ -308,15 +308,26 @@ export function WorkforceCoverageCard() {
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Tile label="Committed" value={totals.committed} icon={Users} tone="accent" />
-        <Tile label="Actual deployed" value={totals.actual} icon={UserCheck} />
+        <Tile
+          label="Actual deployed"
+          value={totals.actual}
+          icon={UserCheck}
+          tone={totals.tone === "ok" ? undefined : totals.tone}
+        />
         <Tile
           label="Variance"
           value={totals.gap > 0 ? `+${totals.gap}` : totals.gap}
           icon={TrendingDown}
-          tone={totals.gap < 0 ? "destructive" : "warning"}
+          tone={totals.gap > 0 ? "warning" : totals.tone === "ok" ? undefined : totals.tone}
         />
-        <Tile label="Coverage" value={`${totals.coverage}%`} icon={Gauge} />
+        <Tile
+          label="Coverage"
+          value={`${totals.coverage}%`}
+          icon={Gauge}
+          tone={totals.tone === "ok" ? undefined : totals.tone}
+        />
       </div>
+
       {totals.shortUnits > 0 && (
         <p className="mt-2 text-xs text-muted-foreground">
           <span className="font-semibold text-destructive">{totals.shortUnits}</span>{" "}
