@@ -116,7 +116,7 @@ export function IdCardEditor({
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
       <div className="space-y-3">
-        <Section title="Logo (shared by front & back)">
+        <Section title="Logo">
           <div className="flex items-center gap-3">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-white">
               {spec.logoUrl ? (
