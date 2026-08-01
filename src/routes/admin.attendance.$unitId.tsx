@@ -321,19 +321,34 @@ function MusterRollPage() {
         win = (winRow as Win | null) ?? null;
       }
 
-      let resources: Array<{ designationId: string; designationName: string }> = [];
+      let resources: Array<{ designationId: string; designationName: string; quantity: number }> = [];
       if (contractId) {
         const { data: r } = await supabase
           .from("contract_resources")
-          .select("designation_id")
-          .eq("contract_id", contractId);
-        const ids = Array.from(new Set((r ?? []).map((x) => x.designation_id).filter(Boolean))) as string[];
-        if (ids.length) {
+          .select("designation_id, quantity, sort_order")
+          .eq("contract_id", contractId)
+          .order("sort_order", { ascending: true });
+        const rows = (r ?? []).filter((x) => x.designation_id) as Array<{
+          designation_id: string;
+          quantity: number | null;
+        }>;
+        const qtyById = new Map<string, number>();
+        const orderedIds: string[] = [];
+        for (const row of rows) {
+          if (!qtyById.has(row.designation_id)) orderedIds.push(row.designation_id);
+          qtyById.set(row.designation_id, (qtyById.get(row.designation_id) ?? 0) + Math.max(1, Number(row.quantity) || 1));
+        }
+        if (orderedIds.length) {
           const { data: ds } = await supabase
             .from("designations")
             .select("id, name")
-            .in("id", ids);
-          resources = (ds ?? []).map((d) => ({ designationId: d.id, designationName: d.name }));
+            .in("id", orderedIds);
+          const nameById = new Map((ds ?? []).map((d) => [d.id, d.name]));
+          resources = orderedIds.map((id) => ({
+            designationId: id,
+            designationName: nameById.get(id) ?? "—",
+            quantity: qtyById.get(id) ?? 1,
+          }));
         }
       }
       return { window: win, startDate, contractId, resources };
