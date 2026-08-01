@@ -295,8 +295,8 @@ function DashboardPage() {
             method: p.method as "actual_days" | "fixed_days" | "actual_minus_weekly_off" | "custom_weekdays",
             fixedDays: p.fixed_days,
             weeklyOffDay: p.weekly_off_day,
-            includedWeekdays: Array.isArray((p as { included_weekdays?: unknown }).included_weekdays)
-              ? (p as { included_weekdays: unknown[] }).included_weekdays.map(Number)
+            includedWeekdays: Array.isArray((p as unknown as { included_weekdays?: unknown }).included_weekdays)
+              ? (p as unknown as { included_weekdays: unknown[] }).included_weekdays.map(Number)
               : null,
           },
         ]),
