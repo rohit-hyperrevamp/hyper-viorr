@@ -602,30 +602,33 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         <Tile
           label="Committed profitability"
           value={fmtINR(totals.committedProfit)}
-          sub={`${totals.committedMargin.toFixed(1)}% margin`}
+          sub={`${totals.committedMargin.toFixed(1)}% margin · full month`}
           icon={PiggyBank}
           tone="accent"
         />
         <Tile
           label="Actual profitability MTD"
           value={fmtINR(totals.actualProfit)}
-          sub={`${totals.actualMargin.toFixed(1)}% margin`}
+          sub={`${totals.actualMargin.toFixed(1)}% margin earned`}
           icon={Banknote}
           tone={totals.tone === "ok" ? undefined : totals.tone}
         />
         <Tile
-          label="Variance"
-          value={`${totals.gap >= 0 ? "+" : "−"}${fmtINR(Math.abs(totals.gap))}`}
+          label="Variance vs plan to date"
+          value={`${totals.gap >= 0 ? "+" : "−"}${fmtINR(Math.abs(Math.round(totals.gap)))}`}
+          sub={`Expected by day ${mp.elapsed}: ${fmtINR(Math.round(totals.expectedProfit))}`}
           icon={TrendingDown}
           tone={totals.tone === "ok" ? undefined : totals.tone}
         />
         <Tile
-          label="Coverage"
-          value={`${totals.coverage}%`}
+          label="Margin health"
+          value={`${totals.actualMargin.toFixed(1)}%`}
+          sub={`vs ${totals.committedMargin.toFixed(1)}% committed · ${totals.pace}% pace`}
           icon={Gauge}
           tone={totals.tone === "ok" ? undefined : totals.tone}
         />
       </div>
+
 
       <div className="relative mt-3 max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
