@@ -1040,9 +1040,9 @@ export const DEFAULT_ID_CARD_TEMPLATE = `<div class="idcard-sheet">
         <div class="contact">
           <div class="contact-title">Corporate Office :</div>
           <div class="contact-block">818, Clover Hills Plaza, NIBM Road, Kondhwa, Pune - 411048</div>
-          <div class="contact-lines">Ph. No. - 020 48622515 | Mob.No. : 09156453001</div>
-          <div class="contact-validity">Validity : 1 Year from date of Issue</div>
+          <div class="contact-lines">Mob. No. : 09156453001</div>
         </div>
+        <div class="validity">Validity : 1 Year from date of Issue</div>
         <div class="auth">
           <span class="sig-slot" data-signature-slot="company"></span>
           <div class="sig-line"></div>
@@ -1087,7 +1087,7 @@ export type IdCardSpec = {
 export const DEFAULT_ID_CARD_SPEC: IdCardSpec = {
   kind: "id_card",
   logoUrl: COMPANY_LOGO_URL,
-  frontLogoHeight: 30,
+  frontLogoHeight: 22,
   front: {
     companyName: "Radiant Guard Services Pvt.Ltd.",
     showPhoto: true,
@@ -1105,7 +1105,7 @@ export const DEFAULT_ID_CARD_SPEC: IdCardSpec = {
   footer: {
     addressTitle: "Corporate Office :",
     addressLines: ["818, Clover Hills Plaza, NIBM Road, Kondhwa, Pune - 411048"],
-    contactLines: ["Ph. No. - 020 48622515 | Mob.No. : 09156453001"],
+    contactLines: ["Mob. No. : 09156453001"],
     validityLine: "Validity : 1 Year from date of Issue",
   },
 };
@@ -1189,8 +1189,8 @@ export function renderIdCardHtml(spec: IdCardSpec): string {
           ${spec.footer.addressTitle ? `<div class="contact-title">${esc(spec.footer.addressTitle)}</div>` : ""}
           ${spec.footer.addressLines.length ? `<div class="contact-block">${spec.footer.addressLines.map(esc).join("<br/>")}</div>` : ""}
           ${spec.footer.contactLines.length ? `<div class="contact-lines">${spec.footer.contactLines.map(esc).join("<br/>")}</div>` : ""}
-          ${spec.footer.validityLine ? `<div class="contact-validity">${esc(spec.footer.validityLine)}</div>` : ""}
-        </div>`;
+        </div>${spec.footer.validityLine ? `
+        <div class="validity">${esc(spec.footer.validityLine)}</div>` : ""}`;
 
   return `<div class="idcard-sheet">
   <div class="idcard-face">
