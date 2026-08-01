@@ -512,9 +512,16 @@ function DeploymentCharterDialog({
                                   <td className="py-1.5 text-right tabular-nums">
                                     {l.committed}
                                   </td>
-                                  <td className="py-1.5 text-right tabular-nums">
+                                  <td
+                                    className={cn(
+                                      "py-1.5 text-right tabular-nums",
+                                      shortfallTone(l.committed, l.actual) === "destructive" && "font-semibold text-destructive",
+                                      shortfallTone(l.committed, l.actual) === "warning" && "font-semibold text-amber-600",
+                                    )}
+                                  >
                                     {l.actual}
                                   </td>
+
                                   <td className="py-1.5 text-right">
                                     <VarianceChip
                                       committed={l.committed}
