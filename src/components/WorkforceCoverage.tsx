@@ -180,14 +180,33 @@ export function useWorkforceCoverage() {
   return useQuery({ queryKey: QK_COVERAGE, queryFn: fetchCoverage });
 }
 
+/**
+ * Deployment shortfall tone rule (shared by dashboard + client contracts):
+ *  - fully covered            → neutral / emerald
+ *  - shortfall up to 5%       → orange (amber)
+ *  - shortfall greater than 5% → red (destructive)
+ */
+export function shortfallTone(
+  committed: number,
+  actual: number,
+): "ok" | "warning" | "destructive" {
+  if (committed <= 0) return "ok";
+  if (actual >= committed) return "ok";
+  const deltaPct = ((committed - actual) / committed) * 100;
+  return deltaPct > 5 ? "destructive" : "warning";
+}
+
 function VarianceChip({ committed, actual }: { committed: number; actual: number }) {
   const diff = actual - committed;
+  const t = shortfallTone(committed, actual);
   const tone =
-    diff === 0
-      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/25"
-      : diff < 0
+    diff > 0
+      ? "bg-amber-500/10 text-amber-600 border-amber-500/25"
+      : t === "destructive"
         ? "bg-destructive/10 text-destructive border-destructive/25"
-        : "bg-amber-500/10 text-amber-600 border-amber-500/25";
+        : t === "warning"
+          ? "bg-amber-500/10 text-amber-600 border-amber-500/25"
+          : "bg-emerald-500/10 text-emerald-600 border-emerald-500/25";
   return (
     <span
       className={cn(
@@ -212,7 +231,16 @@ function Tile({
   tone?: "accent" | "warning" | "destructive";
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-background/60 p-3">
+    <div
+      className={cn(
+        "rounded-2xl border p-3",
+        tone === "warning"
+          ? "border-amber-500/40 bg-amber-500/10"
+          : tone === "destructive"
+            ? "border-destructive/40 bg-destructive/10"
+            : "border-border bg-background/60",
+      )}
+    >
       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
         <Icon
           className={cn(
@@ -224,10 +252,19 @@ function Tile({
         />
         {label}
       </div>
-      <div className="mt-1 text-xl font-semibold tabular-nums">{value}</div>
+      <div
+        className={cn(
+          "mt-1 text-xl font-semibold tabular-nums",
+          tone === "warning" && "text-amber-600",
+          tone === "destructive" && "text-destructive",
+        )}
+      >
+        {value}
+      </div>
     </div>
   );
 }
+
 
 export function WorkforceCoverageCard() {
   const { data: rows = [], isLoading } = useWorkforceCoverage();
