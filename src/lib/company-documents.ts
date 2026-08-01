@@ -153,8 +153,82 @@ export const PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "employee_photo", label: "Employee Photo URL (ID card)" },
   { key: "company_logo", label: "Company Logo URL (ID card)" },
   { key: "company_stamp", label: "Company Stamp URL" },
-
+  { key: "posting_order_no", label: "Posting Order No." },
+  { key: "posting_date", label: "Posting Order Date" },
+  { key: "client_name", label: "Client Name" },
+  { key: "site_name", label: "Site / Branch" },
+  { key: "site_address", label: "Site Address" },
+  { key: "reporting_date", label: "Date of Reporting" },
+  { key: "reporting_time", label: "Reporting Time" },
+  { key: "duty_shift", label: "Duty Shift / Timing" },
+  { key: "site_supervisor", label: "Site Supervisor / Reporting Officer" },
+  { key: "authorised_signatory", label: "Authorised Signatory Name" },
+  { key: "signatory_designation", label: "Authorised Signatory Designation" },
+  { key: "company_address", label: "Company Corporate Office Address" },
+  { key: "company_mobile", label: "Company Mobile Number" },
+  { key: "company_email", label: "Company Email" },
 ];
+
+/** Site posting details captured when a billable employee is deputed to a client site. */
+export type PostingDetails = {
+  posting_order_no: string;
+  posting_date: string;
+  client_name: string;
+  site_name: string;
+  site_address: string;
+  reporting_date: string;
+  reporting_time: string;
+  duty_shift: string;
+  site_supervisor: string;
+  authorised_signatory: string;
+  signatory_designation: string;
+};
+
+export const EMPTY_POSTING_DETAILS: PostingDetails = {
+  posting_order_no: "",
+  posting_date: "",
+  client_name: "",
+  site_name: "",
+  site_address: "",
+  reporting_date: "",
+  reporting_time: "",
+  duty_shift: "",
+  site_supervisor: "",
+  authorised_signatory: "",
+  signatory_designation: "",
+};
+
+export const COMPANY_CONTACT = {
+  address: "818, Clover Hills Plaza, NIBM Road, Kondhwa, Pune - 411048",
+  mobile: "09156453001",
+  email: "info@radiantguardservices.com",
+};
+
+/** Merge posting-site fields onto a normal placeholder map. */
+export function withPostingPlaceholders(
+  map: Record<string, string>,
+  posting: Partial<PostingDetails>,
+): Record<string, string> {
+  const v = (s: string | undefined) => (s && s.trim() ? s.trim() : "_______");
+  return {
+    ...map,
+    posting_order_no: v(posting.posting_order_no),
+    posting_date: v(posting.posting_date),
+    client_name: v(posting.client_name),
+    site_name: v(posting.site_name),
+    site_address: v(posting.site_address),
+    reporting_date: v(posting.reporting_date),
+    reporting_time: v(posting.reporting_time),
+    duty_shift: v(posting.duty_shift),
+    site_supervisor: v(posting.site_supervisor),
+    authorised_signatory: v(posting.authorised_signatory),
+    signatory_designation: v(posting.signatory_designation),
+    company_address: COMPANY_CONTACT.address,
+    company_mobile: COMPANY_CONTACT.mobile,
+    company_email: COMPANY_CONTACT.email,
+  };
+}
+
 
 function fmtDate(s: string | null | undefined): string {
   if (!s) return "_______";
