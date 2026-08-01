@@ -818,6 +818,8 @@ function MusterRollPage() {
       designationName: string;
       emp: NonNullable<typeof employees>[number];
       isPrimary: boolean;
+      /** Contracted designation slot with nobody mapped yet — read-only placeholder. */
+      vacant?: boolean;
     }> = [];
     const seen = new Set<string>();
     const desigNameMap = new Map(contractDesignations.map((d) => [d.designationId, d.designationName]));
