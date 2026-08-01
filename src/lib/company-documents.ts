@@ -1062,7 +1062,6 @@ export type IdCardSpec = {
   kind: "id_card";
   logoUrl: string;
   frontLogoHeight: number;
-  backLogoHeight: number;
   front: {
     companyName: string;
     showPhoto: boolean;
@@ -1075,8 +1074,8 @@ export type IdCardSpec = {
     authorityLabel: string;
     showAuthoritySignature: boolean;
   };
-  back: {
-    companyName: string;
+  /** Address / contact / validity block, printed at the bottom of the front face. */
+  footer: {
     addressTitle: string;
     addressLines: string[];
     contactLines: string[];
@@ -1087,8 +1086,7 @@ export type IdCardSpec = {
 export const DEFAULT_ID_CARD_SPEC: IdCardSpec = {
   kind: "id_card",
   logoUrl: COMPANY_LOGO_URL,
-  frontLogoHeight: 52,
-  backLogoHeight: 64,
+  frontLogoHeight: 30,
   front: {
     companyName: "Radiant Guard Services Pvt.Ltd.",
     showPhoto: true,
@@ -1103,11 +1101,10 @@ export const DEFAULT_ID_CARD_SPEC: IdCardSpec = {
     authorityLabel: "Issuing Authority",
     showAuthoritySignature: true,
   },
-  back: {
-    companyName: "Radiant Guard Services Pvt.Ltd.",
+  footer: {
     addressTitle: "Corporate Office :",
-    addressLines: ["818, Clover Hills Plaza", "NIBM Road, Kondhwa", "Pune - 411048"],
-    contactLines: ["Ph. No. - 020 48622515", "Mob.No. : 09156453001"],
+    addressLines: ["818, Clover Hills Plaza, NIBM Road, Kondhwa, Pune - 411048"],
+    contactLines: ["Ph. No. - 020 48622515 | Mob.No. : 09156453001"],
     validityLine: "Validity : 1 Year from date of Issue",
   },
 };
