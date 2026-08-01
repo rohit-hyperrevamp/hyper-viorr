@@ -568,6 +568,7 @@ export type Database = {
           created_at: string
           id: string
           is_primary: boolean
+          is_reliever: boolean
           sort_order: number
           unit_id: string
           updated_at: string
@@ -577,6 +578,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_primary?: boolean
+          is_reliever?: boolean
           sort_order?: number
           unit_id: string
           updated_at?: string
@@ -586,6 +588,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_primary?: boolean
+          is_reliever?: boolean
           sort_order?: number
           unit_id?: string
           updated_at?: string
