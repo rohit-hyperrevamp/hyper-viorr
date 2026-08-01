@@ -666,6 +666,8 @@ type UnitRow = {
   recruitment_fee_amount?: number | string | null;
   gpaip_enabled?: boolean | null;
   gpaip_amount?: number | string | null;
+  bonus_enabled?: boolean | null;
+  bonus_frequency?: string | null;
 };
 
 function rowToUnit(r: UnitRow): Unit {
@@ -733,6 +735,8 @@ function rowToUnit(r: UnitRow): Unit {
     recruitmentFeeAmount: Number(r.recruitment_fee_amount ?? 0),
     gpaipEnabled: Boolean(r.gpaip_enabled),
     gpaipAmount: Number(r.gpaip_amount ?? 0),
+    bonusEnabled: Boolean(r.bonus_enabled),
+    bonusFrequency: (r.bonus_frequency as BonusFrequency | null) ?? null,
   };
 }
 
@@ -799,6 +803,8 @@ function unitToRow(data: Omit<Unit, "id">) {
     recruitment_fee_amount: data.recruitmentFeeEnabled ? Number(data.recruitmentFeeAmount || 0) : 0,
     gpaip_enabled: data.gpaipEnabled,
     gpaip_amount: data.gpaipEnabled ? Number(data.gpaipAmount || 0) : 0,
+    bonus_enabled: data.bonusEnabled,
+    bonus_frequency: data.bonusEnabled ? (data.bonusFrequency ?? "monthly") : null,
   };
 }
 
