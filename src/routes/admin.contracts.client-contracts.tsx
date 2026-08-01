@@ -1938,6 +1938,23 @@ function ClientContractsPage() {
     mode: ApprovalMode;
   } | null>(null);
 
+  // Deep-link from the leadership dashboard: /admin/contracts/client-contracts?status=lost
+  const search = Route.useSearch();
+  const appliedDeepLink = useRef(false);
+  useEffect(() => {
+    if (appliedDeepLink.current) return;
+    if (!search.status && !search.tab && !search.renewals) return;
+    appliedDeepLink.current = true;
+    if (search.tab) setTab(search.tab);
+    if (search.status) setStatusFilter(search.status);
+    if (search.renewals) {
+      setTab("client");
+      setStatusFilter("all");
+      setRenewalOnly(true);
+    }
+  }, [search.status, search.tab, search.renewals]);
+
+
   const enriched = useMemo(() => {
     return items.map((c) => {
       const unit = unitById.get(c.unitId);
