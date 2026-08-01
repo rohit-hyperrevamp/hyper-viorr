@@ -139,50 +139,25 @@ async function downscaleImage(file: File, maxDim: number, quality: number): Prom
   return canvas.toDataURL("image/jpeg", quality);
 }
 
+/**
+ * Attendance register period = the calendar month, always.
+ * Day 1 → last day of the month, taken from the real calendar so 30/31-day
+ * months and leap-year February are always exact. The contract payroll window
+ * is only a processing cut-off; it never shortens the register.
+ */
 function buildPeriodCells(
   year: number,
   monthIdx: number,
-  win: { window_start_day: number; window_end_day: number } | null,
+  _win?: { window_start_day: number; window_end_day: number } | null,
 ): Array<{ date: string; dayNum: number; monthIdx: number; year: number }> {
-  const startDay = win?.window_start_day ?? 1;
-  const endDay = win?.window_end_day ?? 31;
-  const endsInSelected = startDay > endDay || (startDay === 1 && endDay >= 28);
-
-  let startY: number, startM: number, startD: number;
-  let endY: number, endM: number, endD: number;
-
-  if (endsInSelected && startDay > endDay) {
-    const prev = new Date(year, monthIdx - 1, 1);
-    startY = prev.getFullYear();
-    startM = prev.getMonth();
-    const prevLast = daysInMonth(startY, startM);
-    startD = Math.min(startDay, prevLast);
-    endY = year;
-    endM = monthIdx;
-    endD = Math.min(endDay, daysInMonth(year, monthIdx));
-  } else {
-    startY = year;
-    startM = monthIdx;
-    startD = startDay;
-    endY = year;
-    endM = monthIdx;
-    endD = Math.min(endDay, daysInMonth(year, monthIdx));
-  }
-
+  const last = daysInMonth(year, monthIdx);
   const cells: Array<{ date: string; dayNum: number; monthIdx: number; year: number }> = [];
-  const cursor = new Date(startY, startM, startD);
-  const stop = new Date(endY, endM, endD);
-  while (cursor <= stop) {
-    cells.push({
-      date: ymd(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()),
-      dayNum: cursor.getDate(),
-      monthIdx: cursor.getMonth(),
-      year: cursor.getFullYear(),
-    });
-    cursor.setDate(cursor.getDate() + 1);
+  for (let day = 1; day <= last; day += 1) {
+    cells.push({ date: ymd(year, monthIdx, day), dayNum: day, monthIdx, year });
   }
   return cells;
 }
+
 
 const NULL_DESIG = "__none__"; // sentinel row-key segment when an employee has no designation
 
