@@ -530,6 +530,7 @@ function UnitFormDialog({
   const [assignedFoIds, setAssignedFoIds] = useState<string[]>([]);
   const [selectedFoToAdd, setSelectedFoToAdd] = useState("");
   const [foSyncing, setFoSyncing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -762,6 +763,42 @@ function UnitFormDialog({
       form.reportingOfficers.filter((_, i) => i !== idx),
     );
 
+  const saveUnit = async () => {
+    if (isSaving) return;
+    setError(null);
+    if (!form.uniformIncluded && !(Number(form.uniformFeeAmount) > 0)) {
+      const msg = "Enter the uniform fee (₹) — uniform is not included in this unit's contract.";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const result = await onSubmit(form);
+      if (result.error) {
+        setError(result.error);
+        toast.error(result.error);
+        return;
+      }
+      if (result.id) {
+        const syncErr = await syncFieldOfficerAssignments(result.id);
+        if (syncErr) {
+          setError(syncErr);
+          toast.error(syncErr);
+          return;
+        }
+      }
+      onOpenChange(false);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "Could not save the unit. Please try again.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto pb-0">
@@ -775,27 +812,7 @@ function UnitFormDialog({
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            setError(null);
-            if (!form.uniformIncluded && !(Number(form.uniformFeeAmount) > 0)) {
-              const msg = "Enter the uniform fee (₹) — uniform is not included in this unit's contract.";
-              setError(msg);
-              toast.error(msg);
-              return;
-            }
-            const result = await onSubmit(form);
-            if (result.error) {
-              setError(result.error);
-              return;
-            }
-            if (result.id) {
-              const syncErr = await syncFieldOfficerAssignments(result.id);
-              if (syncErr) {
-                setError(syncErr);
-                toast.error(syncErr);
-                return;
-              }
-            }
-            onOpenChange(false);
+            await saveUnit();
           }}
           className="space-y-5"
         >
@@ -1325,9 +1342,9 @@ function UnitFormDialog({
           {error && <p className="text-xs font-medium text-destructive">{error}</p>}
 
           <DialogFooter className="sticky bottom-0 z-20 -mx-6 mt-2 border-t border-border/60 bg-background/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
-              {editing ? "Save changes" : "Create unit"}
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>Cancel</Button>
+            <Button type="button" onClick={() => void saveUnit()} disabled={isSaving} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              {isSaving ? "Saving…" : editing ? "Save changes" : "Create unit"}
             </Button>
           </DialogFooter>
         </form>
