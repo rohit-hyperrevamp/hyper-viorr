@@ -293,6 +293,14 @@ export function FinanceCharter({
         const contractedMtd = (monthlyContracted / daysInMonth) * elapsedDays;
         const invoiceAmount = people.reduce((s, p) => s + p.invoiceAmount, 0);
         const payrollAmount = people.reduce((s, p) => s + p.payrollAmount, 0);
+        const status: PeriodStatus = statusQ.data?.get(u.id) ?? {
+          unitId: u.id,
+          attendance: "none",
+          handedOff: false,
+          payroll: "open",
+          invoice: "open",
+          runId: null,
+        };
         return {
           unit: u,
           contractCode: finance?.contractCode ?? u.contract_codes[0] ?? "—",
@@ -304,6 +312,7 @@ export function FinanceCharter({
           contractedMtd,
           invoiceAmount,
           payrollAmount,
+          status,
           margin: invoiceAmount - payrollAmount,
           marginPct: invoiceAmount > 0 ? Math.round(((invoiceAmount - payrollAmount) / invoiceAmount) * 100) : 0,
           realisationPct: pct(invoiceAmount, contractedMtd),
@@ -317,7 +326,8 @@ export function FinanceCharter({
           .some((v) => v.toLowerCase().includes(q));
       })
       .sort((a, b) => a.unit.name.localeCompare(b.unit.name));
-  }, [units, financeQ.data, statsByUnit, daysInMonth, elapsedDays, query]);
+  }, [units, financeQ.data, statsByUnit, statusQ.data, daysInMonth, elapsedDays, query]);
+
 
   const totals = useMemo(() => {
     const monthlyContracted = rows.reduce((s, r) => s + r.monthlyContracted, 0);
