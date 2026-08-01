@@ -212,7 +212,7 @@ function MusterRollPage() {
         { data: rawUnit, error: rawUnitError },
         { data: scopeAssignments, error: scopeAssignmentsError },
       ] = await Promise.all([
-        supabase.from("candidate_units").select("candidate_id").eq("unit_id", unitId),
+        supabase.from("candidate_units").select("candidate_id, is_reliever").eq("unit_id", unitId),
         supabase.from("units").select("id, branch_id, customer_id, billing_state").eq("id", unitId).maybeSingle(),
         supabase.from("employee_scope_assignments").select("candidate_id, scope_type, scope_id").limit(5000),
       ]);
@@ -254,10 +254,25 @@ function MusterRollPage() {
       }
       const all = [...(prim ?? []), ...(extra ?? [])];
       const dedup = Array.from(new Map(all.map((c) => [c.id, c])).values());
-      // Candidates whose home unit IS this unit are permanently mapped and can
-      // never be removed from the muster. Everyone else reaches this roll via a
-      // candidate_units link / unit scope — i.e. a reliever.
-      const homeMapped = new Set((prim ?? []).map((c) => c.id));
+      // A guard can be deployed at several units at once — there is no "home unit".
+      // Anyone assigned to this unit (own unit_id, a regular candidate_units link, or
+      // a unit scope) is a regular deployed line. Only people HR added ad-hoc from the
+      // muster search carry is_reliever = true on the link: those are (R) lines and are
+      // tracked as overtime only.
+      const relieverLinks = new Set(
+        ((links ?? []) as Array<{ candidate_id: string; is_reliever?: boolean | null }>)
+          .filter((l) => l.is_reliever === true)
+          .map((l) => l.candidate_id),
+      );
+      const assignedIds = new Set<string>([
+        ...(prim ?? []).map((c) => c.id),
+        ...((links ?? []) as Array<{ candidate_id: string; is_reliever?: boolean | null }>)
+          .filter((l) => l.is_reliever !== true)
+          .map((l) => l.candidate_id),
+        ...scopeIds,
+      ]);
+      const homeMapped = new Set(Array.from(assignedIds).filter((id) => !relieverLinks.has(id)));
+
 
 
       const desigIds = Array.from(
@@ -917,7 +932,10 @@ function MusterRollPage() {
     try {
       const { error } = await supabase
         .from("candidate_units")
-        .upsert({ candidate_id: cand.id, unit_id: unitId }, { onConflict: "candidate_id,unit_id" });
+        .upsert(
+          { candidate_id: cand.id, unit_id: unitId, is_reliever: true },
+          { onConflict: "candidate_id,unit_id" },
+        );
       if (error) throw error;
 
       // If the slot's designation differs from the employee's own, surface the
@@ -934,7 +952,7 @@ function MusterRollPage() {
         entityId: cand.id,
         entityLabel: `${cand.full_name} → ${mapSlot.designationName} @ ${unit?.name ?? unitId}`,
       });
-      toast.success(`${cand.full_name} mapped to ${mapSlot.designationName}`);
+      toast.success(`${cand.full_name} added as reliever (R) on ${mapSlot.designationName} — overtime only`);
       setMapSlot(null);
       setMapQuery("");
     } catch (e) {
@@ -956,10 +974,15 @@ function MusterRollPage() {
       isPrimary: boolean;
       /**
        * Reliever line — either an extra designation for the same person, or a
-       * person who is not permanently mapped to this unit. Relievers can be
-       * removed from the muster; permanently mapped people cannot.
+       * stand-in HR added ad-hoc from the muster search. Relievers can be
+       * removed from the muster; regular deployed people cannot.
        */
       reliever?: boolean;
+      /**
+       * Ad-hoc stand-in: tracked as overtime only, so the attendance row is
+       * read-only and only the OT row can be filled.
+       */
+      otOnly?: boolean;
       /** Contracted designation slot with nobody mapped yet — read-only placeholder. */
       vacant?: boolean;
     }> = [];
@@ -967,7 +990,9 @@ function MusterRollPage() {
     const desigNameMap = new Map(contractDesignations.map((d) => [d.designationId, d.designationName]));
 
     for (const emp of employees ?? []) {
-      const homeMapped = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
+      // A guard may be deployed at many units — "is_home_mapped" here means
+      // "regularly assigned to this unit", not "this is their only unit".
+      const assigned = (emp as { is_home_mapped?: boolean }).is_home_mapped === true;
       // Primary row from candidate's own designation
       const primaryKey = rowKey(emp.id, emp.designation_id);
       out.push({
@@ -977,7 +1002,8 @@ function MusterRollPage() {
         designationName: emp.designation || "—",
         emp,
         isPrimary: true,
-        reliever: !homeMapped,
+        reliever: !assigned,
+        otOnly: !assigned,
       });
       seen.add(primaryKey);
 
@@ -2563,7 +2589,7 @@ function MusterRollPage() {
                         {mr.reliever && !mr.vacant && (
                           <span
                             className="ml-1 font-semibold text-violet-700"
-                            title="Reliever line"
+                            title="Reliever (stand-in) line — tracked as overtime only"
                           >
                             (R)
                           </span>
@@ -2579,8 +2605,9 @@ function MusterRollPage() {
                         const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
                         const entry = entryMap.get(`${mr.key}|${date}`);
                         // Implicit "A" for on/after DOJ, on/before today, when no entry exists.
-                        const displayCode = mr.vacant
-                          ? ""
+                        // Reliever (R) lines are overtime-only, so they never show an implicit A.
+                        const displayCode = mr.vacant || mr.otOnly
+                          ? (mr.otOnly && entry?.code ? entry.code : "")
                           : entry?.code
                           ? entry.code
                           : (!isFuture && !beforeDoj ? "A" : "");
@@ -2588,7 +2615,7 @@ function MusterRollPage() {
                         const isImplicitAbsent = !entry?.code && displayCode === "A";
                         const isSelected = dragRowKey === mr.key && selectedDates.has(date);
                         const isUncertain = !entry?.code && uncertainCells.has(`${mr.key}|${date}`);
-                        const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant);
+                        const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant) || Boolean(mr.otOnly);
                         return (
                           <td
                             key={`a-${cell.date}`}
@@ -2597,6 +2624,7 @@ function MusterRollPage() {
                               "p-0 print:bg-transparent select-none",
                               isFuture && "bg-slate-100 cursor-not-allowed",
                               beforeDoj && "bg-slate-50 cursor-not-allowed",
+                              mr.otOnly && "bg-violet-50/60 cursor-not-allowed",
                               !isBlocked && "cursor-pointer",
                               isSelected && "ring-2 ring-primary ring-inset",
                               isUncertain && "ring-2 ring-rose-500 ring-inset bg-rose-50",
@@ -2609,7 +2637,9 @@ function MusterRollPage() {
                                 : codeMeta?.color ? `${codeMeta.color}22` : undefined,
                             }}
                             title={
-                              beforeDoj
+                              mr.otOnly
+                                ? "Reliever line — tracked as overtime only. Use the OT row below."
+                                : beforeDoj
                                 ? `Before joining date (${mr.emp.doj})`
                                 : isFuture
                                 ? "Future date — cannot mark attendance"
