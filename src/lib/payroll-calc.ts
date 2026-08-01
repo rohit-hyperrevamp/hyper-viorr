@@ -861,10 +861,24 @@ export function computeWages(
   // 30-day contract doesn't underpay OT and a 26-day contract stays
   // backwards-compatible.
   const OT_DIVISOR = baseDays > 0 ? baseDays : 26;
-  const excludedFromOt = resource.components
-    .filter((c) => /\buniform\b/i.test(canonicalComponentName(c.name)))
-    .reduce((s, c) => s + (Number(c.amount) || 0), 0);
-  const otBase = Math.max(0, contractGross - excludedFromOt);
+  // Per-resource OT basis: the contract resource editor lets the user pick
+  // exactly which wage components feed overtime (includeInOt). When at least
+  // one component is explicitly selected we use that selection; otherwise we
+  // fall back to the legacy basis (full contract gross minus uniform).
+  const otSelected = resource.components.filter((c) => c.includeInOt === true);
+  let otBase: number;
+  if (otSelected.length > 0) {
+    otBase = Math.max(
+      0,
+      otSelected.reduce((s, c) => s + (Number(c.amount) || 0), 0),
+    );
+  } else {
+    const excludedFromOt = resource.components
+      .filter((c) => /\buniform\b/i.test(canonicalComponentName(c.name)))
+      .reduce((s, c) => s + (Number(c.amount) || 0), 0);
+    otBase = Math.max(0, contractGross - excludedFromOt);
+  }
+
   const perDutyOt = otBase / OT_DIVISOR;
   const otAmount = round2(perDutyOt * totals.otDays);
   const otDuties = totals.otDays;
