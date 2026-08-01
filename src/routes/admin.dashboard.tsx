@@ -36,6 +36,12 @@ import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
 import { WorkforceCoverageCard } from "@/components/WorkforceCoverage";
+import {
+  PayrollCoverageCard,
+  InvoiceCoverageCard,
+  ProfitabilityCard,
+  type UnitFinanceRow,
+} from "@/components/FinanceCoverage";
 
 
 function PeopleInsightsSection({ compact }: { compact?: boolean }) {
@@ -556,6 +562,20 @@ function DashboardPage() {
   }
 
 
+  const financeRows: UnitFinanceRow[] = (data?.pnlRows ?? []).map((r) => ({
+    unit_id: r.unit_id,
+    unit_code: r.unit_code,
+    unit_name: r.unit_name,
+    customer_name: r.customer_name,
+    internal: r.internal,
+    committed_strength: r.committed_strength,
+    actual_strength: r.actual_strength,
+    committed_payroll: r.committed_payroll,
+    actual_payroll: r.payroll_cost,
+    committed_invoice: r.contract_value,
+    actual_invoice: r.invoice_amount,
+  }));
+
   const insightsCharts = (() => {
         if (isLoading || !data) return null;
         const showInvoiceChart = can("invoice") && data.pnlRows.length > 0;
@@ -612,7 +632,7 @@ function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{insightsCharts}</>}>
+      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{(can("payroll") || can("invoice")) && <ProfitabilityCard rows={financeRows} />}{insightsCharts}</>}>
 
       <PageHeader
         title="Dashboard"
