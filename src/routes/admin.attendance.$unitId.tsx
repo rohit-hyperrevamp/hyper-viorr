@@ -2589,7 +2589,7 @@ function MusterRollPage() {
                         {mr.reliever && !mr.vacant && (
                           <span
                             className="ml-1 font-semibold text-violet-700"
-                            title="Reliever line"
+                            title="Reliever (stand-in) line — tracked as overtime only"
                           >
                             (R)
                           </span>
