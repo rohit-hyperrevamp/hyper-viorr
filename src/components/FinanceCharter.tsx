@@ -281,6 +281,8 @@ export function FinanceCharter({
           otDays: 0,
           invoiceAmount: 0,
           payrollAmount: 0,
+          deductionAmount: 0,
+          netPayrollAmount: 0,
         };
         bucket.set(e.candidate_id, person);
       }
@@ -295,8 +297,11 @@ export function FinanceCharter({
       if (rate) {
         person.invoiceAmount += (rate.billRate / periodDays) * payable;
         person.payrollAmount += (rate.grossRate / periodDays) * payable;
+        person.deductionAmount += (rate.deductionRate / periodDays) * payable;
+        person.netPayrollAmount = Math.max(0, person.payrollAmount - person.deductionAmount);
       }
     }
+
     return out;
   }, [entriesQ.data, financeQ.data, codeMap, nameById, periodsByUnit]);
 
