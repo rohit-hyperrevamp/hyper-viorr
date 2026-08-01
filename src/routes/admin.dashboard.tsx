@@ -77,7 +77,10 @@ type PnLRow = {
   payroll_cost: number;
   variance: number;
   variance_pct: number;
+  /** Internal (own-company) unit: cost centre, never billed to a customer. */
+  internal: boolean;
 };
+
 
 function DashboardPage() {
   const now = new Date();
@@ -140,7 +143,8 @@ function DashboardPage() {
         supabase.from("attendance_sheets" as never).select("status").lte("period_start", monthEnd).gte("period_end", monthStart),
         supabase.from("payroll_runs" as never).select("status").lte("period_start", monthEnd).gte("period_end", monthStart),
         supabase.from("client_contracts")
-          .select("id, unit_id, status, start_date, end_date")
+          .select("id, unit_id, status, start_date, end_date, is_internal")
+
           .eq("status", "active")
           .lte("start_date", monthEnd)
           .or(`end_date.is.null,end_date.gte.${monthStart}`),
@@ -172,11 +176,17 @@ function DashboardPage() {
       // we compute T-Days from attendance, then scale the contract resource by
       // earnedGross/contractGross. Invoice billable = earnedGross + employer
       // contributions (what the customer is billed). Payroll cost = the same
-      // plus benefits (extra employee outflow the agency absorbs).
+      // plus the scaled benefits the agency pays on top.
+      //
+      // Internal contracts (own offices / non-billable staff) are a pure cost
+      // centre: they contribute payroll cost but never contract value or
+      // invoice revenue, otherwise the P&L overstates both.
       const activeContracts = (contractsForPnl ?? []) as Array<{
         id: string;
         unit_id: string | null;
+        is_internal: boolean | null;
       }>;
+
       const contractIds = activeContracts.map((c) => c.id);
       const unitIdsInScope = Array.from(
         new Set(activeContracts.map((c) => c.unit_id).filter((v): v is string => !!v)),
@@ -355,15 +365,19 @@ function DashboardPage() {
         const u = unitsById.get(contract.unit_id);
         if (!u) continue;
         const resMap = resByContractDesig.get(contract.id) ?? new Map();
+        const isInternal = contract.is_internal === true;
 
         // Contract value reference: full-month projected per resource × quantity.
         // Mirrors Invoice module's projected (components + employer contributions),
-        // multiplied by configured headcount.
+        // multiplied by configured headcount. Internal contracts are not revenue.
         let contractValue = 0;
-        for (const r of resMap.values()) {
-          const qty = Number(r.quantity) || 0;
-          contractValue += qty * (sumArr(r.components) + sumArr(r.employer_contributions));
+        if (!isInternal) {
+          for (const r of resMap.values()) {
+            const qty = Number(r.quantity) || 0;
+            contractValue += qty * (sumArr(r.components) + sumArr(r.employer_contributions));
+          }
         }
+
 
         // Actuals from attendance.
         const unitRoster = rosterByUnit.get(contract.unit_id) ?? new Set<string>();
@@ -404,12 +418,17 @@ function DashboardPage() {
             })) as AttendanceEntryLike[];
           const totals = computeAttendanceTotals(p.candidateId, periodDates, lineEntries, codes);
           const wages = computeWages(totals, toResource(resRow), periodDates.length);
-          // Invoice billable mirrors Invoice module's "Actual total":
-          invoiceAmount += wages.employerCost;
-          // Payroll cost = same outflow + scaled benefits (paid to employee, not billed).
-          const scaledBenefits =
-            sumArr(resRow.benefits) * (wages.ratio || 0);
-          payrollCost += wages.employerCost + scaledBenefits;
+          // Invoice billable mirrors Invoice module's "Actual total"
+          // (earned gross + earned employer contributions). Internal units
+          // are never billed to a customer, so they earn no invoice value.
+          if (!isInternal) invoiceAmount += wages.employerCost;
+          // Payroll cost = same outflow + benefits already scaled by the wage
+          // engine (per-duty benefits are not a flat ratio, so use its output).
+          const earnedBenefits = wages.benefits.reduce(
+            (s, b) => s + (Number(b.amount) || 0),
+            0,
+          );
+          payrollCost += wages.employerCost + earnedBenefits;
         }
 
         const variance = invoiceAmount - payrollCost;
@@ -419,6 +438,7 @@ function DashboardPage() {
           existing.contract_value += contractValue;
           existing.invoice_amount += invoiceAmount;
           existing.payroll_cost += payrollCost;
+          existing.internal = existing.internal && isInternal;
           existing.variance = existing.invoice_amount - existing.payroll_cost;
           existing.variance_pct = existing.invoice_amount > 0
             ? (existing.variance / existing.invoice_amount) * 100
@@ -434,11 +454,13 @@ function DashboardPage() {
             payroll_cost: payrollCost,
             variance,
             variance_pct: variancePct,
+            internal: isInternal,
           });
         }
       }
       void emptyUuid;
       const pnlRows = Array.from(pnlByUnit.values()).sort((a, b) => b.contract_value - a.contract_value);
+
       const pnlTotals = pnlRows.reduce(
         (s, r) => ({ contract: s.contract + r.contract_value, invoice: s.invoice + r.invoice_amount, payroll: s.payroll + r.payroll_cost }),
         { contract: 0, invoice: 0, payroll: 0 },
@@ -523,7 +545,7 @@ function DashboardPage() {
       <div className="flex flex-col gap-3 border-b border-border/50 px-6 py-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl space-y-1">
           <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">P&amp;L — {MONTH_NAMES[month]} {year}</h2>
-          <p className="text-[13px] leading-relaxed text-muted-foreground">Invoice &amp; payroll are computed from attendance. Contract value is the full-month projection. Variance = invoice − payroll cost.</p>
+          <p className="text-[13px] leading-relaxed text-muted-foreground">Invoice &amp; payroll are computed from approved attendance for this cycle. Contract value is the full-month projection for billable client contracts. Internal (own-office) units are cost only — they carry payroll but no contract or invoice value. Variance = invoice − payroll cost.</p>
         </div>
         {data && (
           <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[13px] sm:grid-cols-4 lg:flex lg:flex-row lg:items-center lg:gap-6">
@@ -565,23 +587,42 @@ function DashboardPage() {
             ) : (
               (data?.pnlRows ?? []).map((r) => {
                 const pos = r.variance >= 0;
+                // No attendance billed and no payroll cost → the cycle simply
+                // has no activity. Showing a green "₹0 (0.0%)" profit chip in
+                // that case reads as a real (zero-margin) result, so idle units
+                // get a neutral chip instead.
+                const idle = r.invoice_amount === 0 && r.payroll_cost === 0;
                 return (
                   <tr key={r.unit_id} className="group">
                     <td>
-                      <div className="text-[14px] font-semibold leading-tight text-foreground">{r.unit_name || r.unit_code}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[14px] font-semibold leading-tight text-foreground">{r.unit_name || r.unit_code}</span>
+                        {r.internal && (
+                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Internal
+                          </span>
+                        )}
+                      </div>
                       <div className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">{r.unit_code}</div>
                     </td>
                     <td className="text-[13px] text-muted-foreground">{r.customer_name}</td>
-                    <td className="num text-right text-muted-foreground">{fmtINR(r.contract_value)}</td>
-                    <td className="num text-right text-foreground">{fmtINR(r.invoice_amount)}</td>
+                    <td className="num text-right text-muted-foreground">{r.internal ? "—" : fmtINR(r.contract_value)}</td>
+                    <td className="num text-right text-foreground">{r.internal ? "—" : fmtINR(r.invoice_amount)}</td>
                     <td className="num text-right text-foreground">{fmtINR(r.payroll_cost)}</td>
                     <td className="text-right">
-                      <span className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold num ring-1 ring-inset ${pos ? "bg-emerald-50 text-emerald-700 ring-emerald-200/70" : "bg-rose-50 text-rose-700 ring-rose-200/70"}`}>
-                        {pos ? <TrendingUp className="h-3 w-3 shrink-0" /> : <TrendingDown className="h-3 w-3 shrink-0" />}
-                        <span>{fmtINR(r.variance)}</span>
-                        <span className="opacity-60">({r.variance_pct.toFixed(1)}%)</span>
-                      </span>
+                      {idle ? (
+                        <span className="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-muted px-2.5 py-1 text-[12px] font-semibold text-muted-foreground ring-1 ring-inset ring-border">
+                          No activity
+                        </span>
+                      ) : (
+                        <span className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold num ring-1 ring-inset ${pos ? "bg-emerald-50 text-emerald-700 ring-emerald-200/70" : "bg-rose-50 text-rose-700 ring-rose-200/70"}`}>
+                          {pos ? <TrendingUp className="h-3 w-3 shrink-0" /> : <TrendingDown className="h-3 w-3 shrink-0" />}
+                          <span>{fmtINR(r.variance)}</span>
+                          <span className="opacity-60">({r.invoice_amount > 0 ? `${r.variance_pct.toFixed(1)}%` : "n/a"})</span>
+                        </span>
+                      )}
                     </td>
+
                     <td className="text-right">
                       <Link
                         to="/admin/payroll/$unitId"
