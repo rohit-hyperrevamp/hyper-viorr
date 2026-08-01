@@ -644,7 +644,6 @@ function PayrollUnitPage() {
   // 26 days billed on a 26-day base → exactly the contract amount.
   // 28 days billed on a 26-day base → contract / 26 × 28.
   // ---------------------------------------------------------------------
-  const UNIT_DUTY_HOURS = 8;
 
   const invoiceMathFor = (r: (typeof rows)[number]) => {
     const contracted = r.resource
@@ -970,7 +969,7 @@ function PayrollUnitPage() {
             .map((r) => ({
               id: r.id,
               description: `${r.name} · ${r.designation}`,
-              qtyLabel: `${Math.round(r.totals.tDays * 100) / 100} T days`,
+              qtyLabel: `${invoiceMathFor(r).billedDays} of ${invoiceMathFor(r).payrollDays} days`,
               amount: billableFor(r),
             })),
           subtotal: totals.actualTotal,
@@ -1021,10 +1020,10 @@ function PayrollUnitPage() {
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="T Days" value={String(Math.round(totals.tDays * 100) / 100)} />
-          <Stat label="OT hours" value={String(Math.round(totals.otHours * 100) / 100)} />
-          <Stat label="Projected total" value={fmtINR(totals.projectedTotal)} />
-          <Stat label="Actual billable total" value={fmtINR(totals.actualTotal)} tone="emerald" />
+          <Stat label="Days billed" value={String(Math.round(totals.tDays * 100) / 100)} />
+          <Stat label="Payroll days (sum)" value={String(Math.round(totals.payrollDays * 100) / 100)} />
+          <Stat label="Contracted invoice" value={fmtINR(totals.projectedTotal)} />
+          <Stat label="Actual invoice" value={fmtINR(totals.actualTotal)} tone="emerald" />
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -1052,13 +1051,12 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium">Emp ID</th>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
-                <th className="px-4 py-3 text-right font-medium">T Days</th>
-                <th className="px-4 py-3 text-right font-medium">OT Hrs</th>
-                <th className="px-4 py-3 text-right font-medium" title={`Unit of billing based on billing mode "${billingMode}"`}>Qty</th>
-                <th className="px-4 py-3 text-right font-medium" title="Per-unit rate = actual billable / Qty">Rate</th>
-                <th className="px-4 py-3 text-right font-medium" title="Full billable total — what would be invoiced for full attendance">Projected total</th>
-                <th className="px-4 py-3 text-right font-medium" title="Rate × Qty — actual billable total based on attendance">Actual total</th>
-                <th className="px-4 py-3 text-right font-medium" title="Projected − Actual (not billable due to absence)">Shortfall</th>
+                <th className="px-4 py-3 text-right font-medium" title="Days actually billed (present + paid holidays + other paid + OT days)">Days billed</th>
+                <th className="px-4 py-3 text-right font-medium" title="Payroll days for this contract in this period">Payroll days</th>
+                <th className="px-4 py-3 text-right font-medium" title="Contracted invoice ÷ payroll days">Per day</th>
+                <th className="px-4 py-3 text-right font-medium" title="Full contract value for this designation">Contracted invoice</th>
+                <th className="px-4 py-3 text-right font-medium" title="Contracted ÷ payroll days × days billed">Actual invoice</th>
+                <th className="px-4 py-3 text-right font-medium" title="Actual − Contracted">Variance</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
@@ -1070,21 +1068,7 @@ function PayrollUnitPage() {
                 <tr><td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
               ) : rows.map((r) => {
                 const isHighlighted = highlightCandidate === r.id;
-                const projTotal = r.resource
-                  ? r.resource.components.reduce((s, c) => s + (Number(c.amount) || 0), 0) +
-                    r.resource.employerContributions.reduce((s, c) => s + contractTotalAmount(c), 0)
-                  : 0;
-                const actualTotal = billableFor(r);
-                const shortfall = r.wages ? Math.round((projTotal - actualTotal) * 100) / 100 : 0;
-                const baseDays = r.wages?.baseDays || 30;
-                const paidDays = r.totals.pDays + r.totals.phDays + r.totals.otherPaidDays;
-                let qty = 0;
-                let qtyLabel = "";
-                if (billingMode === "man_days") { qty = r.totals.tDays; qtyLabel = "days"; }
-                else if (billingMode === "man_hours") { qty = paidDays * UNIT_DUTY_HOURS + r.totals.otHours; qtyLabel = "hrs"; }
-                else if (billingMode === "man_months") { qty = baseDays > 0 ? Math.min(1, paidDays / baseDays) : 0; qtyLabel = "mo"; }
-                else { qty = 1; qtyLabel = "lump"; }
-                const rate = qty > 0 && r.wages ? actualTotal / qty : 0;
+                const m = invoiceMathFor(r);
                 return (
                 <tr
                   key={r.rowKey}
@@ -1094,13 +1078,12 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 font-mono text-xs">{r.employeeCode || "—"}</td>
                   <td className="px-4 py-3 font-medium">{r.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">{r.designation}</td>
-                  <td className="px-4 py-3 text-right">{r.totals.tDays}</td>
-                  <td className="px-4 py-3 text-right">{r.totals.otHours}</td>
-                  <td className="px-4 py-3 text-right text-xs text-muted-foreground">{r.wages ? `${Math.round(qty * 100) / 100} ${qtyLabel}` : "—"}</td>
-                  <td className="px-4 py-3 text-right text-xs">{r.wages && qty > 0 ? fmtINR(Math.round(rate * 100) / 100) : "—"}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">{r.wages ? fmtINR(projTotal) : <span className="text-xs text-amber-600">no contract</span>}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-emerald-700">{r.wages ? fmtINR(actualTotal) : "—"}</td>
-                  <td className={`px-4 py-3 text-right ${shortfall > 0 ? "text-rose-600" : "text-muted-foreground"}`}>{r.wages ? (shortfall > 0 ? `− ${fmtINR(shortfall)}` : fmtINR(0)) : "—"}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums">{m.billedDays}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{m.payrollDays}</td>
+                  <td className="px-4 py-3 text-right text-xs tabular-nums">{r.wages ? fmtINR(m.perDay) : "—"}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{r.resource ? fmtINR(m.contracted) : <span className="text-xs text-amber-600">no contract</span>}</td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-emerald-700">{r.wages ? fmtINR(m.actual) : "—"}</td>
+                  <td className={`px-4 py-3 text-right tabular-nums ${m.variance > 0 ? "text-emerald-700" : m.variance < 0 ? "text-rose-600" : "text-muted-foreground"}`}>{r.wages ? (m.variance === 0 ? fmtINR(0) : `${m.variance > 0 ? "+" : "−"} ${fmtINR(Math.abs(m.variance))}`) : "—"}</td>
                 </tr>
                 );
               })}
