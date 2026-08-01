@@ -169,25 +169,14 @@ export function IdCardEditor({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="grid gap-1.5">
-              <Label className="text-xs">Front logo height (px)</Label>
-              <Input
-                type="number"
-                value={spec.frontLogoHeight}
-                onChange={(e) => set({ frontLogoHeight: Number(e.target.value) || 0 })}
-                className="h-8 text-xs"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label className="text-xs">Back logo height (px)</Label>
-              <Input
-                type="number"
-                value={spec.backLogoHeight}
-                onChange={(e) => set({ backLogoHeight: Number(e.target.value) || 0 })}
-                className="h-8 text-xs"
-              />
-            </div>
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Logo height (px)</Label>
+            <Input
+              type="number"
+              value={spec.frontLogoHeight}
+              onChange={(e) => set({ frontLogoHeight: Number(e.target.value) || 0 })}
+              className="h-8 text-xs"
+            />
           </div>
         </Section>
 
