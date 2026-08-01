@@ -313,6 +313,7 @@ export function AttendanceCharter({
           projectedHours,
           actualHours,
           otHours,
+          status,
           mtdPct: pct(actualHours, projectedHours),
         };
       })
