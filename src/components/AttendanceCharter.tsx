@@ -10,6 +10,13 @@ import { cn } from "@/lib/utils";
 import { useWorkforceCoverage, type UnitCoverage } from "@/components/WorkforceCoverage";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchShiftHoursMap, shiftHoursFor, DEFAULT_SHIFT_HOURS } from "@/lib/shift-hours";
+import {
+  fetchPeriodStatuses,
+  periodStatusQueryKey,
+  useAttendanceMoneyRealtime,
+  type PeriodStatus,
+} from "@/lib/period-status";
+import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
 
 // ---------------------------------------------------------------------------
 // Attendance charter — the default attendance landing view.
