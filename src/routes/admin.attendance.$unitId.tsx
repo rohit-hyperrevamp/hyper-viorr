@@ -2535,7 +2535,9 @@ function MusterRollPage() {
                         const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
                         const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant);
                         const entry = entryMap.get(`${mr.key}|${date}`);
-                        const hrs = Number(entry?.ot_hours) || 0;
+                        const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null);
+                        const otDaysCell = Number(entry?.ot_hours) || 0;
+                        const hrs = Math.round(otDaysCell * rowShift * 100) / 100;
                         const isSelected = otDragRowKey === mr.key && otSelectedDates.has(date);
                         return (
                           <td
