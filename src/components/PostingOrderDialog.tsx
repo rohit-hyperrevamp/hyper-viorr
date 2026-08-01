@@ -20,12 +20,12 @@ import { logActivity } from "@/lib/activity-log";
 import { sendPostingOrderEmail } from "@/lib/posting-order.functions";
 import {
   EMPTY_POSTING_DETAILS,
-  POSTING_ORDER_EMAIL_SUBJECT,
   buildDocumentPageHtml,
   buildPlaceholderMap,
   fetchActiveTemplate,
   fetchCandidateForRender,
   isHtmlBody,
+  parsePostingOrderConfig,
   renderTemplate,
   withPostingPlaceholders,
   type PostingDetails,
@@ -70,13 +70,11 @@ export function PostingOrderDialog({
     queryKey: ["posting-order-context", candidateId],
     enabled: open,
     queryFn: async () => {
-      const [candidate, doc, email, wa] = await Promise.all([
+      const [candidate, doc] = await Promise.all([
         fetchCandidateForRender(candidateId),
         fetchActiveTemplate("posting_order"),
-        fetchActiveTemplate("posting_order_email"),
-        fetchActiveTemplate("posting_order_whatsapp"),
       ]);
-      return { candidate, doc, email, wa };
+      return { candidate, doc };
     },
   });
 
@@ -106,14 +104,15 @@ export function PostingOrderDialog({
     if (!data?.candidate) return { doc: "", email: "", wa: "", subject: "" };
     const base = (html: boolean) =>
       withPostingPlaceholders(buildPlaceholderMap(data.candidate, html), posting);
-    const docBody = data.doc?.body ?? "";
-    const emailBody = data.email?.body ?? "";
-    const waBody = data.wa?.body ?? "";
+    const config = parsePostingOrderConfig(data.doc?.body ?? "");
+    const docBody = config.document;
+    const emailBody = config.emailBody;
+    const waBody = config.whatsappBody;
     return {
       doc: docBody ? renderTemplate(docBody, base(isHtmlBody(docBody))) : "",
       email: emailBody ? renderTemplate(emailBody, base(isHtmlBody(emailBody))) : "",
       wa: waBody ? renderTemplate(waBody, base(false)) : "",
-      subject: renderTemplate(POSTING_ORDER_EMAIL_SUBJECT, base(false)),
+      subject: renderTemplate(config.emailSubject, base(false)),
     };
   }, [data, posting]);
 
@@ -121,7 +120,7 @@ export function PostingOrderDialog({
 
   async function send() {
     if (!rendered.email) {
-      toast.error("No active Posting Order email template — create one in Company Documents.");
+      toast.error("The Posting Order email content is empty. Update it in Company Documents.");
       return;
     }
     if (!employeeEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(employeeEmail)) {
@@ -219,7 +218,7 @@ export function PostingOrderDialog({
                 {rendered.email ? (
                   <DocumentPreview body={rendered.email} className="max-h-[58vh]" />
                 ) : (
-                  <Empty label="Posting Order — Email Template" />
+                  <Empty label="Posting Order email" />
                 )}
               </TabsContent>
               <TabsContent value="wa">
@@ -243,7 +242,7 @@ export function PostingOrderDialog({
                     </p>
                   </div>
                 ) : (
-                  <Empty label="Posting Order — WhatsApp Template" />
+                  <Empty label="Posting Order WhatsApp message" />
                 )}
               </TabsContent>
             </Tabs>
