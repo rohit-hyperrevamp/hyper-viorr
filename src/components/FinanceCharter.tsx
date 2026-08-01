@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Download, Gauge, IndianRupee, Receipt, Search, Wallet } from "lucide-react";
+import { toast } from "sonner";
+import { ChevronDown, Download, Gauge, IndianRupee, Lock, LockOpen, Receipt, Search, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,17 @@ import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchUnitFinance, rateFor, fmtMoney, fmtMoneyCompact, type UnitFinance } from "@/lib/contract-finance";
+import {
+  fetchPeriodStatuses,
+  periodStatusQueryKey,
+  setMoneyStatus,
+  useAttendanceMoneyRealtime,
+  type PeriodStatus,
+} from "@/lib/period-status";
+import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
+import { useCurrentPermissions } from "@/lib/rbac";
 import type { CharterUnitRow } from "@/lib/charter-units";
+
 
 // ---------------------------------------------------------------------------
 // Finance charter — the shared Invoice / Payroll landing view.
@@ -156,8 +167,18 @@ export function FinanceCharter({
   onQueryChange: (v: string) => void;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const { start, mtdEnd, elapsedDays, daysInMonth } = useMemo(() => monthBounds(year, monthIdx), [year, monthIdx]);
+  const { start, end, mtdEnd, elapsedDays, daysInMonth } = useMemo(
+    () => monthBounds(year, monthIdx),
+    [year, monthIdx],
+  );
   const unitIds = useMemo(() => units.map((u) => u.id), [units]);
+  const qc = useQueryClient();
+  const { can, isSuperAdmin } = useCurrentPermissions();
+  const canProcess = isSuperAdmin || can(mode === "invoice" ? "invoice" : "payroll", "approve");
+
+  // Attendance edits (including overtime) push straight through to these
+  // numbers — no refresh, no stale cache.
+  useAttendanceMoneyRealtime();
 
   const codesQ = useQuery({
     queryKey: ["attendance-codes-charter"],
@@ -178,8 +199,37 @@ export function FinanceCharter({
   const entriesQ = useQuery({
     queryKey: ["finance-charter-entries", unitIds.join(","), start, mtdEnd],
     enabled: unitIds.length > 0,
+    staleTime: 0,
     queryFn: () => fetchAttendanceEntriesForPeriod({ unitIds, start, end: mtdEnd, includeUnitId: true }),
   });
+
+  const statusQ = useQuery({
+    queryKey: periodStatusQueryKey(unitIds, start, end),
+    enabled: unitIds.length > 0,
+    staleTime: 0,
+    queryFn: () => fetchPeriodStatuses(unitIds, start, end),
+  });
+
+  const processMutation = useMutation({
+    mutationFn: (vars: { unitId: string; next: "processed" | "open" }) =>
+      setMoneyStatus({
+        unitId: vars.unitId,
+        periodStart: start,
+        periodEnd: end,
+        kind: mode,
+        next: vars.next,
+      }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: [periodStatusQueryKey(unitIds, start, end)[0]] });
+      toast.success(
+        vars.next === "processed"
+          ? `${mode === "invoice" ? "Invoice" : "Payroll"} marked processed`
+          : `${mode === "invoice" ? "Invoice" : "Payroll"} reopened`,
+      );
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not update status"),
+  });
+
 
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -243,6 +293,14 @@ export function FinanceCharter({
         const contractedMtd = (monthlyContracted / daysInMonth) * elapsedDays;
         const invoiceAmount = people.reduce((s, p) => s + p.invoiceAmount, 0);
         const payrollAmount = people.reduce((s, p) => s + p.payrollAmount, 0);
+        const status: PeriodStatus = statusQ.data?.get(u.id) ?? {
+          unitId: u.id,
+          attendance: "none",
+          handedOff: false,
+          payroll: "open",
+          invoice: "open",
+          runId: null,
+        };
         return {
           unit: u,
           contractCode: finance?.contractCode ?? u.contract_codes[0] ?? "—",
@@ -254,6 +312,7 @@ export function FinanceCharter({
           contractedMtd,
           invoiceAmount,
           payrollAmount,
+          status,
           margin: invoiceAmount - payrollAmount,
           marginPct: invoiceAmount > 0 ? Math.round(((invoiceAmount - payrollAmount) / invoiceAmount) * 100) : 0,
           realisationPct: pct(invoiceAmount, contractedMtd),
@@ -267,7 +326,8 @@ export function FinanceCharter({
           .some((v) => v.toLowerCase().includes(q));
       })
       .sort((a, b) => a.unit.name.localeCompare(b.unit.name));
-  }, [units, financeQ.data, statsByUnit, daysInMonth, elapsedDays, query]);
+  }, [units, financeQ.data, statsByUnit, statusQ.data, daysInMonth, elapsedDays, query]);
+
 
   const totals = useMemo(() => {
     const monthlyContracted = rows.reduce((s, r) => s + r.monthlyContracted, 0);
@@ -391,10 +451,13 @@ export function FinanceCharter({
                         <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {r.actual}/{r.committed} deployed
                         </span>
+                        <AttendanceStatusBadge status={r.status.attendance} />
+                        <MoneyStatusBadge kind={mode} status={mode === "invoice" ? r.status.invoice : r.status.payroll} />
                       </div>
                       <div className="truncate text-xs text-muted-foreground">
                         {r.unit.customer_name} · {r.contractCode}
                       </div>
+
                       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] tabular-nums text-muted-foreground sm:hidden">
                         <span className="whitespace-nowrap">Inv {fmtMoneyCompact(r.invoiceAmount)}</span>
                         <span>·</span>
@@ -433,7 +496,57 @@ export function FinanceCharter({
 
                 {isOpen && (
                   <div className="space-y-4 border-t border-border/60 bg-muted/25 px-3 py-3 sm:px-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/70 px-3 py-2">
+                      <div className="min-w-0 text-[11px] leading-relaxed text-muted-foreground">
+                        {r.status.attendance !== "approved" ? (
+                          <>
+                            <span className="font-semibold text-destructive">
+                              {mode === "invoice" ? "Invoice" : "Payroll"} is open.
+                            </span>{" "}
+                            Attendance for this period is{" "}
+                            {r.status.attendance === "submitted" ? "awaiting approval" : "still being marked"} — values
+                            keep moving until it is approved and locked.
+                          </>
+                        ) : (mode === "invoice" ? r.status.invoice : r.status.payroll) === "processed" ? (
+                          <>
+                            <span className="font-semibold text-emerald-600">Processed and locked.</span> Attendance is
+                            approved and this period has been run. An admin can reopen it if something must change.
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-semibold text-amber-600">Ready to process.</span> Attendance is
+                            approved and locked — the {mode === "invoice" ? "invoice" : "payroll"} can be run.
+                          </>
+                        )}
+                      </div>
+                      {canProcess && (
+                        <div className="flex shrink-0 items-center gap-2">
+                          {(mode === "invoice" ? r.status.invoice : r.status.payroll) === "processed" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 rounded-xl"
+                              disabled={processMutation.isPending}
+                              onClick={() => processMutation.mutate({ unitId: r.unit.id, next: "open" })}
+                            >
+                              <LockOpen className="mr-1.5 h-3.5 w-3.5" /> Reopen
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="h-8 rounded-xl"
+                              disabled={processMutation.isPending || r.status.attendance !== "approved"}
+                              onClick={() => processMutation.mutate({ unitId: r.unit.id, next: "processed" })}
+                            >
+                              <Lock className="mr-1.5 h-3.5 w-3.5" /> Mark{" "}
+                              {mode === "invoice" ? "invoice" : "payroll"} processed
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     {r.rates.length > 0 && (
+
                       <div>
                         <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                           Contracted rate card

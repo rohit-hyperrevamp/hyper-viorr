@@ -10,6 +10,13 @@ import { cn } from "@/lib/utils";
 import { useWorkforceCoverage, type UnitCoverage } from "@/components/WorkforceCoverage";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchShiftHoursMap, shiftHoursFor, DEFAULT_SHIFT_HOURS } from "@/lib/shift-hours";
+import {
+  fetchPeriodStatuses,
+  periodStatusQueryKey,
+  useAttendanceMoneyRealtime,
+  type PeriodStatus,
+} from "@/lib/period-status";
+import { AttendanceStatusBadge, MoneyStatusBadge } from "@/components/PeriodStatusBadge";
 
 // ---------------------------------------------------------------------------
 // Attendance charter — the default attendance landing view.
@@ -184,8 +191,19 @@ export function AttendanceCharter({
   onQueryChange: (v: string) => void;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const { start, mtdEnd, elapsedDays } = useMemo(() => monthBounds(year, monthIdx), [year, monthIdx]);
+  const { start, end, mtdEnd, elapsedDays } = useMemo(() => monthBounds(year, monthIdx), [year, monthIdx]);
   const unitIds = useMemo(() => units.map((u) => u.id), [units]);
+
+  // Any attendance / OT edit anywhere refreshes this charter instantly.
+  useAttendanceMoneyRealtime();
+
+  const statusQ = useQuery({
+    queryKey: periodStatusQueryKey(unitIds, start, end),
+    enabled: unitIds.length > 0,
+    staleTime: 0,
+    queryFn: () => fetchPeriodStatuses(unitIds, start, end),
+  });
+
 
   const { data: coverage = [] } = useWorkforceCoverage();
   const coverageByUnit = useMemo(() => {
@@ -213,6 +231,7 @@ export function AttendanceCharter({
   const entriesQ = useQuery({
     queryKey: ["attendance-charter-entries", unitIds.join(","), start, mtdEnd],
     enabled: unitIds.length > 0,
+    staleTime: 0,
     queryFn: () => fetchAttendanceEntriesForPeriod({ unitIds, start, end: mtdEnd, includeUnitId: true }),
   });
 
@@ -276,6 +295,14 @@ export function AttendanceCharter({
         const projectedHours = headsForProjection * elapsedDays * unitShift;
         const actualHours = people.reduce((s, p) => s + p.actualHours, 0);
         const otHours = people.reduce((s, p) => s + p.otDays * p.shiftHours, 0);
+        const status: PeriodStatus = statusQ.data?.get(u.id) ?? {
+          unitId: u.id,
+          attendance: "none",
+          handedOff: false,
+          payroll: "open",
+          invoice: "open",
+          runId: null,
+        };
         return {
           unit: u,
           contractCode: cov?.contractCode ?? u.contract_codes[0] ?? "—",
@@ -287,6 +314,7 @@ export function AttendanceCharter({
           projectedHours,
           actualHours,
           otHours,
+          status,
           mtdPct: pct(actualHours, projectedHours),
         };
       })
@@ -298,7 +326,7 @@ export function AttendanceCharter({
           .some((v) => v.toLowerCase().includes(q));
       })
       .sort((a, b) => a.unit.name.localeCompare(b.unit.name));
-  }, [units, coverageByUnit, statsByUnit, shiftQ.data, elapsedDays, query]);
+  }, [units, coverageByUnit, statsByUnit, shiftQ.data, statusQ.data, elapsedDays, query]);
 
   const totals = useMemo(() => {
     const committed = rows.reduce((s, r) => s + r.committed, 0);
@@ -418,6 +446,9 @@ export function AttendanceCharter({
                         <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {r.unitShift}h shift
                         </span>
+                        <AttendanceStatusBadge status={r.status.attendance} />
+                        <MoneyStatusBadge kind="payroll" status={r.status.payroll} />
+                        <MoneyStatusBadge kind="invoice" status={r.status.invoice} />
                       </div>
                       <div className="truncate text-xs text-muted-foreground">
                         {r.unit.customer_name} · {r.contractCode}
