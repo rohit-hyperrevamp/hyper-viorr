@@ -1912,7 +1912,7 @@ function MusterRollPage() {
           {status === "approved" && canApprove && sentToPayroll && (
             <>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Sent for Payroll &amp; Invoice
+                <CheckCircle2 className="h-3.5 w-3.5" /> Approved — payroll &amp; invoice updated
               </span>
               <Button
                 size="sm"
