@@ -30,6 +30,8 @@ import {
 import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { attendanceCodeForShift, fetchShiftHoursMap, overtimeDaysForShift, shiftHoursFor } from "@/lib/shift-hours";
+import { resolvePayrollDayCount, type PayrollDayBaseLike } from "@/lib/payroll-days";
+
 import { cn } from "@/lib/utils";
 import { useCurrentPermissions } from "@/lib/rbac";
 
