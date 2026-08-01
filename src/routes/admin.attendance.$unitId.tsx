@@ -321,19 +321,34 @@ function MusterRollPage() {
         win = (winRow as Win | null) ?? null;
       }
 
-      let resources: Array<{ designationId: string; designationName: string }> = [];
+      let resources: Array<{ designationId: string; designationName: string; quantity: number }> = [];
       if (contractId) {
         const { data: r } = await supabase
           .from("contract_resources")
-          .select("designation_id")
-          .eq("contract_id", contractId);
-        const ids = Array.from(new Set((r ?? []).map((x) => x.designation_id).filter(Boolean))) as string[];
-        if (ids.length) {
+          .select("designation_id, quantity, sort_order")
+          .eq("contract_id", contractId)
+          .order("sort_order", { ascending: true });
+        const rows = (r ?? []).filter((x) => x.designation_id) as Array<{
+          designation_id: string;
+          quantity: number | null;
+        }>;
+        const qtyById = new Map<string, number>();
+        const orderedIds: string[] = [];
+        for (const row of rows) {
+          if (!qtyById.has(row.designation_id)) orderedIds.push(row.designation_id);
+          qtyById.set(row.designation_id, (qtyById.get(row.designation_id) ?? 0) + Math.max(1, Number(row.quantity) || 1));
+        }
+        if (orderedIds.length) {
           const { data: ds } = await supabase
             .from("designations")
             .select("id, name")
-            .in("id", ids);
-          resources = (ds ?? []).map((d) => ({ designationId: d.id, designationName: d.name }));
+            .in("id", orderedIds);
+          const nameById = new Map((ds ?? []).map((d) => [d.id, d.name]));
+          resources = orderedIds.map((id) => ({
+            designationId: id,
+            designationName: nameById.get(id) ?? "—",
+            quantity: qtyById.get(id) ?? 1,
+          }));
         }
       }
       return { window: win, startDate, contractId, resources };
@@ -803,6 +818,8 @@ function MusterRollPage() {
       designationName: string;
       emp: NonNullable<typeof employees>[number];
       isPrimary: boolean;
+      /** Contracted designation slot with nobody mapped yet — read-only placeholder. */
+      vacant?: boolean;
     }> = [];
     const seen = new Set<string>();
     const desigNameMap = new Map(contractDesignations.map((d) => [d.designationId, d.designationName]));
@@ -863,7 +880,49 @@ function MusterRollPage() {
         });
       }
     }
-    return out;
+
+    // Contracted designations always appear on the muster, even with nobody
+    // mapped. For each designation we render `quantity` slots; slots already
+    // filled by mapped employees are subtracted, the remainder show as
+    // read-only vacant lines (no employee name / code / DOJ).
+    const filledByDesignation = new Map<string, number>();
+    for (const r of out) {
+      if (!r.designationId) continue;
+      filledByDesignation.set(r.designationId, (filledByDesignation.get(r.designationId) ?? 0) + 1);
+    }
+    for (const d of contractDesignations) {
+      const filled = filledByDesignation.get(d.designationId) ?? 0;
+      const vacantCount = Math.max(0, (d.quantity ?? 1) - filled);
+      for (let i = 0; i < vacantCount; i += 1) {
+        out.push({
+          key: `vacant|${d.designationId}|${i}`,
+          candidateId: "",
+          designationId: d.designationId,
+          designationName: d.designationName,
+          emp: {
+            id: "",
+            full_name: "",
+            employee_code: "",
+            designation_id: d.designationId,
+            designation: d.designationName,
+            doj: null,
+          } as unknown as NonNullable<typeof employees>[number],
+          isPrimary: true,
+          vacant: true,
+        });
+      }
+    }
+
+    // Group the sheet by designation so vacant slots sit with their peers.
+    return out
+      .map((r, i) => ({ r, i }))
+      .sort(
+        (a, b) =>
+          a.r.designationName.localeCompare(b.r.designationName) ||
+          Number(a.r.vacant ?? false) - Number(b.r.vacant ?? false) ||
+          a.i - b.i,
+      )
+      .map((x) => x.r);
   }, [employees, entries, extraRows, contractDesignations]);
 
   // Client-side filter: name / employee_code / designation substring match.
@@ -2206,7 +2265,9 @@ function MusterRollPage() {
                       <td className={cn(cellBase, "p-1")} rowSpan={2}>{mr.emp.employee_code || "—"}</td>
                       <td className={cn(cellBase, "p-1 text-left")} rowSpan={2}>
                         <div className="flex items-center gap-1.5">
-                          <span>{mr.emp.full_name || "—"}</span>
+                          <span className={cn(mr.vacant && "italic text-slate-400")}>
+                            {mr.vacant ? "Unassigned" : mr.emp.full_name || "—"}
+                          </span>
                           {!mr.isPrimary && (
                             <button
                               type="button"
@@ -2268,14 +2329,16 @@ function MusterRollPage() {
                         const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
                         const entry = entryMap.get(`${mr.key}|${date}`);
                         // Implicit "A" for on/after DOJ, on/before today, when no entry exists.
-                        const displayCode = entry?.code
+                        const displayCode = mr.vacant
+                          ? ""
+                          : entry?.code
                           ? entry.code
                           : (!isFuture && !beforeDoj ? "A" : "");
                         const codeMeta = displayCode ? codeMap.get(displayCode) : undefined;
                         const isImplicitAbsent = !entry?.code && displayCode === "A";
                         const isSelected = dragRowKey === mr.key && selectedDates.has(date);
                         const isUncertain = !entry?.code && uncertainCells.has(`${mr.key}|${date}`);
-                        const isBlocked = isFuture || beforeDoj;
+                        const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant);
                         return (
                           <td
                             key={`a-${cell.date}`}
@@ -2362,7 +2425,7 @@ function MusterRollPage() {
                         const date = cell.date;
                         const isFuture = date > todayStr;
                         const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
-                        const isBlocked = isFuture || beforeDoj;
+                        const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant);
                         const entry = entryMap.get(`${mr.key}|${date}`);
                         const hrs = Number(entry?.ot_hours) || 0;
                         const isSelected = otDragRowKey === mr.key && otSelectedDates.has(date);
