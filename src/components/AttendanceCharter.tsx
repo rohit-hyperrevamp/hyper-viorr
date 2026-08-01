@@ -445,6 +445,9 @@ export function AttendanceCharter({
                         <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {r.unitShift}h shift
                         </span>
+                        <AttendanceStatusBadge status={r.status.attendance} />
+                        <MoneyStatusBadge kind="payroll" status={r.status.payroll} />
+                        <MoneyStatusBadge kind="invoice" status={r.status.invoice} />
                       </div>
                       <div className="truncate text-xs text-muted-foreground">
                         {r.unit.customer_name} · {r.contractCode}
