@@ -1043,7 +1043,7 @@ export function buildDocumentPageHtml(body: string): string {
   if (isIdCardBody(body)) {
     return `<style>${ID_CARD_CSS}</style>${expandIdCardBody(body)}`;
   }
-  return `<style>${DOCUMENT_PAGE_CSS}</style><div class="govdoc">${body}</div>`;
+  return `<style>${DOCUMENT_PAGE_CSS}${POSTING_ORDER_CSS}</style><div class="govdoc">${body}</div>`;
 }
 
 /* ------------------------------------------------------------------ */
