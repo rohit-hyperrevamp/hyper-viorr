@@ -228,13 +228,15 @@ function Tile({
   label: string;
   value: string | number;
   icon: typeof Users;
-  tone?: "accent" | "warning" | "destructive";
+  tone?: "accent" | "success" | "warning" | "destructive";
 }) {
   return (
     <div
       className={cn(
         "rounded-2xl border p-3",
-        tone === "warning"
+        tone === "success"
+          ? "border-emerald-500/40 bg-emerald-500/10"
+          : tone === "warning"
           ? "border-amber-500/40 bg-amber-500/10"
           : tone === "destructive"
             ? "border-destructive/40 bg-destructive/10"
@@ -246,6 +248,7 @@ function Tile({
           className={cn(
             "h-3.5 w-3.5",
             tone === "accent" && "text-primary",
+            tone === "success" && "text-emerald-600",
             tone === "warning" && "text-amber-500",
             tone === "destructive" && "text-destructive",
           )}
@@ -255,6 +258,7 @@ function Tile({
       <div
         className={cn(
           "mt-1 text-xl font-semibold tabular-nums",
+          tone === "success" && "text-emerald-600",
           tone === "warning" && "text-amber-600",
           tone === "destructive" && "text-destructive",
         )}
@@ -314,19 +318,19 @@ export function WorkforceCoverageCard() {
           label="Actual deployed"
           value={totals.actual}
           icon={UserCheck}
-          tone={totals.tone === "ok" ? undefined : totals.tone}
+          tone={totals.tone === "ok" ? "success" : totals.tone}
         />
         <Tile
           label="Variance"
           value={totals.gap > 0 ? `+${totals.gap}` : totals.gap}
           icon={TrendingDown}
-          tone={totals.gap > 0 ? "warning" : totals.tone === "ok" ? undefined : totals.tone}
+          tone={totals.gap > 0 ? "warning" : totals.tone === "ok" ? "success" : totals.tone}
         />
         <Tile
           label="Coverage"
           value={`${totals.coverage}%`}
           icon={Gauge}
-          tone={totals.tone === "ok" ? undefined : totals.tone}
+          tone={totals.tone === "ok" ? "success" : totals.tone}
         />
       </div>
 

@@ -46,6 +46,35 @@ export type UnitFinanceRow = {
   actual_invoice: number;
 };
 
+/**
+ * Month progress: committed figures are FULL-MONTH contracted values, while
+ * actuals are earned month-till-date from approved attendance. Comparing them
+ * raw makes day 1 look catastrophic, so every tone/pace calculation is scaled
+ * by how much of the payroll month has actually elapsed.
+ */
+export function monthProgress(now = new Date()) {
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const elapsed = now.getDate();
+  return { elapsed, daysInMonth, ratio: elapsed / daysInMonth };
+}
+
+export type Tone = "success" | "ok" | "warning" | "destructive";
+
+/**
+ * Pace tone — actual MTD vs the pro-rated expectation for today.
+ *  >= 98% of expected  → green (on/ahead of plan)
+ *  >= 85% of expected  → orange (slipping)
+ *  <  85% of expected  → red (materially behind)
+ */
+export function paceTone(committed: number, actual: number, ratio: number): Tone {
+  if (committed <= 0) return "ok";
+  const expected = committed * Math.max(ratio, 0.0001);
+  const pace = (actual / expected) * 100;
+  if (pace >= 98) return "success";
+  if (pace >= 85) return "warning";
+  return "destructive";
+}
+
 /** Shortfall tone for money: under-delivery beyond 5% is red, up to 5% amber. */
 function moneyTone(committed: number, actual: number): "ok" | "warning" | "destructive" {
   if (committed <= 0) return "ok";
@@ -65,17 +94,19 @@ function Tile({
   value: string;
   sub?: string;
   icon: typeof Users;
-  tone?: "accent" | "warning" | "destructive";
+  tone?: "accent" | "success" | "warning" | "destructive";
 }) {
   return (
     <div
       className={cn(
         "rounded-2xl border p-3",
-        tone === "warning"
-          ? "border-amber-500/40 bg-amber-500/10"
-          : tone === "destructive"
-            ? "border-destructive/40 bg-destructive/10"
-            : "border-border bg-background/60",
+        tone === "success"
+          ? "border-emerald-500/40 bg-emerald-500/10"
+          : tone === "warning"
+            ? "border-amber-500/40 bg-amber-500/10"
+            : tone === "destructive"
+              ? "border-destructive/40 bg-destructive/10"
+              : "border-border bg-background/60",
       )}
     >
       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -83,6 +114,7 @@ function Tile({
           className={cn(
             "h-3.5 w-3.5",
             tone === "accent" && "text-primary",
+            tone === "success" && "text-emerald-600",
             tone === "warning" && "text-amber-500",
             tone === "destructive" && "text-destructive",
           )}
@@ -92,6 +124,7 @@ function Tile({
       <div
         className={cn(
           "mt-1 whitespace-nowrap text-lg font-semibold tabular-nums",
+          tone === "success" && "text-emerald-600",
           tone === "warning" && "text-amber-600",
           tone === "destructive" && "text-destructive",
         )}
@@ -102,6 +135,7 @@ function Tile({
     </div>
   );
 }
+
 
 function VarianceChip({ diff, money }: { diff: number; money?: boolean }) {
   const tone =
@@ -148,6 +182,8 @@ function CoverageCard({
 }) {
   const [open, setOpen] = useState(false);
 
+  const mp = monthProgress();
+
   const totals = useMemo(() => {
     const committed = rows.reduce((s, r) => s + pick(r).committed, 0);
     const actual = rows.reduce((s, r) => s + pick(r).actual, 0);
@@ -158,16 +194,25 @@ function CoverageCard({
       },
       { committed: 0, actual: 0 },
     );
+    const expected = committed * mp.ratio;
     return {
       committed,
       actual,
-      gap: actual - committed,
+      expected,
+      gap: actual - expected,
+      pace: expected > 0 ? Math.round((actual / expected) * 100) : 0,
       coverage: committed > 0 ? Math.round((actual / committed) * 100) : 0,
-      tone: moneyTone(committed, actual),
+      tone: paceTone(committed, actual, mp.ratio),
       strength,
-      shortUnits: rows.filter((r) => pick(r).actual < pick(r).committed).length,
+      // "Behind" means behind the pro-rated expectation for today, not behind
+      // the full month — a unit is not late on day 3 for having earned 10%.
+      shortUnits: rows.filter(
+        (r) => pick(r).actual < pick(r).committed * mp.ratio * 0.85,
+      ).length,
     };
-  }, [rows, pick, strengthOf]);
+  }, [rows, pick, strengthOf, mp.ratio]);
+
+  const toneTile = totals.tone === "ok" ? undefined : totals.tone;
 
   return (
     <div className="mb-4 rounded-2xl border border-border bg-card p-4">
@@ -190,8 +235,8 @@ function CoverageCard({
           value={fmtINR(totals.committed)}
           sub={
             strengthOf
-              ? `${totals.strength.committed} committed strength`
-              : undefined
+              ? `${totals.strength.committed} committed strength · full month`
+              : "Full month"
           }
           icon={icons.committed}
           tone="accent"
@@ -199,28 +244,38 @@ function CoverageCard({
         <Tile
           label={labels.actual}
           value={fmtINR(totals.actual)}
-          sub={strengthOf ? `${totals.strength.actual} actual strength` : undefined}
+          sub={`Expected by day ${mp.elapsed}: ${fmtINR(Math.round(totals.expected))}`}
           icon={icons.actual}
-          tone={totals.tone === "ok" ? undefined : totals.tone}
+          tone={toneTile}
         />
         <Tile
-          label="Variance"
-          value={`${totals.gap >= 0 ? "+" : "−"}${fmtINR(Math.abs(totals.gap))}`}
+          label="Variance vs plan to date"
+          value={`${totals.gap >= 0 ? "+" : "−"}${fmtINR(Math.abs(Math.round(totals.gap)))}`}
+          sub={`Day ${mp.elapsed} of ${mp.daysInMonth}`}
           icon={TrendingDown}
-          tone={totals.tone === "ok" ? undefined : totals.tone}
+          tone={toneTile}
         />
         <Tile
-          label="Coverage"
-          value={`${totals.coverage}%`}
+          label="Pace vs plan"
+          value={`${totals.pace}%`}
+          sub={`${totals.coverage}% of full-month plan booked`}
           icon={Gauge}
-          tone={totals.tone === "ok" ? undefined : totals.tone}
+          tone={toneTile}
         />
       </div>
 
+      <p className="mt-2 text-xs text-muted-foreground">
+        Committed is the full-month contracted value; actual is earned month-till-date
+        from approved attendance. Day {mp.elapsed} of {mp.daysInMonth} ={" "}
+        {Math.round(mp.ratio * 100)}% of the cycle elapsed, so pace — not raw coverage —
+        is the health signal.
+      </p>
+
       {totals.shortUnits > 0 && (
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-muted-foreground">
           <span className="font-semibold text-destructive">{totals.shortUnits}</span> unit(s)
-          tracking below commitment this cycle.
+          tracking more than 15% behind the pro-rated plan for today.
+
         </p>
       )}
 
@@ -470,6 +525,8 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
   // design — including them would make P&L negative by construction.
   const rows = useMemo(() => allRows.filter((r) => !r.internal), [allRows]);
 
+  const mp = monthProgress();
+
   const totals = useMemo(() => {
     const committedProfit = rows.reduce(
       (s, r) => s + (r.committed_invoice - r.committed_payroll),
@@ -478,16 +535,23 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
     const actualProfit = rows.reduce((s, r) => s + (r.actual_invoice - r.actual_payroll), 0);
     const committedInvoice = rows.reduce((s, r) => s + r.committed_invoice, 0);
     const actualInvoice = rows.reduce((s, r) => s + r.actual_invoice, 0);
+    const expectedProfit = committedProfit * mp.ratio;
+    const committedMargin = committedInvoice > 0 ? (committedProfit / committedInvoice) * 100 : 0;
+    const actualMargin = actualInvoice > 0 ? (actualProfit / actualInvoice) * 100 : 0;
     return {
       committedProfit,
       actualProfit,
-      gap: actualProfit - committedProfit,
+      expectedProfit,
+      gap: actualProfit - expectedProfit,
+      pace: expectedProfit > 0 ? Math.round((actualProfit / expectedProfit) * 100) : 0,
       coverage: committedProfit > 0 ? Math.round((actualProfit / committedProfit) * 100) : 0,
-      committedMargin: committedInvoice > 0 ? (committedProfit / committedInvoice) * 100 : 0,
-      actualMargin: actualInvoice > 0 ? (actualProfit / actualInvoice) * 100 : 0,
-      tone: moneyTone(committedProfit, actualProfit),
+      committedMargin,
+      actualMargin,
+      // Margin is time-independent, so it is the honest health signal for P&L.
+      tone: paceTone(committedMargin, actualMargin, 1),
     };
-  }, [rows]);
+  }, [rows, mp.ratio]);
+
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -538,30 +602,33 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         <Tile
           label="Committed profitability"
           value={fmtINR(totals.committedProfit)}
-          sub={`${totals.committedMargin.toFixed(1)}% margin`}
+          sub={`${totals.committedMargin.toFixed(1)}% margin · full month`}
           icon={PiggyBank}
           tone="accent"
         />
         <Tile
           label="Actual profitability MTD"
           value={fmtINR(totals.actualProfit)}
-          sub={`${totals.actualMargin.toFixed(1)}% margin`}
+          sub={`${totals.actualMargin.toFixed(1)}% margin earned`}
           icon={Banknote}
           tone={totals.tone === "ok" ? undefined : totals.tone}
         />
         <Tile
-          label="Variance"
-          value={`${totals.gap >= 0 ? "+" : "−"}${fmtINR(Math.abs(totals.gap))}`}
+          label="Variance vs plan to date"
+          value={`${totals.gap >= 0 ? "+" : "−"}${fmtINR(Math.abs(Math.round(totals.gap)))}`}
+          sub={`Expected by day ${mp.elapsed}: ${fmtINR(Math.round(totals.expectedProfit))}`}
           icon={TrendingDown}
           tone={totals.tone === "ok" ? undefined : totals.tone}
         />
         <Tile
-          label="Coverage"
-          value={`${totals.coverage}%`}
+          label="Margin health"
+          value={`${totals.actualMargin.toFixed(1)}%`}
+          sub={`vs ${totals.committedMargin.toFixed(1)}% committed · ${totals.pace}% pace`}
           icon={Gauge}
           tone={totals.tone === "ok" ? undefined : totals.tone}
         />
       </div>
+
 
       <div className="relative mt-3 max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
