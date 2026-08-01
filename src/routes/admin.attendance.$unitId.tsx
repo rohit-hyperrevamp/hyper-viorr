@@ -2551,10 +2551,16 @@ function MusterRollPage() {
                       </td>
                       <td className={cn(cellBase, "p-1 text-left")} rowSpan={2}>
                         {mr.designationName || "—"}
-                        {!mr.isPrimary && (
-                          <span className="ml-1 rounded bg-violet-100 px-1 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-violet-700 print:hidden">extra</span>
+                        {mr.reliever && !mr.vacant && (
+                          <span
+                            className="ml-1 font-semibold text-violet-700"
+                            title="Reliever line"
+                          >
+                            (R)
+                          </span>
                         )}
                       </td>
+
                       <td className={cn(cellBase, "p-1")} rowSpan={2}>
                         {mr.emp.doj ? new Date(mr.emp.doj).toLocaleDateString("en-GB") : "—"}
                       </td>
