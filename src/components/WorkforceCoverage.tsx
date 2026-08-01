@@ -281,8 +281,9 @@ export function WorkforceCoverageCard() {
       shortUnits,
       coverage: committed > 0 ? Math.round((actual / committed) * 100) : 0,
       tone: shortfallTone(committed, actual),
-
+    };
   }, [rows]);
+
 
   return (
     <div className="mb-4 rounded-2xl border border-border bg-card p-4">
