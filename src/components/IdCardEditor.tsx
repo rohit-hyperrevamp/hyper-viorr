@@ -85,7 +85,7 @@ export function IdCardEditor({
 }) {
   const set = (patch: Partial<IdCardSpec>) => onChange({ ...spec, ...patch });
   const setFront = (patch: Partial<IdCardSpec["front"]>) => set({ front: { ...spec.front, ...patch } });
-  const setBack = (patch: Partial<IdCardSpec["back"]>) => set({ back: { ...spec.back, ...patch } });
+  const setFooter = (patch: Partial<IdCardSpec["footer"]>) => set({ footer: { ...spec.footer, ...patch } });
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -116,7 +116,7 @@ export function IdCardEditor({
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
       <div className="space-y-3">
-        <Section title="Logo (shared by front & back)">
+        <Section title="Logo">
           <div className="flex items-center gap-3">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-white">
               {spec.logoUrl ? (
@@ -169,29 +169,18 @@ export function IdCardEditor({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="grid gap-1.5">
-              <Label className="text-xs">Front logo height (px)</Label>
-              <Input
-                type="number"
-                value={spec.frontLogoHeight}
-                onChange={(e) => set({ frontLogoHeight: Number(e.target.value) || 0 })}
-                className="h-8 text-xs"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label className="text-xs">Back logo height (px)</Label>
-              <Input
-                type="number"
-                value={spec.backLogoHeight}
-                onChange={(e) => set({ backLogoHeight: Number(e.target.value) || 0 })}
-                className="h-8 text-xs"
-              />
-            </div>
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Logo height (px)</Label>
+            <Input
+              type="number"
+              value={spec.frontLogoHeight}
+              onChange={(e) => set({ frontLogoHeight: Number(e.target.value) || 0 })}
+              className="h-8 text-xs"
+            />
           </div>
         </Section>
 
-        <Section title="Front card">
+        <Section title="Card">
           <div className="grid gap-1.5">
             <Label className="text-xs">Company name</Label>
             <Input
@@ -292,38 +281,30 @@ export function IdCardEditor({
           </div>
         </Section>
 
-        <Section title="Back card">
-          <div className="grid gap-1.5">
-            <Label className="text-xs">Company name</Label>
-            <Input
-              value={spec.back.companyName}
-              onChange={(e) => setBack({ companyName: e.target.value })}
-              className="h-8 text-xs"
-            />
-          </div>
+        <Section title="Address, contact & validity (printed on the front)">
           <div className="grid gap-1.5">
             <Label className="text-xs">Address heading</Label>
             <Input
-              value={spec.back.addressTitle}
-              onChange={(e) => setBack({ addressTitle: e.target.value })}
+              value={spec.footer.addressTitle}
+              onChange={(e) => setFooter({ addressTitle: e.target.value })}
               className="h-8 text-xs"
             />
           </div>
           <LineList
             label="Address lines"
-            lines={spec.back.addressLines}
-            onChange={(addressLines) => setBack({ addressLines })}
+            lines={spec.footer.addressLines}
+            onChange={(addressLines) => setFooter({ addressLines })}
           />
           <LineList
-            label="Contact lines"
-            lines={spec.back.contactLines}
-            onChange={(contactLines) => setBack({ contactLines })}
+            label="Phone / mobile lines"
+            lines={spec.footer.contactLines}
+            onChange={(contactLines) => setFooter({ contactLines })}
           />
           <div className="grid gap-1.5">
             <Label className="text-xs">Validity line</Label>
             <Input
-              value={spec.back.validityLine}
-              onChange={(e) => setBack({ validityLine: e.target.value })}
+              value={spec.footer.validityLine}
+              onChange={(e) => setFooter({ validityLine: e.target.value })}
               className="h-8 text-xs"
             />
           </div>

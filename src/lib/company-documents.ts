@@ -967,30 +967,40 @@ export const ID_CARD_CSS = `
 .idcard-face > .idcard-caption { font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
   color: #6b7280; margin-bottom: 5px; text-align: center; font-weight: 700; }
 .idcard { width: ${ID_CARD_WIDTH_PX}px; height: ${ID_CARD_HEIGHT_PX}px; position: relative; overflow: hidden;
-  border-radius: 9px; padding: 10px 12px; color: #111;
+  border-radius: 9px; padding: 8px 10px 6px; color: #111;
   background: linear-gradient(160deg,#f4f6f9 0%,#e7ecf3 42%,#dfe6ef 68%,#eef1f6 100%);
   box-shadow: 0 1px 2px rgba(0,0,0,.18); }
 .idcard .wm { position: absolute; inset: 0; opacity: .06; background-repeat: repeat;
   background-size: 62px 62px; pointer-events: none; }
 .idcard .body { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; }
-.idcard .logo { display: block; margin: 2px auto 0; width: auto !important; max-width: 100% !important; object-fit: contain; }
-.idcard .company { text-align: center; font-weight: 700; font-size: 11px; letter-spacing: -.2px; margin-top: 6px; }
-.idcard .photo-wrap { position: relative; width: 78px; height: 88px; margin: 8px auto 0;
-  border-radius: 8px; background: #d7dde6; border: 1px solid #b9c2cd; }
-.idcard .photo { width: 100% !important; height: 100% !important; max-width: none !important; border-radius: 8px; object-fit: cover; display: block; }
-.idcard .photo-ph { width: 78px; height: 88px; border-radius: 8px; display: flex; align-items: center;
+/* Header: logo hard-left, company name hard-right. */
+.idcard .idhead { display: flex; align-items: center; gap: 6px; }
+.idcard .logo { display: block; margin: 0 !important; width: auto !important; max-width: 84px !important;
+  object-fit: contain; flex: 0 0 auto; }
+.idcard .company { flex: 1; text-align: right; font-weight: 700; font-size: 8.5px; line-height: 1.2;
+  letter-spacing: -.2px; }
+.idcard .photo-wrap { position: relative; width: 64px; height: 74px; margin: 6px auto 0;
+  border-radius: 6px; background: #d7dde6; border: 1px solid #b9c2cd; }
+.idcard .photo { width: 100% !important; height: 100% !important; max-width: none !important; border-radius: 6px; object-fit: cover; display: block; }
+.idcard .photo-ph { width: 100%; height: 100%; border-radius: 6px; display: flex; align-items: center;
   justify-content: center; background: #d7dde6; border: 1px solid #b9c2cd; font-size: 8px; color: #6b7280; }
-/* Stamp sits low on the photo's left edge so the face stays fully readable. */
-.idcard .photo-stamp { position: absolute !important; left: -16px !important; bottom: -8px !important;
-  height: 42px !important; width: auto !important; max-width: none !important;
-  opacity: .45 !important; z-index: 3; pointer-events: none; }
-.idcard .rows { margin-top: 10px; font-size: 10px; line-height: 1.42; }
+/* Stamp overlays the photo itself (no back face to carry it any more). */
+.idcard .photo-stamp { position: absolute !important; left: 50% !important; top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  height: 62px !important; width: auto !important; max-width: none !important;
+  opacity: .38 !important; z-index: 3; pointer-events: none; }
+.idcard .rows { margin-top: 7px; font-size: 8.5px; line-height: 1.34; }
 .idcard .row { display: flex; }
-.idcard .row .k { width: 56px; font-weight: 700; flex: 0 0 56px; }
-.idcard .row .c { width: 8px; flex: 0 0 8px; }
+.idcard .row .k { width: 48px; font-weight: 700; flex: 0 0 48px; }
+.idcard .row .c { width: 6px; flex: 0 0 6px; }
 .idcard .row .v { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.idcard .auth { margin-top: auto; text-align: right; padding-bottom: 4px; }
-.idcard .sig-slot { display: block; min-height: 30px; }
+.idcard .contact { margin-top: 6px; padding-top: 5px; border-top: 1px solid rgba(0,0,0,.18); text-align: center; }
+.idcard .contact-title { font-weight: 700; font-size: 7.5px; }
+.idcard .contact-block { font-size: 7.5px; font-weight: 700; line-height: 1.3; margin-top: 1px; }
+.idcard .contact-lines { font-size: 7.5px; line-height: 1.35; margin-top: 2px; }
+.idcard .contact-validity { font-size: 7px; margin-top: 2px; }
+.idcard .auth { margin-top: auto; text-align: right; padding-bottom: 2px; }
+.idcard .sig-slot { display: block; min-height: 22px; }
 /* Any signature/stamp image on the card is hard-capped so it can never bleed
    past the card edge, whichever slot it was injected into. !important is
    required: the global img sizing rule in styles.css outranks plain selectors. */
@@ -998,27 +1008,23 @@ export const ID_CARD_CSS = `
 .idcard .auth .sig-img,
 .idcard .auth .sig-company,
 .idcard .sig-slot img,
-.idcard .auth img { display: block !important; height: 30px !important; width: auto !important;
-  max-width: 72px !important; object-fit: contain !important; margin: 0 0 2px auto !important; }
-.idcard .auth .sig-line { border-top: 1px solid #111; width: 72px; margin-left: auto; }
+.idcard .auth img { display: block !important; height: 22px !important; width: auto !important;
+  max-width: 66px !important; object-fit: contain !important; margin: 0 0 2px auto !important; }
+.idcard .auth .sig-line { border-top: 1px solid #111; width: 66px; margin-left: auto; }
 
-.idcard .auth .auth-label { font-size: 9px; font-weight: 700; margin-top: 2px; }
-
-.idcard .back-title { text-align: center; font-weight: 700; font-size: 10.5px; margin-top: 14px; }
-.idcard .back-block { text-align: center; font-size: 10px; font-weight: 700; line-height: 1.45; margin-top: 6px; }
-.idcard .back-contact { text-align: center; font-size: 10px; line-height: 1.7; margin-top: 14px; }
-.idcard .back-validity { text-align: center; font-size: 8.5px; margin-top: 14px; }
+.idcard .auth .auth-label { font-size: 8px; font-weight: 700; margin-top: 1px; }
 `;
 
-/** Default editable master template for the employee ID card (front + back). */
+/** Default editable master template for the employee ID card (single front face). */
 export const DEFAULT_ID_CARD_TEMPLATE = `<div class="idcard-sheet">
   <div class="idcard-face">
-    <div class="idcard-caption">Front</div>
     <div class="idcard idcard-front">
       <div class="wm" style="background-image:url('$company_logo')"></div>
       <div class="body">
-        <img class="logo" src="$company_logo" alt="Company logo" />
-        <div class="company">$company_name</div>
+        <div class="idhead">
+          <img class="logo" src="$company_logo" alt="Company logo" />
+          <div class="company">$company_name</div>
+        </div>
         <div class="photo-wrap">
           <img class="photo" src="$employee_photo" alt="Employee photo" onerror="this.style.visibility='hidden'" />
           <img class="photo-stamp" src="$company_stamp" alt="Company stamp" />
@@ -1030,26 +1036,17 @@ export const DEFAULT_ID_CARD_TEMPLATE = `<div class="idcard-sheet">
           <div class="row"><span class="k">BG</span><span class="c">:</span><span class="v">$blood_group</span></div>
           <div class="row"><span class="k">DOJ</span><span class="c">:</span><span class="v">$joining_date</span></div>
         </div>
+        <div class="contact">
+          <div class="contact-title">Corporate Office :</div>
+          <div class="contact-block">818, Clover Hills Plaza, NIBM Road, Kondhwa, Pune - 411048</div>
+          <div class="contact-lines">Ph. No. - 020 48622515 | Mob.No. : 09156453001</div>
+          <div class="contact-validity">Validity : 1 Year from date of Issue</div>
+        </div>
         <div class="auth">
           <span class="sig-slot" data-signature-slot="company"></span>
           <div class="sig-line"></div>
           <div class="auth-label">Issuing Authority</div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="idcard-face">
-    <div class="idcard-caption">Back</div>
-    <div class="idcard idcard-back">
-      <div class="wm" style="background-image:url('$company_logo')"></div>
-      <div class="body">
-        <img class="logo" style="height:64px;margin-top:12px" src="$company_logo" alt="Company logo" />
-        <div class="company" style="margin-top:10px">$company_name</div>
-        <div class="back-title">Corporate Office :</div>
-        <div class="back-block">818, Clover Hills Plaza<br/>NIBM Road, Kondhwa<br/>Pune - 411048</div>
-        <div class="back-contact">Ph. No. - 020 48622515<br/>Mob.No. : 09156453001</div>
-        <div class="back-validity">Validity : 1 Year from date of Issue</div>
       </div>
     </div>
   </div>
@@ -1065,7 +1062,6 @@ export type IdCardSpec = {
   kind: "id_card";
   logoUrl: string;
   frontLogoHeight: number;
-  backLogoHeight: number;
   front: {
     companyName: string;
     showPhoto: boolean;
@@ -1078,8 +1074,8 @@ export type IdCardSpec = {
     authorityLabel: string;
     showAuthoritySignature: boolean;
   };
-  back: {
-    companyName: string;
+  /** Address / contact / validity block, printed at the bottom of the front face. */
+  footer: {
     addressTitle: string;
     addressLines: string[];
     contactLines: string[];
@@ -1090,8 +1086,7 @@ export type IdCardSpec = {
 export const DEFAULT_ID_CARD_SPEC: IdCardSpec = {
   kind: "id_card",
   logoUrl: COMPANY_LOGO_URL,
-  frontLogoHeight: 52,
-  backLogoHeight: 64,
+  frontLogoHeight: 30,
   front: {
     companyName: "Radiant Guard Services Pvt.Ltd.",
     showPhoto: true,
@@ -1106,11 +1101,10 @@ export const DEFAULT_ID_CARD_SPEC: IdCardSpec = {
     authorityLabel: "Issuing Authority",
     showAuthoritySignature: true,
   },
-  back: {
-    companyName: "Radiant Guard Services Pvt.Ltd.",
+  footer: {
     addressTitle: "Corporate Office :",
-    addressLines: ["818, Clover Hills Plaza", "NIBM Road, Kondhwa", "Pune - 411048"],
-    contactLines: ["Ph. No. - 020 48622515", "Mob.No. : 09156453001"],
+    addressLines: ["818, Clover Hills Plaza, NIBM Road, Kondhwa, Pune - 411048"],
+    contactLines: ["Ph. No. - 020 48622515 | Mob.No. : 09156453001"],
     validityLine: "Validity : 1 Year from date of Issue",
   },
 };
@@ -1119,14 +1113,18 @@ export const DEFAULT_ID_CARD_SPEC: IdCardSpec = {
 export function parseIdCardSpec(body: string | null | undefined): IdCardSpec | null {
   if (!body || !/^\s*\{/.test(body)) return null;
   try {
-    const raw = JSON.parse(body) as Partial<IdCardSpec>;
+    const raw = JSON.parse(body) as Partial<IdCardSpec> & {
+      backLogoHeight?: number;
+      back?: Partial<IdCardSpec["footer"]>;
+    };
     if (raw?.kind !== "id_card") return null;
     const d = DEFAULT_ID_CARD_SPEC;
+    // Legacy specs stored the address block under `back`; the card is front-only now.
+    const legacy = raw.footer ?? raw.back;
     return {
       kind: "id_card",
       logoUrl: raw.logoUrl || d.logoUrl,
       frontLogoHeight: Number(raw.frontLogoHeight) || d.frontLogoHeight,
-      backLogoHeight: Number(raw.backLogoHeight) || d.backLogoHeight,
       front: {
         companyName: raw.front?.companyName ?? d.front.companyName,
         showPhoto: raw.front?.showPhoto ?? true,
@@ -1139,12 +1137,11 @@ export function parseIdCardSpec(body: string | null | undefined): IdCardSpec | n
         authorityLabel: raw.front?.authorityLabel ?? d.front.authorityLabel,
         showAuthoritySignature: raw.front?.showAuthoritySignature ?? true,
       },
-      back: {
-        companyName: raw.back?.companyName ?? d.back.companyName,
-        addressTitle: raw.back?.addressTitle ?? d.back.addressTitle,
-        addressLines: Array.isArray(raw.back?.addressLines) ? raw.back!.addressLines.map(String) : d.back.addressLines,
-        contactLines: Array.isArray(raw.back?.contactLines) ? raw.back!.contactLines.map(String) : d.back.contactLines,
-        validityLine: raw.back?.validityLine ?? d.back.validityLine,
+      footer: {
+        addressTitle: legacy?.addressTitle ?? d.footer.addressTitle,
+        addressLines: Array.isArray(legacy?.addressLines) ? legacy!.addressLines.map(String) : d.footer.addressLines,
+        contactLines: Array.isArray(legacy?.contactLines) ? legacy!.contactLines.map(String) : d.footer.contactLines,
+        validityLine: legacy?.validityLine ?? d.footer.validityLine,
       },
     };
   } catch {
@@ -1187,34 +1184,28 @@ export function renderIdCardHtml(spec: IdCardSpec): string {
           <div class="auth-label">${esc(spec.front.authorityLabel)}</div>
         </div>`;
 
+  const contact = `<div class="contact">
+          ${spec.footer.addressTitle ? `<div class="contact-title">${esc(spec.footer.addressTitle)}</div>` : ""}
+          ${spec.footer.addressLines.length ? `<div class="contact-block">${spec.footer.addressLines.map(esc).join("<br/>")}</div>` : ""}
+          ${spec.footer.contactLines.length ? `<div class="contact-lines">${spec.footer.contactLines.map(esc).join("<br/>")}</div>` : ""}
+          ${spec.footer.validityLine ? `<div class="contact-validity">${esc(spec.footer.validityLine)}</div>` : ""}
+        </div>`;
+
   return `<div class="idcard-sheet">
   <div class="idcard-face">
-    <div class="idcard-caption">Front</div>
     <div class="idcard idcard-front">
       <div class="wm" style="background-image:url('${logo}')"></div>
       <div class="body">
-        <img class="logo" style="height:${spec.frontLogoHeight}px" src="${logo}" alt="Company logo" />
-        <div class="company">${esc(spec.front.companyName)}</div>
+        <div class="idhead">
+          <img class="logo" style="height:${spec.frontLogoHeight}px" src="${logo}" alt="Company logo" />
+          <div class="company">${esc(spec.front.companyName)}</div>
+        </div>
         ${photo}
         <div class="rows">
           ${rows}
         </div>
+        ${contact}
         ${auth}
-      </div>
-    </div>
-  </div>
-
-  <div class="idcard-face">
-    <div class="idcard-caption">Back</div>
-    <div class="idcard idcard-back">
-      <div class="wm" style="background-image:url('${logo}')"></div>
-      <div class="body">
-        <img class="logo" style="height:${spec.backLogoHeight}px;margin-top:12px" src="${logo}" alt="Company logo" />
-        <div class="company" style="margin-top:10px">${esc(spec.back.companyName)}</div>
-        <div class="back-title">${esc(spec.back.addressTitle)}</div>
-        <div class="back-block">${spec.back.addressLines.map(esc).join("<br/>")}</div>
-        <div class="back-contact">${spec.back.contactLines.map(esc).join("<br/>")}</div>
-        <div class="back-validity">${esc(spec.back.validityLine)}</div>
       </div>
     </div>
   </div>
