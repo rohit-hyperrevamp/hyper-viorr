@@ -2759,6 +2759,60 @@ function MusterRollPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={Boolean(mapSlot)} onOpenChange={(o) => { if (!o) { setMapSlot(null); setMapQuery(""); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Map employee to slot</DialogTitle>
+            <DialogDescription>
+              Search the full employee base by name or employee / candidate code, then pick one to fill the{" "}
+              <span className="font-medium">{mapSlot?.designationName ?? "—"}</span> slot on this unit.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              autoFocus
+              value={mapQuery}
+              onChange={(e) => setMapQuery(e.target.value)}
+              placeholder="Search employees…"
+              className="h-10 w-full rounded-md border border-border bg-background pl-8 pr-3 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div className="max-h-[45vh] space-y-1 overflow-y-auto">
+            {mapSearch.length < 2 ? (
+              <p className="p-3 text-xs text-muted-foreground">Type at least 2 characters to search.</p>
+            ) : mapSearching ? (
+              <p className="p-3 text-xs text-muted-foreground">Searching…</p>
+            ) : (mapResults ?? []).length === 0 ? (
+              <p className="p-3 text-xs text-muted-foreground">No matching employees.</p>
+            ) : (
+              (mapResults ?? []).map((c) => {
+                const already = rosterIds.has(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    disabled={already || mapSaving}
+                    onClick={() => mapEmployeeToSlot(c)}
+                    className="flex w-full items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-left transition hover:border-primary hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">{c.full_name}</span>
+                      <span className="block truncate text-[11px] text-muted-foreground">
+                        {c.employee_code} · {c.designation} · DOJ {c.doj || "—"}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[11px] font-medium text-primary">
+                      {already ? "On roster" : "Add"}
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={otPickerOpen} onOpenChange={setOtPickerOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
