@@ -184,9 +184,8 @@ function DashboardPage() {
       // ── P&L from actual attendance ────────────────────────────────────
       // Mirrors the Invoice and Payroll modules: per (candidate × designation)
       // we compute T-Days from attendance, then scale the contract resource by
-      // earnedGross/contractGross. Invoice billable = earnedGross + employer
-      // contributions (what the customer is billed). Payroll cost = the same
-      // plus the scaled benefits the agency pays on top.
+      // earnedGross/contractGross. Payroll cost is gross wages + benefits;
+      // invoice billable adds employer contributions on top of that cost.
       //
       // Internal contracts (own offices / non-billable staff) are a pure cost
       // centre: they contribute payroll cost but never contract value or
@@ -378,21 +377,19 @@ function DashboardPage() {
         const isInternal = contract.is_internal === true;
 
         // Contract value reference: full-month projected per resource × quantity.
-        // Mirrors Invoice module's projected (components + employer contributions),
-        // multiplied by configured headcount. Internal contracts are not revenue.
+        // Payroll = wage components + benefits. Invoice = payroll + employer
+        // contributions. Internal contracts remain payroll-only cost centres.
         let contractValue = 0;
         let committedPayroll = 0;
         let committedStrength = 0;
         for (const r of resMap.values()) {
           const qty = Number(r.quantity) || 0;
           committedStrength += qty;
-          // Cost base and billing base must use the SAME components, otherwise
-          // profitability is negative by construction.
-          const perHead = sumArr(r.components) + sumArr(r.employer_contributions) + sumArr(r.benefits);
-          // Payroll commitment is a cost for internal units too.
-          committedPayroll += qty * perHead;
+          const payrollPerHead = sumArr(r.components) + sumArr(r.benefits);
+          const invoicePerHead = payrollPerHead + sumArr(r.employer_contributions);
+          committedPayroll += qty * payrollPerHead;
           if (!isInternal) {
-            contractValue += qty * perHead;
+            contractValue += qty * invoicePerHead;
           }
         }
 
@@ -436,17 +433,16 @@ function DashboardPage() {
             })) as AttendanceEntryLike[];
           const totals = computeAttendanceTotals(p.candidateId, periodDates, lineEntries, codes);
           const wages = computeWages(totals, toResource(resRow), periodDates.length);
-          // Payroll cost = earned outflow + earned benefits.
+          // Payroll = earned gross + earned benefits. Invoice adds employer
+          // contributions, preserving invoice >= payroll for billable work.
           const earnedBenefits = wages.benefits.reduce(
             (s, b) => s + (Number(b.amount) || 0),
             0,
           );
-          const earnedCost = wages.employerCost + earnedBenefits;
-          // Billed value uses the SAME base as the cost so a billable unit can
-          // never be loss-making purely because of a formula mismatch.
-          // Internal units are never billed to a customer.
-          if (!isInternal) invoiceAmount += earnedCost;
-          payrollCost += earnedCost;
+          const earnedPayroll = wages.earnedGross + earnedBenefits;
+          const earnedInvoice = earnedPayroll + wages.totalEmployerContributions;
+          if (!isInternal) invoiceAmount += earnedInvoice;
+          payrollCost += earnedPayroll;
         }
 
         const actualStrength = unitRoster.size;
