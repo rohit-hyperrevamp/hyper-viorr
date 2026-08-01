@@ -529,7 +529,7 @@ function UnitFormDialog({
   const [error, setError] = useState<string | null>(null);
   const [assignedFoIds, setAssignedFoIds] = useState<string[]>([]);
   const [selectedFoToAdd, setSelectedFoToAdd] = useState("");
-  const [foSyncing, setFoSyncing] = useState(false);
+  const [, setFoSyncing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
