@@ -1901,14 +1901,9 @@ function MusterRollPage() {
           )}
           {status === "approved" && canApprove && !sentToPayroll && (
             <>
-              <Button
-                size="sm"
-                className="bg-primary hover:bg-primary/90"
-                onClick={() => sendToPayroll.mutate()}
-                disabled={sendToPayroll.isPending}
-              >
-                <Send className="mr-1.5 h-4 w-4" /> Send for Payroll &amp; Invoice
-              </Button>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Approved — payroll &amp; invoice updated
+              </span>
               <Button size="sm" variant="outline" onClick={() => transitionSheet.mutate({ status: "draft" })} disabled={transitionSheet.isPending}>
                 <RotateCcw className="mr-1.5 h-4 w-4" /> Reopen
               </Button>
