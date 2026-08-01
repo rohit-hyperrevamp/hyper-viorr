@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseSessionReady } from "@/lib/supabase-ready";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
 import { hydrateFormulasFromMaster } from "@/lib/contract-hydrate";
@@ -103,6 +104,7 @@ function PayrollUnitPage() {
   const { data: unit } = useQuery({
     queryKey: ["payroll-unit", unitId],
     queryFn: async () => {
+      await supabaseSessionReady();
       const { data } = await supabase
         .from("units")
         .select("id, code, name, customer_id, billing_state, billing_pincode, epf_cap_enabled")
@@ -156,6 +158,7 @@ function PayrollUnitPage() {
   const { data: sheet } = useQuery({
     queryKey: ["payroll-sheet", unitId, start, end],
     queryFn: async () => {
+      await supabaseSessionReady();
       const { data } = await supabase
         .from("attendance_sheets" as never)
         .select("status, approved_at")
@@ -254,6 +257,7 @@ function PayrollUnitPage() {
     queryKey: ["payroll-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     enabled: !!ptSlabs && !!pincodeRanges && !!lwfRows,
     queryFn: async () => {
+      await supabaseSessionReady();
       // 1. Roster: candidates mapped to this unit (primary + secondary).
       const candidateCols =
         "id, employee_code, full_name, designation_id, gender, is_disabled, bank_account_holder, bank_account_number, bank_ifsc, bank_name, bank_branch, approved_at, preferred_joining_date, application_date, pan_number, compliance";
