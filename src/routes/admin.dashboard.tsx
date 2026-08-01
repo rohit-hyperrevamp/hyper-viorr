@@ -14,7 +14,6 @@ import { DashboardShell } from "@/components/LiveFeed";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { GradientBarChart } from "@/components/charts/GradientBarChart";
 import { RadialGauge } from "@/components/charts/RadialGauge";
 import { useCountUp } from "@/hooks/useCountUp";
 import { supabase } from "@/integrations/supabase/client";
