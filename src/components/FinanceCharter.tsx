@@ -496,7 +496,57 @@ export function FinanceCharter({
 
                 {isOpen && (
                   <div className="space-y-4 border-t border-border/60 bg-muted/25 px-3 py-3 sm:px-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/70 px-3 py-2">
+                      <div className="min-w-0 text-[11px] leading-relaxed text-muted-foreground">
+                        {r.status.attendance !== "approved" ? (
+                          <>
+                            <span className="font-semibold text-destructive">
+                              {mode === "invoice" ? "Invoice" : "Payroll"} is open.
+                            </span>{" "}
+                            Attendance for this period is{" "}
+                            {r.status.attendance === "submitted" ? "awaiting approval" : "still being marked"} — values
+                            keep moving until it is approved and locked.
+                          </>
+                        ) : (mode === "invoice" ? r.status.invoice : r.status.payroll) === "processed" ? (
+                          <>
+                            <span className="font-semibold text-emerald-600">Processed and locked.</span> Attendance is
+                            approved and this period has been run. An admin can reopen it if something must change.
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-semibold text-amber-600">Ready to process.</span> Attendance is
+                            approved and locked — the {mode === "invoice" ? "invoice" : "payroll"} can be run.
+                          </>
+                        )}
+                      </div>
+                      {canProcess && (
+                        <div className="flex shrink-0 items-center gap-2">
+                          {(mode === "invoice" ? r.status.invoice : r.status.payroll) === "processed" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 rounded-xl"
+                              disabled={processMutation.isPending}
+                              onClick={() => processMutation.mutate({ unitId: r.unit.id, next: "open" })}
+                            >
+                              <LockOpen className="mr-1.5 h-3.5 w-3.5" /> Reopen
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="h-8 rounded-xl"
+                              disabled={processMutation.isPending || r.status.attendance !== "approved"}
+                              onClick={() => processMutation.mutate({ unitId: r.unit.id, next: "processed" })}
+                            >
+                              <Lock className="mr-1.5 h-3.5 w-3.5" /> Mark{" "}
+                              {mode === "invoice" ? "invoice" : "payroll"} processed
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     {r.rates.length > 0 && (
+
                       <div>
                         <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                           Contracted rate card
