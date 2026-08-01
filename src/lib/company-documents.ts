@@ -977,7 +977,19 @@ export function previewPlaceholderMap(html: boolean): Record<string, string> {
 
     },
     html,
-  );
+  ), {
+    posting_order_no: "PO-2026-0001",
+    posting_date: "01 Apr 2026",
+    client_name: "SAMPLE CLIENT PVT. LTD.",
+    site_name: "Koregaon Park Branch",
+    site_address: "Lane 5, Koregaon Park, Pune - 411001",
+    reporting_date: "05 Apr 2026",
+    reporting_time: "08:00 AM",
+    duty_shift: "Day Shift (08:00 - 20:00)",
+    site_supervisor: "SAMPLE SUPERVISOR",
+    authorised_signatory: "SAMPLE SIGNATORY",
+    signatory_designation: "Operations Manager",
+  });
 }
 
 
