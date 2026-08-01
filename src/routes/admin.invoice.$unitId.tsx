@@ -1091,10 +1091,13 @@ function PayrollUnitPage() {
             {rows.length > 0 && (
               <tfoot className="border-t border-border/60 bg-secondary/30 text-sm font-semibold">
                 <tr>
-                  <td className="px-4 py-3" colSpan={7}>Totals</td>
+                  <td className="px-4 py-3" colSpan={6}>Totals</td>
                   <td className="px-4 py-3 text-right text-muted-foreground">{fmtINR(totals.projectedTotal)}</td>
                   <td className="px-4 py-3 text-right text-emerald-700">{fmtINR(totals.actualTotal)}</td>
-                  <td className="px-4 py-3 text-right text-rose-600">− {fmtINR(Math.max(0, totals.projectedTotal - totals.actualTotal))}</td>
+                  <td className={`px-4 py-3 text-right ${totals.actualTotal - totals.projectedTotal >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                    {totals.actualTotal - totals.projectedTotal >= 0 ? "+ " : "− "}
+                    {fmtINR(Math.abs(Math.round((totals.actualTotal - totals.projectedTotal) * 100) / 100))}
+                  </td>
                 </tr>
               </tfoot>
             )}
