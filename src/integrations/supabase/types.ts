@@ -4619,6 +4619,7 @@ export type Database = {
           emergency_contact_name: string
           enable_lwf: boolean
           enable_pt: boolean
+          epf_cap_enabled: boolean
           gpaip_amount: number
           gpaip_enabled: boolean
           gst_number: string
@@ -4680,6 +4681,7 @@ export type Database = {
           emergency_contact_name?: string
           enable_lwf?: boolean
           enable_pt?: boolean
+          epf_cap_enabled?: boolean
           gpaip_amount?: number
           gpaip_enabled?: boolean
           gst_number?: string
@@ -4741,6 +4743,7 @@ export type Database = {
           emergency_contact_name?: string
           enable_lwf?: boolean
           enable_pt?: boolean
+          epf_cap_enabled?: boolean
           gpaip_amount?: number
           gpaip_enabled?: boolean
           gst_number?: string

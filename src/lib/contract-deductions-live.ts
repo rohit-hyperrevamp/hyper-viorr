@@ -85,7 +85,7 @@ export async function fetchLiveContractDeductions(args: {
   const candidateCols = "id, employee_code, full_name, designation_id, gender, is_disabled";
 
   const [{ data: unit }, { data: primary }, { data: links }] = await Promise.all([
-    supabase.from("units").select("id, name, code, billing_state, billing_pincode").eq("id", unitId).maybeSingle(),
+    supabase.from("units").select("id, name, code, billing_state, billing_pincode, epf_cap_enabled").eq("id", unitId).maybeSingle(),
     supabase.from("candidates").select(candidateCols).eq("unit_id", unitId).eq("is_enabled", true).eq("status", "active"),
     supabase.from("candidate_units").select("candidate_id").eq("unit_id", unitId),
   ]);
@@ -93,6 +93,7 @@ export async function fetchLiveContractDeductions(args: {
   const unitName = args.unitName || (unit?.name as string) || (unit?.code as string) || "—";
   const unitState = (unit as { billing_state?: string | null } | null)?.billing_state ?? null;
   const unitPincode = (unit as { billing_pincode?: string | null } | null)?.billing_pincode ?? null;
+  const epfCapEnabled = (unit as { epf_cap_enabled?: boolean | null } | null)?.epf_cap_enabled ?? true;
 
   const linkIds = (links ?? []).map((l) => l.candidate_id);
   let secondary: typeof primary = [];
@@ -231,7 +232,7 @@ export async function fetchLiveContractDeductions(args: {
       lineEntries as AttendanceEntryLike[],
       (codes ?? []) as AttendanceCodeLike[],
     );
-    const wages = computeWages(totals, resource, periodDates.length, { periodDates: periodDates.map((d) => new Date(d)), dayBases });
+    const wages = computeWages(totals, resource, periodDates.length, { periodDates: periodDates.map((d) => new Date(d)), dayBases, epfCapEnabled });
 
     Object.assign(wages, applyEsiToWageComputation(wages, { isDisabled: Boolean((c as { is_disabled?: boolean | null }).is_disabled) }));
 
@@ -245,7 +246,7 @@ export async function fetchLiveContractDeductions(args: {
     });
     Object.assign(wages, applyPtToWageComputation(wages, ptResolved.amount));
     Object.assign(wages, applyLwfToWageComputation(wages, { employee: lwfEmployee, employer: lwfEmployer, applies: lwfApplies }));
-    Object.assign(wages, applyEpfBreakdownToWageComputation(wages));
+    Object.assign(wages, applyEpfBreakdownToWageComputation(wages, { epfCapEnabled }));
 
     const lines = (mergeByCanonicalName(wages.deductions) as LiveDeductionLine[])
       .map((l) => ({ name: l.name, amount: Math.round((Number(l.amount) || 0) * 100) / 100 }))

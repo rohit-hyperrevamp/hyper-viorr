@@ -99,7 +99,7 @@ function PayrollUnitPage() {
       const { data } = await supabase
         .from("units")
         .select(
-          "id, code, name, customer_id, gst_number, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country",
+          "id, code, name, customer_id, epf_cap_enabled, gst_number, billing_address1, billing_address2, billing_city, billing_district, billing_state, billing_pincode, billing_country",
         )
         .eq("id", unitId)
         .maybeSingle();
@@ -180,9 +180,11 @@ function PayrollUnitPage() {
 
   const unitState = (unit as { billing_state?: string | null } | null | undefined)?.billing_state ?? null;
   const unitPincode = (unit as { billing_pincode?: string | null } | null | undefined)?.billing_pincode ?? null;
+  const epfCapEnabled =
+    (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["payroll-compute", unitId, start, end, unitState, unitPincode, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    queryKey: ["payroll-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     enabled: !!ptSlabs && !!pincodeRanges && !!lwfRows,
     queryFn: async () => {
       // 1. Roster: candidates mapped to this unit (primary + secondary).
@@ -524,6 +526,7 @@ function PayrollUnitPage() {
               phOverrideAmount: phOverride,
               periodDates: periodDates.map((d) => new Date(d)),
               dayBases,
+              epfCapEnabled,
             })
           : null;
         const candidateGender = ((c as unknown as { gender?: string | null }).gender ?? "").toString();
@@ -567,7 +570,7 @@ function PayrollUnitPage() {
           }
 
           // Statutory EPF employer split (EPS + EPF); total unchanged.
-          Object.assign(wages, applyEpfBreakdownToWageComputation(wages));
+          Object.assign(wages, applyEpfBreakdownToWageComputation(wages, { epfCapEnabled }));
         }
 
         // Merge split components (e.g. "HRA 5%" + "HRA 15%" -> "HRA") across

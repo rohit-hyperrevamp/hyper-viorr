@@ -586,6 +586,8 @@ export type Unit = {
   gpaipAmount: number;
   bonusEnabled: boolean;
   bonusFrequency: BonusFrequency | null;
+  /** true = EPF wage ceiling (₹15,000) applies AND attendance is capped to payroll days. */
+  epfCapEnabled: boolean;
 };
 
 export type BonusFrequency = "monthly" | "yearly" | "on_reimbursement";
@@ -668,6 +670,7 @@ type UnitRow = {
   gpaip_amount?: number | string | null;
   bonus_enabled?: boolean | null;
   bonus_frequency?: string | null;
+  epf_cap_enabled?: boolean | null;
 };
 
 function rowToUnit(r: UnitRow): Unit {
@@ -737,6 +740,7 @@ function rowToUnit(r: UnitRow): Unit {
     gpaipAmount: Number(r.gpaip_amount ?? 0),
     bonusEnabled: Boolean(r.bonus_enabled),
     bonusFrequency: (r.bonus_frequency as BonusFrequency | null) ?? null,
+    epfCapEnabled: r.epf_cap_enabled == null ? true : Boolean(r.epf_cap_enabled),
   };
 }
 
@@ -805,6 +809,7 @@ function unitToRow(data: Omit<Unit, "id">) {
     gpaip_amount: data.gpaipEnabled ? Number(data.gpaipAmount || 0) : 0,
     bonus_enabled: data.bonusEnabled,
     bonus_frequency: data.bonusEnabled ? (data.bonusFrequency ?? "monthly") : null,
+    epf_cap_enabled: data.epfCapEnabled,
   };
 }
 

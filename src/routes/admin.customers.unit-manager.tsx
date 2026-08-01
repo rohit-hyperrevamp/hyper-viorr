@@ -134,6 +134,7 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     gpaipEnabled: false,
     gpaipAmount: 0,
     bonusEnabled: false,
+    epfCapEnabled: true,
     bonusFrequency: null,
   };
 }
@@ -1247,6 +1248,35 @@ function UnitFormDialog({
                   </Field>
                 </div>
               )}
+            </div>
+
+            <div className="mt-3 rounded-xl border border-border/60 bg-background p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-semibold">EPF cap</div>
+                    <Badge
+                      className={cn(
+                        "border-0 text-[10px] font-semibold uppercase tracking-wide",
+                        form.epfCapEnabled
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                          : "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+                      )}
+                    >
+                      {form.epfCapEnabled ? "Capped" : "No cap"}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+                    Capped: EPF is computed on the ₹15,000 wage ceiling and attendance is limited to the contract payroll days
+                    (extra duties must be marked as OT). No cap: EPF is computed on full wages and Present days are not limited
+                    by payroll days. Contracts on this unit inherit this setting.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.epfCapEnabled}
+                  onCheckedChange={(v) => set("epfCapEnabled", v)}
+                />
+              </div>
             </div>
           </Section>
 

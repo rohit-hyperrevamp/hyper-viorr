@@ -180,7 +180,7 @@ function MusterRollPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("units")
-        .select("id, code, name, location, branch_id, customer_id, billing_state, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode")
+        .select("id, code, name, location, epf_cap_enabled, branch_id, customer_id, billing_state, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode")
         .eq("id", unitId)
         .maybeSingle();
       if (error) throw error;
@@ -406,18 +406,27 @@ function MusterRollPage() {
   const periodStart = periodCells[0]?.date ?? ymd(year, monthIdx, 1);
   const periodEnd = periodCells[periodCells.length - 1]?.date ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
 
+  // Unit-level EPF cap policy — contracts inherit it. When the unit is
+  // "no cap", attendance is NOT limited by payroll days (any number of P is
+  // allowed); when it is capped, P is limited to the payroll-day count and
+  // the rest must be marked as OT.
+  const unitEpfCapEnabled =
+    (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
+
   // Max "P" days allowed per designation for this period, driven by the
   // contract resource's Payroll Days entry (26 fixed, actual days, actual
   // minus weekly off, custom weekdays...). Anything beyond goes to OT.
   const maxPDaysByDesignation = useMemo(() => {
     const dates = periodCells.map((c) => c.date);
     const m = new Map<string, number>();
+    if (!unitEpfCapEnabled) return m;
     for (const d of contractDesignations) {
       const cap = resolvePayrollDayCount(d.payrollDayBase, dates);
       if (cap != null && cap > 0) m.set(d.designationId, cap);
     }
     return m;
-  }, [contractDesignations, periodCells]);
+  }, [contractDesignations, periodCells, unitEpfCapEnabled]);
+
 
 
   const queryClient = useQueryClient();

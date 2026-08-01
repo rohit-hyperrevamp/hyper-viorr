@@ -554,7 +554,10 @@ export function applyLwfToWageComputation(
 // (EPS 8.33% capped at ₹1,250 + EPF Employer remainder). Total employer
 // contribution is preserved so employerCost is unchanged.
 // Safe no-op if the row is missing, zero, or already split.
-export function applyEpfBreakdownToWageComputation(wages: WageComputation): WageComputation {
+export function applyEpfBreakdownToWageComputation(
+  wages: WageComputation,
+  options?: { epfCapEnabled?: boolean },
+): WageComputation {
   const excluded = /\b(eps|edli|admin)\b/i;
   const idx = wages.employerContributions.findIndex(
     (i) => EPF_NAME_RE.test(i.name) && !excluded.test(i.name),
@@ -569,8 +572,9 @@ export function applyEpfBreakdownToWageComputation(wages: WageComputation): Wage
     if (n.includes("basic") || /\bda\b/.test(n)) return s + (Number(c.amount) || 0);
     return s;
   }, 0);
-  const cappedBase = Math.min(basicDA, EPF_WAGE_CEILING);
-  const eps = Math.min(round2(cappedBase * 0.0833), EPS_CAP);
+  const noCap = options?.epfCapEnabled === false;
+  const cappedBase = noCap ? basicDA : Math.min(basicDA, EPF_WAGE_CEILING);
+  const eps = noCap ? round2(cappedBase * 0.0833) : Math.min(round2(cappedBase * 0.0833), EPS_CAP);
   const epfEmployer = round2(Math.max(0, originalAmount - eps));
 
   const employerContributions = [
@@ -662,7 +666,18 @@ export function computeWages(
   totals: AttendanceTotals,
   resource: ContractResourceLike,
   periodDayCount: number,
-  options?: { phOverrideAmount?: number; periodDates?: Date[]; dayBases?: PayrollDayBaseDef[] },
+  options?: {
+    phOverrideAmount?: number;
+    periodDates?: Date[];
+    dayBases?: PayrollDayBaseDef[];
+    /**
+     * Unit-level EPF cap policy (units.epf_cap_enabled), inherited by the contract.
+     * true  → EPF base is capped at the ₹15,000 wage ceiling.
+     * false → no ceiling; EPF is computed on the full configured base.
+     * undefined → legacy behaviour: whatever the contract line configures.
+     */
+    epfCapEnabled?: boolean;
+  },
 ): WageComputation {
   const contractGross = resource.components.reduce(
     (s, c) => s + (Number(c.amount) || 0),
@@ -971,11 +986,21 @@ export function computeWages(
   // not configure — doing so made payroll silently diverge from the contract
   // (e.g. "EE-EPF NoCap" contracted at 12% of 15,246 = 1,829.52 but paid on a
   // phantom 15,000 ceiling = 1,800). Only percentage / base defaults are filled.
+  const epfCapPolicy = options?.epfCapEnabled;
   const applyEpfDefaults = (i: BenefitLike | undefined): BenefitLike | undefined => {
     if (!i) return i;
     if (hasConfiguredFormula(i)) return i;
     return {
       ...i,
+      // Unit-level cap policy wins when set: capped units get the ₹15,000
+      // ceiling even if the contract line omits it; no-cap units drop any
+      // configured ceiling so EPF is paid on the full base.
+      capAmount:
+        epfCapPolicy === true
+          ? (Number(i.capAmount) > 0 ? i.capAmount : EPF_WAGE_CEILING)
+          : epfCapPolicy === false
+          ? 0
+          : i.capAmount,
       calcType: i.calcType ?? "percentage",
       percentage: Number(i.percentage) > 0 ? i.percentage : i.calcType === "percentage" ? 12 : i.percentage,
       baseComponents:

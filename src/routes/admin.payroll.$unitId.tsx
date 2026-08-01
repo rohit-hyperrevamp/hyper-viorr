@@ -105,7 +105,7 @@ function PayrollUnitPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("units")
-        .select("id, code, name, customer_id, billing_state, billing_pincode")
+        .select("id, code, name, customer_id, billing_state, billing_pincode, epf_cap_enabled")
         .eq("id", unitId)
         .maybeSingle();
       if (!data) return null;
@@ -246,9 +246,12 @@ function PayrollUnitPage() {
 
   const unitState = (unit as { billing_state?: string | null } | null | undefined)?.billing_state ?? null;
   const unitPincode = (unit as { billing_pincode?: string | null } | null | undefined)?.billing_pincode ?? null;
+  // Unit-level EPF cap policy — contracts on this unit inherit it.
+  const epfCapEnabled =
+    (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["payroll-compute", unitId, start, end, unitState, unitPincode, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    queryKey: ["payroll-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     enabled: !!ptSlabs && !!pincodeRanges && !!lwfRows,
     queryFn: async () => {
       // 1. Roster: candidates mapped to this unit (primary + secondary).
@@ -583,7 +586,7 @@ function PayrollUnitPage() {
         const resource = resourceByDesignation.get(did);
         const phOverride = isPrimaryForAdj ? phCashByCandidate.get(c.id) : undefined;
         const wages = resource
-          ? computeWages(totals, resource, periodDates.length, { phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(d)), dayBases })
+          ? computeWages(totals, resource, periodDates.length, { phOverrideAmount: phOverride, periodDates: periodDates.map((d) => new Date(d)), dayBases, epfCapEnabled })
           : null;
         const isPrimary = (c.designation_id ?? null) === p.designationId;
         const candidateGender = ((c as unknown as { gender?: string | null }).gender ?? "").toString();
@@ -641,7 +644,7 @@ function PayrollUnitPage() {
         // Split EPF employer contribution into statutory (EPS + EPF) sub-lines.
         // Total employer cost is preserved.
         if (wages && isPrimary) {
-          Object.assign(wages, applyEpfBreakdownToWageComputation(wages));
+          Object.assign(wages, applyEpfBreakdownToWageComputation(wages, { epfCapEnabled }));
         }
 
 
