@@ -365,15 +365,19 @@ function DashboardPage() {
         const u = unitsById.get(contract.unit_id);
         if (!u) continue;
         const resMap = resByContractDesig.get(contract.id) ?? new Map();
+        const isInternal = contract.is_internal === true;
 
         // Contract value reference: full-month projected per resource × quantity.
         // Mirrors Invoice module's projected (components + employer contributions),
-        // multiplied by configured headcount.
+        // multiplied by configured headcount. Internal contracts are not revenue.
         let contractValue = 0;
-        for (const r of resMap.values()) {
-          const qty = Number(r.quantity) || 0;
-          contractValue += qty * (sumArr(r.components) + sumArr(r.employer_contributions));
+        if (!isInternal) {
+          for (const r of resMap.values()) {
+            const qty = Number(r.quantity) || 0;
+            contractValue += qty * (sumArr(r.components) + sumArr(r.employer_contributions));
+          }
         }
+
 
         // Actuals from attendance.
         const unitRoster = rosterByUnit.get(contract.unit_id) ?? new Set<string>();
