@@ -231,6 +231,7 @@ export function AttendanceCharter({
   const entriesQ = useQuery({
     queryKey: ["attendance-charter-entries", unitIds.join(","), start, mtdEnd],
     enabled: unitIds.length > 0,
+    staleTime: 0,
     queryFn: () => fetchAttendanceEntriesForPeriod({ unitIds, start, end: mtdEnd, includeUnitId: true }),
   });
 
