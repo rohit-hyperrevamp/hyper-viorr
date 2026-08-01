@@ -764,7 +764,7 @@ function UnitFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto pb-0">
         <DialogHeader>
           <DialogTitle>{editing ? "Edit unit" : "Add unit"}</DialogTitle>
           <DialogDescription>
@@ -1324,7 +1324,7 @@ function UnitFormDialog({
 
           {error && <p className="text-xs font-medium text-destructive">{error}</p>}
 
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 z-20 -mx-6 mt-2 border-t border-border/60 bg-background/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
               {editing ? "Save changes" : "Create unit"}
