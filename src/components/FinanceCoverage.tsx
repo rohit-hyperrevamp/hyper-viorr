@@ -46,6 +46,35 @@ export type UnitFinanceRow = {
   actual_invoice: number;
 };
 
+/**
+ * Month progress: committed figures are FULL-MONTH contracted values, while
+ * actuals are earned month-till-date from approved attendance. Comparing them
+ * raw makes day 1 look catastrophic, so every tone/pace calculation is scaled
+ * by how much of the payroll month has actually elapsed.
+ */
+export function monthProgress(now = new Date()) {
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const elapsed = now.getDate();
+  return { elapsed, daysInMonth, ratio: elapsed / daysInMonth };
+}
+
+export type Tone = "success" | "ok" | "warning" | "destructive";
+
+/**
+ * Pace tone — actual MTD vs the pro-rated expectation for today.
+ *  >= 98% of expected  → green (on/ahead of plan)
+ *  >= 85% of expected  → orange (slipping)
+ *  <  85% of expected  → red (materially behind)
+ */
+export function paceTone(committed: number, actual: number, ratio: number): Tone {
+  if (committed <= 0) return "ok";
+  const expected = committed * Math.max(ratio, 0.0001);
+  const pace = (actual / expected) * 100;
+  if (pace >= 98) return "success";
+  if (pace >= 85) return "warning";
+  return "destructive";
+}
+
 /** Shortfall tone for money: under-delivery beyond 5% is red, up to 5% amber. */
 function moneyTone(committed: number, actual: number): "ok" | "warning" | "destructive" {
   if (committed <= 0) return "ok";
@@ -65,17 +94,19 @@ function Tile({
   value: string;
   sub?: string;
   icon: typeof Users;
-  tone?: "accent" | "warning" | "destructive";
+  tone?: "accent" | "success" | "warning" | "destructive";
 }) {
   return (
     <div
       className={cn(
         "rounded-2xl border p-3",
-        tone === "warning"
-          ? "border-amber-500/40 bg-amber-500/10"
-          : tone === "destructive"
-            ? "border-destructive/40 bg-destructive/10"
-            : "border-border bg-background/60",
+        tone === "success"
+          ? "border-emerald-500/40 bg-emerald-500/10"
+          : tone === "warning"
+            ? "border-amber-500/40 bg-amber-500/10"
+            : tone === "destructive"
+              ? "border-destructive/40 bg-destructive/10"
+              : "border-border bg-background/60",
       )}
     >
       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -83,6 +114,7 @@ function Tile({
           className={cn(
             "h-3.5 w-3.5",
             tone === "accent" && "text-primary",
+            tone === "success" && "text-emerald-600",
             tone === "warning" && "text-amber-500",
             tone === "destructive" && "text-destructive",
           )}
@@ -92,6 +124,7 @@ function Tile({
       <div
         className={cn(
           "mt-1 whitespace-nowrap text-lg font-semibold tabular-nums",
+          tone === "success" && "text-emerald-600",
           tone === "warning" && "text-amber-600",
           tone === "destructive" && "text-destructive",
         )}
@@ -102,6 +135,7 @@ function Tile({
     </div>
   );
 }
+
 
 function VarianceChip({ diff, money }: { diff: number; money?: boolean }) {
   const tone =
