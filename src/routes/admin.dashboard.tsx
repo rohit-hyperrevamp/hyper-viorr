@@ -34,6 +34,9 @@ import { usePeopleInsights } from "@/lib/people-insights";
 import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
+import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
+import { WorkforceCoverageCard } from "@/components/WorkforceCoverage";
+
 
 function PeopleInsightsSection({ compact }: { compact?: boolean }) {
   const { isLoading, showSixtyPlus, birthdays, anniversaries, sixtyPlus } = usePeopleInsights();
