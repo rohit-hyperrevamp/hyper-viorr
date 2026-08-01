@@ -1,6 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type DocType = "nda" | "appointment_letter" | "form_vii" | "company_stamp" | "id_card";
+export type DocType =
+  | "nda"
+  | "appointment_letter"
+  | "form_vii"
+  | "company_stamp"
+  | "id_card"
+  | "posting_order"
+  | "posting_order_email"
+  | "posting_order_whatsapp";
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
   nda: "Non-Disclosure Agreement",
@@ -8,6 +16,9 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   form_vii: "Form VII — Nomination Form",
   company_stamp: "Company Stamp and Signatures",
   id_card: "Employee ID",
+  posting_order: "Posting Order",
+  posting_order_email: "Posting Order — Email Template",
+  posting_order_whatsapp: "Posting Order — WhatsApp Template",
 };
 
 export const DOC_TYPE_SHORT: Record<DocType, string> = {
@@ -16,7 +27,11 @@ export const DOC_TYPE_SHORT: Record<DocType, string> = {
   form_vii: "Form VII",
   company_stamp: "Stamp & Signatures",
   id_card: "Employee ID",
+  posting_order: "Posting Order",
+  posting_order_email: "Posting Order Email",
+  posting_order_whatsapp: "Posting Order WhatsApp",
 };
+
 
 /** CDN URL of the official company stamp (with authorised signature). */
 export const COMPANY_STAMP_URL =
