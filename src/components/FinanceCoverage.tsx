@@ -460,8 +460,12 @@ export function InvoiceCoverageCard({ rows }: { rows: UnitFinanceRow[] }) {
 }
 
 /** Unit-wise P&L: contracted MTD, actual invoice, actual payroll, profitability. */
-export function ProfitabilityCard({ rows }: { rows: UnitFinanceRow[] }) {
+export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] }) {
   const [query, setQuery] = useState("");
+
+  // Internal / non-billable units carry cost with no customer revenue by
+  // design — including them would make P&L negative by construction.
+  const rows = useMemo(() => allRows.filter((r) => !r.internal), [allRows]);
 
   const totals = useMemo(() => {
     const committedProfit = rows.reduce(

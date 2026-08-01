@@ -14,7 +14,6 @@ import { DashboardShell } from "@/components/LiveFeed";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { GradientBarChart } from "@/components/charts/GradientBarChart";
 import { RadialGauge } from "@/components/charts/RadialGauge";
 import { useCountUp } from "@/hooks/useCountUp";
 import { supabase } from "@/integrations/supabase/client";
@@ -387,11 +386,13 @@ function DashboardPage() {
         for (const r of resMap.values()) {
           const qty = Number(r.quantity) || 0;
           committedStrength += qty;
+          // Cost base and billing base must use the SAME components, otherwise
+          // profitability is negative by construction.
+          const perHead = sumArr(r.components) + sumArr(r.employer_contributions) + sumArr(r.benefits);
           // Payroll commitment is a cost for internal units too.
-          committedPayroll +=
-            qty * (sumArr(r.components) + sumArr(r.employer_contributions) + sumArr(r.benefits));
+          committedPayroll += qty * perHead;
           if (!isInternal) {
-            contractValue += qty * (sumArr(r.components) + sumArr(r.employer_contributions));
+            contractValue += qty * perHead;
           }
         }
 
@@ -435,17 +436,17 @@ function DashboardPage() {
             })) as AttendanceEntryLike[];
           const totals = computeAttendanceTotals(p.candidateId, periodDates, lineEntries, codes);
           const wages = computeWages(totals, toResource(resRow), periodDates.length);
-          // Invoice billable mirrors Invoice module's "Actual total"
-          // (earned gross + earned employer contributions). Internal units
-          // are never billed to a customer, so they earn no invoice value.
-          if (!isInternal) invoiceAmount += wages.employerCost;
-          // Payroll cost = same outflow + benefits already scaled by the wage
-          // engine (per-duty benefits are not a flat ratio, so use its output).
+          // Payroll cost = earned outflow + earned benefits.
           const earnedBenefits = wages.benefits.reduce(
             (s, b) => s + (Number(b.amount) || 0),
             0,
           );
-          payrollCost += wages.employerCost + earnedBenefits;
+          const earnedCost = wages.employerCost + earnedBenefits;
+          // Billed value uses the SAME base as the cost so a billable unit can
+          // never be loss-making purely because of a formula mismatch.
+          // Internal units are never billed to a customer.
+          if (!isInternal) invoiceAmount += earnedCost;
+          payrollCost += earnedCost;
         }
 
         const actualStrength = unitRoster.size;
@@ -578,54 +579,28 @@ function DashboardPage() {
 
   const insightsCharts = (() => {
         if (isLoading || !data) return null;
-        const showInvoiceChart = can("invoice") && data.pnlRows.length > 0;
         const sheetTotal = data.sheetCounts.approved + data.sheetCounts.pending + data.sheetCounts.draft + data.sheetCounts.rejected;
         const showGauge = can("attendance") && sheetTotal > 0;
-        if (!showInvoiceChart && !showGauge) return null;
+        if (!showGauge) return null;
         return (
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className={`grid grid-cols-1 gap-4 ${showInvoiceChart && showGauge ? "lg:grid-cols-3" : "lg:grid-cols-1"}`}
+            className="grid grid-cols-1 gap-4"
           >
-            {showInvoiceChart && (
-              <div className={`glass relative overflow-hidden rounded-3xl p-5 ${showGauge ? "lg:col-span-2" : ""}`}>
-                <div className="mb-3 flex items-end justify-between">
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Top units · this cycle</div>
-                    <div className="font-display text-lg font-semibold tracking-tight text-foreground">{can("payroll") ? "Invoice vs Payroll" : "Invoice"}</div>
-                  </div>
-                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[oklch(0.55_0.22_255)]" /> Invoice</span>
-                    {can("payroll") && <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[oklch(0.85_0.18_95)]" /> Payroll</span>}
-                  </div>
-                </div>
-                <GradientBarChart
-                  id="dash-invoice"
-                  data={data.pnlRows.slice(0, 7).map((r) => ({
-                    label: (r.unit_code || r.unit_name || "").slice(0, 8),
-                    value: Math.round(r.invoice_amount),
-                  }))}
-                  formatValue={(n) => n >= 100000 ? `${(n / 100000).toFixed(1)}L` : n >= 1000 ? `${(n / 1000).toFixed(0)}k` : String(n)}
-                  height={240}
-                />
+            <div className="glass relative flex flex-col items-center justify-center overflow-hidden rounded-3xl p-5">
+              <div className="mb-2 text-center">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Approval rate</div>
+                <div className="font-display text-lg font-semibold tracking-tight text-foreground">Cycle health</div>
               </div>
-            )}
-            {showGauge && (
-              <div className="glass relative flex flex-col items-center justify-center overflow-hidden rounded-3xl p-5">
-                <div className="mb-2 text-center">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Approval rate</div>
-                  <div className="font-display text-lg font-semibold tracking-tight text-foreground">Cycle health</div>
-                </div>
-                <RadialGauge
-                  value={sheetTotal === 0 ? 0 : Math.round((data.sheetCounts.approved / sheetTotal) * 100)}
-                  label="Attendance approved"
-                  sublabel={`${data.sheetCounts.approved} of ${sheetTotal} sheets`}
-                  size={220}
-                />
-              </div>
-            )}
+              <RadialGauge
+                value={sheetTotal === 0 ? 0 : Math.round((data.sheetCounts.approved / sheetTotal) * 100)}
+                label="Attendance approved"
+                sublabel={`${data.sheetCounts.approved} of ${sheetTotal} sheets`}
+                size={220}
+              />
+            </div>
           </motion.div>
         );
       })();
