@@ -1236,7 +1236,7 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 text-left tabular-nums">{r.totals.phDays}</td>
                   <td className="px-4 py-3 text-left tabular-nums">{r.totals.otDays}</td>
                   <td className="px-4 py-3 text-left tabular-nums font-medium">{r.totals.tDays}</td>
-                  <td className="px-4 py-3 text-left text-muted-foreground">{r.wages ? fmtINR(r.wages.contractGross) : <span className="text-xs text-amber-600">no contract</span>}</td>
+                  <td className="px-4 py-3 text-left text-muted-foreground">{r.wages ? fmtINR(r.wages.contractGross) : <span className="text-xs text-amber-600" title={`The contract for this unit has no resource line for the designation "${r.designationName}". Add it on the contract, or change the employee's designation to a contracted one.`}>no “{r.designationName}” on contract</span>}</td>
                   <td className="px-4 py-3 text-left font-medium">{r.wages ? fmtINR(r.wages.earnedGross) : "—"}</td>
                   <td className="px-4 py-3 text-left">{r.wages ? fmtINR(r.wages.totalDeductions) : "—"}</td>
                   <td className="px-4 py-3 text-left font-semibold text-emerald-700">{r.wages ? fmtINR(r.wages.netPay) : "—"}</td>
