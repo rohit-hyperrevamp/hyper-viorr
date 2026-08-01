@@ -437,17 +437,17 @@ function DashboardPage() {
             })) as AttendanceEntryLike[];
           const totals = computeAttendanceTotals(p.candidateId, periodDates, lineEntries, codes);
           const wages = computeWages(totals, toResource(resRow), periodDates.length);
-          // Invoice billable mirrors Invoice module's "Actual total"
-          // (earned gross + earned employer contributions). Internal units
-          // are never billed to a customer, so they earn no invoice value.
-          if (!isInternal) invoiceAmount += wages.employerCost;
-          // Payroll cost = same outflow + benefits already scaled by the wage
-          // engine (per-duty benefits are not a flat ratio, so use its output).
+          // Payroll cost = earned outflow + earned benefits.
           const earnedBenefits = wages.benefits.reduce(
             (s, b) => s + (Number(b.amount) || 0),
             0,
           );
-          payrollCost += wages.employerCost + earnedBenefits;
+          const earnedCost = wages.employerCost + earnedBenefits;
+          // Billed value uses the SAME base as the cost so a billable unit can
+          // never be loss-making purely because of a formula mismatch.
+          // Internal units are never billed to a customer.
+          if (!isInternal) invoiceAmount += earnedCost;
+          payrollCost += earnedCost;
         }
 
         const actualStrength = unitRoster.size;
