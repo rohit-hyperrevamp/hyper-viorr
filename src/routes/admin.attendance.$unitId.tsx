@@ -2265,7 +2265,9 @@ function MusterRollPage() {
                       <td className={cn(cellBase, "p-1")} rowSpan={2}>{mr.emp.employee_code || "—"}</td>
                       <td className={cn(cellBase, "p-1 text-left")} rowSpan={2}>
                         <div className="flex items-center gap-1.5">
-                          <span>{mr.emp.full_name || "—"}</span>
+                          <span className={cn(mr.vacant && "italic text-slate-400")}>
+                            {mr.vacant ? "Unassigned" : mr.emp.full_name || "—"}
+                          </span>
                           {!mr.isPrimary && (
                             <button
                               type="button"
