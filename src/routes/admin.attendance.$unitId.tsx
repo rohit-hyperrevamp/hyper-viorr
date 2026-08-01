@@ -283,7 +283,9 @@ function MusterRollPage() {
             employee_type: classifyAttendanceEmployee(c.role_key, (c.designation_id && dMap.get(c.designation_id)) || ""),
             doj: c.preferred_joining_date || "",
             is_non_billable: isNonBillable,
+            is_home_mapped: homeMapped.has(c.id),
             role_key: (c.role_key || "").toLowerCase(),
+
           };
         })
         // Muster rolls are billable-only for client units. Non-billable staff
