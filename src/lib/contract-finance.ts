@@ -18,7 +18,13 @@ export type ResourceRate = {
   designationName: string;
   quantity: number;
   shiftHours: number;
+  /** Monthly gross = sum of the wage components. Never a stored scalar. */
   grossRate: number;
+  /** Contract-level statutory / recurring employee deductions per month. */
+  deductionRate: number;
+  /** Take-home payroll = gross − deductions. */
+  netRate: number;
+  /** What the client is billed = gross + employer cost lines. */
   billRate: number;
 };
 
@@ -29,6 +35,8 @@ export type UnitFinance = {
   committed: number;
   monthlyContracted: number;
   monthlyPayroll: number;
+  monthlyDeductions: number;
+  monthlyNetPayroll: number;
   rates: ResourceRate[];
   byDesignation: Map<string, ResourceRate>;
   /** Weighted average rate, used when an employee's designation is not on the contract. */
@@ -44,6 +52,7 @@ function sumAmounts(list: unknown): number {
     return s + (Number.isFinite(amount) ? amount : 0);
   }, 0);
 }
+
 
 export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMap> {
   const ids = Array.from(new Set(unitIds.filter(Boolean)));
@@ -70,7 +79,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
   const [{ data: resources, error: rErr }, { data: designations }] = await Promise.all([
     supabase
       .from("contract_resources")
-      .select("contract_id, designation_id, quantity, shift_hours, gross, components, employer_contributions")
+      .select("contract_id, designation_id, quantity, shift_hours, components, deductions, employer_contributions")
       .in("contract_id", contractIds),
     supabase.from("designations").select("id, name"),
   ]);
@@ -84,15 +93,20 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
   for (const r of resources ?? []) {
     const unitId = unitByContract.get(r.contract_id as string);
     if (!unitId) continue;
-    const componentsTotal = sumAmounts((r as { components?: unknown }).components);
+    // Wage components are the single source of truth for gross. A stored
+    // `gross` scalar can go stale when components are edited, so it is never
+    // used: no wages configured means no payroll, only employer cost to bill.
+    const grossRate = sumAmounts((r as { components?: unknown }).components);
+    const deductionRate = sumAmounts((r as { deductions?: unknown }).deductions);
     const employerTotal = sumAmounts((r as { employer_contributions?: unknown }).employer_contributions);
-    const grossRate = Number(r.gross) || componentsTotal;
     const rate: ResourceRate = {
       designationId: (r.designation_id as string) ?? null,
       designationName: (r.designation_id && desigMap.get(r.designation_id as string)) || "Resource",
       quantity: Number(r.quantity) || 0,
       shiftHours: Number(r.shift_hours) === 12 ? 12 : 8,
       grossRate: Math.round(grossRate * 100) / 100,
+      deductionRate: Math.round(deductionRate * 100) / 100,
+      netRate: Math.round(Math.max(0, grossRate - deductionRate) * 100) / 100,
       billRate: Math.round((grossRate + employerTotal) * 100) / 100,
     };
     const arr = grouped.get(unitId) ?? [];
@@ -105,6 +119,7 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
     const committed = rates.reduce((s, r) => s + r.quantity, 0);
     const monthlyContracted = rates.reduce((s, r) => s + r.quantity * r.billRate, 0);
     const monthlyPayroll = rates.reduce((s, r) => s + r.quantity * r.grossRate, 0);
+    const monthlyDeductions = rates.reduce((s, r) => s + r.quantity * r.deductionRate, 0);
     const byDesignation = new Map<string, ResourceRate>();
     for (const r of rates) if (r.designationId) byDesignation.set(r.designationId, r);
     const fallback: ResourceRate | null = rates.length
@@ -114,6 +129,11 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
           quantity: committed,
           shiftHours: rates[0].shiftHours,
           grossRate: committed > 0 ? monthlyPayroll / committed : rates[0].grossRate,
+          deductionRate: committed > 0 ? monthlyDeductions / committed : rates[0].deductionRate,
+          netRate:
+            committed > 0
+              ? Math.max(0, (monthlyPayroll - monthlyDeductions) / committed)
+              : rates[0].netRate,
           billRate: committed > 0 ? monthlyContracted / committed : rates[0].billRate,
         }
       : null;
@@ -125,11 +145,14 @@ export async function fetchUnitFinance(unitIds: string[]): Promise<UnitFinanceMa
       committed,
       monthlyContracted: Math.round(monthlyContracted * 100) / 100,
       monthlyPayroll: Math.round(monthlyPayroll * 100) / 100,
+      monthlyDeductions: Math.round(monthlyDeductions * 100) / 100,
+      monthlyNetPayroll: Math.round(Math.max(0, monthlyPayroll - monthlyDeductions) * 100) / 100,
       rates: rates.sort((a, b) => a.designationName.localeCompare(b.designationName)),
       byDesignation,
       fallback,
     });
   }
+
 
   return out;
 }

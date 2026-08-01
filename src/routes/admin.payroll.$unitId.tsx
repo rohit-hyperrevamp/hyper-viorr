@@ -1207,7 +1207,7 @@ function PayrollUnitPage() {
                 <>
                 <tr
                   key={r.rowKey}
-                  id={`payroll-row-${r.rowKey}`}
+                  id={isHighlighted ? `payroll-row-${r.id}` : `payroll-row-${r.rowKey}`}
                   className={`hover:bg-muted/40 ${isHighlighted ? "bg-emerald-50 ring-2 ring-emerald-400 dark:bg-emerald-950/40" : ""}`}
                 >
                   <td className="px-4 py-3">

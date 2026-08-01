@@ -40,8 +40,14 @@ type PersonMoney = {
   paidDays: number;
   otDays: number;
   invoiceAmount: number;
+  /** Earned gross wages for the days paid. */
   payrollAmount: number;
+  /** Contract-level statutory / recurring deductions earned in the period. */
+  deductionAmount: number;
+  /** Net payable = gross − deductions. */
+  netPayrollAmount: number;
 };
+
 
 function pct(actual: number, projected: number) {
   if (projected <= 0) return 0;
@@ -275,6 +281,8 @@ export function FinanceCharter({
           otDays: 0,
           invoiceAmount: 0,
           payrollAmount: 0,
+          deductionAmount: 0,
+          netPayrollAmount: 0,
         };
         bucket.set(e.candidate_id, person);
       }
@@ -289,8 +297,11 @@ export function FinanceCharter({
       if (rate) {
         person.invoiceAmount += (rate.billRate / periodDays) * payable;
         person.payrollAmount += (rate.grossRate / periodDays) * payable;
+        person.deductionAmount += (rate.deductionRate / periodDays) * payable;
+        person.netPayrollAmount = Math.max(0, person.payrollAmount - person.deductionAmount);
       }
     }
+
     return out;
   }, [entriesQ.data, financeQ.data, codeMap, nameById, periodsByUnit]);
 
@@ -306,6 +317,8 @@ export function FinanceCharter({
         const contractedMtd = (monthlyContracted / period.totalDays) * period.elapsedDays;
         const invoiceAmount = people.reduce((s, p) => s + p.invoiceAmount, 0);
         const payrollAmount = people.reduce((s, p) => s + p.payrollAmount, 0);
+        const deductionAmount = people.reduce((s, p) => s + p.deductionAmount, 0);
+        const netPayrollAmount = Math.max(0, payrollAmount - deductionAmount);
         const status: PeriodStatus = statusQ.data?.get(u.id) ?? {
           unitId: u.id,
           attendance: "none",
@@ -325,6 +338,8 @@ export function FinanceCharter({
           contractedMtd,
           invoiceAmount,
           payrollAmount,
+          deductionAmount,
+          netPayrollAmount,
           status,
           margin: invoiceAmount - payrollAmount,
           marginPct: invoiceAmount > 0 ? Math.round(((invoiceAmount - payrollAmount) / invoiceAmount) * 100) : 0,
@@ -332,6 +347,7 @@ export function FinanceCharter({
           period,
         };
       })
+
       .filter((r) => {
         const q = query.trim().toLowerCase();
         if (!q) return true;
@@ -348,16 +364,20 @@ export function FinanceCharter({
     const contractedMtd = rows.reduce((s, r) => s + r.contractedMtd, 0);
     const invoiceAmount = rows.reduce((s, r) => s + r.invoiceAmount, 0);
     const payrollAmount = rows.reduce((s, r) => s + r.payrollAmount, 0);
+    const deductionAmount = rows.reduce((s, r) => s + r.deductionAmount, 0);
     return {
       monthlyContracted,
       contractedMtd,
       invoiceAmount,
       payrollAmount,
+      deductionAmount,
+      netPayrollAmount: Math.max(0, payrollAmount - deductionAmount),
       margin: invoiceAmount - payrollAmount,
       marginPct: invoiceAmount > 0 ? Math.round(((invoiceAmount - payrollAmount) / invoiceAmount) * 100) : 0,
       realisationPct: pct(invoiceAmount, contractedMtd),
     };
   }, [rows]);
+
 
   const exportCsv = () => {
     downloadCsv(
@@ -372,6 +392,8 @@ export function FinanceCharter({
         "Contracted value (MTD)": Math.round(r.contractedMtd),
         "Invoice value (MTD)": Math.round(r.invoiceAmount),
         "Payroll gross (MTD)": Math.round(r.payrollAmount),
+        "Deductions (MTD)": Math.round(r.deductionAmount),
+        "Net payable (MTD)": Math.round(r.netPayrollAmount),
         Margin: Math.round(r.margin),
         "Margin %": r.marginPct,
       })),
@@ -400,18 +422,28 @@ export function FinanceCharter({
         <Stat
           label="Payroll gross (MTD)"
           value={fmtMoneyCompact(totals.payrollAmount)}
-          sub="employee wages till date"
+          sub={`less ${fmtMoneyCompact(totals.deductionAmount)} deductions`}
           icon={Wallet}
           tone="warning"
         />
-        <Stat
-          label="Margin"
-          value={fmtMoneyCompact(totals.margin)}
-          sub={`${totals.marginPct}% · current payroll periods`}
-          icon={Gauge}
-          tone={totals.margin < 0 ? "destructive" : undefined}
-        />
+        {mode === "payroll" ? (
+          <Stat
+            label="Net payable (MTD)"
+            value={fmtMoneyCompact(totals.netPayrollAmount)}
+            sub="gross − deductions"
+            icon={Gauge}
+          />
+        ) : (
+          <Stat
+            label="Margin"
+            value={fmtMoneyCompact(totals.margin)}
+            sub={`${totals.marginPct}% · current payroll periods`}
+            icon={Gauge}
+            tone={totals.margin < 0 ? "destructive" : undefined}
+          />
+        )}
       </div>
+
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">
@@ -601,9 +633,22 @@ export function FinanceCharter({
                                 <th className="px-3 py-2 text-left font-medium">Employee</th>
                                 <th className="px-2 py-2 text-right font-medium">Paid days</th>
                                 <th className="px-2 py-2 text-right font-medium">OT days</th>
-                                <th className="px-2 py-2 text-right font-medium">Invoice</th>
-                                <th className="px-2 py-2 text-right font-medium">Payroll</th>
-                                <th className="px-3 py-2 text-right font-medium">Margin</th>
+                                {mode === "payroll" ? (
+                                  <>
+                                    <th className="px-2 py-2 text-right font-medium">Gross</th>
+                                    <th className="px-2 py-2 text-right font-medium">Deductions</th>
+                                    <th className="px-2 py-2 text-right font-medium">Net pay</th>
+                                  </>
+                                ) : (
+                                  <>
+                                    <th className="px-2 py-2 text-right font-medium">Invoice</th>
+                                    <th className="px-2 py-2 text-right font-medium">Payroll</th>
+                                    <th className="px-2 py-2 text-right font-medium">Margin</th>
+                                  </>
+                                )}
+                                <th className="px-3 py-2 text-right font-medium">
+                                  {mode === "payroll" ? "Pay sheet" : "Invoice line"}
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
@@ -612,26 +657,55 @@ export function FinanceCharter({
                                   <td className="px-3 py-1.5 font-medium">{p.name}</td>
                                   <td className="px-2 py-1.5 text-right tabular-nums">{p.paidDays}</td>
                                   <td className="px-2 py-1.5 text-right tabular-nums">{p.otDays}</td>
-                                  <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
-                                    {fmtMoney(p.invoiceAmount)}
-                                  </td>
-                                  <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
-                                    {fmtMoney(p.payrollAmount)}
-                                  </td>
+                                  {mode === "payroll" ? (
+                                    <>
+                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
+                                        {fmtMoney(p.payrollAmount)}
+                                      </td>
+                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
+                                        {p.deductionAmount > 0 ? `− ${fmtMoney(p.deductionAmount)}` : fmtMoney(0)}
+                                      </td>
+                                      <td className="whitespace-nowrap px-2 py-1.5 text-right font-semibold tabular-nums">
+                                        {fmtMoney(p.netPayrollAmount)}
+                                      </td>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
+                                        {fmtMoney(p.invoiceAmount)}
+                                      </td>
+                                      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted-foreground">
+                                        {fmtMoney(p.payrollAmount)}
+                                      </td>
+                                      <td className="px-2 py-1.5 text-right">
+                                        <MarginChip
+                                          value={
+                                            p.invoiceAmount > 0
+                                              ? Math.round(
+                                                  ((p.invoiceAmount - p.payrollAmount) / p.invoiceAmount) * 100,
+                                                )
+                                              : 0
+                                          }
+                                        />
+                                      </td>
+                                    </>
+                                  )}
                                   <td className="px-3 py-1.5 text-right">
-                                    <MarginChip
-                                      value={
-                                        p.invoiceAmount > 0
-                                          ? Math.round(((p.invoiceAmount - p.payrollAmount) / p.invoiceAmount) * 100)
-                                          : 0
-                                      }
-                                    />
+                                    <Link
+                                      to={linkTo}
+                                      params={{ unitId: r.unit.id }}
+                                      search={{ start: r.period.start, end: r.period.end, candidate: p.id }}
+                                      className="text-xs font-medium text-primary hover:underline"
+                                    >
+                                      View
+                                    </Link>
                                   </td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
                         </div>
+
                       )}
                     </div>
                   </div>

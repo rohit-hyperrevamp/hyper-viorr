@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Download } from "lucide-react";
+import { ChevronLeft, Download, FileText } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { InvoicePreviewDialog } from "@/components/InvoicePreviewDialog";
+
 import { supabase } from "@/integrations/supabase/client";
 import {
   applyEpfBreakdownToWageComputation,
@@ -609,6 +611,8 @@ function PayrollUnitPage() {
 
   const rows = data?.rows ?? [];
   const billingMode = data?.billingMode ?? "man_days";
+  const [previewOpen, setPreviewOpen] = useState(false);
+
 
   useEffect(() => {
     if (!highlightCandidate || rows.length === 0) return;
@@ -916,6 +920,9 @@ function PayrollUnitPage() {
           <ChevronLeft className="h-4 w-4" /> Back to invoice units
         </Link>
         <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+            <FileText className="mr-1.5 h-4 w-4" /> Preview invoice
+          </Button>
           <Button variant="outline" size="sm" onClick={exportCsv}>
             <Download className="mr-1.5 h-4 w-4" /> Export
           </Button>
@@ -924,6 +931,41 @@ function PayrollUnitPage() {
           </Button>
         </div>
       </div>
+
+      <InvoicePreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        data={{
+          invoiceNumber: `INV-${(unit?.code || "UNIT").toUpperCase()}-${start.replace(/-/g, "").slice(0, 6)}`,
+          invoiceDate: fmtPretty(end),
+          periodLabel: `${fmtPretty(start)} – ${fmtPretty(end)}`,
+          companyName: orgSettings?.company_name ?? "Radiant Guard Services",
+          companyGstin: orgSettings?.company_gstin ?? "",
+          companyState: COMPANY_STATE,
+          customerName: unit?.customer_name ?? "—",
+          customerGstin: unit?.gstin ?? "",
+          billingAddress: [
+            unit?.billing_address1 ?? "",
+            unit?.billing_address2 ?? "",
+            [unit?.billing_city, unit?.billing_state, unit?.billing_pincode].filter(Boolean).join(", "),
+          ],
+          unitLabel: unit?.name || unit?.code || "Unit",
+          lines: rows
+            .filter((r) => r.wages)
+            .map((r) => ({
+              id: r.id,
+              description: `${r.name} · ${r.designation}`,
+              qtyLabel: `${Math.round(r.totals.tDays * 100) / 100} T days`,
+              amount: billableFor(r),
+            })),
+          subtotal: totals.actualTotal,
+          cgst: cgstAmount,
+          sgst: sgstAmount,
+          igst: igstAmount,
+          grandTotal,
+        }}
+      />
+
 
       <div className="rounded-3xl border border-border/70 bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-end justify-between gap-3">
