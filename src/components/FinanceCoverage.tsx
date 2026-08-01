@@ -274,8 +274,8 @@ function CoverageCard({
       {totals.shortUnits > 0 && (
         <p className="mt-1 text-xs text-muted-foreground">
           <span className="font-semibold text-destructive">{totals.shortUnits}</span> unit(s)
+          tracking more than 15% behind the pro-rated plan for today.
 
-          tracking below commitment this cycle.
         </p>
       )}
 
