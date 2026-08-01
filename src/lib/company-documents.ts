@@ -975,11 +975,11 @@ export const ID_CARD_CSS = `
 .idcard .body { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; }
 /* Header: logo hard-left, company name hard-right. */
 .idcard .idhead { display: flex; align-items: center; gap: 6px; }
-.idcard .logo { display: block; margin: 0 !important; width: auto !important; max-width: 84px !important;
+.idcard .logo { display: block; margin: 0 !important; width: auto !important; max-width: 60px !important;
   object-fit: contain; flex: 0 0 auto; }
 .idcard .company { flex: 1; text-align: right; font-weight: 700; font-size: 8.5px; line-height: 1.2;
   letter-spacing: -.2px; }
-.idcard .photo-wrap { position: relative; width: 64px; height: 74px; margin: 6px auto 0;
+.idcard .photo-wrap { position: relative; width: 80px; height: 94px; margin: 5px auto 0;
   border-radius: 6px; background: #d7dde6; border: 1px solid #b9c2cd; }
 .idcard .photo { width: 100% !important; height: 100% !important; max-width: none !important; border-radius: 6px; object-fit: cover; display: block; }
 .idcard .photo-ph { width: 100%; height: 100%; border-radius: 6px; display: flex; align-items: center;
@@ -987,19 +987,20 @@ export const ID_CARD_CSS = `
 /* Stamp overlays the photo itself (no back face to carry it any more). */
 .idcard .photo-stamp { position: absolute !important; left: 50% !important; top: 50% !important;
   transform: translate(-50%, -50%) !important;
-  height: 62px !important; width: auto !important; max-width: none !important;
+  height: 74px !important; width: auto !important; max-width: none !important;
   opacity: .38 !important; z-index: 3; pointer-events: none; }
-.idcard .rows { margin-top: 7px; font-size: 8.5px; line-height: 1.34; }
+.idcard .rows { margin-top: 6px; font-size: 8.5px; line-height: 1.34; }
 .idcard .row { display: flex; }
 .idcard .row .k { width: 48px; font-weight: 700; flex: 0 0 48px; }
 .idcard .row .c { width: 6px; flex: 0 0 6px; }
 .idcard .row .v { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.idcard .contact { margin-top: 6px; padding-top: 5px; border-top: 1px solid rgba(0,0,0,.18); text-align: center; }
+.idcard .contact { margin-top: auto; padding-top: 5px; border-top: 1px solid rgba(0,0,0,.18); text-align: center; }
 .idcard .contact-title { font-weight: 700; font-size: 7.5px; }
 .idcard .contact-block { font-size: 7.5px; font-weight: 700; line-height: 1.3; margin-top: 1px; }
 .idcard .contact-lines { font-size: 7.5px; line-height: 1.35; margin-top: 2px; }
-.idcard .contact-validity { font-size: 7px; margin-top: 2px; }
-.idcard .auth { margin-top: auto; text-align: right; padding-bottom: 2px; }
+.idcard .validity { font-size: 6px; text-align: center; margin-top: 2px; color: #374151; }
+.idcard .auth { margin-top: 2px; text-align: right; padding-bottom: 2px; }
+
 .idcard .sig-slot { display: block; min-height: 22px; }
 /* Any signature/stamp image on the card is hard-capped so it can never bleed
    past the card edge, whichever slot it was injected into. !important is
