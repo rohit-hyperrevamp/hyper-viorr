@@ -545,7 +545,7 @@ function DashboardPage() {
       <div className="flex flex-col gap-3 border-b border-border/50 px-6 py-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl space-y-1">
           <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">P&amp;L — {MONTH_NAMES[month]} {year}</h2>
-          <p className="text-[13px] leading-relaxed text-muted-foreground">Invoice &amp; payroll are computed from attendance. Contract value is the full-month projection. Variance = invoice − payroll cost.</p>
+          <p className="text-[13px] leading-relaxed text-muted-foreground">Invoice &amp; payroll are computed from approved attendance for this cycle. Contract value is the full-month projection for billable client contracts. Internal (own-office) units are cost only — they carry payroll but no contract or invoice value. Variance = invoice − payroll cost.</p>
         </div>
         {data && (
           <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[13px] sm:grid-cols-4 lg:flex lg:flex-row lg:items-center lg:gap-6">
