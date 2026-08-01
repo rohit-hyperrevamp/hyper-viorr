@@ -442,6 +442,18 @@ function MusterRollPage() {
     return m;
   }, [contractDesignations, periodCells, unitEpfCapEnabled]);
 
+  // Unit-level fallback cap. Reliever / extra-designation lines are often on a
+  // designation that is not on the contract (e.g. "Admin Executive" on a unit
+  // contracted only for "Security Guard"). A capped unit must still limit those
+  // lines, so fall back to the strictest payroll-day base on the contract.
+  const unitMaxPDays = useMemo(() => {
+    if (!unitEpfCapEnabled) return null;
+    const values = Array.from(maxPDaysByDesignation.values());
+    if (values.length === 0) return null;
+    return Math.min(...values);
+  }, [maxPDaysByDesignation, unitEpfCapEnabled]);
+
+
 
 
   const queryClient = useQueryClient();
