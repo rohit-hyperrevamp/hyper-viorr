@@ -94,6 +94,24 @@ export async function fetchPeriodStatuses(
   return out;
 }
 
+export async function fetchPeriodStatusesForUnitPeriods(
+  periods: Map<string, { start: string; end: string }>,
+): Promise<PeriodStatusMap> {
+  const grouped = new Map<string, { start: string; end: string; unitIds: string[] }>();
+  for (const [unitId, period] of periods) {
+    const key = `${period.start}|${period.end}`;
+    const group = grouped.get(key) ?? { ...period, unitIds: [] };
+    group.unitIds.push(unitId);
+    grouped.set(key, group);
+  }
+  const maps = await Promise.all(
+    Array.from(grouped.values()).map((group) => fetchPeriodStatuses(group.unitIds, group.start, group.end)),
+  );
+  const out: PeriodStatusMap = new Map();
+  for (const map of maps) for (const [unitId, status] of map) out.set(unitId, status);
+  return out;
+}
+
 /** Ensure a payroll_runs row exists for the unit+period, then return its id. */
 async function ensureRun(unitId: string, periodStart: string, periodEnd: string): Promise<string> {
   const { data: existing } = await supabase
