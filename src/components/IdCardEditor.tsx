@@ -85,7 +85,7 @@ export function IdCardEditor({
 }) {
   const set = (patch: Partial<IdCardSpec>) => onChange({ ...spec, ...patch });
   const setFront = (patch: Partial<IdCardSpec["front"]>) => set({ front: { ...spec.front, ...patch } });
-  const setBack = (patch: Partial<IdCardSpec["back"]>) => set({ back: { ...spec.back, ...patch } });
+  const setFooter = (patch: Partial<IdCardSpec["footer"]>) => set({ footer: { ...spec.footer, ...patch } });
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
