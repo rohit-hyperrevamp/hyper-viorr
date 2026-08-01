@@ -143,7 +143,8 @@ function DashboardPage() {
         supabase.from("attendance_sheets" as never).select("status").lte("period_start", monthEnd).gte("period_end", monthStart),
         supabase.from("payroll_runs" as never).select("status").lte("period_start", monthEnd).gte("period_end", monthStart),
         supabase.from("client_contracts")
-          .select("id, unit_id, status, start_date, end_date")
+          .select("id, unit_id, status, start_date, end_date, is_internal")
+
           .eq("status", "active")
           .lte("start_date", monthEnd)
           .or(`end_date.is.null,end_date.gte.${monthStart}`),
