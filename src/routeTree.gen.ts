@@ -26,7 +26,6 @@ import { Route as AdminPayrollManagerRouteImport } from './routes/admin.payroll-
 import { Route as AdminPayrollDaysManagerRouteImport } from './routes/admin.payroll-days-manager'
 import { Route as AdminPayrollRouteImport } from './routes/admin.payroll'
 import { Route as AdminOrgSettingsRouteImport } from './routes/admin.org-settings'
-import { Route as AdminOfficeAssetsRouteImport } from './routes/admin.office-assets'
 import { Route as AdminOffboardingReasonManagerRouteImport } from './routes/admin.offboarding-reason-manager'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminMyInventoryRouteImport } from './routes/admin.my-inventory'
@@ -70,9 +69,6 @@ import { Route as AdminVehiclesInsightLabRouteImport } from './routes/admin.vehi
 import { Route as AdminVehiclesFastagsRouteImport } from './routes/admin.vehicles.fastags'
 import { Route as AdminVehiclesExpenseManagerRouteImport } from './routes/admin.vehicles.expense-manager'
 import { Route as AdminPayrollUnitIdRouteImport } from './routes/admin.payroll.$unitId'
-import { Route as AdminOfficeAssetsInventoryRouteImport } from './routes/admin.office-assets.inventory'
-import { Route as AdminOfficeAssetsCategoriesRouteImport } from './routes/admin.office-assets.categories'
-import { Route as AdminOfficeAssetsAllocationsRouteImport } from './routes/admin.office-assets.allocations'
 import { Route as AdminInvoiceUnitIdRouteImport } from './routes/admin.invoice.$unitId'
 import { Route as AdminInventoryWorkflowsRouteImport } from './routes/admin.inventory.workflows'
 import { Route as AdminInventoryWarehousesRouteImport } from './routes/admin.inventory.warehouses'
@@ -191,11 +187,6 @@ const AdminPayrollRoute = AdminPayrollRouteImport.update({
 const AdminOrgSettingsRoute = AdminOrgSettingsRouteImport.update({
   id: '/org-settings',
   path: '/org-settings',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminOfficeAssetsRoute = AdminOfficeAssetsRouteImport.update({
-  id: '/office-assets',
-  path: '/office-assets',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminOffboardingReasonManagerRoute =
@@ -420,24 +411,6 @@ const AdminPayrollUnitIdRoute = AdminPayrollUnitIdRouteImport.update({
   path: '/$unitId',
   getParentRoute: () => AdminPayrollRoute,
 } as any)
-const AdminOfficeAssetsInventoryRoute =
-  AdminOfficeAssetsInventoryRouteImport.update({
-    id: '/inventory',
-    path: '/inventory',
-    getParentRoute: () => AdminOfficeAssetsRoute,
-  } as any)
-const AdminOfficeAssetsCategoriesRoute =
-  AdminOfficeAssetsCategoriesRouteImport.update({
-    id: '/categories',
-    path: '/categories',
-    getParentRoute: () => AdminOfficeAssetsRoute,
-  } as any)
-const AdminOfficeAssetsAllocationsRoute =
-  AdminOfficeAssetsAllocationsRouteImport.update({
-    id: '/allocations',
-    path: '/allocations',
-    getParentRoute: () => AdminOfficeAssetsRoute,
-  } as any)
 const AdminInvoiceUnitIdRoute = AdminInvoiceUnitIdRouteImport.update({
   id: '/$unitId',
   path: '/$unitId',
@@ -654,7 +627,6 @@ export interface FileRoutesByFullPath {
   '/admin/my-inventory': typeof AdminMyInventoryRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/offboarding-reason-manager': typeof AdminOffboardingReasonManagerRoute
-  '/admin/office-assets': typeof AdminOfficeAssetsRouteWithChildren
   '/admin/org-settings': typeof AdminOrgSettingsRoute
   '/admin/payroll': typeof AdminPayrollRouteWithChildren
   '/admin/payroll-days-manager': typeof AdminPayrollDaysManagerRoute
@@ -697,9 +669,6 @@ export interface FileRoutesByFullPath {
   '/admin/inventory/warehouses': typeof AdminInventoryWarehousesRoute
   '/admin/inventory/workflows': typeof AdminInventoryWorkflowsRoute
   '/admin/invoice/$unitId': typeof AdminInvoiceUnitIdRoute
-  '/admin/office-assets/allocations': typeof AdminOfficeAssetsAllocationsRoute
-  '/admin/office-assets/categories': typeof AdminOfficeAssetsCategoriesRoute
-  '/admin/office-assets/inventory': typeof AdminOfficeAssetsInventoryRoute
   '/admin/payroll/$unitId': typeof AdminPayrollUnitIdRoute
   '/admin/vehicles/expense-manager': typeof AdminVehiclesExpenseManagerRoute
   '/admin/vehicles/fastags': typeof AdminVehiclesFastagsRoute
@@ -751,7 +720,6 @@ export interface FileRoutesByTo {
   '/admin/my-inventory': typeof AdminMyInventoryRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/offboarding-reason-manager': typeof AdminOffboardingReasonManagerRoute
-  '/admin/office-assets': typeof AdminOfficeAssetsRouteWithChildren
   '/admin/org-settings': typeof AdminOrgSettingsRoute
   '/admin/payroll-days-manager': typeof AdminPayrollDaysManagerRoute
   '/admin/payroll-manager': typeof AdminPayrollManagerRoute
@@ -793,9 +761,6 @@ export interface FileRoutesByTo {
   '/admin/inventory/warehouses': typeof AdminInventoryWarehousesRoute
   '/admin/inventory/workflows': typeof AdminInventoryWorkflowsRoute
   '/admin/invoice/$unitId': typeof AdminInvoiceUnitIdRoute
-  '/admin/office-assets/allocations': typeof AdminOfficeAssetsAllocationsRoute
-  '/admin/office-assets/categories': typeof AdminOfficeAssetsCategoriesRoute
-  '/admin/office-assets/inventory': typeof AdminOfficeAssetsInventoryRoute
   '/admin/payroll/$unitId': typeof AdminPayrollUnitIdRoute
   '/admin/vehicles/expense-manager': typeof AdminVehiclesExpenseManagerRoute
   '/admin/vehicles/fastags': typeof AdminVehiclesFastagsRoute
@@ -850,7 +815,6 @@ export interface FileRoutesById {
   '/admin/my-inventory': typeof AdminMyInventoryRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/offboarding-reason-manager': typeof AdminOffboardingReasonManagerRoute
-  '/admin/office-assets': typeof AdminOfficeAssetsRouteWithChildren
   '/admin/org-settings': typeof AdminOrgSettingsRoute
   '/admin/payroll': typeof AdminPayrollRouteWithChildren
   '/admin/payroll-days-manager': typeof AdminPayrollDaysManagerRoute
@@ -893,9 +857,6 @@ export interface FileRoutesById {
   '/admin/inventory/warehouses': typeof AdminInventoryWarehousesRoute
   '/admin/inventory/workflows': typeof AdminInventoryWorkflowsRoute
   '/admin/invoice/$unitId': typeof AdminInvoiceUnitIdRoute
-  '/admin/office-assets/allocations': typeof AdminOfficeAssetsAllocationsRoute
-  '/admin/office-assets/categories': typeof AdminOfficeAssetsCategoriesRoute
-  '/admin/office-assets/inventory': typeof AdminOfficeAssetsInventoryRoute
   '/admin/payroll/$unitId': typeof AdminPayrollUnitIdRoute
   '/admin/vehicles/expense-manager': typeof AdminVehiclesExpenseManagerRoute
   '/admin/vehicles/fastags': typeof AdminVehiclesFastagsRoute
@@ -951,7 +912,6 @@ export interface FileRouteTypes {
     | '/admin/my-inventory'
     | '/admin/notifications'
     | '/admin/offboarding-reason-manager'
-    | '/admin/office-assets'
     | '/admin/org-settings'
     | '/admin/payroll'
     | '/admin/payroll-days-manager'
@@ -994,9 +954,6 @@ export interface FileRouteTypes {
     | '/admin/inventory/warehouses'
     | '/admin/inventory/workflows'
     | '/admin/invoice/$unitId'
-    | '/admin/office-assets/allocations'
-    | '/admin/office-assets/categories'
-    | '/admin/office-assets/inventory'
     | '/admin/payroll/$unitId'
     | '/admin/vehicles/expense-manager'
     | '/admin/vehicles/fastags'
@@ -1048,7 +1005,6 @@ export interface FileRouteTypes {
     | '/admin/my-inventory'
     | '/admin/notifications'
     | '/admin/offboarding-reason-manager'
-    | '/admin/office-assets'
     | '/admin/org-settings'
     | '/admin/payroll-days-manager'
     | '/admin/payroll-manager'
@@ -1090,9 +1046,6 @@ export interface FileRouteTypes {
     | '/admin/inventory/warehouses'
     | '/admin/inventory/workflows'
     | '/admin/invoice/$unitId'
-    | '/admin/office-assets/allocations'
-    | '/admin/office-assets/categories'
-    | '/admin/office-assets/inventory'
     | '/admin/payroll/$unitId'
     | '/admin/vehicles/expense-manager'
     | '/admin/vehicles/fastags'
@@ -1146,7 +1099,6 @@ export interface FileRouteTypes {
     | '/admin/my-inventory'
     | '/admin/notifications'
     | '/admin/offboarding-reason-manager'
-    | '/admin/office-assets'
     | '/admin/org-settings'
     | '/admin/payroll'
     | '/admin/payroll-days-manager'
@@ -1189,9 +1141,6 @@ export interface FileRouteTypes {
     | '/admin/inventory/warehouses'
     | '/admin/inventory/workflows'
     | '/admin/invoice/$unitId'
-    | '/admin/office-assets/allocations'
-    | '/admin/office-assets/categories'
-    | '/admin/office-assets/inventory'
     | '/admin/payroll/$unitId'
     | '/admin/vehicles/expense-manager'
     | '/admin/vehicles/fastags'
@@ -1338,13 +1287,6 @@ declare module '@tanstack/react-router' {
       path: '/org-settings'
       fullPath: '/admin/org-settings'
       preLoaderRoute: typeof AdminOrgSettingsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/office-assets': {
-      id: '/admin/office-assets'
-      path: '/office-assets'
-      fullPath: '/admin/office-assets'
-      preLoaderRoute: typeof AdminOfficeAssetsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/offboarding-reason-manager': {
@@ -1647,27 +1589,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/payroll/$unitId'
       preLoaderRoute: typeof AdminPayrollUnitIdRouteImport
       parentRoute: typeof AdminPayrollRoute
-    }
-    '/admin/office-assets/inventory': {
-      id: '/admin/office-assets/inventory'
-      path: '/inventory'
-      fullPath: '/admin/office-assets/inventory'
-      preLoaderRoute: typeof AdminOfficeAssetsInventoryRouteImport
-      parentRoute: typeof AdminOfficeAssetsRoute
-    }
-    '/admin/office-assets/categories': {
-      id: '/admin/office-assets/categories'
-      path: '/categories'
-      fullPath: '/admin/office-assets/categories'
-      preLoaderRoute: typeof AdminOfficeAssetsCategoriesRouteImport
-      parentRoute: typeof AdminOfficeAssetsRoute
-    }
-    '/admin/office-assets/allocations': {
-      id: '/admin/office-assets/allocations'
-      path: '/allocations'
-      fullPath: '/admin/office-assets/allocations'
-      preLoaderRoute: typeof AdminOfficeAssetsAllocationsRouteImport
-      parentRoute: typeof AdminOfficeAssetsRoute
     }
     '/admin/invoice/$unitId': {
       id: '/admin/invoice/$unitId'
@@ -2005,21 +1926,6 @@ const AdminInvoiceRouteWithChildren = AdminInvoiceRoute._addFileChildren(
   AdminInvoiceRouteChildren,
 )
 
-interface AdminOfficeAssetsRouteChildren {
-  AdminOfficeAssetsAllocationsRoute: typeof AdminOfficeAssetsAllocationsRoute
-  AdminOfficeAssetsCategoriesRoute: typeof AdminOfficeAssetsCategoriesRoute
-  AdminOfficeAssetsInventoryRoute: typeof AdminOfficeAssetsInventoryRoute
-}
-
-const AdminOfficeAssetsRouteChildren: AdminOfficeAssetsRouteChildren = {
-  AdminOfficeAssetsAllocationsRoute: AdminOfficeAssetsAllocationsRoute,
-  AdminOfficeAssetsCategoriesRoute: AdminOfficeAssetsCategoriesRoute,
-  AdminOfficeAssetsInventoryRoute: AdminOfficeAssetsInventoryRoute,
-}
-
-const AdminOfficeAssetsRouteWithChildren =
-  AdminOfficeAssetsRoute._addFileChildren(AdminOfficeAssetsRouteChildren)
-
 interface AdminPayrollRouteChildren {
   AdminPayrollUnitIdRoute: typeof AdminPayrollUnitIdRoute
   AdminPayrollIndexRoute: typeof AdminPayrollIndexRoute
@@ -2090,7 +1996,6 @@ interface AdminRouteChildren {
   AdminMyInventoryRoute: typeof AdminMyInventoryRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminOffboardingReasonManagerRoute: typeof AdminOffboardingReasonManagerRoute
-  AdminOfficeAssetsRoute: typeof AdminOfficeAssetsRouteWithChildren
   AdminOrgSettingsRoute: typeof AdminOrgSettingsRoute
   AdminPayrollRoute: typeof AdminPayrollRouteWithChildren
   AdminPayrollDaysManagerRoute: typeof AdminPayrollDaysManagerRoute
@@ -2146,7 +2051,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMyInventoryRoute: AdminMyInventoryRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminOffboardingReasonManagerRoute: AdminOffboardingReasonManagerRoute,
-  AdminOfficeAssetsRoute: AdminOfficeAssetsRouteWithChildren,
   AdminOrgSettingsRoute: AdminOrgSettingsRoute,
   AdminPayrollRoute: AdminPayrollRouteWithChildren,
   AdminPayrollDaysManagerRoute: AdminPayrollDaysManagerRoute,
