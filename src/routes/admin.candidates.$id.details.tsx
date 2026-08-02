@@ -591,6 +591,12 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         details: { unit_id: addUnitId },
       });
       toast.success("Unit mapped");
+      const unitLabel = unitMap.get(addUnitId)?.name ?? "the site";
+      void autoIssuePostingOrder({ candidateId, unitId: addUnitId }).then((r) => {
+        if (r.sent) toast.success(`Posting order for ${unitLabel} emailed to ${r.to}`);
+        else if (!/only issued to security guards/.test(r.reason))
+          toast.warning(`Posting order not sent — ${r.reason}`);
+      });
       setAddUnitId("");
       refresh();
     } catch (e: any) {
