@@ -2441,14 +2441,12 @@ function MusterRollPage() {
         </div>
       </div>
 
-      {selectedDates.size > 0 && !isDragging && dragRowKey && (
+      {selectedCells.size > 0 && !isDragging && (
         <div className="sticky top-2 z-20 flex items-center justify-between gap-3 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm shadow-sm print:hidden">
           <div>
-            <span className="font-semibold">{selectedDates.size}</span> day
-            {selectedDates.size > 1 ? "s" : ""} selected for{" "}
-            <span className="font-semibold">
-              {findRow(dragRowKey)?.emp.full_name ?? ""} — {findRow(dragRowKey)?.designationName ?? ""}
-            </span>
+            <span className="font-semibold">{selectedCells.size}</span> cell
+            {selectedCells.size > 1 ? "s" : ""} selected for{" "}
+            <span className="font-semibold">{selectionLabel(Array.from(selectedCells))}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={clearSelection}>Clear</Button>
@@ -2457,14 +2455,12 @@ function MusterRollPage() {
         </div>
       )}
 
-      {otSelectedDates.size > 0 && !isOtDragging && otDragRowKey && (
+      {otSelectedCells.size > 0 && !isOtDragging && (
         <div className="sticky top-2 z-20 flex items-center justify-between gap-3 rounded-md border border-amber-500/50 bg-amber-50 px-3 py-2 text-sm shadow-sm print:hidden">
           <div>
-            <span className="font-semibold">{otSelectedDates.size}</span> OT day
-            {otSelectedDates.size > 1 ? "s" : ""} selected for{" "}
-            <span className="font-semibold">
-              {findRow(otDragRowKey)?.emp.full_name ?? ""} — {findRow(otDragRowKey)?.designationName ?? ""}
-            </span>
+            <span className="font-semibold">{otSelectedCells.size}</span> OT cell
+            {otSelectedCells.size > 1 ? "s" : ""} selected for{" "}
+            <span className="font-semibold">{selectionLabel(Array.from(otSelectedCells))}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={clearOtSelection}>Clear</Button>
