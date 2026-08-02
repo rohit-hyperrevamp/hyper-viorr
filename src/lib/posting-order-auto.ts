@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
+import { isGuardRole } from "@/lib/role-keys";
 import { sendPostingOrderEmail } from "@/lib/posting-order.functions";
 import {
   buildDocumentPageHtml,
