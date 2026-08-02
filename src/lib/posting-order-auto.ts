@@ -124,6 +124,16 @@ export async function autoIssuePostingOrder(opts: {
 }): Promise<AutoPostingOrderResult> {
   const { candidateId, unitId } = opts;
   try {
+    const { data: roleRow } = await supabase
+      .from("candidates")
+      .select("role_key")
+      .eq("id", candidateId)
+      .maybeSingle();
+    const roleKey = String((roleRow as { role_key?: string } | null)?.role_key ?? "").toLowerCase();
+    if (!isGuardRole(roleKey)) {
+      return { sent: false, reason: "posting orders are only issued to security guards" };
+    }
+
     const [candidate, doc, unit] = await Promise.all([
       fetchCandidateForRender(candidateId),
       fetchActiveTemplate("posting_order"),
