@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
+import { autoIssuePostingOrder } from "@/lib/posting-order-auto";
 import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 import {
