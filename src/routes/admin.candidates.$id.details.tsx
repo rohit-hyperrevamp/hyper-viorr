@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
+import { autoIssuePostingOrder } from "@/lib/posting-order-auto";
 import { toast } from "sonner";
 import { confirmAction } from "@/components/ConfirmProvider";
 import {
@@ -591,6 +592,12 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         details: { unit_id: addUnitId },
       });
       toast.success("Unit mapped");
+      const unitLabel = unitMap.get(addUnitId)?.name ?? "the site";
+      void autoIssuePostingOrder({ candidateId, unitId: addUnitId }).then((r) => {
+        if (r.sent) toast.success(`Posting order for ${unitLabel} emailed to ${r.to}`);
+        else if (!/only issued to security guards/.test(r.reason))
+          toast.warning(`Posting order not sent — ${r.reason}`);
+      });
       setAddUnitId("");
       refresh();
     } catch (e: any) {
