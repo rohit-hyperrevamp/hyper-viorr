@@ -1238,20 +1238,20 @@ function MusterRollPage() {
   };
 
 
-  // Drag-to-select state — keyed by row (candidate|designation)
-  const [dragRowKey, setDragRowKey] = useState<string | null>(null);
+  // Drag-to-select state — a selection is a set of cells (`rowKey|date`),
+  // so a drag can span both horizontally (days) and vertically (employees).
+  type CellRef = { rowKey: string; date: string };
+  const [selAnchor, setSelAnchor] = useState<CellRef | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
+  const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerRowKey, setPickerRowKey] = useState<string | null>(null);
-  const [pickerDates, setPickerDates] = useState<string[]>([]);
+  const [pickerCells, setPickerCells] = useState<string[]>([]);
 
-  const [otDragRowKey, setOtDragRowKey] = useState<string | null>(null);
+  const [otSelAnchor, setOtSelAnchor] = useState<CellRef | null>(null);
   const [isOtDragging, setIsOtDragging] = useState(false);
-  const [otSelectedDates, setOtSelectedDates] = useState<Set<string>>(new Set());
+  const [otSelectedCells, setOtSelectedCells] = useState<Set<string>>(new Set());
   const [otPickerOpen, setOtPickerOpen] = useState(false);
-  const [otPickerRowKey, setOtPickerRowKey] = useState<string | null>(null);
-  const [otPickerDates, setOtPickerDates] = useState<string[]>([]);
+  const [otPickerCells, setOtPickerCells] = useState<string[]>([]);
 
   // ---- OCR / Excel upload state ----
   const [uploadOpen, setUploadOpen] = useState(false);
