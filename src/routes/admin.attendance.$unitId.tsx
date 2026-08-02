@@ -1238,20 +1238,20 @@ function MusterRollPage() {
   };
 
 
-  // Drag-to-select state — keyed by row (candidate|designation)
-  const [dragRowKey, setDragRowKey] = useState<string | null>(null);
+  // Drag-to-select state — a selection is a set of cells (`rowKey|date`),
+  // so a drag can span both horizontally (days) and vertically (employees).
+  type CellRef = { rowKey: string; date: string };
+  const [selAnchor, setSelAnchor] = useState<CellRef | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
+  const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerRowKey, setPickerRowKey] = useState<string | null>(null);
-  const [pickerDates, setPickerDates] = useState<string[]>([]);
+  const [pickerCells, setPickerCells] = useState<string[]>([]);
 
-  const [otDragRowKey, setOtDragRowKey] = useState<string | null>(null);
+  const [otSelAnchor, setOtSelAnchor] = useState<CellRef | null>(null);
   const [isOtDragging, setIsOtDragging] = useState(false);
-  const [otSelectedDates, setOtSelectedDates] = useState<Set<string>>(new Set());
+  const [otSelectedCells, setOtSelectedCells] = useState<Set<string>>(new Set());
   const [otPickerOpen, setOtPickerOpen] = useState(false);
-  const [otPickerRowKey, setOtPickerRowKey] = useState<string | null>(null);
-  const [otPickerDates, setOtPickerDates] = useState<string[]>([]);
+  const [otPickerCells, setOtPickerCells] = useState<string[]>([]);
 
   // ---- OCR / Excel upload state ----
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -1796,17 +1796,57 @@ function MusterRollPage() {
 
 
 
+  const cellKey = (rowKey: string, date: string) => `${rowKey}|${date}`;
+  const splitCellKey = (k: string) => {
+    const i = k.lastIndexOf("|");
+    return { rowKey: k.slice(0, i), date: k.slice(i + 1) };
+  };
+  type MusterRowT = (typeof musterRows)[number];
+  const attCellBlocked = (mr: MusterRowT, date: string) =>
+    date > todayStr ||
+    (Boolean(mr.emp.doj) && date < mr.emp.doj!) ||
+    Boolean(mr.vacant) ||
+    Boolean(mr.otOnly);
+  const otCellBlocked = (mr: MusterRowT, date: string) =>
+    date > todayStr || (Boolean(mr.emp.doj) && date < mr.emp.doj!) || Boolean(mr.vacant);
+
+  /** Rectangular selection between two cells — spans rows and days. */
+  const buildRect = (
+    anchor: CellRef,
+    cur: CellRef,
+    blocked: (mr: MusterRowT, date: string) => boolean,
+  ) => {
+    const rowIdx = new Map(visibleMusterRows.map((r, i) => [r.key, i]));
+    const r1 = rowIdx.get(anchor.rowKey);
+    const r2 = rowIdx.get(cur.rowKey);
+    const d1 = periodCells.findIndex((c) => c.date === anchor.date);
+    const d2 = periodCells.findIndex((c) => c.date === cur.date);
+    const out = new Set<string>();
+    if (r1 == null || r2 == null || d1 < 0 || d2 < 0) {
+      out.add(cellKey(cur.rowKey, cur.date));
+      return out;
+    }
+    for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r += 1) {
+      const mr = visibleMusterRows[r];
+      if (!mr) continue;
+      for (let d = Math.min(d1, d2); d <= Math.max(d1, d2); d += 1) {
+        const date = periodCells[d]?.date;
+        if (!date || blocked(mr, date)) continue;
+        out.add(cellKey(mr.key, date));
+      }
+    }
+    return out;
+  };
+
   useEffect(() => {
     if (!isDragging) return;
     const onUp = () => {
       setIsDragging(false);
-      setSelectedDates((current) => {
-        if (current.size > 0 && dragRowKey) {
-          const sorted = Array.from(current).sort();
-          setPickerRowKey(dragRowKey);
-          setPickerDates(sorted);
+      setSelectedCells((current) => {
+        if (current.size > 0) {
+          setPickerCells(Array.from(current).sort());
           setPickerOpen(true);
-          setDragRowKey(null);
+          setSelAnchor(null);
           return new Set();
         }
         return current;
@@ -1814,19 +1854,17 @@ function MusterRollPage() {
     };
     window.addEventListener("mouseup", onUp);
     return () => window.removeEventListener("mouseup", onUp);
-  }, [isDragging, dragRowKey]);
+  }, [isDragging]);
 
   useEffect(() => {
     if (!isOtDragging) return;
     const onUp = () => {
       setIsOtDragging(false);
-      setOtSelectedDates((current) => {
-        if (current.size > 0 && otDragRowKey) {
-          const sorted = Array.from(current).sort();
-          setOtPickerRowKey(otDragRowKey);
-          setOtPickerDates(sorted);
+      setOtSelectedCells((current) => {
+        if (current.size > 0) {
+          setOtPickerCells(Array.from(current).sort());
           setOtPickerOpen(true);
-          setOtDragRowKey(null);
+          setOtSelAnchor(null);
           return new Set();
         }
         return current;
@@ -1834,26 +1872,45 @@ function MusterRollPage() {
     };
     window.addEventListener("mouseup", onUp);
     return () => window.removeEventListener("mouseup", onUp);
-  }, [isOtDragging, otDragRowKey]);
+  }, [isOtDragging]);
 
   const openPickerForSelection = () => {
-    if (!dragRowKey || selectedDates.size === 0) return;
-    setPickerRowKey(dragRowKey);
-    setPickerDates(Array.from(selectedDates).sort());
+    if (selectedCells.size === 0) return;
+    setPickerCells(Array.from(selectedCells).sort());
     setPickerOpen(true);
   };
 
   const openOtPickerForSelection = () => {
-    if (!otDragRowKey || otSelectedDates.size === 0) return;
-    setOtPickerRowKey(otDragRowKey);
-    setOtPickerDates(Array.from(otSelectedDates).sort());
+    if (otSelectedCells.size === 0) return;
+    setOtPickerCells(Array.from(otSelectedCells).sort());
     setOtPickerOpen(true);
   };
 
-  const clearSelection = () => { setSelectedDates(new Set()); setDragRowKey(null); };
-  const clearOtSelection = () => { setOtSelectedDates(new Set()); setOtDragRowKey(null); };
+  const clearSelection = () => { setSelectedCells(new Set()); setSelAnchor(null); };
+  const clearOtSelection = () => { setOtSelectedCells(new Set()); setOtSelAnchor(null); };
 
   const findRow = (k: string | null) => musterRows.find((r) => r.key === k);
+
+  /** Group a flat list of cell keys into { rowKey → dates[] }. */
+  const groupCells = (cells: string[]) => {
+    const map = new Map<string, string[]>();
+    for (const c of cells) {
+      const { rowKey, date } = splitCellKey(c);
+      const list = map.get(rowKey) ?? [];
+      list.push(date);
+      map.set(rowKey, list);
+    }
+    return map;
+  };
+
+  const selectionLabel = (cells: string[]) => {
+    const grouped = groupCells(cells);
+    if (grouped.size === 1) {
+      const row = findRow(Array.from(grouped.keys())[0] ?? null);
+      return row ? `${row.emp.full_name ?? ""} — ${row.designationName ?? ""}` : "";
+    }
+    return `${grouped.size} employees`;
+  };
 
   // Contractual shift length for a muster row (8h / 12h) — never hard-coded,
   // it comes from the unit's active contract resource line.
@@ -1863,21 +1920,26 @@ function MusterRollPage() {
   };
 
   const applyCodeToSelection = async (code: string) => {
-    const row = findRow(pickerRowKey);
-    if (!row) return;
+    const grouped = groupCells(pickerCells);
+    if (grouped.size === 0) return;
     try {
-      const rows = pickerDates.map((d) => ({
-        entry_date: d,
-        code,
-        ot_hours: entryMap.get(`${row.key}|${d}`)?.ot_hours ?? 0,
-      }));
-      const applied = await upsertEntries(row.candidateId, row.designationId, rows);
+      let applied = 0;
+      for (const [rowKey, dates] of grouped) {
+        const row = findRow(rowKey);
+        if (!row) continue;
+        const rows = dates.map((d) => ({
+          entry_date: d,
+          code,
+          ot_hours: entryMap.get(`${row.key}|${d}`)?.ot_hours ?? 0,
+        }));
+        applied += await upsertEntries(row.candidateId, row.designationId, rows);
+      }
       queryClient.invalidateQueries({ queryKey: entriesQK });
       setPickerOpen(false);
-      setSelectedDates(new Set());
-      setDragRowKey(null);
+      setSelectedCells(new Set());
+      setSelAnchor(null);
       if (applied > 0) {
-        toast.success(`Applied ${code || "Clear"} to ${applied} day${applied > 1 ? "s" : ""}`);
+        toast.success(`Applied ${code || "Clear"} to ${applied} cell${applied > 1 ? "s" : ""}`);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save");
@@ -1885,27 +1947,33 @@ function MusterRollPage() {
   };
 
   // `hours` is OT in clock hours (0.5 – 16). It is stored as OT *days*,
-  // converted with the row's contractual shift length (8h or 12h).
+  // converted with each row's contractual shift length (8h or 12h).
   const applyOtToSelection = async (hours: number) => {
-    const row = findRow(otPickerRowKey);
-    if (!row) return;
-    const shift = shiftHoursFor(shiftMap, unitId, row.designationId ?? null);
-    const otDays = Math.round((hours / shift) * 100) / 100;
+    const grouped = groupCells(otPickerCells);
+    if (grouped.size === 0) return;
     try {
-      const rows = otPickerDates.map((d) => ({
-        entry_date: d,
-        code: entryMap.get(`${row.key}|${d}`)?.code ?? "",
-        ot_hours: otDays,
-      }));
-      await upsertEntries(row.candidateId, row.designationId, rows);
+      let count = 0;
+      for (const [rowKey, dates] of grouped) {
+        const row = findRow(rowKey);
+        if (!row) continue;
+        const shift = shiftHoursFor(shiftMap, unitId, row.designationId ?? null);
+        const otDays = Math.round((hours / shift) * 100) / 100;
+        const rows = dates.map((d) => ({
+          entry_date: d,
+          code: entryMap.get(`${row.key}|${d}`)?.code ?? "",
+          ot_hours: otDays,
+        }));
+        await upsertEntries(row.candidateId, row.designationId, rows);
+        count += dates.length;
+      }
       queryClient.invalidateQueries({ queryKey: entriesQK });
       setOtPickerOpen(false);
-      setOtSelectedDates(new Set());
-      setOtDragRowKey(null);
+      setOtSelectedCells(new Set());
+      setOtSelAnchor(null);
       toast.success(
         hours > 0
-          ? `Set ${hours}h OT (${otDays} day${otDays === 1 ? "" : "s"} @ ${shift}h shift) on ${otPickerDates.length} day${otPickerDates.length > 1 ? "s" : ""}`
-          : `Cleared OT on ${otPickerDates.length} day${otPickerDates.length > 1 ? "s" : ""}`,
+          ? `Set ${hours}h OT on ${count} cell${count > 1 ? "s" : ""}`
+          : `Cleared OT on ${count} cell${count > 1 ? "s" : ""}`,
       );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save");
@@ -2373,14 +2441,12 @@ function MusterRollPage() {
         </div>
       </div>
 
-      {selectedDates.size > 0 && !isDragging && dragRowKey && (
+      {selectedCells.size > 0 && !isDragging && (
         <div className="sticky top-2 z-20 flex items-center justify-between gap-3 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm shadow-sm print:hidden">
           <div>
-            <span className="font-semibold">{selectedDates.size}</span> day
-            {selectedDates.size > 1 ? "s" : ""} selected for{" "}
-            <span className="font-semibold">
-              {findRow(dragRowKey)?.emp.full_name ?? ""} — {findRow(dragRowKey)?.designationName ?? ""}
-            </span>
+            <span className="font-semibold">{selectedCells.size}</span> cell
+            {selectedCells.size > 1 ? "s" : ""} selected for{" "}
+            <span className="font-semibold">{selectionLabel(Array.from(selectedCells))}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={clearSelection}>Clear</Button>
@@ -2389,14 +2455,12 @@ function MusterRollPage() {
         </div>
       )}
 
-      {otSelectedDates.size > 0 && !isOtDragging && otDragRowKey && (
+      {otSelectedCells.size > 0 && !isOtDragging && (
         <div className="sticky top-2 z-20 flex items-center justify-between gap-3 rounded-md border border-amber-500/50 bg-amber-50 px-3 py-2 text-sm shadow-sm print:hidden">
           <div>
-            <span className="font-semibold">{otSelectedDates.size}</span> OT day
-            {otSelectedDates.size > 1 ? "s" : ""} selected for{" "}
-            <span className="font-semibold">
-              {findRow(otDragRowKey)?.emp.full_name ?? ""} — {findRow(otDragRowKey)?.designationName ?? ""}
-            </span>
+            <span className="font-semibold">{otSelectedCells.size}</span> OT cell
+            {otSelectedCells.size > 1 ? "s" : ""} selected for{" "}
+            <span className="font-semibold">{selectionLabel(Array.from(otSelectedCells))}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={clearOtSelection}>Clear</Button>
@@ -2626,7 +2690,7 @@ function MusterRollPage() {
                           : (!isFuture && !beforeDoj ? "A" : "");
                         const codeMeta = displayCode ? codeMap.get(displayCode) : undefined;
                         const isImplicitAbsent = !entry?.code && displayCode === "A";
-                        const isSelected = dragRowKey === mr.key && selectedDates.has(date);
+                        const isSelected = selectedCells.has(`${mr.key}|${date}`);
                         const isUncertain = !entry?.code && uncertainCells.has(`${mr.key}|${date}`);
                         const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant) || Boolean(mr.otOnly);
                         return (
@@ -2666,32 +2730,32 @@ function MusterRollPage() {
                               if (isBlocked) { e.preventDefault(); return; }
                               if (!editable) { e.preventDefault(); return; }
                               e.preventDefault();
-                              const additive = e.ctrlKey || e.metaKey;
-                              if (additive) {
-                                setSelectedDates((prev) => {
-                                  const sameRow = dragRowKey === mr.key;
-                                  const next = sameRow ? new Set(prev) : new Set<string>();
-                                  if (sameRow && next.has(date)) next.delete(date);
-                                  else next.add(date);
+                              const key = `${mr.key}|${date}`;
+                              if (e.ctrlKey || e.metaKey) {
+                                setSelectedCells((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(key)) next.delete(key);
+                                  else next.add(key);
                                   return next;
                                 });
-                                setDragRowKey(mr.key);
+                                setSelAnchor({ rowKey: mr.key, date });
                                 return;
                               }
-                              setDragRowKey(mr.key);
+                              if (e.shiftKey && selAnchor) {
+                                setSelectedCells(
+                                  buildRect(selAnchor, { rowKey: mr.key, date }, attCellBlocked),
+                                );
+                                return;
+                              }
+                              setSelAnchor({ rowKey: mr.key, date });
                               setIsDragging(true);
-                              setSelectedDates(new Set([date]));
+                              setSelectedCells(new Set([key]));
                             }}
                             onMouseEnter={() => {
-                              if (isBlocked) return;
-                              if (isDragging && dragRowKey === mr.key) {
-                                setSelectedDates((prev) => {
-                                  if (prev.has(date)) return prev;
-                                  const next = new Set(prev);
-                                  next.add(date);
-                                  return next;
-                                });
-                              }
+                              if (!isDragging || !selAnchor) return;
+                              setSelectedCells(
+                                buildRect(selAnchor, { rowKey: mr.key, date }, attCellBlocked),
+                              );
                             }}
                             onClick={(e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }}
                           >
@@ -2723,7 +2787,7 @@ function MusterRollPage() {
                         const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null);
                         const otDaysCell = Number(entry?.ot_hours) || 0;
                         const hrs = Math.round(otDaysCell * rowShift * 100) / 100;
-                        const isSelected = otDragRowKey === mr.key && otSelectedDates.has(date);
+                        const isSelected = otSelectedCells.has(`${mr.key}|${date}`);
                         return (
                           <td
                             key={`o-${cell.date}`}
@@ -2740,32 +2804,32 @@ function MusterRollPage() {
                             onMouseDown={(e) => {
                               if (isBlocked || !editable) { e.preventDefault(); return; }
                               e.preventDefault();
-                              const additive = e.ctrlKey || e.metaKey;
-                              if (additive) {
-                                setOtSelectedDates((prev) => {
-                                  const sameRow = otDragRowKey === mr.key;
-                                  const next = sameRow ? new Set(prev) : new Set<string>();
-                                  if (sameRow && next.has(date)) next.delete(date);
-                                  else next.add(date);
+                              const key = `${mr.key}|${date}`;
+                              if (e.ctrlKey || e.metaKey) {
+                                setOtSelectedCells((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(key)) next.delete(key);
+                                  else next.add(key);
                                   return next;
                                 });
-                                setOtDragRowKey(mr.key);
+                                setOtSelAnchor({ rowKey: mr.key, date });
                                 return;
                               }
-                              setOtDragRowKey(mr.key);
+                              if (e.shiftKey && otSelAnchor) {
+                                setOtSelectedCells(
+                                  buildRect(otSelAnchor, { rowKey: mr.key, date }, otCellBlocked),
+                                );
+                                return;
+                              }
+                              setOtSelAnchor({ rowKey: mr.key, date });
                               setIsOtDragging(true);
-                              setOtSelectedDates(new Set([date]));
+                              setOtSelectedCells(new Set([key]));
                             }}
                             onMouseEnter={() => {
-                              if (isBlocked) return;
-                              if (isOtDragging && otDragRowKey === mr.key) {
-                                setOtSelectedDates((prev) => {
-                                  if (prev.has(date)) return prev;
-                                  const next = new Set(prev);
-                                  next.add(date);
-                                  return next;
-                                });
-                              }
+                              if (!isOtDragging || !otSelAnchor) return;
+                              setOtSelectedCells(
+                                buildRect(otSelAnchor, { rowKey: mr.key, date }, otCellBlocked),
+                              );
                             }}
                             onClick={(e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }}
                             title={beforeDoj ? `Before joining date (${mr.emp.doj})` : isFuture ? "Future date — cannot mark OT" : `OT for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`}
@@ -2825,10 +2889,8 @@ function MusterRollPage() {
           <DialogHeader>
             <DialogTitle>Mark attendance</DialogTitle>
             <DialogDescription>
-              {pickerDates.length} day{pickerDates.length > 1 ? "s" : ""} selected
-              {pickerRowKey
-                ? ` for ${findRow(pickerRowKey)?.emp.full_name ?? ""} — ${findRow(pickerRowKey)?.designationName ?? ""}`
-                : ""}
+              {pickerCells.length} cell{pickerCells.length > 1 ? "s" : ""} selected
+              {pickerCells.length ? ` for ${selectionLabel(pickerCells)}` : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-4 gap-2">
@@ -2914,17 +2976,14 @@ function MusterRollPage() {
           <DialogHeader>
             <DialogTitle>Set OT hours</DialogTitle>
             <DialogDescription>
-              Pick overtime in hours (0.5 – 16). Converted to OT days at the row&apos;s contractual{" "}
-              {rowShiftHours(otPickerRowKey)}h shift. {otPickerDates.length} day
-              {otPickerDates.length > 1 ? "s" : ""} selected
-              {otPickerRowKey
-                ? ` for ${findRow(otPickerRowKey)?.emp.full_name ?? ""} — ${findRow(otPickerRowKey)?.designationName ?? ""}`
-                : ""}
+              Pick overtime in hours (0.5 – 16). Converted to OT days at each row&apos;s contractual
+              shift. {otPickerCells.length} cell{otPickerCells.length > 1 ? "s" : ""} selected
+              {otPickerCells.length ? ` for ${selectionLabel(otPickerCells)}` : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="grid max-h-[45vh] grid-cols-4 gap-2 overflow-y-auto pr-1">
             {[0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].map((n) => {
-              const shift = rowShiftHours(otPickerRowKey);
+              const shift = rowShiftHours(otPickerCells[0] ? splitCellKey(otPickerCells[0]).rowKey : null);
               const days = Math.round((n / shift) * 100) / 100;
               return (
                 <button
