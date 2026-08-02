@@ -2690,7 +2690,7 @@ function MusterRollPage() {
                           : (!isFuture && !beforeDoj ? "A" : "");
                         const codeMeta = displayCode ? codeMap.get(displayCode) : undefined;
                         const isImplicitAbsent = !entry?.code && displayCode === "A";
-                        const isSelected = dragRowKey === mr.key && selectedDates.has(date);
+                        const isSelected = selectedCells.has(`${mr.key}|${date}`);
                         const isUncertain = !entry?.code && uncertainCells.has(`${mr.key}|${date}`);
                         const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant) || Boolean(mr.otOnly);
                         return (
@@ -2730,32 +2730,32 @@ function MusterRollPage() {
                               if (isBlocked) { e.preventDefault(); return; }
                               if (!editable) { e.preventDefault(); return; }
                               e.preventDefault();
-                              const additive = e.ctrlKey || e.metaKey;
-                              if (additive) {
-                                setSelectedDates((prev) => {
-                                  const sameRow = dragRowKey === mr.key;
-                                  const next = sameRow ? new Set(prev) : new Set<string>();
-                                  if (sameRow && next.has(date)) next.delete(date);
-                                  else next.add(date);
+                              const key = `${mr.key}|${date}`;
+                              if (e.ctrlKey || e.metaKey) {
+                                setSelectedCells((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(key)) next.delete(key);
+                                  else next.add(key);
                                   return next;
                                 });
-                                setDragRowKey(mr.key);
+                                setSelAnchor({ rowKey: mr.key, date });
                                 return;
                               }
-                              setDragRowKey(mr.key);
+                              if (e.shiftKey && selAnchor) {
+                                setSelectedCells(
+                                  buildRect(selAnchor, { rowKey: mr.key, date }, attCellBlocked),
+                                );
+                                return;
+                              }
+                              setSelAnchor({ rowKey: mr.key, date });
                               setIsDragging(true);
-                              setSelectedDates(new Set([date]));
+                              setSelectedCells(new Set([key]));
                             }}
                             onMouseEnter={() => {
-                              if (isBlocked) return;
-                              if (isDragging && dragRowKey === mr.key) {
-                                setSelectedDates((prev) => {
-                                  if (prev.has(date)) return prev;
-                                  const next = new Set(prev);
-                                  next.add(date);
-                                  return next;
-                                });
-                              }
+                              if (!isDragging || !selAnchor) return;
+                              setSelectedCells(
+                                buildRect(selAnchor, { rowKey: mr.key, date }, attCellBlocked),
+                              );
                             }}
                             onClick={(e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }}
                           >
