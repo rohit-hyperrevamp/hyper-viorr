@@ -1796,17 +1796,57 @@ function MusterRollPage() {
 
 
 
+  const cellKey = (rowKey: string, date: string) => `${rowKey}|${date}`;
+  const splitCellKey = (k: string) => {
+    const i = k.lastIndexOf("|");
+    return { rowKey: k.slice(0, i), date: k.slice(i + 1) };
+  };
+  type MusterRowT = (typeof musterRows)[number];
+  const attCellBlocked = (mr: MusterRowT, date: string) =>
+    date > todayStr ||
+    (Boolean(mr.emp.doj) && date < mr.emp.doj!) ||
+    Boolean(mr.vacant) ||
+    Boolean(mr.otOnly);
+  const otCellBlocked = (mr: MusterRowT, date: string) =>
+    date > todayStr || (Boolean(mr.emp.doj) && date < mr.emp.doj!) || Boolean(mr.vacant);
+
+  /** Rectangular selection between two cells — spans rows and days. */
+  const buildRect = (
+    anchor: CellRef,
+    cur: CellRef,
+    blocked: (mr: MusterRowT, date: string) => boolean,
+  ) => {
+    const rowIdx = new Map(visibleMusterRows.map((r, i) => [r.key, i]));
+    const r1 = rowIdx.get(anchor.rowKey);
+    const r2 = rowIdx.get(cur.rowKey);
+    const d1 = periodCells.findIndex((c) => c.date === anchor.date);
+    const d2 = periodCells.findIndex((c) => c.date === cur.date);
+    const out = new Set<string>();
+    if (r1 == null || r2 == null || d1 < 0 || d2 < 0) {
+      out.add(cellKey(cur.rowKey, cur.date));
+      return out;
+    }
+    for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r += 1) {
+      const mr = visibleMusterRows[r];
+      if (!mr) continue;
+      for (let d = Math.min(d1, d2); d <= Math.max(d1, d2); d += 1) {
+        const date = periodCells[d]?.date;
+        if (!date || blocked(mr, date)) continue;
+        out.add(cellKey(mr.key, date));
+      }
+    }
+    return out;
+  };
+
   useEffect(() => {
     if (!isDragging) return;
     const onUp = () => {
       setIsDragging(false);
-      setSelectedDates((current) => {
-        if (current.size > 0 && dragRowKey) {
-          const sorted = Array.from(current).sort();
-          setPickerRowKey(dragRowKey);
-          setPickerDates(sorted);
+      setSelectedCells((current) => {
+        if (current.size > 0) {
+          setPickerCells(Array.from(current).sort());
           setPickerOpen(true);
-          setDragRowKey(null);
+          setSelAnchor(null);
           return new Set();
         }
         return current;
@@ -1814,19 +1854,17 @@ function MusterRollPage() {
     };
     window.addEventListener("mouseup", onUp);
     return () => window.removeEventListener("mouseup", onUp);
-  }, [isDragging, dragRowKey]);
+  }, [isDragging]);
 
   useEffect(() => {
     if (!isOtDragging) return;
     const onUp = () => {
       setIsOtDragging(false);
-      setOtSelectedDates((current) => {
-        if (current.size > 0 && otDragRowKey) {
-          const sorted = Array.from(current).sort();
-          setOtPickerRowKey(otDragRowKey);
-          setOtPickerDates(sorted);
+      setOtSelectedCells((current) => {
+        if (current.size > 0) {
+          setOtPickerCells(Array.from(current).sort());
           setOtPickerOpen(true);
-          setOtDragRowKey(null);
+          setOtSelAnchor(null);
           return new Set();
         }
         return current;
@@ -1834,26 +1872,45 @@ function MusterRollPage() {
     };
     window.addEventListener("mouseup", onUp);
     return () => window.removeEventListener("mouseup", onUp);
-  }, [isOtDragging, otDragRowKey]);
+  }, [isOtDragging]);
 
   const openPickerForSelection = () => {
-    if (!dragRowKey || selectedDates.size === 0) return;
-    setPickerRowKey(dragRowKey);
-    setPickerDates(Array.from(selectedDates).sort());
+    if (selectedCells.size === 0) return;
+    setPickerCells(Array.from(selectedCells).sort());
     setPickerOpen(true);
   };
 
   const openOtPickerForSelection = () => {
-    if (!otDragRowKey || otSelectedDates.size === 0) return;
-    setOtPickerRowKey(otDragRowKey);
-    setOtPickerDates(Array.from(otSelectedDates).sort());
+    if (otSelectedCells.size === 0) return;
+    setOtPickerCells(Array.from(otSelectedCells).sort());
     setOtPickerOpen(true);
   };
 
-  const clearSelection = () => { setSelectedDates(new Set()); setDragRowKey(null); };
-  const clearOtSelection = () => { setOtSelectedDates(new Set()); setOtDragRowKey(null); };
+  const clearSelection = () => { setSelectedCells(new Set()); setSelAnchor(null); };
+  const clearOtSelection = () => { setOtSelectedCells(new Set()); setOtSelAnchor(null); };
 
   const findRow = (k: string | null) => musterRows.find((r) => r.key === k);
+
+  /** Group a flat list of cell keys into { rowKey → dates[] }. */
+  const groupCells = (cells: string[]) => {
+    const map = new Map<string, string[]>();
+    for (const c of cells) {
+      const { rowKey, date } = splitCellKey(c);
+      const list = map.get(rowKey) ?? [];
+      list.push(date);
+      map.set(rowKey, list);
+    }
+    return map;
+  };
+
+  const selectionLabel = (cells: string[]) => {
+    const grouped = groupCells(cells);
+    if (grouped.size === 1) {
+      const row = findRow(Array.from(grouped.keys())[0] ?? null);
+      return row ? `${row.emp.full_name ?? ""} — ${row.designationName ?? ""}` : "";
+    }
+    return `${grouped.size} employees`;
+  };
 
   // Contractual shift length for a muster row (8h / 12h) — never hard-coded,
   // it comes from the unit's active contract resource line.
@@ -1863,21 +1920,26 @@ function MusterRollPage() {
   };
 
   const applyCodeToSelection = async (code: string) => {
-    const row = findRow(pickerRowKey);
-    if (!row) return;
+    const grouped = groupCells(pickerCells);
+    if (grouped.size === 0) return;
     try {
-      const rows = pickerDates.map((d) => ({
-        entry_date: d,
-        code,
-        ot_hours: entryMap.get(`${row.key}|${d}`)?.ot_hours ?? 0,
-      }));
-      const applied = await upsertEntries(row.candidateId, row.designationId, rows);
+      let applied = 0;
+      for (const [rowKey, dates] of grouped) {
+        const row = findRow(rowKey);
+        if (!row) continue;
+        const rows = dates.map((d) => ({
+          entry_date: d,
+          code,
+          ot_hours: entryMap.get(`${row.key}|${d}`)?.ot_hours ?? 0,
+        }));
+        applied += await upsertEntries(row.candidateId, row.designationId, rows);
+      }
       queryClient.invalidateQueries({ queryKey: entriesQK });
       setPickerOpen(false);
-      setSelectedDates(new Set());
-      setDragRowKey(null);
+      setSelectedCells(new Set());
+      setSelAnchor(null);
       if (applied > 0) {
-        toast.success(`Applied ${code || "Clear"} to ${applied} day${applied > 1 ? "s" : ""}`);
+        toast.success(`Applied ${code || "Clear"} to ${applied} cell${applied > 1 ? "s" : ""}`);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save");
@@ -1885,27 +1947,33 @@ function MusterRollPage() {
   };
 
   // `hours` is OT in clock hours (0.5 – 16). It is stored as OT *days*,
-  // converted with the row's contractual shift length (8h or 12h).
+  // converted with each row's contractual shift length (8h or 12h).
   const applyOtToSelection = async (hours: number) => {
-    const row = findRow(otPickerRowKey);
-    if (!row) return;
-    const shift = shiftHoursFor(shiftMap, unitId, row.designationId ?? null);
-    const otDays = Math.round((hours / shift) * 100) / 100;
+    const grouped = groupCells(otPickerCells);
+    if (grouped.size === 0) return;
     try {
-      const rows = otPickerDates.map((d) => ({
-        entry_date: d,
-        code: entryMap.get(`${row.key}|${d}`)?.code ?? "",
-        ot_hours: otDays,
-      }));
-      await upsertEntries(row.candidateId, row.designationId, rows);
+      let count = 0;
+      for (const [rowKey, dates] of grouped) {
+        const row = findRow(rowKey);
+        if (!row) continue;
+        const shift = shiftHoursFor(shiftMap, unitId, row.designationId ?? null);
+        const otDays = Math.round((hours / shift) * 100) / 100;
+        const rows = dates.map((d) => ({
+          entry_date: d,
+          code: entryMap.get(`${row.key}|${d}`)?.code ?? "",
+          ot_hours: otDays,
+        }));
+        await upsertEntries(row.candidateId, row.designationId, rows);
+        count += dates.length;
+      }
       queryClient.invalidateQueries({ queryKey: entriesQK });
       setOtPickerOpen(false);
-      setOtSelectedDates(new Set());
-      setOtDragRowKey(null);
+      setOtSelectedCells(new Set());
+      setOtSelAnchor(null);
       toast.success(
         hours > 0
-          ? `Set ${hours}h OT (${otDays} day${otDays === 1 ? "" : "s"} @ ${shift}h shift) on ${otPickerDates.length} day${otPickerDates.length > 1 ? "s" : ""}`
-          : `Cleared OT on ${otPickerDates.length} day${otPickerDates.length > 1 ? "s" : ""}`,
+          ? `Set ${hours}h OT on ${count} cell${count > 1 ? "s" : ""}`
+          : `Cleared OT on ${count} cell${count > 1 ? "s" : ""}`,
       );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save");
