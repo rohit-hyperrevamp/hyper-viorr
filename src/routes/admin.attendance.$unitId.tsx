@@ -2787,7 +2787,7 @@ function MusterRollPage() {
                         const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null);
                         const otDaysCell = Number(entry?.ot_hours) || 0;
                         const hrs = Math.round(otDaysCell * rowShift * 100) / 100;
-                        const isSelected = otDragRowKey === mr.key && otSelectedDates.has(date);
+                        const isSelected = otSelectedCells.has(`${mr.key}|${date}`);
                         return (
                           <td
                             key={`o-${cell.date}`}
@@ -2804,32 +2804,32 @@ function MusterRollPage() {
                             onMouseDown={(e) => {
                               if (isBlocked || !editable) { e.preventDefault(); return; }
                               e.preventDefault();
-                              const additive = e.ctrlKey || e.metaKey;
-                              if (additive) {
-                                setOtSelectedDates((prev) => {
-                                  const sameRow = otDragRowKey === mr.key;
-                                  const next = sameRow ? new Set(prev) : new Set<string>();
-                                  if (sameRow && next.has(date)) next.delete(date);
-                                  else next.add(date);
+                              const key = `${mr.key}|${date}`;
+                              if (e.ctrlKey || e.metaKey) {
+                                setOtSelectedCells((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(key)) next.delete(key);
+                                  else next.add(key);
                                   return next;
                                 });
-                                setOtDragRowKey(mr.key);
+                                setOtSelAnchor({ rowKey: mr.key, date });
                                 return;
                               }
-                              setOtDragRowKey(mr.key);
+                              if (e.shiftKey && otSelAnchor) {
+                                setOtSelectedCells(
+                                  buildRect(otSelAnchor, { rowKey: mr.key, date }, otCellBlocked),
+                                );
+                                return;
+                              }
+                              setOtSelAnchor({ rowKey: mr.key, date });
                               setIsOtDragging(true);
-                              setOtSelectedDates(new Set([date]));
+                              setOtSelectedCells(new Set([key]));
                             }}
                             onMouseEnter={() => {
-                              if (isBlocked) return;
-                              if (isOtDragging && otDragRowKey === mr.key) {
-                                setOtSelectedDates((prev) => {
-                                  if (prev.has(date)) return prev;
-                                  const next = new Set(prev);
-                                  next.add(date);
-                                  return next;
-                                });
-                              }
+                              if (!isOtDragging || !otSelAnchor) return;
+                              setOtSelectedCells(
+                                buildRect(otSelAnchor, { rowKey: mr.key, date }, otCellBlocked),
+                              );
                             }}
                             onClick={(e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }}
                             title={beforeDoj ? `Before joining date (${mr.emp.doj})` : isFuture ? "Future date — cannot mark OT" : `OT for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`}
@@ -2889,10 +2889,8 @@ function MusterRollPage() {
           <DialogHeader>
             <DialogTitle>Mark attendance</DialogTitle>
             <DialogDescription>
-              {pickerDates.length} day{pickerDates.length > 1 ? "s" : ""} selected
-              {pickerRowKey
-                ? ` for ${findRow(pickerRowKey)?.emp.full_name ?? ""} — ${findRow(pickerRowKey)?.designationName ?? ""}`
-                : ""}
+              {pickerCells.length} cell{pickerCells.length > 1 ? "s" : ""} selected
+              {pickerCells.length ? ` for ${selectionLabel(pickerCells)}` : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-4 gap-2">
@@ -2978,17 +2976,14 @@ function MusterRollPage() {
           <DialogHeader>
             <DialogTitle>Set OT hours</DialogTitle>
             <DialogDescription>
-              Pick overtime in hours (0.5 – 16). Converted to OT days at the row&apos;s contractual{" "}
-              {rowShiftHours(otPickerRowKey)}h shift. {otPickerDates.length} day
-              {otPickerDates.length > 1 ? "s" : ""} selected
-              {otPickerRowKey
-                ? ` for ${findRow(otPickerRowKey)?.emp.full_name ?? ""} — ${findRow(otPickerRowKey)?.designationName ?? ""}`
-                : ""}
+              Pick overtime in hours (0.5 – 16). Converted to OT days at each row&apos;s contractual
+              shift. {otPickerCells.length} cell{otPickerCells.length > 1 ? "s" : ""} selected
+              {otPickerCells.length ? ` for ${selectionLabel(otPickerCells)}` : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="grid max-h-[45vh] grid-cols-4 gap-2 overflow-y-auto pr-1">
             {[0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].map((n) => {
-              const shift = rowShiftHours(otPickerRowKey);
+              const shift = rowShiftHours(otPickerCells[0] ? splitCellKey(otPickerCells[0]).rowKey : null);
               const days = Math.round((n / shift) * 100) / 100;
               return (
                 <button
