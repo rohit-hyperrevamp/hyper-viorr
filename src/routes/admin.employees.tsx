@@ -4602,6 +4602,16 @@ function CandidateWizard({
     }));
     const { error } = await supabase.from("candidate_units" as never).insert(rows as never);
     if (error) throw new Error(`Unit assignment sync failed: ${error.message}`);
+
+    // Auto-dispatch a posting order for every newly added site (guards only).
+    const newUnitIds = form.unit_ids.filter((id) => !initialUnitIds.includes(id));
+    for (const unitId of newUnitIds) {
+      void autoIssuePostingOrder({ candidateId, unitId }).then((r) => {
+        if (r.sent) toast.success(`Posting order emailed to ${r.to}`);
+        else if (!/only issued to security guards/.test(r.reason))
+          toast.warning(`Posting order not sent — ${r.reason}`);
+      });
+    }
   };
 
   const unitAssignmentsChanged = () => {
