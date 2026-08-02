@@ -111,18 +111,6 @@ export const RBAC_MODULES: ModuleDef[] = [
     ],
   },
   {
-    key: "office_assets",
-    label: "Office Assets",
-    path: "/admin/office-assets",
-    icon: Briefcase,
-    subModules: [
-      { key: "office_assets_dashboard",   label: "Dashboard",   path: "/admin/office-assets",             icon: LayoutDashboard },
-      { key: "office_assets_inventory",   label: "Inventory",   path: "/admin/office-assets/inventory",   icon: Boxes },
-      { key: "office_assets_allocations", label: "Allocations", path: "/admin/office-assets/allocations", icon: UserPlus },
-      { key: "office_assets_categories",  label: "Categories",  path: "/admin/office-assets/categories",  icon: PackageOpen },
-    ],
-  },
-  {
     key: "inventory",
     label: "Uniform Manager",
     path: "/admin/inventory",

@@ -131,13 +131,6 @@ const assetsChildren: LeafItem[] = [
   { to: "/admin/assets/expense-manager", label: "Expense Manager", icon: Receipt, sub: "expense_manager" },
 ];
 
-const officeAssetsChildren: LeafItem[] = [
-  { to: "/admin/office-assets", label: "Dashboard", icon: LayoutDashboard, sub: "office_assets_dashboard" },
-  { to: "/admin/office-assets/inventory", label: "Inventory", icon: Boxes, sub: "office_assets_inventory" },
-  { to: "/admin/office-assets/allocations", label: "Allocations", icon: UserCheck, sub: "office_assets_allocations" },
-  { to: "/admin/office-assets/categories", label: "Categories", icon: Tag, sub: "office_assets_categories" },
-];
-
 const inventoryChildren: LeafItem[] = [
   { to: "/admin/inventory", label: "Uniform Command Center", icon: LayoutDashboard },
   { to: "/admin/inventory/items", label: "Products", icon: PackageOpen, sub: "item_master" },
@@ -250,7 +243,6 @@ function AdminLayout() {
     { prefix: "/admin/addition-type-manager", module: "control_center" },
     { prefix: "/admin/vehicles", module: "vehicles" },
     { prefix: "/admin/assets", module: "assets" },
-    { prefix: "/admin/office-assets", module: "office_assets" },
     { prefix: "/admin/inventory", module: "inventory" },
     { prefix: "/admin/attendance", module: "attendance" },
     { prefix: "/admin/payroll", module: "payroll" },
@@ -278,7 +270,7 @@ function AdminLayout() {
   ];
   const firstAllowedPath = () => {
     const order = [
-      "organizations","contracts","employees","vehicles","assets","office_assets","inventory","attendance",
+      "organizations","contracts","employees","vehicles","assets","inventory","attendance",
       "payroll","invoice","control_center","notification_center","rbac",
     ];
     const pathFor: Record<string, string> = {
@@ -287,7 +279,6 @@ function AdminLayout() {
       employees: "/admin/employees",
       vehicles: "/admin/vehicles/inventory",
       assets: "/admin/assets/inventory",
-      office_assets: "/admin/office-assets",
       inventory: "/admin/inventory",
       attendance: "/admin/attendance",
       payroll: "/admin/payroll",
@@ -408,7 +399,6 @@ function AdminLayout() {
       { key: "field-sense", label: "Radar", icon: Radio, children: fieldSenseChildren, activePrefixes: ["/admin/field-sense"], module: "field_sense" },
       { key: "vehicles", label: "Vehicles", module: "vehicles", icon: Car, to: "/admin/vehicles", children: vehiclesChildren, activePrefixes: ["/admin/vehicles"] },
       { key: "assets", label: "Assets", module: "assets", icon: Home, to: "/admin/assets", children: assetsChildren, activePrefixes: ["/admin/assets"] },
-      { key: "office-assets", label: "Office Assets", module: "office_assets", icon: Briefcase, to: "/admin/office-assets", children: officeAssetsChildren, activePrefixes: ["/admin/office-assets"] },
       { key: "reports", label: "Reports Hub", icon: Gauge, to: "/admin/reports", activePrefixes: ["/admin/reports"] },
       { key: "compliance", label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", activePrefixes: ["/admin/compliance"] },
       { key: "control", label: "Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", activePrefixes: ["/admin/control-center"] },
@@ -559,7 +549,7 @@ function AdminLayout() {
           {(() => {
             const sections: Array<{ label: string; keys: string[] }> = [
               { label: "Menu", keys: ["dashboard", "my-inventory", "profile"] },
-              { label: "Operations", keys: ["organizations", "contracts", "employees", "attendance", "inventory", "vehicles", "assets", "office-assets"] },
+              { label: "Operations", keys: ["organizations", "contracts", "employees", "attendance", "inventory", "vehicles", "assets"] },
               { label: "Finance", keys: ["payroll", "invoice"] },
               { label: "Admin", keys: ["control"] },
             ];

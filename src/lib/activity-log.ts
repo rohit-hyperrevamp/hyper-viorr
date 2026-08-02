@@ -59,10 +59,6 @@ const MODULE_LINKS: Record<string, string> = {
   "Inventory Collections": "/admin/inventory/collections",
   "Inventory Caps": "/admin/inventory/caps",
   "Vendor Rate Cards": "/admin/inventory/rate-cards",
-  // Office assets
-  "Office Assets": "/admin/office-assets/inventory",
-  "Office Assets Categories": "/admin/office-assets/categories",
-  "Office Assets Allocations": "/admin/office-assets/allocations",
   // Organization / misc
   "Organization Manager": "/admin/org-settings",
   "My Profile": "/admin/profile",
@@ -88,7 +84,6 @@ const ENTITY_LINKS: Record<string, string> = {
   inventory_warehouses: "/admin/inventory/warehouses",
   inventory_vendors: "/admin/inventory/vendors",
   vendor_rate_cards: "/admin/inventory/rate-cards",
-  office_assets: "/admin/office-assets/inventory",
   vehicles: "/admin/vehicles/inventory",
   vehicle_insurance: "/admin/vehicles/insurances",
   vehicle_puc: "/admin/vehicles/pucs",

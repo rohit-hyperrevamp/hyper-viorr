@@ -74,7 +74,7 @@ const SECTIONS = [
   { id: "identification", label: "Identification Proofs", icon: FileBadge },
   { id: "criminal", label: "Criminal History", icon: Gavel },
   { id: "nominee", label: "Nominee", icon: UserCheck },
-  { id: "office_assets", label: "Office Assets", icon: Briefcase },
+  
   { id: "company_docs", label: "Company Documents", icon: FileSignature },
   { id: "esic_card", label: "ESIC Card", icon: FileBadge },
   { id: "offboarding", label: "Offboarding Docs", icon: FileText },
@@ -441,9 +441,6 @@ function CandidateDetailsPage() {
           {active === "nominee" && (
             <NomineeSection form={form} setSection={setSection} set={set} />
           )}
-          {active === "office_assets" && (
-            <OfficeAssetsSection candidateId={id} candidate={form} onToggleNonBillable={(v: boolean) => set("non_billable", v)} />
-          )}
           {active === "company_docs" && (
             <CandidateCompanyDocuments
               candidateId={id}
@@ -757,151 +754,6 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
   );
 }
 
-function OfficeAssetsSection({ candidateId, candidate, onToggleNonBillable }: { candidateId: string; candidate: any; onToggleNonBillable: (v: boolean) => void }) {
-  const isNonBillable = candidate?.non_billable === true;
-
-  const allocsQ = useQuery({
-    queryKey: ["candidate-office-allocs", candidateId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("office_asset_allocations" as never)
-        .select("id,unit_id,allocated_at,returned_at,condition_out,condition_in,notes")
-        .eq("candidate_id", candidateId)
-        .order("allocated_at", { ascending: false });
-      if (error) throw error;
-      return data as unknown as Array<{ id: string; unit_id: string; allocated_at: string; returned_at: string | null; condition_out: string; condition_in: string; notes: string }>;
-    },
-  });
-  const unitIds = (allocsQ.data ?? []).map((a) => a.unit_id);
-  const unitsQ = useQuery({
-    queryKey: ["candidate-office-units", unitIds.sort().join(",")],
-    enabled: unitIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("office_asset_units" as never).select("id,tag,asset_id,branch_id").in("id", unitIds);
-      if (error) throw error;
-      return data as unknown as Array<{ id: string; tag: string; asset_id: string; branch_id: string | null }>;
-    },
-  });
-  const assetIds = (unitsQ.data ?? []).map((u) => u.asset_id);
-  const assetsQ = useQuery({
-    queryKey: ["candidate-office-assets", assetIds.sort().join(",")],
-    enabled: assetIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("office_assets" as never).select("id,name").in("id", assetIds);
-      if (error) throw error;
-      return data as unknown as Array<{ id: string; name: string }>;
-    },
-  });
-
-  async function toggle(v: boolean) {
-    onToggleNonBillable(v);
-    const { error } = await supabase.from("candidates").update({ non_billable: v } as never).eq("id", candidateId);
-    if (error) toast.error(error.message); else toast.success(v ? "Marked non-billable" : "Removed non-billable flag");
-  }
-
-  async function returnIt(allocId: string, unitId: string) {
-    const ok = await confirmAction({ title: "Return asset?", description: "Mark this office asset as returned to stock.", confirmText: "Return" });
-    if (!ok) return;
-    const { error: e1 } = await supabase.from("office_asset_allocations" as never).update({ returned_at: new Date().toISOString(), condition_in: "good" } as never).eq("id", allocId);
-    if (e1) { toast.error(e1.message); return; }
-    const { error: e2 } = await supabase.from("office_asset_units" as never).update({ status: "in_stock" } as never).eq("id", unitId);
-    if (e2) { toast.error(e2.message); return; }
-    toast.success("Returned");
-    allocsQ.refetch();
-  }
-
-  const active = (allocsQ.data ?? []).filter((a) => !a.returned_at);
-  const history = (allocsQ.data ?? []).filter((a) => a.returned_at);
-  const unitMap = new Map((unitsQ.data ?? []).map((u) => [u.id, u]));
-  const assetMap = new Map((assetsQ.data ?? []).map((a) => [a.id, a]));
-
-  return (
-    <div className="space-y-5">
-      <SectionHeader title="Office Assets" desc="Company-owned equipment allocated to this resource. Only non-billable resources are eligible." />
-
-      <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-4 py-3">
-        <div>
-          <div className="font-semibold text-sm">Non-Billable Resource</div>
-          <div className="text-xs text-muted-foreground">Enable to make this person eligible for office-asset allocation (finance, HR, IT, etc.).</div>
-        </div>
-        <button
-          type="button"
-          onClick={() => toggle(!isNonBillable)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${isNonBillable ? "bg-emerald-500" : "bg-muted"}`}
-          aria-label="Toggle non-billable"
-        >
-          <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${isNonBillable ? "translate-x-5" : "translate-x-0.5"}`} />
-        </button>
-      </div>
-
-      {!isNonBillable && (
-        <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
-          Mark this resource as non-billable above to allocate office assets.
-        </div>
-      )}
-
-      {isNonBillable && (
-        <>
-          <div>
-            <div className="mb-2 text-sm font-semibold">Currently Allocated ({active.length})</div>
-            <div className="overflow-hidden rounded-xl border border-border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr><th className="px-4 py-2">Tag</th><th className="px-4 py-2">Asset</th><th className="px-4 py-2">Allocated</th><th className="px-4 py-2">Condition</th><th></th></tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {active.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">No assets allocated yet. Use the Office Assets &gt; Allocations page to assign one.</td></tr>}
-                  {active.map((a) => {
-                    const u = unitMap.get(a.unit_id);
-                    const asset = u ? assetMap.get(u.asset_id) : undefined;
-                    return (
-                      <tr key={a.id}>
-                        <td className="px-4 py-2 font-mono font-semibold">{u?.tag ?? "—"}</td>
-                        <td className="px-4 py-2">{asset?.name ?? "—"}</td>
-                        <td className="px-4 py-2 text-xs text-muted-foreground">{new Date(a.allocated_at).toLocaleDateString("en-IN")}</td>
-                        <td className="px-4 py-2 capitalize">{a.condition_out}</td>
-                        <td className="px-4 py-2 text-right">
-                          <Button size="sm" variant="ghost" onClick={() => returnIt(a.id, a.unit_id)}><Undo2 className="mr-1 h-4 w-4" /> Return</Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {history.length > 0 && (
-            <div>
-              <div className="mb-2 text-sm font-semibold">History ({history.length})</div>
-              <div className="overflow-hidden rounded-xl border border-border">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr><th className="px-4 py-2">Tag</th><th className="px-4 py-2">Asset</th><th className="px-4 py-2">Allocated</th><th className="px-4 py-2">Returned</th></tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {history.map((a) => {
-                      const u = unitMap.get(a.unit_id);
-                      const asset = u ? assetMap.get(u.asset_id) : undefined;
-                      return (
-                        <tr key={a.id}>
-                          <td className="px-4 py-2 font-mono">{u?.tag ?? "—"}</td>
-                          <td className="px-4 py-2">{asset?.name ?? "—"}</td>
-                          <td className="px-4 py-2 text-xs text-muted-foreground">{new Date(a.allocated_at).toLocaleDateString("en-IN")}</td>
-                          <td className="px-4 py-2 text-xs text-muted-foreground">{a.returned_at ? new Date(a.returned_at).toLocaleDateString("en-IN") : "—"}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
 
 
 
