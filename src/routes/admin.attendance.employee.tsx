@@ -147,12 +147,35 @@ function EmployeeAttendanceLookupPage() {
         units = (data ?? []) as unknown as UnitLite[];
       }
 
+      // Contracted designation held at each unit — the role slot that drives
+      // salary and day caps, separate from the person's system role.
+      const desigIds = Array.from(
+        new Set(links.map((l) => l.designation_id).filter(Boolean)),
+      ) as string[];
+      const designationByUnit: Record<string, string> = {};
+      if (desigIds.length) {
+        const { data: desigs } = await supabase
+          .from("designations")
+          .select("id, name")
+          .in("id", desigIds);
+        const nameById = new Map(
+          ((desigs ?? []) as unknown as Array<{ id: string; name: string }>).map((d) => [d.id, d.name]),
+        );
+        for (const l of links) {
+          if (l.designation_id && nameById.has(l.designation_id)) {
+            designationByUnit[l.unit_id] = nameById.get(l.designation_id)!;
+          }
+        }
+      }
+
       return {
         entries,
         links,
         units,
+        designationByUnit,
         codes: (codesRes.data ?? []) as unknown as CodeMeta[],
       };
+
     },
   });
 
