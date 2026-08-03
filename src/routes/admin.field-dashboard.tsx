@@ -1346,7 +1346,17 @@ function ManageGuardUnitsDialog({
           </>
         )}
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+          <Button
+            variant="outline"
+            onClick={removeFromAllUnits}
+            disabled={saving || loading}
+            data-force-enabled="true"
+            className="border-destructive/40 text-destructive hover:bg-destructive/10"
+          >
+            Remove from all units
+          </Button>
+          <div className="flex gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button
             onClick={save}
