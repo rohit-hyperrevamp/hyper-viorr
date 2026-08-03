@@ -343,7 +343,7 @@ function PayrollUnitPage() {
       // the "Paid Holiday" line (bypasses the engine's perDayRate × phCount).
       const phCashByCandidate = new Map<string, number>();
       if (candidateIds.length > 0) {
-        const [addsRes, dedsRes, addTypesRes] = await Promise.all([
+        const [addsRes, dedsRes, priorAttendanceRes, addTypesRes] = await Promise.all([
           supabase
             .from("additions" as never)
             .select("candidate_id, addition_type_id, addition_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for")
@@ -353,11 +353,20 @@ function PayrollUnitPage() {
             .eq("status", "active"),
           supabase
             .from("deductions" as never)
-            .select("candidate_id, deduction_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for")
+            .select("candidate_id, deduction_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind, deduction_date")
             .in("candidate_id", candidateIds)
-            .gte("deduction_date", start)
             .lte("deduction_date", end)
             .eq("status", "active"),
+          // A joining fee dated before the employee's first attended payroll
+          // window must be carried into that first window rather than lost.
+          // Knowing who already attended before this period prevents the
+          // one-time fee from repeating in later payrolls.
+          supabase
+            .from("attendance_entries")
+            .select("candidate_id")
+            .eq("unit_id", unitId)
+            .in("candidate_id", candidateIds)
+            .lt("entry_date", start),
           supabase.from("addition_types").select("id, code"),
         ]);
         const phTypeIds = new Set<string>(
@@ -366,7 +375,10 @@ function PayrollUnitPage() {
             .map((t) => t.id),
         );
         type RawAdd = { candidate_id: string; addition_type_id?: string | null; addition_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null };
-        type RawDed = { candidate_id: string; deduction_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null };
+        type RawDed = { candidate_id: string; deduction_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null; source_kind?: string | null; deduction_date: string };
+        const candidatesWithPriorAttendance = new Set(
+          ((priorAttendanceRes.data ?? []) as { candidate_id: string }[]).map((row) => row.candidate_id),
+        );
         const applyDayAdj = (cid: string, dayDelta: number, buckets: string[] | null | undefined, sign: 1 | -1) => {
           if (!dayDelta) return;
           const prev = dayAdjustmentByCandidate.get(cid) ?? { pDays: 0, otDays: 0, phDays: 0, otherPaidDays: 0, tDays: 0 };
@@ -429,6 +441,10 @@ function PayrollUnitPage() {
           }
         }
         for (const d of ((dedsRes.data ?? []) as unknown as RawDed[])) {
+          const isInPeriod = d.deduction_date >= start;
+          const isFirstWindowJoiningFee = d.source_kind === "unit_fee"
+            && !candidatesWithPriorAttendance.has(d.candidate_id);
+          if (!isInPeriod && !isFirstWindowJoiningFee) continue;
           const inst = Math.max(1, Number(d.installments) || 1);
           const amt = (Number(d.amount) || 0) / inst;
           const isDayAdj = isSystemComputedDayAdj(d.entry_mode, d.include_in_total_days, d.affects_days_for);
