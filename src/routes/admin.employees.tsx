@@ -4636,16 +4636,19 @@ function CandidateWizard({
     if (error) throw new Error(`Unit assignment sync failed: ${error.message}`);
 
     // Auto-dispatch a posting order for the PRIMARY unit only (guards only).
+    // Fires when the primary unit is newly assigned OR switched to another
+    // unit — a change of primary posting always needs a fresh posting order.
     // Reliever units never trigger a work order.
     const primaryUnitId = form.unit_ids[0];
-    const newUnitIds = primaryUnitId && !initialUnitIds.includes(primaryUnitId) ? [primaryUnitId] : [];
-    for (const unitId of newUnitIds) {
-      void autoIssuePostingOrder({ candidateId, unitId }).then((r) => {
+    const previousPrimaryUnitId = initialUnitIds[0] ?? null;
+    if (primaryUnitId && primaryUnitId !== previousPrimaryUnitId) {
+      void autoIssuePostingOrder({ candidateId, unitId: primaryUnitId }).then((r) => {
         if (r.sent) toast.success(`Posting order emailed to ${r.to}`);
         else if (!/only issued to security guards/.test(r.reason))
           toast.warning(`Posting order not sent — ${r.reason}`);
       });
     }
+
   };
 
   const persist = async (status: string, successMsg: string) => {
@@ -7450,8 +7453,8 @@ function MultiUnitPicker({
               {!isPrimary && (
                 <button
                   type="button"
-                  className="ml-1 rounded p-0.5 opacity-60 hover:bg-background/30 hover:opacity-100"
-                  title="Make primary"
+                  className="ml-1 inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary transition hover:bg-primary hover:text-primary-foreground"
+                  title="Make this the primary unit — a fresh posting order will be emailed on save"
                   onClick={(e) => {
                     e.preventDefault();
                     makePrimary(u.id);
@@ -7459,8 +7462,10 @@ function MultiUnitPicker({
                   onMouseDown={(e) => e.preventDefault()}
                 >
                   <Check className="h-3 w-3" />
+                  Set primary
                 </button>
               )}
+
               <button
                 type="button"
                 className="ml-0.5 rounded p-0.5 opacity-70 hover:bg-background/30 hover:opacity-100"
