@@ -546,6 +546,7 @@ function FieldOfficerDashboard() {
             hint={`${data?.joinedThisWeek ?? 0} joined this week`}
             delta={teamDelta} deltaSuffix=" new"
             icon={ShieldCheck}
+            to="/admin/my-reportees"
           />
           <PastelTile
             palette="teal"
