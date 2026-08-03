@@ -4636,16 +4636,19 @@ function CandidateWizard({
     if (error) throw new Error(`Unit assignment sync failed: ${error.message}`);
 
     // Auto-dispatch a posting order for the PRIMARY unit only (guards only).
+    // Fires when the primary unit is newly assigned OR switched to another
+    // unit — a change of primary posting always needs a fresh posting order.
     // Reliever units never trigger a work order.
     const primaryUnitId = form.unit_ids[0];
-    const newUnitIds = primaryUnitId && !initialUnitIds.includes(primaryUnitId) ? [primaryUnitId] : [];
-    for (const unitId of newUnitIds) {
-      void autoIssuePostingOrder({ candidateId, unitId }).then((r) => {
+    const previousPrimaryUnitId = initialUnitIds[0] ?? null;
+    if (primaryUnitId && primaryUnitId !== previousPrimaryUnitId) {
+      void autoIssuePostingOrder({ candidateId, unitId: primaryUnitId }).then((r) => {
         if (r.sent) toast.success(`Posting order emailed to ${r.to}`);
         else if (!/only issued to security guards/.test(r.reason))
           toast.warning(`Posting order not sent — ${r.reason}`);
       });
     }
+
   };
 
   const persist = async (status: string, successMsg: string) => {
