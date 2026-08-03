@@ -105,6 +105,18 @@ export async function fetchTodayPunch(candidateId: string): Promise<SelfPunch | 
 }
 
 export async function checkIn(candidateId: string, geo: Geo | null, faceVerified: boolean, unitId?: string | null): Promise<SelfPunch> {
+  if (unitId) {
+    const { data: assignment, error: assignmentError } = await supabase
+      .from("candidate_units")
+      .select("is_primary,is_reliever")
+      .eq("candidate_id", candidateId)
+      .eq("unit_id", unitId)
+      .maybeSingle();
+    if (assignmentError) throw assignmentError;
+    if (assignment?.is_reliever === true || assignment?.is_primary !== true) {
+      throw new Error("Reliever units are Extra Duty only. Present attendance cannot be punched here.");
+    }
+  }
   const row: Record<string, unknown> = {
     candidate_id: candidateId,
     punch_date: today(),
