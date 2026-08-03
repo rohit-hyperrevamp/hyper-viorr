@@ -1135,6 +1135,7 @@ export type Database = {
           created_at: string
           day_driver: string
           deduction_calc_type: string
+          description: string | null
           enabled: boolean
           fixed_calc_method: string
           fixed_duty_components: string[]
@@ -1162,6 +1163,7 @@ export type Database = {
           created_at?: string
           day_driver?: string
           deduction_calc_type?: string
+          description?: string | null
           enabled?: boolean
           fixed_calc_method?: string
           fixed_duty_components?: string[]
@@ -1189,6 +1191,7 @@ export type Database = {
           created_at?: string
           day_driver?: string
           deduction_calc_type?: string
+          description?: string | null
           enabled?: boolean
           fixed_calc_method?: string
           fixed_duty_components?: string[]
