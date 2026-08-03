@@ -390,11 +390,18 @@ function EmployeeAttendanceLookupPage() {
                           Reliever · ED
                         </span>
                       )}
+                      {block.designation && (
+                        <span className="rounded-full bg-sky-500/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-sky-600">
+                          {block.designation}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      {block.code} · {block.presentDays.toFixed(2).replace(/\.00$/, "")} present ·{" "}
+                      {block.code} · {block.designation || "Designation not set"} ·{" "}
+                      {block.presentDays.toFixed(2).replace(/\.00$/, "")} present ·{" "}
                       {block.edHours.toFixed(2).replace(/\.00$/, "")} ED hrs
                     </p>
+
                   </div>
                   <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
                     <Link to="/admin/attendance/$unitId" params={{ unitId: block.id }}>
