@@ -1081,7 +1081,7 @@ function useCostComponentOptions() {
     queryFn: async (): Promise<CostComponentOption[]> => {
       const { data, error } = await supabase
         .from("cost_components" as never)
-        .select("id,name,calc_type,percentage,base_components,cap_amount,cap_flat_amount,amount,state,enabled,sort_order,deduction_calc_type,fixed_calc_method,fixed_duty_components,fixed_duty_divisor,formula_mode,formula_expression,formula_version,party")
+        .select("id,name,calc_type,percentage,base_components,cap_amount,cap_flat_amount,amount,state,enabled,sort_order,deduction_calc_type,fixed_calc_method,fixed_duty_components,fixed_duty_divisor,description,formula_mode,formula_expression,formula_version,party")
         .order("sort_order")
         .order("name");
       if (error) throw error;
@@ -1099,6 +1099,7 @@ function useCostComponentOptions() {
           capFlatAmount: r.cap_flat_amount == null ? null : Number(r.cap_flat_amount),
           amount: r.amount == null ? null : Number(r.amount),
           state: String(r.state ?? "N/A"),
+          description: String(r.description ?? "").trim(),
           party: (["employee", "employer", "both"].includes(String(r.party))
             ? (r.party as "employee" | "employer" | "both")
             : "both"),
@@ -4104,6 +4105,7 @@ function ResourceFormDialog({
     capFlatAmount: null,
     amount: 0,
     state: "Per state slab (resolved at payroll from unit state, employee gender, earned gross)",
+    description: "",
     party: "employee",
     deductionCalcType: "fixed_amount",
     fixedCalcMethod: "flat",
@@ -4127,21 +4129,21 @@ function ResourceFormDialog({
     const q = benefitQuery.trim().toLowerCase();
     if (!q) return availableBenefits;
     return availableBenefits.filter((c) =>
-      [c.name, c.state, c.id].join(" ").toLowerCase().includes(q),
+      [c.name, c.description, c.state, c.id].join(" ").toLowerCase().includes(q),
     );
   }, [benefitQuery, availableBenefits]);
   const filteredAvailableDeductions = useMemo(() => {
     const q = deductionQuery.trim().toLowerCase();
     if (!q) return availableDeductions;
     return availableDeductions.filter((c) =>
-      [c.name, c.state, c.id].join(" ").toLowerCase().includes(q),
+      [c.name, c.description, c.state, c.id].join(" ").toLowerCase().includes(q),
     );
   }, [deductionQuery, availableDeductions]);
   const filteredAvailableEmployer = useMemo(() => {
     const q = employerQuery.trim().toLowerCase();
     if (!q) return availableEmployer;
     return availableEmployer.filter((c) =>
-      [c.name, c.state, c.id].join(" ").toLowerCase().includes(q),
+      [c.name, c.description, c.state, c.id].join(" ").toLowerCase().includes(q),
     );
   }, [employerQuery, availableEmployer]);
   const benefitOptionsKey = useMemo(
@@ -4846,12 +4848,14 @@ function ResourceFormDialog({
                             <div className="flex flex-col">
                               <span className="text-sm">{c.name}</span>
                               <span className="text-[11px] text-muted-foreground">
-                                {c.calcType === "percentage"
-                                  ? `${c.percentage}% of ${c.baseComponents.map((b, i) => (i === 0 ? b.label : `${b.operator} ${b.label}`)).join(" ") || "—"}`
-                                  : c.amount != null && c.amount > 0
-                                    ? `Fixed ₹${c.amount.toLocaleString("en-IN")}`
-                                    : "Fixed amount (manual)"}
-                                {c.state && c.state !== "N/A" ? ` · ${c.state}` : ""}
+                                {c.description
+                                  ? c.description
+                                  : c.calcType === "percentage"
+                                    ? `${c.percentage}% of ${c.baseComponents.map((b, i) => (i === 0 ? b.label : `${b.operator} ${b.label}`)).join(" ") || "—"}`
+                                    : c.amount != null && c.amount > 0
+                                      ? `Fixed ₹${c.amount.toLocaleString("en-IN")}`
+                                      : "Fixed amount (manual)"}
+                                {!c.description && c.state && c.state !== "N/A" ? ` · ${c.state}` : ""}
                               </span>
                             </div>
                           </CommandItem>
@@ -5000,12 +5004,14 @@ function ResourceFormDialog({
                             <div className="flex flex-col">
                               <span className="text-sm">{c.name}</span>
                               <span className="text-[11px] text-muted-foreground">
-                                {c.calcType === "percentage"
-                                  ? `${c.percentage}% of ${c.baseComponents.map((b, i) => (i === 0 ? b.label : `${b.operator} ${b.label}`)).join(" ") || "—"}`
-                                  : c.amount != null && c.amount > 0
-                                    ? `Fixed ₹${c.amount.toLocaleString("en-IN")}`
-                                    : "Fixed amount (manual)"}
-                                {c.state && c.state !== "N/A" ? ` · ${c.state}` : ""}
+                                {c.description
+                                  ? c.description
+                                  : c.calcType === "percentage"
+                                    ? `${c.percentage}% of ${c.baseComponents.map((b, i) => (i === 0 ? b.label : `${b.operator} ${b.label}`)).join(" ") || "—"}`
+                                    : c.amount != null && c.amount > 0
+                                      ? `Fixed ₹${c.amount.toLocaleString("en-IN")}`
+                                      : "Fixed amount (manual)"}
+                                {!c.description && c.state && c.state !== "N/A" ? ` · ${c.state}` : ""}
                               </span>
                             </div>
                           </CommandItem>
