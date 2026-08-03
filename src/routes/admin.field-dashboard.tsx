@@ -1250,6 +1250,7 @@ function ManageGuardUnitsDialog({
       }
       await qc.invalidateQueries({ queryKey: ["field-officer-dashboard-v4"] });
       await qc.invalidateQueries({ queryKey: ["my-reportees"] });
+      await qc.invalidateQueries({ queryKey: ["admin", "unmapped-guards"] });
       onClose();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to update unit mapping";
