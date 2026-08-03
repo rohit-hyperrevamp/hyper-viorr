@@ -2103,7 +2103,7 @@ function MusterRollPage() {
     const otDays = Math.round(otDaysSum * 100) / 100;
     // OT cell value is OT-days; expose under both names for display compat.
     const otHours = otDays;
-    const tDays = pDays + phDays + otherPaidDays + otDays;
+    const tDays = pDays + phDays + otDays;
     return { pDays, otHours, otDays, phDays, tDays };
   };
 
