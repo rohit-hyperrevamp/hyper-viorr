@@ -4648,12 +4648,6 @@ function CandidateWizard({
     }
   };
 
-  const unitAssignmentsChanged = () => {
-    if (!editing) return true;
-    if (form.unit_ids.length !== initialUnitIds.length) return true;
-    return form.unit_ids.some((id, idx) => id !== initialUnitIds[idx]);
-  };
-
   const persist = async (status: string, successMsg: string) => {
     const payload = buildPayload(status);
     const normalizedAadhaar = String((payload as { aadhaar_number?: unknown }).aadhaar_number ?? "").replace(/\D/g, "");
