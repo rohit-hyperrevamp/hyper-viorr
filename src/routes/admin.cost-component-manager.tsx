@@ -109,6 +109,14 @@ function divisorShort(value: FixedDutyDivisor | null | undefined, options: { val
   return options.find((d) => d.value === value)?.short ?? "Base Days";
 }
 
+export type PartyKind = "employee" | "employer" | "both";
+
+const PARTY_LABEL: Record<PartyKind, string> = {
+  employee: "Employee",
+  employer: "Employer",
+  both: "Both",
+};
+
 type CostComponent = {
   id: string;
   name: string;
@@ -159,6 +167,9 @@ function rowToItem(r: Record<string, unknown>): CostComponent {
     cap_flat_amount: r.cap_flat_amount == null ? null : Number(r.cap_flat_amount),
     amount: r.amount == null ? null : Number(r.amount),
     state: String(r.state ?? "N/A"),
+    party: (["employee", "employer", "both"].includes(String(r.party))
+      ? (r.party as PartyKind)
+      : "both"),
     notes: String(r.notes ?? ""),
     enabled: Boolean(r.enabled ?? true),
     sort_order: Number(r.sort_order ?? 0),
@@ -241,6 +252,7 @@ function useCostComponents() {
     cap_flat_amount: p.calc_type === "percentage" ? p.cap_flat_amount : null,
     amount: p.calc_type === "fixed" ? p.amount : null,
     state: p.state || "N/A",
+    party: p.party || "both",
     notes: p.notes,
     enabled: p.enabled,
     sort_order: p.sort_order,
@@ -353,6 +365,7 @@ function CostComponentManagerPage() {
       return (
         i.name.toLowerCase().includes(q) ||
         i.state.toLowerCase().includes(q) ||
+        PARTY_LABEL[i.party].toLowerCase().includes(q) ||
         desc.includes(q)
       );
     });
@@ -391,6 +404,7 @@ function CostComponentManagerPage() {
                   description: buildDescription(i),
                   calc_type: i.calc_type,
                   percentage: i.percentage,
+                  party: PARTY_LABEL[i.party],
                   state: i.state,
                   enabled: i.enabled ? "Yes" : "No",
                 })),
@@ -399,6 +413,7 @@ function CostComponentManagerPage() {
                   { key: "description", header: "Description" },
                   { key: "calc_type", header: "Type" },
                   { key: "percentage", header: "%" },
+                  { key: "party", header: "Employee/Employer" },
                   { key: "state", header: "State" },
                   { key: "enabled", header: "Active" },
                 ],
@@ -422,6 +437,7 @@ function CostComponentManagerPage() {
                 <th className="px-5 py-3">Name</th>
                 <th className="px-5 py-3">Description</th>
                 <th className="px-5 py-3">%</th>
+                <th className="px-5 py-3">Party</th>
                 <th className="px-5 py-3">State</th>
                 <th className="px-5 py-3">Active</th>
                 <th className="px-5 py-3 text-right" data-col="actions">Actions</th>
@@ -439,6 +455,17 @@ function CostComponentManagerPage() {
                   <td className="px-5 py-3 text-foreground/80">{buildDescription(i)}</td>
                   <td className="px-5 py-3 text-foreground/90">
                     {i.calc_type === "percentage" ? `${i.percentage}%` : "—"}
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                      i.party === "employee"
+                        ? "bg-primary/10 text-primary"
+                        : i.party === "employer"
+                          ? "bg-accent/20 text-foreground"
+                          : "bg-muted text-muted-foreground"
+                    }`}>
+                      {PARTY_LABEL[i.party]}
+                    </span>
                   </td>
                   <td className="px-5 py-3 text-foreground/90">{i.state || "N/A"}</td>
                   <td className="px-5 py-3">
@@ -569,6 +596,7 @@ function CostComponentDialog({
   const [calcType, setCalcType] = useState<"percentage" | "fixed">("percentage");
   const [amount, setAmount] = useState<string>("");
   const [state, setState] = useState<string>("N/A");
+  const [party, setParty] = useState<PartyKind>("both");
   const [notes, setNotes] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [sortOrder, setSortOrder] = useState<string>("0");
@@ -587,6 +615,7 @@ function CostComponentDialog({
     setCalcType(initial?.calc_type ?? "percentage");
     setAmount(initial?.amount != null ? String(initial.amount) : "");
     setState(initial?.state ?? "N/A");
+    setParty(initial?.party ?? "both");
     setNotes(initial?.notes ?? "");
     setEnabled(initial?.enabled ?? true);
     setSortOrder(String(initial?.sort_order ?? 0));
@@ -652,7 +681,7 @@ function CostComponentDialog({
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. EPF Employer Contribution" />
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label>Calculation Type</Label>
               <Select value={calcType} onValueChange={(v) => setCalcType(v as "percentage" | "fixed")}>
@@ -669,6 +698,17 @@ function CostComponentDialog({
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {stateOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Employee / Employer</Label>
+              <Select value={party} onValueChange={(v) => setParty(v as PartyKind)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">Employee (EE) — shows under Deductions</SelectItem>
+                  <SelectItem value="employer">Employer (ER) — shows under Employer Contribution</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -815,6 +855,7 @@ function CostComponentDialog({
                 cap_flat_amount: null,
                 amount: amount ? Number(amount) : null,
                 state: state || "N/A",
+                party,
                 notes,
                 enabled,
                 sort_order: Number(sortOrder) || 0,
