@@ -440,11 +440,33 @@ function PayrollUnitPage() {
             applyDayAdj(a.candidate_id, Number(a.days) || 0, a.affects_days_for, +1);
           }
         }
+        // A one-time joining fee may be dated a few days before the window
+        // opens (e.g. joined 5 Jun, window starts 26 Jun). Carry it forward
+        // ONLY for genuinely new joiners — i.e. the joining date falls after
+        // the previous window's start, so no earlier payroll could have
+        // billed it. Long-tenured staff never re-pay a joining fee, and their
+        // GPAIP is picked up in the window containing their anniversary.
+        const prevWindowStart = (() => {
+          const d = new Date(`${start}T00:00:00Z`);
+          d.setUTCMonth(d.getUTCMonth() - 1);
+          return d.toISOString().slice(0, 10);
+        })();
+        const joiningDateByCandidate = new Map<string, string | null>(
+          roster.map((c) => [
+            c.id,
+            ((c as unknown as Record<string, unknown>)["preferred_joining_date"] as string | null) ?? null,
+          ]),
+        );
         for (const d of ((dedsRes.data ?? []) as unknown as RawDed[])) {
           const isInPeriod = d.deduction_date >= start;
+          const joined = joiningDateByCandidate.get(d.candidate_id) ?? null;
+          const isNewJoiner = !!joined && joined >= prevWindowStart;
           const isFirstWindowJoiningFee = d.source_kind === "unit_fee"
+            && isNewJoiner
+            && d.deduction_date >= (joined as string)
             && !candidatesWithPriorAttendance.has(d.candidate_id);
           if (!isInPeriod && !isFirstWindowJoiningFee) continue;
+
           const inst = Math.max(1, Number(d.installments) || 1);
           const amt = (Number(d.amount) || 0) / inst;
           const isDayAdj = isSystemComputedDayAdj(d.entry_mode, d.include_in_total_days, d.affects_days_for);
