@@ -114,7 +114,7 @@ function AttendanceUnitsPage() {
 
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["attendance-dashboard-v9"],
+    queryKey: ["attendance-dashboard-v10"],
     queryFn: async (): Promise<AttendancePageData> => {
       const { data: contracts, error: contractsError } = await supabase
         .from("client_contracts")
