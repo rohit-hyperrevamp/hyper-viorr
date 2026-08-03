@@ -7453,8 +7453,8 @@ function MultiUnitPicker({
               {!isPrimary && (
                 <button
                   type="button"
-                  className="ml-1 rounded p-0.5 opacity-60 hover:bg-background/30 hover:opacity-100"
-                  title="Make primary"
+                  className="ml-1 inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary transition hover:bg-primary hover:text-primary-foreground"
+                  title="Make this the primary unit — a fresh posting order will be emailed on save"
                   onClick={(e) => {
                     e.preventDefault();
                     makePrimary(u.id);
@@ -7462,8 +7462,10 @@ function MultiUnitPicker({
                   onMouseDown={(e) => e.preventDefault()}
                 >
                   <Check className="h-3 w-3" />
+                  Set primary
                 </button>
               )}
+
               <button
                 type="button"
                 className="ml-0.5 rounded p-0.5 opacity-70 hover:bg-background/30 hover:opacity-100"
