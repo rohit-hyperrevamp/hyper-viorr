@@ -1191,7 +1191,7 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium" title="Present (worked) days">P Days</th>
                 <th className="px-4 py-3 font-medium" title="Paid Holiday days (incl. additions)">PH Days</th>
                 <th className="px-4 py-3 font-medium" title="Extra Duty Days (0.5 = half ED day, 1 = one ED day)">ED Days</th>
-                <th className="px-4 py-3 font-medium" title="Total payable days (P + PH + Other Paid + ED)">T Days</th>
+                <th className="px-4 py-3 font-medium" title="Total payable days (P + PH + Other Paid + ED)">Total Payable Days</th>
                 <th className="px-4 py-3 text-left font-medium" title="Full contract gross — what would be paid for a full month">Projected</th>
                 <th className="px-4 py-3 text-left font-medium" title="Sum of every earned wage line, including extra duty and paid holiday">Earned gross</th>
                 <th className="px-4 py-3 text-left font-medium">Deductions</th>
