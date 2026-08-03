@@ -313,6 +313,7 @@ function MusterRollPage() {
             doj: c.preferred_joining_date || "",
             is_non_billable: isNonBillable,
             is_home_mapped: homeMapped.has(c.id),
+             is_reliever: relieverLinks.has(c.id) && !homeMapped.has(c.id),
             role_key: (c.role_key || "").toLowerCase(),
 
           };
@@ -787,7 +788,9 @@ function MusterRollPage() {
   // flow. Their Punch In / Punch Out rows are derived into muster entries using
   // the duty-duration rules: <4h = A, 4h–<8h = HD, >=8h = P.
   const selfPunchCandidateIds = useMemo(
-    () => (employees ?? []).map((e) => e.id),
+    // Relievers never generate regular attendance from punches. Their unit
+    // assignment is ED-only and is filled exclusively on the ED row.
+    () => (employees ?? []).filter((e) => !e.is_reliever).map((e) => e.id),
     [employees],
   );
   const selfPunchQK = ["attendance-self-punches", unitId, periodStart, periodEnd, selfPunchCandidateIds.join(",")];
@@ -1144,7 +1147,14 @@ function MusterRollPage() {
     designation_id: string | null,
     rows: Array<{ entry_date: string; code: string; ot_hours: number }>,
   ) => {
-    const filtered = rows.filter((r) => r.entry_date <= todayStr);
+    const relieverOnly = (employees ?? []).some(
+      (employee) => employee.id === candidate_id && employee.is_reliever,
+    );
+    // Final UI-layer guard for manual entry and both upload paths. The
+    // database applies the same invariant, so relievers can retain ED only.
+    const filtered = rows
+      .filter((r) => r.entry_date <= todayStr)
+      .map((r) => (relieverOnly ? { ...r, code: "" } : r));
     if (filtered.length === 0) {
       toast.error("All selected dates are in the future — nothing marked");
       return 0;

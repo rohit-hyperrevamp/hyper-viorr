@@ -173,9 +173,14 @@ function MyAttendancePage() {
     queryFn: async () => {
       const { data: cu } = await supabase
         .from("candidate_units")
-        .select("unit_id")
+        .select("unit_id,is_primary,is_reliever")
         .eq("candidate_id", me.candidate_id!);
-      const ids = Array.from(new Set(((cu ?? []) as Array<{ unit_id: string | null }>).map((r) => r.unit_id).filter(Boolean))) as string[];
+      const ids = Array.from(new Set(
+        ((cu ?? []) as Array<{ unit_id: string | null; is_primary: boolean | null; is_reliever: boolean | null }>)
+          .filter((r) => r.is_primary === true && r.is_reliever !== true)
+          .map((r) => r.unit_id)
+          .filter(Boolean),
+      )) as string[];
       if (ids.length === 0) return [];
       const { data: units } = await supabase
         .from("units")
