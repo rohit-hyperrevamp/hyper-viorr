@@ -1158,11 +1158,12 @@ function PayrollUnitPage() {
 
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-5">
           <Stat label="Earned gross" value={fmtINR(totals.earnedGross)} />
-          <Stat label="Deductions" value={fmtINR(totals.deductions)} />
+          <Stat label="Deductions" value={fmtINR(totals.deductions)} onClick={() => scrollToSection("payroll-deductions-section")} />
           <Stat label="Net pay" value={fmtINR(totals.net)} tone="emerald" />
-          <Stat label="Employer contrib" value={fmtINR(totals.employerContrib)} />
+          <Stat label="Employer contrib" value={fmtINR(totals.employerContrib)} onClick={() => scrollToSection("payroll-employer-contrib-section")} />
           <Stat label="Total employer cost" value={fmtINR(totals.employerCost)} tone="amber" />
         </div>
+
       </div>
 
       {/* Payroll approval workflow */}
@@ -1325,9 +1326,20 @@ function PayrollUnitPage() {
         </div>
       </div>
 
-      <DeductionsSection rows={rows as unknown as DeductionSourceRow[]} />
+      <div id="payroll-deductions-section" className="scroll-mt-24">
+        <DeductionsSection rows={rows as unknown as DeductionSourceRow[]} />
+      </div>
+
+      <div id="payroll-employer-contrib-section" className="scroll-mt-24">
+        <EmployerContribSection rows={rows as unknown as DeductionSourceRow[]} />
+      </div>
     </div>
   );
+}
+
+function scrollToSection(id: string) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // --------------------------------------------------------------------------
@@ -1340,8 +1352,12 @@ type DeductionSourceRow = {
   employeeCode: string;
   name: string;
   designation: string;
-  wages: { deductions: { name: string; amount: number }[] } | null;
+  wages: {
+    deductions: { name: string; amount: number }[];
+    employerContributions?: { name: string; amount: number }[];
+  } | null;
 };
+
 
 const DEDUCTION_BUCKETS = [
   { key: "epf", label: "EPF", re: /\b(epf|pf|provident)\b/i },
@@ -1531,15 +1547,190 @@ function DeductionsSection({ rows }: { rows: DeductionSourceRow[] }) {
 }
 
 
-function Stat({ label, value, tone }: { label: string; value: string; tone?: "emerald" | "amber" }) {
+function Stat({ label, value, tone, onClick }: { label: string; value: string; tone?: "emerald" | "amber"; onClick?: () => void }) {
   const cls = tone === "emerald" ? "text-emerald-700" : tone === "amber" ? "text-amber-700" : "text-foreground";
-  return (
-    <div className="rounded-2xl border border-border/60 bg-background px-4 py-3">
+  const inner = (
+    <>
       <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
       <div className={`mt-1 text-xl font-semibold ${cls}`}>{value}</div>
+    </>
+  );
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="rounded-2xl border border-border/60 bg-background px-4 py-3 text-left transition-colors hover:border-primary/60 hover:bg-muted/60"
+      >
+        {inner}
+      </button>
+    );
+  }
+  return <div className="rounded-2xl border border-border/60 bg-background px-4 py-3">{inner}</div>;
+}
+
+// --------------------------------------------------------------------------
+// Employer contribution breakdown: one row per employee, columns derived from
+// the actual contribution heads present (EPF, EPS, ESI, LWF, bonus, …), with
+// the same search + head-chip filtering as the deductions section.
+// --------------------------------------------------------------------------
+function EmployerContribSection({ rows }: { rows: DeductionSourceRow[] }) {
+  const [search, setSearch] = useState("");
+  const [head, setHead] = useState<string>("all");
+
+  const { people, heads } = useMemo(() => {
+    const headSet = new Set<string>();
+    const map = new Map<
+      string,
+      {
+        id: string;
+        employeeCode: string;
+        name: string;
+        designations: Set<string>;
+        heads: Record<string, number>;
+        total: number;
+      }
+    >();
+    for (const r of rows) {
+      const lines = r.wages?.employerContributions ?? [];
+      if (!r.wages) continue;
+      let p = map.get(r.id);
+      if (!p) {
+        p = { id: r.id, employeeCode: r.employeeCode, name: r.name, designations: new Set<string>(), heads: {}, total: 0 };
+        map.set(r.id, p);
+      }
+      if (r.designation && r.designation !== "—") p.designations.add(r.designation);
+      for (const l of lines) {
+        const amt = Math.round((Number(l.amount) || 0) * 100) / 100;
+        if (!amt) continue;
+        const label = cleanLedgerName(l.name) || l.name;
+        headSet.add(label);
+        p.heads[label] = Math.round(((p.heads[label] ?? 0) + amt) * 100) / 100;
+        p.total = Math.round((p.total + amt) * 100) / 100;
+      }
+    }
+    return {
+      people: Array.from(map.values())
+        .filter((p) => p.total > 0)
+        .sort((a, b) => (a.employeeCode || a.name).localeCompare(b.employeeCode || b.name)),
+      heads: Array.from(headSet).sort((a, b) => a.localeCompare(b)),
+    };
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return people.filter((p) => {
+      if (head !== "all" && !(p.heads[head] > 0)) return false;
+      if (!q) return true;
+      if (p.name.toLowerCase().includes(q)) return true;
+      if (p.employeeCode.toLowerCase().includes(q)) return true;
+      if (Array.from(p.designations).some((d) => d.toLowerCase().includes(q))) return true;
+      return Object.keys(p.heads).some((h) => h.toLowerCase().includes(q));
+    });
+  }, [people, search, head]);
+
+  const colTotals = useMemo(() => {
+    const t: Record<string, number> = { total: 0 };
+    for (const p of filtered) {
+      for (const h of heads) t[h] = Math.round(((t[h] ?? 0) + (p.heads[h] ?? 0)) * 100) / 100;
+      t.total = Math.round((t.total + p.total) * 100) / 100;
+    }
+    return t;
+  }, [filtered, heads]);
+
+  if (people.length === 0) return null;
+
+  const chip = (key: string, label: string, amount?: number) => (
+    <button
+      key={key}
+      onClick={() => setHead(head === key ? "all" : key)}
+      className={cn(
+        "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+        head === key
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border/60 bg-background text-muted-foreground hover:bg-muted",
+      )}
+    >
+      {label}
+      {amount !== undefined && <span className="ml-1.5 tabular-nums opacity-80">{fmtINR(amount)}</span>}
+    </button>
+  );
+
+  return (
+    <div className="rounded-3xl border border-border/70 bg-card shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Employer contribution</div>
+          <div className="mt-0.5 text-sm text-muted-foreground">
+            {filtered.length} employee{filtered.length === 1 ? "" : "s"} · {fmtINR(colTotals.total)} total
+          </div>
+        </div>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search employee, designation or head (EPF, ESI, LWF…)"
+          className="h-9 w-full rounded-xl border border-border/60 bg-background px-3 text-sm md:w-96"
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-2 border-b border-border/60 px-4 py-3">
+        {chip("all", "All")}
+        {heads.map((h) => chip(h, h, colTotals[h] ?? 0))}
+      </div>
+
+      <div className="overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
+        <table className="ios-table min-w-[900px] table-auto text-sm whitespace-nowrap">
+          <thead className="border-b border-border/60 bg-secondary/40">
+            <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
+              <th className="px-4 py-3 font-medium">Emp ID</th>
+              <th className="px-4 py-3 font-medium">Name</th>
+              <th className="px-4 py-3 font-medium">Designation</th>
+              {heads.map((h) => (
+                <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>
+              ))}
+              <th className="px-4 py-3 text-left font-medium">Total contribution</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/50">
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={heads.length + 4} className="px-4 py-10 text-center text-muted-foreground">
+                  No employer contributions match this search.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((p) => (
+                <tr key={p.id} className="hover:bg-muted/40">
+                  <td className="px-4 py-3 font-mono text-xs">{p.employeeCode || "—"}</td>
+                  <td className="px-4 py-3 font-medium">{p.name}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{Array.from(p.designations).join(", ") || "—"}</td>
+                  {heads.map((h) => (
+                    <td key={h} className="px-4 py-3 text-left tabular-nums">
+                      {p.heads[h] ? fmtINR(p.heads[h]) : "—"}
+                    </td>
+                  ))}
+                  <td className="px-4 py-3 text-left font-semibold tabular-nums">{fmtINR(p.total)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          {filtered.length > 0 && (
+            <tfoot className="border-t border-border/60 bg-secondary/30 text-sm font-semibold">
+              <tr>
+                <td className="px-4 py-3" colSpan={3}>Totals</td>
+                {heads.map((h) => (
+                  <td key={h} className="px-4 py-3 text-left tabular-nums">{fmtINR(colTotals[h] ?? 0)}</td>
+                ))}
+                <td className="px-4 py-3 text-left tabular-nums">{fmtINR(colTotals.total)}</td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
     </div>
   );
 }
+
 
 // --------------------------------------------------------------------------
 // Pay sheet panel: full per-employee breakdown rendered INLINE under the row.
