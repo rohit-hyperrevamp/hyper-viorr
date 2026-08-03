@@ -2053,7 +2053,7 @@ function MusterRollPage() {
           : `Cleared ED on ${count} cell${count > 1 ? "s" : ""}`,
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to save");
+      toast.error(saveErrorMessage(e));
     }
   };
 
