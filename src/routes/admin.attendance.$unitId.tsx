@@ -333,17 +333,23 @@ function MusterRollPage() {
     enabled: Boolean(unit),
   });
 
-  // Active contract: payroll window + designations available on this unit
+  // Contract effective for the viewed month: payroll window + designations
+  // available on this unit. Prefer the latest contract that overlaps the
+  // register period; an older still-active record must not override a renewal.
   const { data: contractInfo } = useQuery({
-    queryKey: ["attendance-contract", unitId],
+    queryKey: ["attendance-contract", unitId, year, monthIdx],
     queryFn: async () => {
+      const viewedMonthStart = ymd(year, monthIdx, 1);
+      const viewedMonthEnd = ymd(year, monthIdx, daysInMonth(year, monthIdx));
       const { data: contracts, error } = await supabase
         .from("client_contracts")
-        .select("id, payroll_window_id, start_date, status, record_type")
+        .select("id, payroll_window_id, start_date, end_date, status, record_type")
         .eq("unit_id", unitId)
         .eq("record_type", "client")
         .eq("status", "active")
-        .order("start_date", { ascending: true })
+        .lte("start_date", viewedMonthEnd)
+        .or(`end_date.is.null,end_date.gte.${viewedMonthStart}`)
+        .order("start_date", { ascending: false })
         .limit(1);
       if (error) throw error;
       const winId = contracts?.[0]?.payroll_window_id;
