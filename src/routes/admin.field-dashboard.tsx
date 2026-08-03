@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { autoIssuePostingOrder } from "@/lib/posting-order-auto";
+
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
