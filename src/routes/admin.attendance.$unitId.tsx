@@ -1150,6 +1150,19 @@ function MusterRollPage() {
 
   // ---- Mutations ----
 
+  // Supabase/PostgREST errors are plain objects, not Error instances — without
+  // this the UI collapsed every database rejection into a bare "Failed to save".
+  const saveErrorMessage = (e: unknown): string => {
+    if (e instanceof Error) return e.message;
+    if (e && typeof e === "object") {
+      const err = e as { message?: string; details?: string; hint?: string };
+      return err.message || err.details || err.hint || "Failed to save";
+    }
+    return "Failed to save";
+  };
+
+
+
 
   const upsertEntries = async (
     candidate_id: string,
