@@ -531,7 +531,7 @@ function BasicSection({ form }: { form: any }) {
 /* ---------- Unit Mapping ---------- */
 
 type UnitRow = { id: string; code: string; name: string; location: string; customer_id: string | null };
-type CandidateUnitRow = { id: string; unit_id: string; is_primary: boolean; sort_order: number };
+type CandidateUnitRow = { id: string; unit_id: string; is_primary: boolean; is_reliever: boolean; sort_order: number };
 
 function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: string; primaryUnitId: string | null }) {
   const [busy, setBusy] = useState(false);
@@ -555,7 +555,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
     queryFn: async (): Promise<CandidateUnitRow[]> => {
       const { data, error } = await supabase
         .from("candidate_units" as never)
-        .select("id,unit_id,is_primary,sort_order")
+        .select("id,unit_id,is_primary,is_reliever,sort_order")
         .eq("candidate_id", candidateId)
         .order("sort_order", { ascending: true });
       if (error) throw error;
@@ -573,6 +573,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
 
   const addMapping = async () => {
     if (!addUnitId) return;
+    const isFirstMapping = mappings.length === 0;
     setBusy(true);
     try {
       const { error } = await supabase
@@ -580,7 +581,10 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         .insert({
           candidate_id: candidateId,
           unit_id: addUnitId,
-          is_primary: mappings.length === 0,
+          // Only the first mapping is primary. Every additional unit is a
+          // reliever posting — extra duty (ED) only, no regular muster line.
+          is_primary: isFirstMapping,
+          is_reliever: !isFirstMapping,
           sort_order: mappings.length,
         } as never);
       if (error) throw error;
@@ -591,13 +595,17 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         entityId: candidateId,
         details: { unit_id: addUnitId },
       });
-      toast.success("Unit mapped");
       const unitLabel = unitMap.get(addUnitId)?.name ?? "the site";
-      void autoIssuePostingOrder({ candidateId, unitId: addUnitId }).then((r) => {
-        if (r.sent) toast.success(`Posting order for ${unitLabel} emailed to ${r.to}`);
-        else if (!/only issued to security guards/.test(r.reason))
-          toast.warning(`Posting order not sent — ${r.reason}`);
-      });
+      toast.success(isFirstMapping ? "Primary unit mapped" : `Mapped as reliever at ${unitLabel} (extra duty only)`);
+      if (isFirstMapping) {
+        // Work orders are only dispatched for the primary unit.
+        await supabase.from("candidates").update({ unit_id: addUnitId }).eq("id", candidateId);
+        void autoIssuePostingOrder({ candidateId, unitId: addUnitId }).then((r) => {
+          if (r.sent) toast.success(`Posting order for ${unitLabel} emailed to ${r.to}`);
+          else if (!/only issued to security guards/.test(r.reason))
+            toast.warning(`Posting order not sent — ${r.reason}`);
+        });
+      }
       setAddUnitId("");
       refresh();
     } catch (e: any) {
@@ -635,12 +643,12 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
       // Unset previous primary
       const { error: e1 } = await supabase
         .from("candidate_units" as never)
-        .update({ is_primary: false } as never)
+        .update({ is_primary: false, is_reliever: true } as never)
         .eq("candidate_id", candidateId);
       if (e1) throw e1;
       const { error: e2 } = await supabase
         .from("candidate_units" as never)
-        .update({ is_primary: true } as never)
+        .update({ is_primary: true, is_reliever: false } as never)
         .eq("id", row.id);
       if (e2) throw e2;
       // Mirror into candidates.unit_id for compatibility
@@ -652,7 +660,13 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         entityId: candidateId,
         details: { unit_id: row.unit_id },
       });
-      toast.success("Primary unit updated");
+      toast.success("Primary unit updated — all other units are reliever (extra duty) postings");
+      const label = unitMap.get(row.unit_id)?.name ?? "the site";
+      void autoIssuePostingOrder({ candidateId, unitId: row.unit_id }).then((r) => {
+        if (r.sent) toast.success(`Posting order for ${label} emailed to ${r.to}`);
+        else if (!/only issued to security guards/.test(r.reason))
+          toast.warning(`Posting order not sent — ${r.reason}`);
+      });
       refresh();
     } catch (e: any) {
       toast.error(e.message || "Failed to update primary");
@@ -667,7 +681,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
     <div>
       <SectionHeader
         title="Unit Mapping"
-        desc="Map this employee to one or more units. Mark one as primary — it mirrors to the employee's main unit."
+        desc="One primary unit only — that is where the posting order is dispatched. Every other unit is a reliever posting: the employee appears as (R) and can only be marked for extra duty (ED)."
       />
 
       {primaryUnitId && !mappings.some((m) => m.unit_id === primaryUnitId) && (
@@ -740,9 +754,12 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
                           <Star className="mr-1 h-3 w-3 fill-current" /> Primary
                         </Badge>
                       ) : (
-                        <Button size="sm" variant="ghost" onClick={() => setPrimary(m)} disabled={busy}>
-                          <Star className="mr-1 h-3 w-3" /> Set primary
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Badge className="border-0 bg-violet-500/15 font-semibold text-violet-600">Reliever · ED only</Badge>
+                          <Button size="sm" variant="ghost" onClick={() => setPrimary(m)} disabled={busy}>
+                            <Star className="mr-1 h-3 w-3" /> Set primary
+                          </Button>
+                        </div>
                       )}
                     </td>
                     <td className="px-3 py-2 text-right">
