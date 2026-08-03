@@ -1529,7 +1529,8 @@ function MusterRollPage() {
           else if (meta.is_paid) otherPaidDays += dayValue;
         }
         const otDays = roundHalf(otHours);
-        const tDays = roundHalf(pDays + otherPaidDays + phCount * 2 + otDays);
+        // Paid days = P + PH (double) + ED only. Other paid codes never add days.
+        const tDays = roundHalf(pDays + phCount * 2 + otDays);
         return {
           candidate_id: "",
           p_days: roundHalf(pDays),
