@@ -452,6 +452,13 @@ export function resolvePtAmount(input: PtResolveInput): PtResolveResult {
     genderSlabs = regionSlabs.filter((s) => s.gender.toLowerCase() === "all");
   }
   if (genderSlabs.length === 0) {
+    // Gender not recorded on the employee (or no "all" slab for this state,
+    // e.g. Maharashtra which only has male/female slabs). Fall back to the
+    // standard (male) schedule so PT is never silently skipped; the female
+    // exemption only applies when gender is explicitly recorded as female.
+    genderSlabs = regionSlabs.filter((s) => s.gender.toLowerCase() === "male");
+  }
+  if (genderSlabs.length === 0) {
     return { amount: 0, state: stateStr, regionLabel, slabId: null, source: "no_match" };
   }
 
