@@ -32,22 +32,33 @@ function inclusiveDays(start: Date, end: Date) {
 /**
  * Resolve the payroll period represented by a selected payroll month.
  *
- * The period is ALWAYS the calendar month: 1 → last day of that month,
- * derived from the real calendar so month lengths (28/29/30/31) and leap
- * years are always correct. July = 31 days, February 2028 = 29 days.
- *
- * The contract's payroll window (e.g. 21 → 20) is retained on the contract as
- * the submission / processing cut-off, but it never changes the number of days
- * in the register or the payroll denominator.
+ * The period follows the contract's payroll window, exactly like the muster
+ * roll: a standard window (1 → 30/31) is the plain calendar month, while a
+ * spanning window such as "26 to 25" runs from day 26 of the previous month
+ * through day 25 of the viewed month. Keeping this identical to the attendance
+ * register is what lets payroll/invoice find the approved attendance sheet.
  */
 export function payrollPeriodForMonth(
   year: number,
   monthIdx: number,
-  _window?: PayrollWindow | null,
+  payrollWindow?: PayrollWindow | null,
   today = new Date(),
 ): PayrollPeriod {
-  const start = new Date(year, monthIdx, 1);
-  const end = new Date(year, monthIdx, daysInMonth(year, monthIdx));
+  const startDay = Math.max(1, Number(payrollWindow?.windowStartDay) || 1);
+  const endDayRaw = Number(payrollWindow?.windowEndDay) || 0;
+
+  let start: Date;
+  let end: Date;
+  if (startDay <= 1 || endDayRaw <= 0 || endDayRaw >= startDay) {
+    start = new Date(year, monthIdx, 1);
+    end = new Date(year, monthIdx, daysInMonth(year, monthIdx));
+  } else {
+    const prevMonthIdx = monthIdx === 0 ? 11 : monthIdx - 1;
+    const prevYear = monthIdx === 0 ? year - 1 : year;
+    start = new Date(prevYear, prevMonthIdx, Math.min(startDay, daysInMonth(prevYear, prevMonthIdx)));
+    end = new Date(year, monthIdx, Math.min(endDayRaw, daysInMonth(year, monthIdx)));
+  }
+
   const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const capped = todayDate < start ? start : todayDate > end ? end : todayDate;
 
@@ -59,6 +70,7 @@ export function payrollPeriodForMonth(
     totalDays: inclusiveDays(start, end),
   };
 }
+
 
 
 /** Load the active client contract's payroll window for every unit. */
