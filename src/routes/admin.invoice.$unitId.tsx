@@ -1262,7 +1262,7 @@ function SalaryBreakdownPreview({
             <tr className="bg-secondary/20">
               <td className="font-medium text-muted-foreground">Designation</td>
               <td className="text-center font-semibold">{designationName || "—"}</td>
-              <td className="text-right text-muted-foreground">Total Payable Days</td>
+              <td className="text-right text-muted-foreground">Total Paid Days</td>
               <td className="text-right">
                 <span className="inline-block rounded bg-amber-200/70 px-2 py-0.5 font-bold text-amber-900 dark:bg-amber-300/30 dark:text-amber-100">
                   {tDays}

@@ -2634,7 +2634,7 @@ function MusterRollPage() {
                 <th className="border border-slate-400 p-1 align-middle" rowSpan={2}>P<br />Days</th>
                 <th className="border border-slate-400 p-1 align-middle">ED<br />Days</th>
                 <th className="border border-slate-400 p-1 align-middle" rowSpan={2}>PH<br />Days</th>
-                <th className="border border-slate-400 p-1 align-middle" rowSpan={2} title="Total payable days = P + ED + PH + other paid days">Total<br />Payable<br />Days</th>
+                <th className="border border-slate-400 p-1 align-middle" rowSpan={2} title="Total paid days = P + ED + PH">Total<br />Paid<br />Days</th>
               </tr>
               <tr className="bg-slate-50">
                 <th className="border border-slate-400 p-1"></th>

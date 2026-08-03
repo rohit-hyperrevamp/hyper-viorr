@@ -1191,7 +1191,7 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium" title="Present (worked) days">P Days</th>
                 <th className="px-4 py-3 font-medium" title="Paid Holiday days (incl. additions)">PH Days</th>
                 <th className="px-4 py-3 font-medium" title="Extra Duty Days (0.5 = half ED day, 1 = one ED day)">ED Days</th>
-                <th className="px-4 py-3 font-medium" title="Total payable days (P + PH + Other Paid + ED)">Total Payable Days</th>
+                <th className="px-4 py-3 font-medium" title="Total paid days (P + PH + ED)">Total Paid Days</th>
                 <th className="px-4 py-3 text-left font-medium" title="Full contract gross — what would be paid for a full month">Projected</th>
                 <th className="px-4 py-3 text-left font-medium" title="Sum of every earned wage line, including extra duty and paid holiday">Earned gross</th>
                 <th className="px-4 py-3 text-left font-medium">Deductions</th>
@@ -1409,7 +1409,7 @@ function PaySheetPanel({ r }: { r: PaySheetRow }) {
     { label: "Paid holiday", value: r.totals.phDays },
     { label: "Other paid", value: r.totals.otherPaidDays },
     { label: "Extra duty days", value: r.totals.otDays },
-    { label: "Total days", value: r.totals.tDays },
+    { label: "Total paid days", value: r.totals.tDays },
   ];
 
   return (
