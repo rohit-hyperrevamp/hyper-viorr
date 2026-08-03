@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { autoIssuePostingOrder } from "@/lib/posting-order-auto";
+
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1054,6 +1056,8 @@ function ManageGuardUnitsDialog({
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [initial, setInitial] = useState<Set<string>>(new Set());
+  const [primaryId, setPrimaryId] = useState<string | null>(null);
+  const [initialPrimary, setInitialPrimary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const open = !!guard;
@@ -1065,18 +1069,22 @@ function ManageGuardUnitsDialog({
       setLoading(true);
       const { data, error } = await supabase
         .from("candidate_units")
-        .select("unit_id")
+        .select("unit_id,is_primary")
         .eq("candidate_id", guard.id);
       if (cancel) return;
       if (error) {
         toast.error(error.message || "Failed to load unit mappings");
       }
-      const ids = new Set<string>(((data ?? []) as Array<{ unit_id: string }>).map((r) => r.unit_id));
+      const rows = (data ?? []) as Array<{ unit_id: string; is_primary: boolean | null }>;
+      const ids = new Set<string>(rows.map((r) => r.unit_id));
       // Ensure the unit the guard is currently visible under is reflected as selected
       // even if only tracked via candidates.unit_id and not candidate_units.
       ids.add(currentUnitId);
+      const pri = rows.find((r) => r.is_primary)?.unit_id ?? null;
       setSelected(new Set(ids));
       setInitial(new Set(ids));
+      setPrimaryId(pri);
+      setInitialPrimary(pri);
       setLoading(false);
     })();
     return () => {
@@ -1091,6 +1099,7 @@ function ManageGuardUnitsDialog({
       else next.add(uid);
       return next;
     });
+    setPrimaryId((p) => (p === uid ? null : p));
   };
 
   const save = async () => {
@@ -1099,9 +1108,14 @@ function ManageGuardUnitsDialog({
       toast.error("A guard must be mapped to at least one unit.");
       return;
     }
+    if (!primaryId || !selected.has(primaryId)) {
+      toast.error("Pick a primary unit — that is where attendance and the work order are issued.");
+      return;
+    }
     const toAdd = [...selected].filter((u) => !initial.has(u));
     const toRemove = [...initial].filter((u) => !selected.has(u));
-    if (toAdd.length === 0 && toRemove.length === 0) {
+    const primaryChanged = primaryId !== initialPrimary;
+    if (toAdd.length === 0 && toRemove.length === 0 && !primaryChanged) {
       onClose();
       return;
     }
@@ -1120,7 +1134,26 @@ function ManageGuardUnitsDialog({
           .in("unit_id", toRemove);
         if (error) throw error;
       }
+      if (primaryChanged) {
+        const { error: clearErr } = await supabase
+          .from("candidate_units")
+          .update({ is_primary: false })
+          .eq("candidate_id", guard.id)
+          .neq("unit_id", primaryId);
+        if (clearErr) throw clearErr;
+        const { error: setErr } = await supabase
+          .from("candidate_units")
+          .update({ is_primary: true })
+          .eq("candidate_id", guard.id)
+          .eq("unit_id", primaryId);
+        if (setErr) throw setErr;
+      }
       toast.success(`Updated ${guard.full_name}'s unit mapping`);
+      if (primaryChanged) {
+        void autoIssuePostingOrder({ candidateId: guard.id, unitId: primaryId }).then((r) => {
+          if (r.sent) toast.success(`Posting order emailed to ${r.to}`);
+        });
+      }
       await qc.invalidateQueries({ queryKey: ["field-dashboard"] });
       onClose();
     } catch (e) {
@@ -1131,6 +1164,7 @@ function ManageGuardUnitsDialog({
     }
   };
 
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md">
@@ -1138,7 +1172,7 @@ function ManageGuardUnitsDialog({
           <DialogTitle>Manage units</DialogTitle>
           <DialogDescription>
             {guard ? (
-              <>Tick every unit <span className="font-semibold text-foreground">{guard.full_name}</span> should cover. Uncheck to remove them from a unit.</>
+              <>Tick every unit <span className="font-semibold text-foreground">{guard.full_name}</span> should cover, then mark one as <span className="font-semibold text-foreground">Primary</span>. Attendance and the work order go to the primary unit; every other unit is a reliever unit for extra duty (ED) only.</>
             ) : null}
           </DialogDescription>
         </DialogHeader>
@@ -1147,30 +1181,59 @@ function ManageGuardUnitsDialog({
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading current mapping…
           </div>
         ) : (
+          <>
+            {selected.size > 0 && !primaryId && (
+              <div className="rounded-xl bg-amber-500/10 px-3 py-2 text-[12px] font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20">
+                No primary unit selected — pick one before saving.
+              </div>
+            )}
           <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
             {assignableUnits.map((u) => {
               const checked = selected.has(u.id);
+              const isPrimary = primaryId === u.id;
               return (
-                <label
+                <div
                   key={u.id}
-                  className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition ${checked ? "border-emerald-500/40 bg-emerald-500/5" : "border-border/60 hover:bg-muted/50"}`}
+                  className={`rounded-xl border px-3 py-2.5 transition ${checked ? "border-emerald-500/40 bg-emerald-500/5" : "border-border/60 hover:bg-muted/50"}`}
                 >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={() => toggle(u.id)}
-                    className="mt-0.5"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold text-foreground">{u.name}</div>
-                    <div className="truncate text-[11px] text-muted-foreground">
-                      {u.customer_name} · <span className="font-mono">{u.code}</span>
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={() => toggle(u.id)}
+                      className="mt-0.5"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-foreground">{u.name}</div>
+                      <div className="truncate text-[11px] text-muted-foreground">
+                        {u.customer_name} · <span className="font-mono">{u.code}</span>
+                      </div>
                     </div>
-                  </div>
-                </label>
+                  </label>
+                  {checked && (
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryId(u.id)}
+                      className={`mt-2 ml-7 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] transition ${
+                        isPrimary
+                          ? "bg-emerald-600 text-white"
+                          : "bg-secondary text-muted-foreground ring-1 ring-border hover:bg-secondary/70"
+                      }`}
+                    >
+                      {isPrimary ? "Primary unit" : "Set as primary"}
+                    </button>
+                  )}
+                  {checked && !isPrimary && (
+                    <span className="ml-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-violet-700 dark:text-violet-300">
+                      Reliever · ED only
+                    </span>
+                  )}
+                </div>
               );
             })}
           </div>
+          </>
         )}
+
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button
