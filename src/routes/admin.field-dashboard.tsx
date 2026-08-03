@@ -1230,9 +1230,10 @@ function ManageGuardUnitsDialog({
                 </div>
               );
             })}
-
           </div>
+          </>
         )}
+
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button
