@@ -1172,7 +1172,7 @@ function ManageGuardUnitsDialog({
           <DialogTitle>Manage units</DialogTitle>
           <DialogDescription>
             {guard ? (
-              <>Tick every unit <span className="font-semibold text-foreground">{guard.full_name}</span> should cover. Uncheck to remove them from a unit.</>
+              <>Tick every unit <span className="font-semibold text-foreground">{guard.full_name}</span> should cover, then mark one as <span className="font-semibold text-foreground">Primary</span>. Attendance and the work order go to the primary unit; every other unit is a reliever unit for extra duty (ED) only.</>
             ) : null}
           </DialogDescription>
         </DialogHeader>
@@ -1181,28 +1181,56 @@ function ManageGuardUnitsDialog({
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading current mapping…
           </div>
         ) : (
+          <>
+            {selected.size > 0 && !primaryId && (
+              <div className="rounded-xl bg-amber-500/10 px-3 py-2 text-[12px] font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20">
+                No primary unit selected — pick one before saving.
+              </div>
+            )}
           <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
             {assignableUnits.map((u) => {
               const checked = selected.has(u.id);
+              const isPrimary = primaryId === u.id;
               return (
-                <label
+                <div
                   key={u.id}
-                  className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition ${checked ? "border-emerald-500/40 bg-emerald-500/5" : "border-border/60 hover:bg-muted/50"}`}
+                  className={`rounded-xl border px-3 py-2.5 transition ${checked ? "border-emerald-500/40 bg-emerald-500/5" : "border-border/60 hover:bg-muted/50"}`}
                 >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={() => toggle(u.id)}
-                    className="mt-0.5"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold text-foreground">{u.name}</div>
-                    <div className="truncate text-[11px] text-muted-foreground">
-                      {u.customer_name} · <span className="font-mono">{u.code}</span>
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={() => toggle(u.id)}
+                      className="mt-0.5"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-foreground">{u.name}</div>
+                      <div className="truncate text-[11px] text-muted-foreground">
+                        {u.customer_name} · <span className="font-mono">{u.code}</span>
+                      </div>
                     </div>
-                  </div>
-                </label>
+                  </label>
+                  {checked && (
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryId(u.id)}
+                      className={`mt-2 ml-7 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] transition ${
+                        isPrimary
+                          ? "bg-emerald-600 text-white"
+                          : "bg-secondary text-muted-foreground ring-1 ring-border hover:bg-secondary/70"
+                      }`}
+                    >
+                      {isPrimary ? "Primary unit" : "Set as primary"}
+                    </button>
+                  )}
+                  {checked && !isPrimary && (
+                    <span className="ml-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-violet-700 dark:text-violet-300">
+                      Reliever · ED only
+                    </span>
+                  )}
+                </div>
               );
             })}
+
           </div>
         )}
         <DialogFooter className="gap-2">
