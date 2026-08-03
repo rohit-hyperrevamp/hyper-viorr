@@ -213,6 +213,7 @@ function EmployeeAttendanceLookupPage() {
           id,
           name: unit?.name || unit?.code || "Unknown unit",
           code: unit?.code || "",
+          designation: d.designationByUnit[id] || "",
           isPrimary: !!link?.is_primary,
           isReliever: !!link?.is_reliever,
           byDay,
@@ -220,6 +221,7 @@ function EmployeeAttendanceLookupPage() {
           edHours,
           marked: rows.length,
         };
+
       })
       .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.name.localeCompare(b.name));
   }, [detailQ.data, codeMap, foScope.isFieldOfficer, foScope.unitIds]);
