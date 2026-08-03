@@ -333,17 +333,23 @@ function MusterRollPage() {
     enabled: Boolean(unit),
   });
 
-  // Active contract: payroll window + designations available on this unit
+  // Contract effective for the viewed month: payroll window + designations
+  // available on this unit. Prefer the latest contract that overlaps the
+  // register period; an older still-active record must not override a renewal.
   const { data: contractInfo } = useQuery({
-    queryKey: ["attendance-contract", unitId],
+    queryKey: ["attendance-contract", unitId, year, monthIdx],
     queryFn: async () => {
+      const viewedMonthStart = ymd(year, monthIdx, 1);
+      const viewedMonthEnd = ymd(year, monthIdx, daysInMonth(year, monthIdx));
       const { data: contracts, error } = await supabase
         .from("client_contracts")
-        .select("id, payroll_window_id, start_date, status, record_type")
+        .select("id, payroll_window_id, start_date, end_date, status, record_type")
         .eq("unit_id", unitId)
         .eq("record_type", "client")
         .eq("status", "active")
-        .order("start_date", { ascending: true })
+        .lte("start_date", viewedMonthEnd)
+        .or(`end_date.is.null,end_date.gte.${viewedMonthStart}`)
+        .order("start_date", { ascending: false })
         .limit(1);
       if (error) throw error;
       const winId = contracts?.[0]?.payroll_window_id;
@@ -437,20 +443,14 @@ function MusterRollPage() {
   const periodStart = periodCells[0]?.date ?? ymd(year, monthIdx, 1);
   const periodEnd = periodCells[periodCells.length - 1]?.date ?? ymd(year, monthIdx, daysInMonth(year, monthIdx));
 
-  // Unit-level EPF cap policy — contracts inherit it. When the unit is
-  // "no cap", attendance is NOT limited by payroll days (any number of P is
-  // allowed); when it is capped, P is limited to the payroll-day count and
-  // the rest must be marked as OT.
-  const unitEpfCapEnabled =
-    (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
-
   // Max "P" days allowed per designation for this period, driven by the
   // contract resource's Payroll Days entry (26 fixed, actual days, actual
-  // minus weekly off, custom weekdays...). Anything beyond goes to OT.
+  // minus weekly off, custom weekdays...). This is deliberately independent
+  // of the unit's EPF-cap setting: EPF contribution capping must never alter
+  // the contractual attendance basis.
   const maxPDaysByDesignation = useMemo(() => {
     const dates = periodCells.map((c) => c.date);
     const m = new Map<string, number>();
-    if (!unitEpfCapEnabled) return m;
     for (const d of contractDesignations) {
       // "Actual Days in Month" already means every visible calendar date in
       // this register is eligible for Present. Do not run it through the cap
@@ -460,18 +460,17 @@ function MusterRollPage() {
       if (cap != null && cap > 0) m.set(d.designationId, cap);
     }
     return m;
-  }, [contractDesignations, periodCells, unitEpfCapEnabled]);
+  }, [contractDesignations, periodCells]);
 
   // Unit-level fallback cap. Reliever / extra-designation lines are often on a
   // designation that is not on the contract (e.g. "Admin Executive" on a unit
   // contracted only for "Security Guard"). A capped unit must still limit those
   // lines, so fall back to the strictest payroll-day base on the contract.
   const unitMaxPDays = useMemo(() => {
-    if (!unitEpfCapEnabled) return null;
     const values = Array.from(maxPDaysByDesignation.values());
     if (values.length === 0) return null;
     return Math.min(...values);
-  }, [maxPDaysByDesignation, unitEpfCapEnabled]);
+  }, [maxPDaysByDesignation]);
 
 
 
