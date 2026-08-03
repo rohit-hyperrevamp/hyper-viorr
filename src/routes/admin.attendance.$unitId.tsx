@@ -1835,7 +1835,8 @@ function MusterRollPage() {
     date > todayStr ||
     (Boolean(mr.emp.doj) && date < mr.emp.doj!) ||
     Boolean(mr.vacant) ||
-    Boolean(mr.otOnly);
+    Boolean(mr.otOnly) ||
+    Boolean(mr.reliever);
   const otCellBlocked = (mr: MusterRowT, date: string) =>
     date > todayStr || (Boolean(mr.emp.doj) && date < mr.emp.doj!) || Boolean(mr.vacant);
 
