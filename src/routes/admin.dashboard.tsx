@@ -37,6 +37,7 @@ import { LiveFieldOfficersCard } from "@/components/LiveFieldOfficersCard";
 import { EmployeeInsightsSection } from "@/components/EmployeeInsightsSection";
 import { ClientContractPortfolioCard } from "@/components/ClientContractPortfolioCard";
 import { WorkforceCoverageCard } from "@/components/WorkforceCoverage";
+import { AttendanceTodayCard } from "@/components/AttendanceCoverage";
 import {
   PayrollCoverageCard,
   InvoiceCoverageCard,
