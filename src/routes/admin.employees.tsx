@@ -5689,6 +5689,41 @@ function CandidateWizard({
                       />
                     </Field>
                   </div>
+                  {form.unit_ids.length > 0 && (
+                    <div className="sm:col-span-2">
+                      <Field label="Designation at each unit (from that unit's contract)">
+                        <div className="space-y-2 rounded-md border border-input bg-muted/20 p-2">
+                          {form.unit_ids.map((uid, idx) => {
+                            const u = units.find((x) => x.id === uid);
+                            return (
+                              <div key={uid} className="flex flex-wrap items-center gap-2">
+                                <span className="min-w-[180px] flex-1 truncate text-sm">
+                                  {u?.name ?? uid}
+                                  <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                                    {idx === 0 ? "Primary" : "Reliever · ED"}
+                                  </span>
+                                </span>
+                                <div className="min-w-[220px] flex-1">
+                                  <UnitDesignationSelect
+                                    unitId={uid}
+                                    value={(form.unit_designations ?? {})[uid] ?? null}
+                                    onChange={(id) =>
+                                      setForm((f) => ({
+                                        ...f,
+                                        unit_designations: { ...(f.unit_designations ?? {}), [uid]: id },
+                                        designation_id: idx === 0 ? id : f.designation_id,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </Field>
+                    </div>
+                  )}
+
                   {editing && ['guard','security_guard'].includes((editing as { role_key?: string })?.role_key ?? '') && (
                     <div className="sm:col-span-2">
                       <GuardReportingManagersEditor
