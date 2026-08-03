@@ -468,7 +468,7 @@ function AdminLayout() {
           return isFieldOfficer || isSuperAdmin || can("field_sense");
         }
         // Leadership-only analytics surfaces — hidden from field officers.
-        if (g.key === "reports" || g.key === "compliance") {
+        if (g.key === "compliance") {
           return !isFieldOfficer && (isSuperAdmin || can("contracts") || can("employees"));
         }
         return !g.module || can(g.module);
