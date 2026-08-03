@@ -704,7 +704,9 @@ export function computeWages(
   // 208) × 2 = 991.38  →  Gross 23,056).
   const perDayRate = contractGross / baseDays;
   const phCount = Math.round(totals.phDays / 2);
-  const basePaidDays = totals.pDays + totals.otherPaidDays;
+  // Earnings prorate on PRESENT days only. Non-present "paid" codes do not
+  // add payable days; PH and ED are paid through their own separate lines.
+  const basePaidDays = totals.pDays;
   const baseRatio = baseDays > 0 ? basePaidDays / baseDays : 0;
 
   // Per-duty / duty-bucket helpers (used by both component proration and
