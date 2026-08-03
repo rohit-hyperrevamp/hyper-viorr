@@ -125,7 +125,10 @@ export function computeAttendanceTotals(
   const phDays = phCount * 2;
   const otDays = Math.round(otDaysSum * 100) / 100;
   const otHours = otDays;
-  const tDays = round2(pDays) + phDays + round2(otherPaidDays) + otDays;
+  // Total PAID days = present + paid holiday (double) + extra duty ONLY.
+  // Other "paid" attendance codes (leave etc.) are tracked but do NOT add
+  // payable days and must never inflate earnings or contributions.
+  const tDays = round2(pDays) + phDays + otDays;
   return { pDays: round2(pDays), otHours, otDays, phDays, otherPaidDays: round2(otherPaidDays), tDays };
 }
 
