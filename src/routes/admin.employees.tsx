@@ -4831,6 +4831,12 @@ function CandidateWizard({
       if (!form.full_name.trim()) return failValidation("Full name is required (Basic Information)", "full_name");
       if (!/^[6-9]\d{9}$/.test(form.mobile.trim()))
         return failValidation("A valid 10-digit mobile number is required (Basic Information) — it is also the login ID", "mobile");
+      // Email is optional, but when supplied it must be well formed so posting
+      // orders and company documents actually deliver.
+      const emailValue = (form.email ?? "").trim();
+      if (emailValue && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailValue))
+        return failValidation("Enter a valid email address, or leave it blank (Basic Information)", "email");
+
       if (!String(((form.physical_health ?? {}) as Record<string, unknown>).blood_group ?? "").trim())
         return failValidation("Blood group is required (Physical & Health section) — it is printed on the employee ID card", "blood_group");
 
@@ -5142,6 +5148,19 @@ function CandidateWizard({
                       onChange={(e) => set("alt_mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
                     />
                   </Field>
+                  <Field label="Email" anchor="email">
+                    <Input
+                      type="email"
+                      value={form.email}
+                      inputMode="email"
+                      placeholder="Optional — used for posting orders & documents"
+                      onChange={(e) => set("email", e.target.value.trim())}
+                    />
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Optional. Work orders, posting orders and company documents are emailed here.
+                    </p>
+                  </Field>
+
                   <Field label="Date of Birth">
                     <Popover>
                       <PopoverTrigger asChild>
