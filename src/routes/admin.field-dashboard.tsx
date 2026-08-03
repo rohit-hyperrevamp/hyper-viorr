@@ -186,10 +186,13 @@ function FieldOfficerDashboard() {
         .select("id,full_name,designation_id,unit_id,role_key,status,is_enabled,reports_to,created_by,created_at")
         .in("role_key", ["guard", "security_guard"])
         .eq("status", "active").eq("is_enabled", true);
+      // Team = guards reporting to me + guards deployed at my assigned units.
+      // "created_by" is intentionally NOT a team criterion: onboarding someone
+      // does not make them your team forever, and it kept ex-unit guards in the count.
       const teamFilters = [`reports_to.eq.${meId}`];
-      if (userId) teamFilters.push(`created_by.eq.${userId}`);
       if (unitIds.length) teamFilters.push(`unit_id.in.(${unitIds.join(",")})`);
       if (extraGuardIds.length) teamFilters.push(`id.in.(${extraGuardIds.join(",")})`);
+
       guardQuery = guardQuery.or(teamFilters.join(","));
       const { data: myGuards } = await guardQuery;
       const guardList = (myGuards ?? []) as Array<{ id: string; full_name: string; designation_id: string | null; unit_id: string | null; created_at: string | null }>;
