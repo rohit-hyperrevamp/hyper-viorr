@@ -547,9 +547,15 @@ function EmployeeDashboard() {
                       .sort((a, b) => Number(b.id === primaryUnitId) - Number(a.id === primaryUnitId))
                       .map((u) => {
                         const isPrimary = u.id === primaryUnitId;
+                        const unitDesignation = designationByUnit[u.id];
                         return (
                           <li key={u.id} className="flex items-center justify-between gap-2 rounded-lg bg-secondary/40 px-2.5 py-1.5 ring-1 ring-border">
-                            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{u.name}</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold text-foreground">{u.name}</span>
+                              <span className="block truncate text-[11px] text-muted-foreground">
+                                {unitDesignation ? `Designation · ${unitDesignation}` : "Designation not set"}
+                              </span>
+                            </span>
                             <span
                               className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${
                                 isPrimary
@@ -563,6 +569,7 @@ function EmployeeDashboard() {
                           </li>
                         );
                       })}
+
                   </ul>
                   {isGuard && !primaryUnitId && (
                     <div className="mt-2 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20">
