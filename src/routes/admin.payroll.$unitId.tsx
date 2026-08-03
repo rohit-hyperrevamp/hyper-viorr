@@ -1158,11 +1158,12 @@ function PayrollUnitPage() {
 
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-5">
           <Stat label="Earned gross" value={fmtINR(totals.earnedGross)} />
-          <Stat label="Deductions" value={fmtINR(totals.deductions)} />
+          <Stat label="Deductions" value={fmtINR(totals.deductions)} onClick={() => scrollToSection("payroll-deductions-section")} />
           <Stat label="Net pay" value={fmtINR(totals.net)} tone="emerald" />
-          <Stat label="Employer contrib" value={fmtINR(totals.employerContrib)} />
+          <Stat label="Employer contrib" value={fmtINR(totals.employerContrib)} onClick={() => scrollToSection("payroll-employer-contrib-section")} />
           <Stat label="Total employer cost" value={fmtINR(totals.employerCost)} tone="amber" />
         </div>
+
       </div>
 
       {/* Payroll approval workflow */}
