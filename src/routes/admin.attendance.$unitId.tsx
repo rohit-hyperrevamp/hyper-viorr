@@ -1060,6 +1060,8 @@ function MusterRollPage() {
           emp,
           isPrimary: false,
           reliever: true,
+          otOnly: true,
+
         });
       }
 
@@ -1079,6 +1081,8 @@ function MusterRollPage() {
           emp,
           isPrimary: false,
           reliever: true,
+          otOnly: true,
+
         });
       }
     }
@@ -1949,9 +1953,13 @@ function MusterRollPage() {
     if (grouped.size === 0) return;
     try {
       let applied = 0;
+      let blocked = 0;
       for (const [rowKey, dates] of grouped) {
         const row = findRow(rowKey);
         if (!row) continue;
+        // Reliever / extra-designation lines are Extra Duty only — they can
+        // never carry a regular attendance code.
+        if (row.otOnly || row.reliever) { blocked += dates.length; continue; }
         const rows = dates.map((d) => ({
           entry_date: d,
           code,
@@ -1959,6 +1967,10 @@ function MusterRollPage() {
         }));
         applied += await upsertEntries(row.candidateId, row.designationId, rows);
       }
+      if (blocked > 0) {
+        toast.error("Reliever lines are Extra Duty only — mark ED hours on the ED row instead");
+      }
+
       queryClient.invalidateQueries({ queryKey: entriesQK });
       setPickerOpen(false);
       setSelectedCells(new Set());
@@ -1971,8 +1983,9 @@ function MusterRollPage() {
     }
   };
 
-  // `hours` is OT in clock hours (0.5 – 16). It is stored as OT *days*,
+  // `hours` is ED in clock hours (0.5 – 16). It is stored as ED *days*,
   // converted with each row's contractual shift length (8h or 12h).
+  // Keep 4 decimals so 1h on an 8h shift (0.125 d) round-trips back to exactly 1h.
   const applyOtToSelection = async (hours: number) => {
     const grouped = groupCells(otPickerCells);
     if (grouped.size === 0) return;
@@ -1982,7 +1995,8 @@ function MusterRollPage() {
         const row = findRow(rowKey);
         if (!row) continue;
         const shift = shiftHoursFor(shiftMap, unitId, row.designationId ?? null);
-        const otDays = Math.round((hours / shift) * 100) / 100;
+        const otDays = Math.round((hours / shift) * 10000) / 10000;
+
         const rows = dates.map((d) => ({
           entry_date: d,
           code: entryMap.get(`${row.key}|${d}`)?.code ?? "",
@@ -2811,7 +2825,11 @@ function MusterRollPage() {
                         const entry = entryMap.get(`${mr.key}|${date}`);
                         const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null);
                         const otDaysCell = Number(entry?.ot_hours) || 0;
-                        const hrs = Math.round(otDaysCell * rowShift * 100) / 100;
+                        // Stored value is ED *days*; the grid shows clock hours.
+                        // Snap to the nearest quarter hour so legacy rounded
+                        // day-values (0.13 d) read as a clean 1h, not 1.04h.
+                        const hrs = Math.round(otDaysCell * rowShift * 4) / 4;
+
                         const isSelected = otSelectedCells.has(`${mr.key}|${date}`);
                         return (
                           <td
@@ -2870,7 +2888,12 @@ function MusterRollPage() {
                           </td>
                         );
                       })}
-                      <td className={cn(cellBase, "p-1 font-semibold")}>{totals.otDays}</td>
+                      <td className={cn(cellBase, "p-1 font-semibold")}>
+                        {Math.round(
+                          totals.otDays * shiftHoursFor(shiftMap, unitId, mr.designationId ?? null) * 4,
+                        ) / 4}
+                      </td>
+
                     </tr>,
                   ];
                 })
