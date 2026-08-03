@@ -142,23 +142,45 @@ async function downscaleImage(file: File, maxDim: number, quality: number): Prom
 }
 
 /**
- * Attendance register period = the calendar month, always.
- * Day 1 → last day of the month, taken from the real calendar so 30/31-day
- * months and leap-year February are always exact. The contract payroll window
- * is only a processing cut-off; it never shortens the register.
+ * Attendance register period = the contract's payroll window.
+ * Standard windows (1 → 30/31) render the plain calendar month. Spanning
+ * windows such as "26 to 25" render from day 26 of the previous month through
+ * day 25 of the viewed month, so the register the client signs off matches the
+ * payroll cut-off exactly. Dates are always taken from the real calendar, so
+ * 30/31-day months and leap-year February stay exact.
  */
 function buildPeriodCells(
   year: number,
   monthIdx: number,
-  _win?: { window_start_day: number; window_end_day: number } | null,
+  win?: { window_start_day: number; window_end_day: number } | null,
 ): Array<{ date: string; dayNum: number; monthIdx: number; year: number }> {
-  const last = daysInMonth(year, monthIdx);
+  const startDay = Math.max(1, Number(win?.window_start_day) || 1);
+  const endDayRaw = Number(win?.window_end_day) || 0;
   const cells: Array<{ date: string; dayNum: number; monthIdx: number; year: number }> = [];
-  for (let day = 1; day <= last; day += 1) {
+
+  // Same-month window (1 → 30/31): the full calendar month.
+  if (startDay <= 1 || endDayRaw <= 0 || endDayRaw >= startDay) {
+    const last = daysInMonth(year, monthIdx);
+    for (let day = 1; day <= last; day += 1) {
+      cells.push({ date: ymd(year, monthIdx, day), dayNum: day, monthIdx, year });
+    }
+    return cells;
+  }
+
+  // Spanning window (e.g. 26 → 25): previous month day `startDay` … this month day `endDay`.
+  const prevMonthIdx = monthIdx === 0 ? 11 : monthIdx - 1;
+  const prevYear = monthIdx === 0 ? year - 1 : year;
+  const prevLast = daysInMonth(prevYear, prevMonthIdx);
+  for (let day = Math.min(startDay, prevLast); day <= prevLast; day += 1) {
+    cells.push({ date: ymd(prevYear, prevMonthIdx, day), dayNum: day, monthIdx: prevMonthIdx, year: prevYear });
+  }
+  const endDay = Math.min(endDayRaw, daysInMonth(year, monthIdx));
+  for (let day = 1; day <= endDay; day += 1) {
     cells.push({ date: ymd(year, monthIdx, day), dayNum: day, monthIdx, year });
   }
   return cells;
 }
+
 
 
 const NULL_DESIG = "__none__"; // sentinel row-key segment when an employee has no designation
