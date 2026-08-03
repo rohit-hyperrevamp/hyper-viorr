@@ -2654,7 +2654,7 @@ function MusterRollPage() {
                     >
                       {isMonthBoundary && (
                         <div className="text-[7px] font-bold uppercase leading-none text-slate-600">
-                          {MONTHS[cell.monthIdx]?.slice(0, 3)}
+                          {MONTH_NAMES[cell.monthIdx]?.slice(0, 3)}
                         </div>
                       )}
                       {cell.dayNum}
