@@ -663,7 +663,22 @@ function PayrollUnitPage() {
             ranges: (pincodeRanges ?? []) as PincodeRangeLike[],
           });
           Object.assign(wages, applyPtToWageComputation(wages, ptResolved.amount));
+        } else if (wages) {
+          // PT is a once-a-month statutory deduction per employee. Secondary
+          // lines (e.g. extra-duty-only designation rows) must never charge it
+          // again — the primary line already carries it.
+          const stripped = wages.deductions.filter((d) => !PT_COMPONENT_RE.test(d.name));
+          if (stripped.length !== wages.deductions.length) {
+            const totalDeductions = Math.round(stripped.reduce((s, d) => s + d.amount, 0) * 100) / 100;
+            Object.assign(wages, {
+              deductions: stripped,
+              totalDeductions,
+              netPay: Math.max(0, Math.round((wages.earnedGross - totalDeductions) * 100) / 100),
+            });
+          }
         }
+
+
 
         // Resolve LWF from Control Center master (pincode → state → LWF row).
         // Only fires if this period's month is in the master's deduction_months
