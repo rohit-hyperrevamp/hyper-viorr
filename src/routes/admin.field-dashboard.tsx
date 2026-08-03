@@ -1367,6 +1367,7 @@ function ManageGuardUnitsDialog({
             {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
             Save mapping
           </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
