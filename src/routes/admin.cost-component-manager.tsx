@@ -364,7 +364,7 @@ function CostComponentManagerPage() {
     const q = query.trim().toLowerCase();
     if (!q) return items;
     return items.filter((i) => {
-      const desc = buildDescription(i).toLowerCase();
+      const desc = displayDescription(i).toLowerCase();
       return (
         i.name.toLowerCase().includes(q) ||
         i.state.toLowerCase().includes(q) ||
@@ -404,7 +404,7 @@ function CostComponentManagerPage() {
                 "cost-components",
                 filtered.map((i) => ({
                   name: i.name,
-                  description: buildDescription(i),
+                  description: displayDescription(i),
                   calc_type: i.calc_type,
                   percentage: i.percentage,
                   party: PARTY_LABEL[i.party],
@@ -455,7 +455,7 @@ function CostComponentManagerPage() {
                       {i.name}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-foreground/80">{buildDescription(i)}</td>
+                  <td className="px-5 py-3 text-foreground/80">{displayDescription(i)}</td>
                   <td className="px-5 py-3 text-foreground/90">
                     {i.calc_type === "percentage" ? `${i.percentage}%` : "—"}
                   </td>
@@ -803,6 +803,18 @@ function CostComponentDialog({
             </div>
           )}
 
+
+          <div className="grid gap-2">
+            <Label>Description (optional)</Label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Leave blank to auto-generate from the formula"
+            />
+            <p className="text-xs text-muted-foreground">
+              Shown in the Description column. When empty, the system describes the formula automatically.
+            </p>
+          </div>
 
           <div className="grid gap-2">
             <Label>Notes (optional)</Label>
