@@ -341,6 +341,7 @@ type CostComponentOption = {
   capFlatAmount: number | null;
   amount: number | null;
   state: string;
+  description: string;
   party: "employee" | "employer" | "both";
   deductionCalcType: "earned_salary" | "fixed_amount";
   fixedCalcMethod: FixedCalcMethod;
