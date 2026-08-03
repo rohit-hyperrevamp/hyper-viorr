@@ -109,7 +109,7 @@ function EmployeeAttendanceLookupPage() {
           .lte("entry_date", end),
         supabase
           .from("candidate_units")
-          .select("unit_id, is_primary, is_reliever")
+          .select("unit_id, is_primary, is_reliever, designation_id")
           .eq("candidate_id", candidateId),
         supabase
           .from("attendance_codes")
@@ -125,7 +125,9 @@ function EmployeeAttendanceLookupPage() {
         unit_id: string;
         is_primary: boolean | null;
         is_reliever: boolean | null;
+        designation_id: string | null;
       }>;
+
 
       const unitIds = Array.from(
         new Set<string>([
