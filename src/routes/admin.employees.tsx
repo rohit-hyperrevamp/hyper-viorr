@@ -4076,6 +4076,8 @@ function emptyForm(): CandidateForm {
     preferred_joining_date: null,
     unit_id: null,
     unit_ids: [],
+    unit_designations: {},
+
     designation_id: null,
     status: "pending",
     physical_health: {},
