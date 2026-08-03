@@ -5142,6 +5142,19 @@ function CandidateWizard({
                       onChange={(e) => set("alt_mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
                     />
                   </Field>
+                  <Field label="Email" anchor="email">
+                    <Input
+                      type="email"
+                      value={form.email}
+                      inputMode="email"
+                      placeholder="Optional — used for posting orders & documents"
+                      onChange={(e) => set("email", e.target.value.trim())}
+                    />
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Optional. Work orders, posting orders and company documents are emailed here.
+                    </p>
+                  </Field>
+
                   <Field label="Date of Birth">
                     <Popover>
                       <PopoverTrigger asChild>
