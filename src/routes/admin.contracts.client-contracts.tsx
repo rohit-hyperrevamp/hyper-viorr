@@ -341,6 +341,7 @@ type CostComponentOption = {
   capFlatAmount: number | null;
   amount: number | null;
   state: string;
+  party: "employee" | "employer" | "both";
   deductionCalcType: "earned_salary" | "fixed_amount";
   fixedCalcMethod: FixedCalcMethod;
   fixedDutyComponents: FixedDutyBucket[];
@@ -1079,7 +1080,7 @@ function useCostComponentOptions() {
     queryFn: async (): Promise<CostComponentOption[]> => {
       const { data, error } = await supabase
         .from("cost_components" as never)
-        .select("id,name,calc_type,percentage,base_components,cap_amount,cap_flat_amount,amount,state,enabled,sort_order,deduction_calc_type,fixed_calc_method,fixed_duty_components,fixed_duty_divisor,formula_mode,formula_expression,formula_version")
+        .select("id,name,calc_type,percentage,base_components,cap_amount,cap_flat_amount,amount,state,enabled,sort_order,deduction_calc_type,fixed_calc_method,fixed_duty_components,fixed_duty_divisor,formula_mode,formula_expression,formula_version,party")
         .order("sort_order")
         .order("name");
       if (error) throw error;
@@ -1097,6 +1098,9 @@ function useCostComponentOptions() {
           capFlatAmount: r.cap_flat_amount == null ? null : Number(r.cap_flat_amount),
           amount: r.amount == null ? null : Number(r.amount),
           state: String(r.state ?? "N/A"),
+          party: (["employee", "employer", "both"].includes(String(r.party))
+            ? (r.party as "employee" | "employer" | "both")
+            : "both"),
           deductionCalcType:
             (String(r.deduction_calc_type ?? "earned_salary") as "earned_salary" | "fixed_amount"),
           fixedCalcMethod:
@@ -4099,6 +4103,7 @@ function ResourceFormDialog({
     capFlatAmount: null,
     amount: 0,
     state: "Per state slab (resolved at payroll from unit state, employee gender, earned gross)",
+    party: "employee",
     deductionCalcType: "fixed_amount",
     fixedCalcMethod: "flat",
     fixedDutyComponents: [],
@@ -4111,10 +4116,12 @@ function ResourceFormDialog({
   const usedEmployerIds = new Set(employerContributions.map((b) => b.costComponentId));
   const availableBenefits = costComponents.filter((c) => !usedBenefitIds.has(c.id));
   const availableDeductions: CostComponentOption[] = [
-    ...costComponents.filter((c) => !usedDeductionIds.has(c.id)),
+    ...costComponents.filter((c) => !usedDeductionIds.has(c.id) && c.party !== "employer"),
     ...(usedDeductionIds.has(PT_SYNTHETIC_ID) ? [] : [ptSynthetic]),
   ];
-  const availableEmployer = costComponents.filter((c) => !usedEmployerIds.has(c.id));
+  const availableEmployer = costComponents.filter(
+    (c) => !usedEmployerIds.has(c.id) && c.party !== "employee",
+  );
   const filteredAvailableBenefits = useMemo(() => {
     const q = benefitQuery.trim().toLowerCase();
     if (!q) return availableBenefits;
