@@ -2825,7 +2825,11 @@ function MusterRollPage() {
                         const entry = entryMap.get(`${mr.key}|${date}`);
                         const rowShift = shiftHoursFor(shiftMap, unitId, mr.designationId ?? null);
                         const otDaysCell = Number(entry?.ot_hours) || 0;
-                        const hrs = Math.round(otDaysCell * rowShift * 100) / 100;
+                        // Stored value is ED *days*; the grid shows clock hours.
+                        // Snap to the nearest quarter hour so legacy rounded
+                        // day-values (0.13 d) read as a clean 1h, not 1.04h.
+                        const hrs = Math.round(otDaysCell * rowShift * 4) / 4;
+
                         const isSelected = otSelectedCells.has(`${mr.key}|${date}`);
                         return (
                           <td
