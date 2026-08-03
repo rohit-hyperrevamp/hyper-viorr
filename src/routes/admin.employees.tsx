@@ -15,6 +15,8 @@ import {
   SectionHeaderContext,
 } from "@/components/candidate-extra-sections";
 import { GuardReportingManagersEditor } from "@/components/GuardReportingManagersEditor";
+import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
+
 import { notifyOnboardingApprovers, notifyUser, createNotification } from "@/lib/notifications";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -4009,9 +4011,12 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
 type CandidateForm = Omit<Candidate, "id"> & {
   /** All units assigned to this candidate. First entry is the primary unit (mirrored to candidates.unit_id). */
   unit_ids: string[];
+  /** Contracted designation the person fills at each unit (unit_id -> designation_id). */
+  unit_designations?: Record<string, string | null>;
   /** Primary reporting manager (mirrored to candidates.reports_to). */
   reports_to?: string | null;
 };
+
 
 function emptyForm(): CandidateForm {
   return {
@@ -4073,6 +4078,8 @@ function emptyForm(): CandidateForm {
     preferred_joining_date: null,
     unit_id: null,
     unit_ids: [],
+    unit_designations: {},
+
     designation_id: null,
     status: "pending",
     physical_health: {},
@@ -4206,22 +4213,36 @@ function CandidateWizard({
       const initialUnitIds = rest.unit_id ? [rest.unit_id] : [];
       const normalizedStatus = rest.status === "approved" ? "active" : rest.status;
       setInitialUnitIds(initialUnitIds);
-      setForm({ ...(rest as CandidateForm), status: normalizedStatus, contacts, unit_ids: initialUnitIds });
+      setForm({
+        ...(rest as CandidateForm),
+        status: normalizedStatus,
+        contacts,
+        unit_ids: initialUnitIds,
+        unit_designations: rest.unit_id && rest.designation_id ? { [rest.unit_id]: rest.designation_id } : {},
+      });
       // Load full multi-unit assignment from junction table.
       (async () => {
         const { data, error } = await supabase
           .from("candidate_units" as never)
-          .select("unit_id,is_primary,sort_order")
+          .select("unit_id,is_primary,sort_order,designation_id")
           .eq("candidate_id", editing.id)
           .order("is_primary", { ascending: false })
           .order("sort_order", { ascending: true });
         if (error) return;
-        const rows = (data ?? []) as { unit_id: string; is_primary: boolean; sort_order: number }[];
+        const rows = (data ?? []) as { unit_id: string; is_primary: boolean; sort_order: number; designation_id: string | null }[];
         if (rows.length === 0) return;
         const ids = rows.map((r) => r.unit_id);
+        const desig: Record<string, string | null> = {};
+        for (const r of rows) desig[r.unit_id] = r.designation_id ?? null;
         setInitialUnitIds(ids);
-        setForm((f) => ({ ...f, unit_ids: ids, unit_id: ids[0] ?? null }));
+        setForm((f) => ({
+          ...f,
+          unit_ids: ids,
+          unit_id: ids[0] ?? null,
+          unit_designations: { ...(f.unit_designations ?? {}), ...desig },
+        }));
       })();
+
     } else {
       setInitialUnitIds([]);
       setForm(emptyForm());
@@ -4600,10 +4621,15 @@ function CandidateWizard({
     const rows = form.unit_ids.map((unit_id, idx) => ({
       candidate_id: candidateId,
       unit_id,
+      // The contracted designation this person fills at that unit drives
+      // attendance caps and salary — never the master designation.
+      designation_id:
+        (form.unit_designations ?? {})[unit_id] ?? (idx === 0 ? form.designation_id ?? null : null),
       is_primary: idx === 0,
       is_reliever: idx !== 0,
       sort_order: idx,
     }));
+
     const { error } = await supabase.from("candidate_units" as never).insert(rows as never);
     if (error) throw new Error(`Unit assignment sync failed: ${error.message}`);
 
@@ -5665,6 +5691,41 @@ function CandidateWizard({
                       />
                     </Field>
                   </div>
+                  {form.unit_ids.length > 0 && (
+                    <div className="sm:col-span-2">
+                      <Field label="Designation at each unit (from that unit's contract)">
+                        <div className="space-y-2 rounded-md border border-input bg-muted/20 p-2">
+                          {form.unit_ids.map((uid, idx) => {
+                            const u = units.find((x) => x.id === uid);
+                            return (
+                              <div key={uid} className="flex flex-wrap items-center gap-2">
+                                <span className="min-w-[180px] flex-1 truncate text-sm">
+                                  {u?.name ?? uid}
+                                  <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                                    {idx === 0 ? "Primary" : "Reliever · ED"}
+                                  </span>
+                                </span>
+                                <div className="min-w-[220px] flex-1">
+                                  <UnitDesignationSelect
+                                    unitId={uid}
+                                    value={(form.unit_designations ?? {})[uid] ?? null}
+                                    onChange={(id) =>
+                                      setForm((f) => ({
+                                        ...f,
+                                        unit_designations: { ...(f.unit_designations ?? {}), [uid]: id },
+                                        designation_id: idx === 0 ? id : f.designation_id,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </Field>
+                    </div>
+                  )}
+
                   {editing && ['guard','security_guard'].includes((editing as { role_key?: string })?.role_key ?? '') && (
                     <div className="sm:col-span-2">
                       <GuardReportingManagersEditor

@@ -61,6 +61,8 @@ import { OffboardingRecordsSection } from "@/components/offboarding-records-sect
 import { CandidateCompanyDocuments } from "@/components/CandidateCompanyDocuments";
 import { CandidateEsicCard } from "@/components/CandidateEsicCard";
 import { ensureFormViiForCandidate, ensureIdCardForCandidate } from "@/lib/company-documents";
+import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
+
 
 
 const MODULE = "Candidate Details";
@@ -531,11 +533,13 @@ function BasicSection({ form }: { form: any }) {
 /* ---------- Unit Mapping ---------- */
 
 type UnitRow = { id: string; code: string; name: string; location: string; customer_id: string | null };
-type CandidateUnitRow = { id: string; unit_id: string; is_primary: boolean; is_reliever: boolean; sort_order: number };
+type CandidateUnitRow = { id: string; unit_id: string; is_primary: boolean; is_reliever: boolean; sort_order: number; designation_id: string | null };
 
 function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: string; primaryUnitId: string | null }) {
   const [busy, setBusy] = useState(false);
   const [addUnitId, setAddUnitId] = useState<string>("");
+  const [addDesignationId, setAddDesignationId] = useState<string | null>(null);
+
 
   const unitsQ = useQuery({
     queryKey: ["units-for-mapping"],
@@ -555,13 +559,14 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
     queryFn: async (): Promise<CandidateUnitRow[]> => {
       const { data, error } = await supabase
         .from("candidate_units" as never)
-        .select("id,unit_id,is_primary,is_reliever,sort_order")
+        .select("id,unit_id,is_primary,is_reliever,sort_order,designation_id")
         .eq("candidate_id", candidateId)
         .order("sort_order", { ascending: true });
       if (error) throw error;
       return ((data as unknown) as CandidateUnitRow[]) ?? [];
     },
   });
+
 
   const units = unitsQ.data ?? [];
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u])), [units]);
@@ -573,6 +578,10 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
 
   const addMapping = async () => {
     if (!addUnitId) return;
+    if (!addDesignationId) {
+      toast.error("Pick the designation this employee fills at that unit — attendance and salary follow the designation.");
+      return;
+    }
     const isFirstMapping = mappings.length === 0;
     setBusy(true);
     try {
@@ -581,6 +590,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         .insert({
           candidate_id: candidateId,
           unit_id: addUnitId,
+          designation_id: addDesignationId,
           // Only the first mapping is primary. Every additional unit is a
           // reliever posting — extra duty (ED) only, no regular muster line.
           is_primary: isFirstMapping,
@@ -593,13 +603,16 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         action: "add_unit_mapping",
         entityType: "candidate",
         entityId: candidateId,
-        details: { unit_id: addUnitId },
+        details: { unit_id: addUnitId, designation_id: addDesignationId },
       });
       const unitLabel = unitMap.get(addUnitId)?.name ?? "the site";
       toast.success(isFirstMapping ? "Primary unit mapped" : `Mapped as reliever at ${unitLabel} (extra duty only)`);
       if (isFirstMapping) {
         // Work orders are only dispatched for the primary unit.
-        await supabase.from("candidates").update({ unit_id: addUnitId }).eq("id", candidateId);
+        await supabase
+          .from("candidates")
+          .update({ unit_id: addUnitId, designation_id: addDesignationId })
+          .eq("id", candidateId);
         void autoIssuePostingOrder({ candidateId, unitId: addUnitId }).then((r) => {
           if (r.sent) toast.success(`Posting order for ${unitLabel} emailed to ${r.to}`);
           else if (!/only issued to security guards/.test(r.reason))
@@ -607,7 +620,9 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         });
       }
       setAddUnitId("");
+      setAddDesignationId(null);
       refresh();
+
     } catch (e: any) {
       toast.error(e.message || "Failed to map unit");
     } finally {
@@ -638,6 +653,10 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
   };
 
   const setPrimary = async (row: CandidateUnitRow) => {
+    if (!row.designation_id) {
+      toast.error("Set the designation for this unit before making it primary — attendance and salary follow the designation.");
+      return;
+    }
     setBusy(true);
     try {
       // Unset previous primary
@@ -651,8 +670,12 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
         .update({ is_primary: true, is_reliever: false } as never)
         .eq("id", row.id);
       if (e2) throw e2;
-      // Mirror into candidates.unit_id for compatibility
-      await supabase.from("candidates").update({ unit_id: row.unit_id }).eq("id", candidateId);
+      // Mirror into candidates.unit_id / designation_id for compatibility
+      await supabase
+        .from("candidates")
+        .update({ unit_id: row.unit_id, designation_id: row.designation_id })
+        .eq("id", candidateId);
+
       await logActivity({
         module: MODULE,
         action: "set_primary_unit",
@@ -675,7 +698,35 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
     }
   };
 
+  const updateDesignation = async (row: CandidateUnitRow, designationId: string | null) => {
+    setBusy(true);
+    try {
+      const { error } = await supabase
+        .from("candidate_units" as never)
+        .update({ designation_id: designationId } as never)
+        .eq("id", row.id);
+      if (error) throw error;
+      if (row.is_primary && designationId) {
+        await supabase.from("candidates").update({ designation_id: designationId }).eq("id", candidateId);
+      }
+      await logActivity({
+        module: MODULE,
+        action: "set_unit_designation",
+        entityType: "candidate",
+        entityId: candidateId,
+        details: { unit_id: row.unit_id, designation_id: designationId },
+      });
+      toast.success("Designation updated for this unit");
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update designation");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const loading = unitsQ.isLoading || mappingsQ.isLoading;
+
 
   return (
     <div>
@@ -699,11 +750,14 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
       )}
 
       <div className="mb-4 flex flex-wrap items-end gap-2">
-        <div className="flex-1 min-w-[260px]">
+        <div className="flex-1 min-w-[240px]">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Add unit</label>
           <select
             value={addUnitId}
-            onChange={(e) => setAddUnitId(e.target.value)}
+            onChange={(e) => {
+              setAddUnitId(e.target.value);
+              setAddDesignationId(null);
+            }}
             className="w-full rounded-md border bg-background px-3 py-2 text-sm"
             disabled={busy || loading}
           >
@@ -715,10 +769,28 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
             ))}
           </select>
         </div>
-        <Button size="sm" onClick={addMapping} disabled={!addUnitId || busy}>
+        <div className="flex-1 min-w-[240px]">
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            Designation at this unit (from contract)
+          </label>
+          {addUnitId ? (
+            <UnitDesignationSelect
+              unitId={addUnitId}
+              value={addDesignationId}
+              onChange={setAddDesignationId}
+              disabled={busy}
+            />
+          ) : (
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              Select a unit first
+            </div>
+          )}
+        </div>
+        <Button size="sm" onClick={addMapping} disabled={!addUnitId || !addDesignationId || busy}>
           <Plus className="mr-2 h-4 w-4" /> Add mapping
         </Button>
       </div>
+
 
       {loading ? (
         <div className="flex h-32 items-center justify-center">
@@ -735,7 +807,7 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
               <tr>
                 <th className="px-3 py-2 text-left">Code</th>
                 <th className="px-3 py-2 text-left">Unit</th>
-                <th className="px-3 py-2 text-left">Location</th>
+                <th className="px-3 py-2 text-left">Designation</th>
                 <th className="px-3 py-2 text-left">Primary</th>
                 <th className="px-3 py-2 text-right" data-col="actions">Actions</th>
               </tr>
@@ -747,7 +819,15 @@ function UnitMappingSection({ candidateId, primaryUnitId }: { candidateId: strin
                   <tr key={m.id} className="border-t">
                     <td className="px-3 py-2 font-mono text-xs">{u?.code ?? "—"}</td>
                     <td className="px-3 py-2">{u?.name ?? "—"}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{u?.location ?? "—"}</td>
+                    <td className="px-3 py-2 min-w-[200px]">
+                      <UnitDesignationSelect
+                        unitId={m.unit_id}
+                        value={m.designation_id}
+                        onChange={(id) => updateDesignation(m, id)}
+                        disabled={busy}
+                      />
+                    </td>
+
                     <td className="px-3 py-2">
                       {m.is_primary ? (
                         <Badge className="border-0 bg-amber-500/15 font-semibold text-amber-600">

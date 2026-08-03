@@ -212,7 +212,7 @@ function MusterRollPage() {
         { data: rawUnit, error: rawUnitError },
         { data: scopeAssignments, error: scopeAssignmentsError },
       ] = await Promise.all([
-        supabase.from("candidate_units").select("candidate_id, is_reliever").eq("unit_id", unitId),
+        supabase.from("candidate_units").select("candidate_id, is_reliever, designation_id").eq("unit_id", unitId),
         supabase.from("units").select("id, branch_id, customer_id, billing_state").eq("id", unitId).maybeSingle(),
         supabase.from("employee_scope_assignments").select("candidate_id, scope_type, scope_id").limit(5000),
       ]);
@@ -275,8 +275,19 @@ function MusterRollPage() {
 
 
 
+      // The designation a person fills AT THIS UNIT comes from the unit mapping
+      // (contracted role slot), not from their master record. "Security guard" is
+      // a role; the designation drives salary and the payroll-day cap.
+      const unitDesigByCandidate = new Map<string, string>();
+      for (const l of ((links ?? []) as Array<{ candidate_id: string; designation_id?: string | null }>)) {
+        if (l.designation_id) unitDesigByCandidate.set(l.candidate_id, l.designation_id);
+      }
+
       const desigIds = Array.from(
-        new Set(dedup.map((c) => c.designation_id).filter(Boolean)),
+        new Set([
+          ...dedup.map((c) => c.designation_id).filter(Boolean),
+          ...unitDesigByCandidate.values(),
+        ]),
       ) as string[];
       const { data: desigs } = await supabase
         .from("designations")
@@ -289,13 +300,16 @@ function MusterRollPage() {
           const isNonBillable =
             isNonBillableRoleKey(c.role_key) ||
             (c as { non_billable?: boolean }).non_billable === true;
+          const effectiveDesignationId =
+            unitDesigByCandidate.get(c.id) ?? (c.designation_id as string | null);
+          const designationName = (effectiveDesignationId && dMap.get(effectiveDesignationId)) || "";
           return {
             id: c.id,
             employee_code: c.employee_code || "",
             full_name: c.full_name || "",
-            designation_id: c.designation_id as string | null,
-            designation: (c.designation_id && dMap.get(c.designation_id)) || "",
-            employee_type: classifyAttendanceEmployee(c.role_key, (c.designation_id && dMap.get(c.designation_id)) || ""),
+            designation_id: effectiveDesignationId,
+            designation: designationName,
+            employee_type: classifyAttendanceEmployee(c.role_key, designationName),
             doj: c.preferred_joining_date || "",
             is_non_billable: isNonBillable,
             is_home_mapped: homeMapped.has(c.id),
@@ -303,6 +317,7 @@ function MusterRollPage() {
 
           };
         })
+
         // Muster rolls are billable-only for client units. Non-billable staff
         // (field officers, branch managers, HR, etc.) only appear on the
         // Radiant home-unit muster (UN-RGS-PUNE), where their payroll lives.

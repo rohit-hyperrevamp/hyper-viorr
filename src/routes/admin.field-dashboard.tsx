@@ -41,6 +41,8 @@ import { ListSkeleton } from "@/components/Skeletons";
 import { RADIANT_BILLING_UNIT_ID } from "@/lib/business-constants";
 import { UserCog, UserCheck } from "lucide-react";
 import { RehirePipelineCard, useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelineCard";
+import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
+
 
 
 
@@ -1058,6 +1060,8 @@ function ManageGuardUnitsDialog({
   const [initial, setInitial] = useState<Set<string>>(new Set());
   const [primaryId, setPrimaryId] = useState<string | null>(null);
   const [initialPrimary, setInitialPrimary] = useState<string | null>(null);
+  const [desigByUnit, setDesigByUnit] = useState<Record<string, string | null>>({});
+  const [initialDesig, setInitialDesig] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const open = !!guard;
@@ -1070,7 +1074,7 @@ function ManageGuardUnitsDialog({
       const [{ data, error }, candRes] = await Promise.all([
         supabase
           .from("candidate_units")
-          .select("unit_id,is_primary")
+          .select("unit_id,is_primary,designation_id")
           .eq("candidate_id", guard.id),
         supabase.from("candidates").select("unit_id").eq("id", guard.id).maybeSingle(),
       ]);
@@ -1078,7 +1082,7 @@ function ManageGuardUnitsDialog({
       if (error) {
         toast.error(error.message || "Failed to load unit mappings");
       }
-      const rows = (data ?? []) as Array<{ unit_id: string; is_primary: boolean | null }>;
+      const rows = (data ?? []) as Array<{ unit_id: string; is_primary: boolean | null; designation_id: string | null }>;
       const ids = new Set<string>(rows.map((r) => r.unit_id));
       const homeUnit = (candRes.data as { unit_id?: string | null } | null)?.unit_id ?? null;
       // Only fall back to the legacy candidates.unit_id / roster unit when the
@@ -1092,16 +1096,21 @@ function ManageGuardUnitsDialog({
         rows.find((r) => r.is_primary)?.unit_id ??
         (homeUnit && ids.has(homeUnit) ? homeUnit : null) ??
         (ids.size === 1 ? [...ids][0] : null);
+      const desig: Record<string, string | null> = {};
+      for (const r of rows) desig[r.unit_id] = r.designation_id ?? null;
       setSelected(new Set(ids));
       setInitial(new Set(ids));
       setPrimaryId(pri);
       setInitialPrimary(pri);
+      setDesigByUnit(desig);
+      setInitialDesig(desig);
       setLoading(false);
     })();
     return () => {
       cancel = true;
     };
   }, [guard, currentUnitId]);
+
 
   const toggle = (uid: string) => {
     setSelected((prev) => {
@@ -1123,17 +1132,30 @@ function ManageGuardUnitsDialog({
       toast.error("Pick a primary unit — that is where attendance and the work order are issued.");
       return;
     }
+    const missingDesig = [...selected].filter((u) => !desigByUnit[u]);
+    if (missingDesig.length) {
+      toast.error("Pick the designation this guard fills at every ticked unit — attendance and salary follow that designation.");
+      return;
+    }
     const toAdd = [...selected].filter((u) => !initial.has(u));
     const toRemove = [...initial].filter((u) => !selected.has(u));
     const primaryChanged = primaryId !== initialPrimary;
-    if (toAdd.length === 0 && toRemove.length === 0 && !primaryChanged) {
+    const desigChanged = [...selected].filter(
+      (u) => initial.has(u) && (initialDesig[u] ?? null) !== (desigByUnit[u] ?? null),
+    );
+    if (toAdd.length === 0 && toRemove.length === 0 && !primaryChanged && desigChanged.length === 0) {
       onClose();
       return;
     }
     setSaving(true);
     try {
       if (toAdd.length) {
-        const rows = toAdd.map((unit_id) => ({ candidate_id: guard.id, unit_id, is_primary: false }));
+        const rows = toAdd.map((unit_id) => ({
+          candidate_id: guard.id,
+          unit_id,
+          is_primary: false,
+          designation_id: desigByUnit[unit_id] ?? null,
+        }));
         const { data: inserted, error } = await supabase
           .from("candidate_units")
           .insert(rows)
@@ -1141,6 +1163,7 @@ function ManageGuardUnitsDialog({
         if (error) throw error;
         if ((inserted ?? []).length !== rows.length) {
           throw new Error("You don't have permission to map this guard to one of those units.");
+
         }
       }
       if (toRemove.length) {
@@ -1176,13 +1199,24 @@ function ManageGuardUnitsDialog({
         if (clearErr) throw clearErr;
       }
 
+      for (const unitId of desigChanged) {
+        const { error: dErr } = await supabase
+          .from("candidate_units")
+          .update({ designation_id: desigByUnit[unitId] ?? null })
+          .eq("candidate_id", guard.id)
+          .eq("unit_id", unitId);
+        if (dErr) throw dErr;
+      }
+
       // Keep the legacy home unit in sync so rosters, attendance and dashboards
-      // follow the primary unit.
+      // follow the primary unit. The candidate's master designation mirrors the
+      // designation they fill at the primary unit (salary + payroll-day cap).
       const { error: homeErr } = await supabase
         .from("candidates")
-        .update({ unit_id: primaryId })
+        .update({ unit_id: primaryId, designation_id: desigByUnit[primaryId] ?? null })
         .eq("id", guard.id);
       if (homeErr && !homeErr.message.toLowerCase().includes("row-level security")) throw homeErr;
+
 
       toast.success(`Updated ${guard.full_name}'s unit mapping`);
       if (primaryChanged) {
@@ -1247,23 +1281,38 @@ function ManageGuardUnitsDialog({
                     </div>
                   </label>
                   {checked && (
-                    <button
-                      type="button"
-                      onClick={() => setPrimaryId(u.id)}
-                      className={`mt-2 ml-7 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] transition ${
-                        isPrimary
-                          ? "bg-emerald-600 text-white"
-                          : "bg-secondary text-muted-foreground ring-1 ring-border hover:bg-secondary/70"
-                      }`}
-                    >
-                      {isPrimary ? "Primary unit" : "Set as primary"}
-                    </button>
+                    <div className="mt-2 ml-7 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPrimaryId(u.id)}
+                          className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] transition ${
+                            isPrimary
+                              ? "bg-emerald-600 text-white"
+                              : "bg-secondary text-muted-foreground ring-1 ring-border hover:bg-secondary/70"
+                          }`}
+                        >
+                          {isPrimary ? "Primary unit" : "Set as primary"}
+                        </button>
+                        {!isPrimary && (
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-violet-700 dark:text-violet-300">
+                            Reliever · ED only
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                          Designation at this unit {isPrimary ? "(drives salary & attendance)" : "(ED billing rate)"}
+                        </p>
+                        <UnitDesignationSelect
+                          unitId={u.id}
+                          value={desigByUnit[u.id] ?? null}
+                          onChange={(id) => setDesigByUnit((prev) => ({ ...prev, [u.id]: id }))}
+                        />
+                      </div>
+                    </div>
                   )}
-                  {checked && !isPrimary && (
-                    <span className="ml-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-violet-700 dark:text-violet-300">
-                      Reliever · ED only
-                    </span>
-                  )}
+
                 </div>
               );
             })}
