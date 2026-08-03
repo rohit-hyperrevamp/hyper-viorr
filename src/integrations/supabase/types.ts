@@ -566,6 +566,7 @@ export type Database = {
         Row: {
           candidate_id: string
           created_at: string
+          designation_id: string | null
           id: string
           is_primary: boolean
           is_reliever: boolean
@@ -576,6 +577,7 @@ export type Database = {
         Insert: {
           candidate_id: string
           created_at?: string
+          designation_id?: string | null
           id?: string
           is_primary?: boolean
           is_reliever?: boolean
@@ -586,6 +588,7 @@ export type Database = {
         Update: {
           candidate_id?: string
           created_at?: string
+          designation_id?: string | null
           id?: string
           is_primary?: boolean
           is_reliever?: boolean
@@ -593,7 +596,15 @@ export type Database = {
           unit_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "candidate_units_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
+            referencedRelation: "designations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       candidates: {
         Row: {
