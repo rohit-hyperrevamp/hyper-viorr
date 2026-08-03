@@ -261,10 +261,15 @@ function EmployeeDashboard() {
   });
   const myUnits = unitsListQ.data ?? [];
   const isGuard = me?.role_key === "guard" || me?.role_key === "security_guard";
-  const allowedUnits = useMemo(
-    () => myUnits.map((u) => ({ id: u.id, name: u.name, latitude: u.latitude, longitude: u.longitude })),
-    [myUnits],
-  );
+  // Attendance can only be marked at the primary unit. All other units are
+  // reliever units where the guard is only paid for extra duty (ED).
+  const allowedUnits = useMemo(() => {
+    const list = myUnits.map((u) => ({ id: u.id, name: u.name, latitude: u.latitude, longitude: u.longitude }));
+    if (!isGuard || !primaryUnitId) return list;
+    const primary = list.filter((u) => u.id === primaryUnitId);
+    return primary.length ? primary : list;
+  }, [myUnits, isGuard, primaryUnitId]);
+
 
 
   // Reporting manager (field officer)
