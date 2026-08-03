@@ -119,6 +119,7 @@ type CostComponent = {
   cap_flat_amount: number | null;
   amount: number | null;
   state: string;
+  party: PartyKind;
   notes: string;
   enabled: boolean;
   sort_order: number;
