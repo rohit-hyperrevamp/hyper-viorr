@@ -4831,6 +4831,12 @@ function CandidateWizard({
       if (!form.full_name.trim()) return failValidation("Full name is required (Basic Information)", "full_name");
       if (!/^[6-9]\d{9}$/.test(form.mobile.trim()))
         return failValidation("A valid 10-digit mobile number is required (Basic Information) — it is also the login ID", "mobile");
+      // Email is optional, but when supplied it must be well formed so posting
+      // orders and company documents actually deliver.
+      const emailValue = (form.email ?? "").trim();
+      if (emailValue && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailValue))
+        return failValidation("Enter a valid email address, or leave it blank (Basic Information)", "email");
+
       if (!String(((form.physical_health ?? {}) as Record<string, unknown>).blood_group ?? "").trim())
         return failValidation("Blood group is required (Physical & Health section) — it is printed on the employee ID card", "blood_group");
 
