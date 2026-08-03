@@ -4595,17 +4595,22 @@ function CandidateWizard({
     const { error: deleteError } = await supabase.from("candidate_units" as never).delete().eq("candidate_id", candidateId);
     if (deleteError) throw new Error(`Unit assignment sync failed: ${deleteError.message}`);
     if (form.unit_ids.length === 0) return;
+    // First unit = primary (work orders go here). All others are reliever
+    // postings: extra duty (ED) only, never a regular muster line.
     const rows = form.unit_ids.map((unit_id, idx) => ({
       candidate_id: candidateId,
       unit_id,
       is_primary: idx === 0,
+      is_reliever: idx !== 0,
       sort_order: idx,
     }));
     const { error } = await supabase.from("candidate_units" as never).insert(rows as never);
     if (error) throw new Error(`Unit assignment sync failed: ${error.message}`);
 
-    // Auto-dispatch a posting order for every newly added site (guards only).
-    const newUnitIds = form.unit_ids.filter((id) => !initialUnitIds.includes(id));
+    // Auto-dispatch a posting order for the PRIMARY unit only (guards only).
+    // Reliever units never trigger a work order.
+    const primaryUnitId = form.unit_ids[0];
+    const newUnitIds = primaryUnitId && !initialUnitIds.includes(primaryUnitId) ? [primaryUnitId] : [];
     for (const unitId of newUnitIds) {
       void autoIssuePostingOrder({ candidateId, unitId }).then((r) => {
         if (r.sent) toast.success(`Posting order emailed to ${r.to}`);
