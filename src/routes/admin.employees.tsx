@@ -4211,22 +4211,36 @@ function CandidateWizard({
       const initialUnitIds = rest.unit_id ? [rest.unit_id] : [];
       const normalizedStatus = rest.status === "approved" ? "active" : rest.status;
       setInitialUnitIds(initialUnitIds);
-      setForm({ ...(rest as CandidateForm), status: normalizedStatus, contacts, unit_ids: initialUnitIds });
+      setForm({
+        ...(rest as CandidateForm),
+        status: normalizedStatus,
+        contacts,
+        unit_ids: initialUnitIds,
+        unit_designations: rest.unit_id && rest.designation_id ? { [rest.unit_id]: rest.designation_id } : {},
+      });
       // Load full multi-unit assignment from junction table.
       (async () => {
         const { data, error } = await supabase
           .from("candidate_units" as never)
-          .select("unit_id,is_primary,sort_order")
+          .select("unit_id,is_primary,sort_order,designation_id")
           .eq("candidate_id", editing.id)
           .order("is_primary", { ascending: false })
           .order("sort_order", { ascending: true });
         if (error) return;
-        const rows = (data ?? []) as { unit_id: string; is_primary: boolean; sort_order: number }[];
+        const rows = (data ?? []) as { unit_id: string; is_primary: boolean; sort_order: number; designation_id: string | null }[];
         if (rows.length === 0) return;
         const ids = rows.map((r) => r.unit_id);
+        const desig: Record<string, string | null> = {};
+        for (const r of rows) desig[r.unit_id] = r.designation_id ?? null;
         setInitialUnitIds(ids);
-        setForm((f) => ({ ...f, unit_ids: ids, unit_id: ids[0] ?? null }));
+        setForm((f) => ({
+          ...f,
+          unit_ids: ids,
+          unit_id: ids[0] ?? null,
+          unit_designations: { ...(f.unit_designations ?? {}), ...desig },
+        }));
       })();
+
     } else {
       setInitialUnitIds([]);
       setForm(emptyForm());
