@@ -146,28 +146,22 @@ function FieldOfficerDashboard() {
       ]);
       const scopeRows = ((scopeRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>);
       const scopeUnitIds = scopeRows.filter((r) => r.scope_type === "unit").map((r) => r.scope_id);
-      const scopeBranchIds = new Set(scopeRows.filter((r) => r.scope_type === "branch").map((r) => r.scope_id));
-      const scopeCustomerIds = new Set(scopeRows.filter((r) => r.scope_type === "customer").map((r) => r.scope_id));
       const legacyUnits = ((cuRes.data ?? []) as Array<{ unit_id: string; is_primary: boolean }>);
       const primaryMap = new Map(legacyUnits.map((r) => [r.unit_id, r.is_primary]));
       const allUnitsRaw = ((allUnitsRes.data ?? []) as Array<{ id: string; code: string; name: string; customer_id: string | null; branch_id: string | null }>);
-      // Merge every mechanism: candidate.unit_id (home) + candidate_units + esa unit
-      // + esa branch expansion + esa customer expansion. Radiant Pune home unit
-      // is excluded from the "My units" panel since it's a payroll marker, not
-      // an operational client site.
+      // "My units" = units actually ASSIGNED to me: candidates.unit_id (home) +
+      // candidate_units + unit-level scope assignments. Branch/customer scope rows
+      // are visibility scopes (RLS), NOT assignments — expanding them here dumped
+      // every unit of the branch into the FO's dashboard and inflated team size.
+      // Radiant Pune home unit is excluded (payroll marker, not a client site).
       const unitIdSet = new Set<string>();
       const meUnitId = (me as { unit_id?: string | null } | null)?.unit_id ?? null;
       if (meUnitId) unitIdSet.add(meUnitId);
       for (const r of legacyUnits) unitIdSet.add(r.unit_id);
       for (const id of scopeUnitIds) unitIdSet.add(id);
-      if (scopeBranchIds.size || scopeCustomerIds.size) {
-        for (const u of allUnitsRaw) {
-          if (u.branch_id && scopeBranchIds.has(u.branch_id)) unitIdSet.add(u.id);
-          if (u.customer_id && scopeCustomerIds.has(u.customer_id)) unitIdSet.add(u.id);
-        }
-      }
       unitIdSet.delete(RADIANT_BILLING_UNIT_ID);
       const unitIds = Array.from(unitIdSet);
+
 
       // Guards mapped to any of my units via candidate_units (multi-unit coverage)
       // must be included even when their primary candidates.unit_id points elsewhere.
@@ -190,10 +184,13 @@ function FieldOfficerDashboard() {
         .select("id,full_name,designation_id,unit_id,role_key,status,is_enabled,reports_to,created_by,created_at")
         .in("role_key", ["guard", "security_guard"])
         .eq("status", "active").eq("is_enabled", true);
+      // Team = guards reporting to me + guards deployed at my assigned units.
+      // "created_by" is intentionally NOT a team criterion: onboarding someone
+      // does not make them your team forever, and it kept ex-unit guards in the count.
       const teamFilters = [`reports_to.eq.${meId}`];
-      if (userId) teamFilters.push(`created_by.eq.${userId}`);
       if (unitIds.length) teamFilters.push(`unit_id.in.(${unitIds.join(",")})`);
       if (extraGuardIds.length) teamFilters.push(`id.in.(${extraGuardIds.join(",")})`);
+
       guardQuery = guardQuery.or(teamFilters.join(","));
       const { data: myGuards } = await guardQuery;
       const guardList = (myGuards ?? []) as Array<{ id: string; full_name: string; designation_id: string | null; unit_id: string | null; created_at: string | null }>;
