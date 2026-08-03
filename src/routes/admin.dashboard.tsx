@@ -640,7 +640,7 @@ function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{(can("payroll") || can("invoice")) && <ProfitabilityCard rows={financeRows} />}{insightsCharts}</>}>
+      <DashboardShell rightExtras={<PeopleInsightsSection compact={can("employees")} />} fullWidthBelow={<>{can("employees") && <EmployeeInsightsSection />}{can("attendance") && <AttendanceTodayCard />}{can("contracts") && (<><ClientContractPortfolioCard /><WorkforceCoverageCard /></>)}{can("payroll") && <PayrollCoverageCard rows={financeRows} />}{can("invoice") && <InvoiceCoverageCard rows={financeRows} />}{(can("payroll") || can("invoice")) && <ProfitabilityCard rows={financeRows} />}{insightsCharts}</>}>
 
       <PageHeader
         title="Dashboard"
