@@ -2721,10 +2721,11 @@ function MusterRollPage() {
                         const isFuture = date > todayStr;
                         const beforeDoj = Boolean(mr.emp.doj) && date < mr.emp.doj;
                         const entry = entryMap.get(`${mr.key}|${date}`);
-                        // Implicit "A" for on/after DOJ, on/before today, when no entry exists.
-                        // Reliever (R) lines are overtime-only, so they never show an implicit A.
-                        const displayCode = mr.vacant || mr.otOnly
-                          ? (mr.otOnly && entry?.code ? entry.code : "")
+                        // Reliever / extra-designation lines are extra-duty only:
+                        // never editable, never an implicit "A".
+                        const edOnlyLine = Boolean(mr.otOnly) || Boolean(mr.reliever);
+                        const displayCode = mr.vacant || edOnlyLine
+                          ? ""
                           : entry?.code
                           ? entry.code
                           : (!isFuture && !beforeDoj ? "A" : "");
@@ -2732,7 +2733,7 @@ function MusterRollPage() {
                         const isImplicitAbsent = !entry?.code && displayCode === "A";
                         const isSelected = selectedCells.has(`${mr.key}|${date}`);
                         const isUncertain = !entry?.code && uncertainCells.has(`${mr.key}|${date}`);
-                        const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant) || Boolean(mr.otOnly);
+                        const isBlocked = isFuture || beforeDoj || Boolean(mr.vacant) || edOnlyLine;
                         return (
                           <td
                             key={`a-${cell.date}`}
@@ -2741,7 +2742,7 @@ function MusterRollPage() {
                               "p-0 print:bg-transparent select-none",
                               isFuture && "bg-slate-100 cursor-not-allowed",
                               beforeDoj && "bg-slate-50 cursor-not-allowed",
-                              mr.otOnly && "bg-violet-50/60 cursor-not-allowed",
+                              edOnlyLine && "bg-violet-50/60 cursor-not-allowed",
                               !isBlocked && "cursor-pointer",
                               isSelected && "ring-2 ring-primary ring-inset",
                               isUncertain && "ring-2 ring-rose-500 ring-inset bg-rose-50",
@@ -2754,8 +2755,8 @@ function MusterRollPage() {
                                 : codeMeta?.color ? `${codeMeta.color}22` : undefined,
                             }}
                             title={
-                              mr.otOnly
-                                ? "Reliever line — tracked as extra duty only. Use the ED row below."
+                              edOnlyLine
+                                ? "Reliever line — extra duty only. Use the ED row below."
                                 : beforeDoj
                                 ? `Before joining date (${mr.emp.doj})`
                                 : isFuture
