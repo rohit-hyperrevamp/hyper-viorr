@@ -1642,8 +1642,13 @@ function UnitDeployment({
   const employees = emp.data ?? [];
   const candidateUnits = cu.data ?? [];
   const ctx = { id: unitId, branch_id: branchId, customer_id: customerId, state_name: stateName };
-  const fms = resolveFieldOfficersForUnit(ctx, assignments, employees, candidateUnits);
+  const allFms = resolveFieldOfficersForUnit(ctx, assignments, employees, candidateUnits);
   const guards = resolveGuardsForUnit(ctx, employees, assignments, candidateUnits);
+  // Only show field officers actually posted to THIS unit (explicit unit mapping),
+  // or who have guards deployed here. Branch/organization/state-wide scopes are
+  // access rights, not deployments — they must not populate a brand-new unit's tree.
+  const guardManagerIds = new Set(guards.map((g) => g.reports_to).filter(Boolean) as string[]);
+  const fms = allFms.filter(({ fm, sources }) => sources.includes("unit") || guardManagerIds.has(fm.id));
   const guardsByMgr = new Map<string, typeof guards>();
   const orphan: typeof guards = [];
   for (const g of guards) {
