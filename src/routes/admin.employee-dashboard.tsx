@@ -145,7 +145,7 @@ function EmployeeDashboard() {
     },
   });
   const unit = lookupsQ.data?.unit ?? null;
-  const desig = lookupsQ.data?.designation ?? null;
+  
 
   const monthStart = useMemo(() => {
     const now = new Date();
@@ -444,11 +444,6 @@ function EmployeeDashboard() {
               {unit && (
                 <span className="max-w-[180px] truncate rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-200 ring-1 ring-emerald-300/25">
                   {unit.name}
-                </span>
-              )}
-              {desig?.name && (
-                <span className="max-w-[160px] truncate rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/85 ring-1 ring-white/15">
-                  {desig.name}
                 </span>
               )}
             </div>
