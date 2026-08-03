@@ -1523,6 +1523,7 @@ function MusterRollPage() {
             phCount += 1;
             continue;
           }
+          if (row.code === "WO" || row.code === "W") continue;
           const dayValue = meta.day_value == null || Number.isNaN(Number(meta.day_value)) ? 1 : Number(meta.day_value);
           if (meta.counts_as_present) pDays += dayValue;
           else if (meta.is_paid) otherPaidDays += dayValue;
@@ -2091,6 +2092,8 @@ function MusterRollPage() {
       const c = codeMap.get(e.code);
       if (!c) continue;
       if (e.code === "PH") { phCount += 1; continue; }
+      // Weekly off is not a payable duty — it must never inflate the payable total.
+      if (e.code === "WO" || e.code === "W") continue;
       const dayValue = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
       if (c.counts_as_present) pDays += dayValue;
       else if (c.is_paid) otherPaidDays += dayValue;
