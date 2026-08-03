@@ -146,8 +146,6 @@ function FieldOfficerDashboard() {
       ]);
       const scopeRows = ((scopeRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>);
       const scopeUnitIds = scopeRows.filter((r) => r.scope_type === "unit").map((r) => r.scope_id);
-      const scopeBranchIds = new Set(scopeRows.filter((r) => r.scope_type === "branch").map((r) => r.scope_id));
-      const scopeCustomerIds = new Set(scopeRows.filter((r) => r.scope_type === "customer").map((r) => r.scope_id));
       const legacyUnits = ((cuRes.data ?? []) as Array<{ unit_id: string; is_primary: boolean }>);
       const primaryMap = new Map(legacyUnits.map((r) => [r.unit_id, r.is_primary]));
       const allUnitsRaw = ((allUnitsRes.data ?? []) as Array<{ id: string; code: string; name: string; customer_id: string | null; branch_id: string | null }>);
