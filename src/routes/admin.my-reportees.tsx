@@ -51,18 +51,20 @@ function MyReporteesPage() {
       const directIds = new Set(((crmRes.data ?? []) as Array<{ candidate_id: string }>).map((r) => r.candidate_id));
       const links = (cuRes.data ?? []) as Array<{ candidate_id: string; unit_id: string; is_primary: boolean; designation_id: string | null }>;
 
-      const ids = new Set<string>([...directIds, ...links.map((l) => l.candidate_id)]);
+      // Reportees are derived from the FO's current units. A historical manager
+      // link alone must not keep an employee after the FO changes posting.
+      const ids = new Set<string>(links.map((l) => l.candidate_id));
 
-      // Legacy: guards whose reports_to points at me, or whose primary unit is mine.
-      const orParts = [`reports_to.eq.${candidateId}`];
-      if (unitIds.length) orParts.push(`unit_id.in.(${unitIds.join(",")})`);
-      const { data: legacy } = await supabase
-        .from("candidates")
-        .select("id,reports_to,unit_id")
-        .or(orParts.join(","));
+      // Legacy candidates.unit_id mirrors the primary placement and remains a
+      // valid unit-derived fallback for records not yet present in candidate_units.
+      const { data: legacy } = unitIds.length
+        ? await supabase
+            .from("candidates")
+            .select("id,reports_to,unit_id")
+            .in("unit_id", unitIds)
+        : { data: [] };
       for (const r of (legacy ?? []) as Array<{ id: string; reports_to: string | null }>) {
         ids.add(r.id);
-        if (r.reports_to === candidateId) directIds.add(r.id);
       }
       ids.delete(candidateId!);
       if (ids.size === 0) return { rows: [], units: [] };

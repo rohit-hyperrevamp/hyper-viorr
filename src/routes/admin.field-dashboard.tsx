@@ -184,29 +184,17 @@ function FieldOfficerDashboard() {
         .select("id,full_name,designation_id,unit_id,role_key,status,is_enabled,reports_to,created_by,created_at")
         .in("role_key", ["guard", "security_guard"])
         .eq("status", "active").eq("is_enabled", true);
-      // Team = guards reporting to me + guards deployed at my assigned units.
-      // "created_by" is intentionally NOT a team criterion: onboarding someone
-      // does not make them your team forever, and it kept ex-unit guards in the count.
-      const teamFilters = [`reports_to.eq.${meId}`];
+      // Team follows the FO's current unit assignments only. Historical
+      // reports_to / created_by links must never pull old guards (or their old
+      // units) into the dashboard after the FO is transferred.
+      const teamFilters: string[] = [];
       if (unitIds.length) teamFilters.push(`unit_id.in.(${unitIds.join(",")})`);
       if (extraGuardIds.length) teamFilters.push(`id.in.(${extraGuardIds.join(",")})`);
+      if (teamFilters.length === 0) return empty;
 
       guardQuery = guardQuery.or(teamFilters.join(","));
       const { data: myGuards } = await guardQuery;
       const guardList = (myGuards ?? []) as Array<{ id: string; full_name: string; designation_id: string | null; unit_id: string | null; created_at: string | null }>;
-
-      const guardsMissingUnit = guardList.filter((g) => !g.unit_id).map((g) => g.id);
-      const guardScopeUnit = new Map<string, string>();
-      if (guardsMissingUnit.length) {
-        const { data: gs } = await supabase.from("employee_scope_assignments").select("candidate_id,scope_id,scope_type").in("candidate_id", guardsMissingUnit).eq("scope_type", "unit");
-        for (const r of (gs ?? []) as Array<{ candidate_id: string; scope_id: string }>) {
-          if (!guardScopeUnit.has(r.candidate_id)) guardScopeUnit.set(r.candidate_id, r.scope_id);
-        }
-      }
-      for (const g of guardList) {
-        const uid = g.unit_id ?? guardScopeUnit.get(g.id) ?? null;
-        if (uid && uid !== RADIANT_BILLING_UNIT_ID && !unitIds.includes(uid)) unitIds.push(uid);
-      }
 
       // Co-field-officers: other FOs mapped to any of our unitIds via candidate_units,
       // esa unit, esa branch, or esa customer. Used to show peer coverage on each unit.
@@ -272,7 +260,7 @@ function FieldOfficerDashboard() {
       const UNASSIGNED = "__unassigned__";
       const guardIdToUnit = new Map<string, string>();
       for (const g of guardList) {
-        const primary = g.unit_id ?? guardScopeUnit.get(g.id) ?? UNASSIGNED;
+        const primary = g.unit_id ?? UNASSIGNED;
         const placements = new Set<string>([primary]);
         const extras = guardExtraUnits.get(g.id);
         if (extras) for (const uid of extras) placements.add(uid);
@@ -373,7 +361,8 @@ function FieldOfficerDashboard() {
         });
       }
 
-      const guardsTotal = units.reduce((s, u) => s + u.guards.length, 0);
+      // A reliever can appear under multiple unit cards, but is still one person.
+      const guardsTotal = new Set(units.flatMap((u) => u.guards.map((g) => g.id))).size;
       const openDemandsTotal = units.reduce((s, u) => s + u.open_demands, 0);
       const inventoryItemsTotal = units.reduce((s, u) => s + u.inventory_items, 0);
       return {
@@ -1222,7 +1211,8 @@ function ManageGuardUnitsDialog({
         if (r.sent) toast.success(`Work order emailed to ${r.to}`);
         else toast.warning(`Work order not sent — ${r.reason}`);
       }
-      await qc.invalidateQueries({ queryKey: ["field-dashboard"] });
+      await qc.invalidateQueries({ queryKey: ["field-officer-dashboard-v4"] });
+      await qc.invalidateQueries({ queryKey: ["my-reportees"] });
       onClose();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to update unit mapping";
