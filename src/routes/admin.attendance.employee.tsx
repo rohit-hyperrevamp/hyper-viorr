@@ -109,7 +109,7 @@ function EmployeeAttendanceLookupPage() {
           .lte("entry_date", end),
         supabase
           .from("candidate_units")
-          .select("unit_id, is_primary, is_reliever")
+          .select("unit_id, is_primary, is_reliever, designation_id")
           .eq("candidate_id", candidateId),
         supabase
           .from("attendance_codes")
@@ -125,7 +125,9 @@ function EmployeeAttendanceLookupPage() {
         unit_id: string;
         is_primary: boolean | null;
         is_reliever: boolean | null;
+        designation_id: string | null;
       }>;
+
 
       const unitIds = Array.from(
         new Set<string>([
@@ -145,12 +147,35 @@ function EmployeeAttendanceLookupPage() {
         units = (data ?? []) as unknown as UnitLite[];
       }
 
+      // Contracted designation held at each unit — the role slot that drives
+      // salary and day caps, separate from the person's system role.
+      const desigIds = Array.from(
+        new Set(links.map((l) => l.designation_id).filter(Boolean)),
+      ) as string[];
+      const designationByUnit: Record<string, string> = {};
+      if (desigIds.length) {
+        const { data: desigs } = await supabase
+          .from("designations")
+          .select("id, name")
+          .in("id", desigIds);
+        const nameById = new Map(
+          ((desigs ?? []) as unknown as Array<{ id: string; name: string }>).map((d) => [d.id, d.name]),
+        );
+        for (const l of links) {
+          if (l.designation_id && nameById.has(l.designation_id)) {
+            designationByUnit[l.unit_id] = nameById.get(l.designation_id)!;
+          }
+        }
+      }
+
       return {
         entries,
         links,
         units,
+        designationByUnit,
         codes: (codesRes.data ?? []) as unknown as CodeMeta[],
       };
+
     },
   });
 
@@ -188,6 +213,7 @@ function EmployeeAttendanceLookupPage() {
           id,
           name: unit?.name || unit?.code || "Unknown unit",
           code: unit?.code || "",
+          designation: d.designationByUnit[id] || "",
           isPrimary: !!link?.is_primary,
           isReliever: !!link?.is_reliever,
           byDay,
@@ -195,6 +221,7 @@ function EmployeeAttendanceLookupPage() {
           edHours,
           marked: rows.length,
         };
+
       })
       .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.name.localeCompare(b.name));
   }, [detailQ.data, codeMap, foScope.isFieldOfficer, foScope.unitIds]);
@@ -363,11 +390,18 @@ function EmployeeAttendanceLookupPage() {
                           Reliever · ED
                         </span>
                       )}
+                      {block.designation && (
+                        <span className="rounded-full bg-sky-500/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-sky-600">
+                          {block.designation}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      {block.code} · {block.presentDays.toFixed(2).replace(/\.00$/, "")} present ·{" "}
+                      {block.code} · {block.designation || "Designation not set"} ·{" "}
+                      {block.presentDays.toFixed(2).replace(/\.00$/, "")} present ·{" "}
                       {block.edHours.toFixed(2).replace(/\.00$/, "")} ED hrs
                     </p>
+
                   </div>
                   <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
                     <Link to="/admin/attendance/$unitId" params={{ unitId: block.id }}>

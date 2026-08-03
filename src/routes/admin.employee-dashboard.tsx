@@ -190,18 +190,47 @@ function EmployeeDashboard() {
       if (me?.unit_id) set.add(me.unit_id);
       const { data } = await supabase
         .from("candidate_units" as never)
-        .select("unit_id,is_primary")
+        .select("unit_id,is_primary,designation_id")
         .eq("candidate_id", me!.id);
-      const rows = ((data as unknown) as Array<{ unit_id: string; is_primary: boolean | null }>) ?? [];
+      const rows =
+        ((data as unknown) as Array<{
+          unit_id: string;
+          is_primary: boolean | null;
+          designation_id: string | null;
+        }>) ?? [];
       for (const r of rows) {
         if (r.unit_id) set.add(r.unit_id);
       }
       const primaryId = rows.find((r) => r.is_primary)?.unit_id ?? null;
-      return { ids: Array.from(set), primaryId };
+
+      // The designation held AT each unit (contracted role slot) — distinct
+      // from the person's system role (e.g. "Security guard").
+      const desigIds = Array.from(
+        new Set(rows.map((r) => r.designation_id).filter(Boolean)),
+      ) as string[];
+      const designationByUnit: Record<string, string> = {};
+      if (desigIds.length) {
+        const { data: desigs } = await supabase
+          .from("designations")
+          .select("id,name")
+          .in("id", desigIds);
+        const nameById = new Map(
+          ((desigs as unknown as Array<{ id: string; name: string }>) ?? []).map((d) => [d.id, d.name]),
+        );
+        for (const r of rows) {
+          if (r.designation_id && nameById.has(r.designation_id)) {
+            designationByUnit[r.unit_id] = nameById.get(r.designation_id)!;
+          }
+        }
+      }
+
+      return { ids: Array.from(set), primaryId, designationByUnit };
     },
   });
   const myUnitIds = useMemo(() => myUnitsQ.data?.ids ?? [], [myUnitsQ.data]);
   const primaryUnitId = myUnitsQ.data?.primaryId ?? null;
+  const designationByUnit = myUnitsQ.data?.designationByUnit ?? {};
+
 
 
   const teamQ = useQuery({
@@ -518,9 +547,15 @@ function EmployeeDashboard() {
                       .sort((a, b) => Number(b.id === primaryUnitId) - Number(a.id === primaryUnitId))
                       .map((u) => {
                         const isPrimary = u.id === primaryUnitId;
+                        const unitDesignation = designationByUnit[u.id];
                         return (
                           <li key={u.id} className="flex items-center justify-between gap-2 rounded-lg bg-secondary/40 px-2.5 py-1.5 ring-1 ring-border">
-                            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{u.name}</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold text-foreground">{u.name}</span>
+                              <span className="block truncate text-[11px] text-muted-foreground">
+                                {unitDesignation ? `Designation · ${unitDesignation}` : "Designation not set"}
+                              </span>
+                            </span>
                             <span
                               className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${
                                 isPrimary
@@ -534,6 +569,7 @@ function EmployeeDashboard() {
                           </li>
                         );
                       })}
+
                   </ul>
                   {isGuard && !primaryUnitId && (
                     <div className="mt-2 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20">
