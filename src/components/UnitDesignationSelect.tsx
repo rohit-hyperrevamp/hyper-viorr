@@ -37,7 +37,7 @@ export function UnitDesignationSelect({
         </option>
         {options.map((d) => (
           <option key={d.id} value={d.id}>
-            {d.name} · {d.quantity} contracted
+            {d.name}
           </option>
         ))}
       </select>
