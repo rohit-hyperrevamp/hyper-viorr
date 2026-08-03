@@ -4619,10 +4619,15 @@ function CandidateWizard({
     const rows = form.unit_ids.map((unit_id, idx) => ({
       candidate_id: candidateId,
       unit_id,
+      // The contracted designation this person fills at that unit drives
+      // attendance caps and salary — never the master designation.
+      designation_id:
+        (form.unit_designations ?? {})[unit_id] ?? (idx === 0 ? form.designation_id ?? null : null),
       is_primary: idx === 0,
       is_reliever: idx !== 0,
       sort_order: idx,
     }));
+
     const { error } = await supabase.from("candidate_units" as never).insert(rows as never);
     if (error) throw new Error(`Unit assignment sync failed: ${error.message}`);
 
