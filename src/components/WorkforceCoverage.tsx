@@ -180,6 +180,55 @@ export function useWorkforceCoverage() {
   return useQuery({ queryKey: QK_COVERAGE, queryFn: fetchCoverage });
 }
 
+export type UnmappedGuard = {
+  id: string;
+  name: string;
+  code: string | null;
+  role: string;
+};
+
+/**
+ * Active, billable site staff that are not mapped to ANY unit — neither through
+ * candidate_units nor the legacy primary unit on the record. These people are
+ * on the payroll but deployed nowhere, so they are surfaced as a red flag.
+ */
+async function fetchUnmappedGuards(): Promise<UnmappedGuard[]> {
+  const [candRes, mapRes] = await Promise.all([
+    supabase
+      .from("candidates" as never)
+      .select("id,full_name,employee_code,candidate_code,role_key,status,non_billable,unit_id,is_enabled")
+      .eq("status", "active"),
+    supabase.from("candidate_units" as never).select("candidate_id"),
+  ]);
+
+  const mapped = new Set(
+    ((mapRes.data as unknown as Record<string, unknown>[]) ?? []).map((m) =>
+      String(m.candidate_id ?? ""),
+    ),
+  );
+
+  return ((candRes.data as unknown as Record<string, unknown>[]) ?? [])
+    .filter(
+      (c) =>
+        c.is_enabled !== false &&
+        !c.non_billable &&
+        !EXCLUDED_ROLE_KEYS.has(String(c.role_key ?? "")) &&
+        !String(c.unit_id ?? "") &&
+        !mapped.has(String(c.id)),
+    )
+    .map((c) => ({
+      id: String(c.id),
+      name: String(c.full_name ?? "—"),
+      code: (c.employee_code as string | null) ?? (c.candidate_code as string | null) ?? null,
+      role: String(c.role_key ?? "—").replace(/_/g, " "),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function useUnmappedGuards() {
+  return useQuery({ queryKey: ["admin", "unmapped-guards"], queryFn: fetchUnmappedGuards });
+}
+
 /**
  * Deployment shortfall tone rule (shared by dashboard + client contracts):
  *  - fully covered            → neutral / emerald
