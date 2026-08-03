@@ -870,15 +870,17 @@ function MusterRollPage() {
 
   const entryMap = useMemo(() => {
     const m = new Map<string, EntryRow>();
-    // Stored entries first — self-punch derived entries are the source of truth
-    // for employees using app attendance on that date.
-    for (const e of entries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
+    // Self-punch derived rows only FILL BLANKS. A stored attendance_entries row
+    // is a human decision (HR/FO marked the muster) and always wins — otherwise
+    // a forgotten checkout would keep flipping a manually corrected P back to A.
     for (const e of derivedSelfEntries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
+    for (const e of entries) m.set(`${rowKey(e.candidate_id, e.designation_id)}|${e.entry_date}`, e);
     return m;
   }, [entries, derivedSelfEntries]);
 
   // Persist derived self-punch entries into attendance_entries so payroll
-  // picks them up. Upserts only rows that are missing or differ from punches.
+  // picks them up. Only rows with NO stored entry are written; existing rows
+  // are never overwritten by punch derivation.
   useEffect(() => {
     if (!unitId || !derivedSelfEntries.length) return;
     const toPersist = derivedSelfEntries.filter((e) => {
@@ -888,7 +890,7 @@ function MusterRollPage() {
           x.entry_date === e.entry_date &&
           (x.designation_id ?? null) === (e.designation_id ?? null),
       );
-      return !existing || existing.code !== e.code || Number(existing.ot_hours) !== Number(e.ot_hours);
+      return !existing;
     });
     if (!toPersist.length) return;
     let cancelled = false;
