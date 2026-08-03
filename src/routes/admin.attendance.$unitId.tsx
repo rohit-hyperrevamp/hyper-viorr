@@ -1983,8 +1983,9 @@ function MusterRollPage() {
     }
   };
 
-  // `hours` is OT in clock hours (0.5 – 16). It is stored as OT *days*,
+  // `hours` is ED in clock hours (0.5 – 16). It is stored as ED *days*,
   // converted with each row's contractual shift length (8h or 12h).
+  // Keep 4 decimals so 1h on an 8h shift (0.125 d) round-trips back to exactly 1h.
   const applyOtToSelection = async (hours: number) => {
     const grouped = groupCells(otPickerCells);
     if (grouped.size === 0) return;
@@ -1994,7 +1995,8 @@ function MusterRollPage() {
         const row = findRow(rowKey);
         if (!row) continue;
         const shift = shiftHoursFor(shiftMap, unitId, row.designationId ?? null);
-        const otDays = Math.round((hours / shift) * 100) / 100;
+        const otDays = Math.round((hours / shift) * 10000) / 10000;
+
         const rows = dates.map((d) => ({
           entry_date: d,
           code: entryMap.get(`${row.key}|${d}`)?.code ?? "",
