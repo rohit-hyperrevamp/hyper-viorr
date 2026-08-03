@@ -1642,8 +1642,13 @@ function UnitDeployment({
   const employees = emp.data ?? [];
   const candidateUnits = cu.data ?? [];
   const ctx = { id: unitId, branch_id: branchId, customer_id: customerId, state_name: stateName };
-  const fms = resolveFieldOfficersForUnit(ctx, assignments, employees, candidateUnits);
+  const allFms = resolveFieldOfficersForUnit(ctx, assignments, employees, candidateUnits);
   const guards = resolveGuardsForUnit(ctx, employees, assignments, candidateUnits);
+  // Only show field officers actually posted to THIS unit (explicit unit mapping),
+  // or who have guards deployed here. Branch/organization/state-wide scopes are
+  // access rights, not deployments — they must not populate a brand-new unit's tree.
+  const guardManagerIds = new Set(guards.map((g) => g.reports_to).filter(Boolean) as string[]);
+  const fms = allFms.filter(({ fm, sources }) => sources.includes("unit") || guardManagerIds.has(fm.id));
   const guardsByMgr = new Map<string, typeof guards>();
   const orphan: typeof guards = [];
   for (const g of guards) {
@@ -1658,7 +1663,7 @@ function UnitDeployment({
     <div className="grid gap-4 md:grid-cols-2">
       <div className="rounded-xl border border-border/60 bg-card p-3">
         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tree</div>
-        {fms.length === 0 && <p className="text-xs text-muted-foreground">No field officer mapped to this unit (directly or via branch/organization/state).</p>}
+        {fms.length === 0 && <p className="text-xs text-muted-foreground">No field officer posted to this unit yet.</p>}
         {fms.map(({ fm, sources }) => (
           <div key={fm.id} className="mb-2">
             <div className="flex items-center gap-2 text-sm">
