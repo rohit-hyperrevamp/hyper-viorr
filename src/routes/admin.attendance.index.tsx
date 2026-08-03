@@ -141,10 +141,22 @@ function AttendanceUnitsPage() {
         .not("unit_id", "is", null);
       if (activeMappedError) throw activeMappedError;
 
+      // Secondary/reliever placements live in candidate_units. Those units must
+      // also appear on attendance — a guard can be a reliever in a unit where no
+      // one is primary, and field officers still mark ED there.
+      const { data: mappedUnits, error: mappedUnitsError } = await supabase
+        .from("candidate_units")
+        .select("unit_id");
+      if (mappedUnitsError) throw mappedUnitsError;
+
       const unitIdSet = new Set<string>(contractsByUnit.keys());
       for (const row of activeMapped ?? []) {
         if (row.unit_id) unitIdSet.add(row.unit_id);
       }
+      for (const row of (mappedUnits ?? []) as Array<{ unit_id: string | null }>) {
+        if (row.unit_id) unitIdSet.add(row.unit_id);
+      }
+
 
       const unitIds = Array.from(unitIdSet);
       if (unitIds.length === 0) {
