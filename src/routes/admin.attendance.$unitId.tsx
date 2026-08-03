@@ -1953,9 +1953,13 @@ function MusterRollPage() {
     if (grouped.size === 0) return;
     try {
       let applied = 0;
+      let blocked = 0;
       for (const [rowKey, dates] of grouped) {
         const row = findRow(rowKey);
         if (!row) continue;
+        // Reliever / extra-designation lines are Extra Duty only — they can
+        // never carry a regular attendance code.
+        if (row.otOnly || row.reliever) { blocked += dates.length; continue; }
         const rows = dates.map((d) => ({
           entry_date: d,
           code,
@@ -1963,6 +1967,10 @@ function MusterRollPage() {
         }));
         applied += await upsertEntries(row.candidateId, row.designationId, rows);
       }
+      if (blocked > 0) {
+        toast.error("Reliever lines are Extra Duty only — mark ED hours on the ED row instead");
+      }
+
       queryClient.invalidateQueries({ queryKey: entriesQK });
       setPickerOpen(false);
       setSelectedCells(new Set());
