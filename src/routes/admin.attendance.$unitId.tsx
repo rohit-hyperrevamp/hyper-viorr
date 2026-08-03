@@ -1523,6 +1523,7 @@ function MusterRollPage() {
             phCount += 1;
             continue;
           }
+          if (row.code === "WO" || row.code === "W") continue;
           const dayValue = meta.day_value == null || Number.isNaN(Number(meta.day_value)) ? 1 : Number(meta.day_value);
           if (meta.counts_as_present) pDays += dayValue;
           else if (meta.is_paid) otherPaidDays += dayValue;
