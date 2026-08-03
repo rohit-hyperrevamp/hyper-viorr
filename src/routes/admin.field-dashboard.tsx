@@ -1067,20 +1067,31 @@ function ManageGuardUnitsDialog({
     let cancel = false;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("candidate_units")
-        .select("unit_id,is_primary")
-        .eq("candidate_id", guard.id);
+      const [{ data, error }, candRes] = await Promise.all([
+        supabase
+          .from("candidate_units")
+          .select("unit_id,is_primary")
+          .eq("candidate_id", guard.id),
+        supabase.from("candidates").select("unit_id").eq("id", guard.id).maybeSingle(),
+      ]);
       if (cancel) return;
       if (error) {
         toast.error(error.message || "Failed to load unit mappings");
       }
       const rows = (data ?? []) as Array<{ unit_id: string; is_primary: boolean | null }>;
       const ids = new Set<string>(rows.map((r) => r.unit_id));
-      // Ensure the unit the guard is currently visible under is reflected as selected
-      // even if only tracked via candidates.unit_id and not candidate_units.
-      ids.add(currentUnitId);
-      const pri = rows.find((r) => r.is_primary)?.unit_id ?? null;
+      const homeUnit = (candRes.data as { unit_id?: string | null } | null)?.unit_id ?? null;
+      // Only fall back to the legacy candidates.unit_id / roster unit when the
+      // guard has no candidate_units rows at all. Never force the roster unit
+      // back in — that made un-ticking a unit look like it never saved.
+      if (ids.size === 0) {
+        if (homeUnit) ids.add(homeUnit);
+        else ids.add(currentUnitId);
+      }
+      const pri =
+        rows.find((r) => r.is_primary)?.unit_id ??
+        (homeUnit && ids.has(homeUnit) ? homeUnit : null) ??
+        (ids.size === 1 ? [...ids][0] : null);
       setSelected(new Set(ids));
       setInitial(new Set(ids));
       setPrimaryId(pri);
@@ -1123,36 +1134,61 @@ function ManageGuardUnitsDialog({
     try {
       if (toAdd.length) {
         const rows = toAdd.map((unit_id) => ({ candidate_id: guard.id, unit_id, is_primary: false }));
-        const { error } = await supabase.from("candidate_units").insert(rows);
+        const { data: inserted, error } = await supabase
+          .from("candidate_units")
+          .insert(rows)
+          .select("unit_id");
         if (error) throw error;
+        if ((inserted ?? []).length !== rows.length) {
+          throw new Error("You don't have permission to map this guard to one of those units.");
+        }
       }
       if (toRemove.length) {
-        const { error } = await supabase
+        const { data: removed, error } = await supabase
           .from("candidate_units")
           .delete()
           .eq("candidate_id", guard.id)
-          .in("unit_id", toRemove);
+          .in("unit_id", toRemove)
+          .select("unit_id");
         if (error) throw error;
+        if ((removed ?? []).length === 0) {
+          throw new Error("Could not remove the unticked unit(s) — you may not have permission.");
+        }
       }
       if (primaryChanged) {
+        // The DB trigger enforces a single primary, so set the new one first and
+        // then clear any stragglers.
+        const { data: promoted, error: setErr } = await supabase
+          .from("candidate_units")
+          .update({ is_primary: true })
+          .eq("candidate_id", guard.id)
+          .eq("unit_id", primaryId)
+          .select("unit_id");
+        if (setErr) throw setErr;
+        if ((promoted ?? []).length === 0) {
+          throw new Error("Could not set the primary unit — you may not have permission.");
+        }
         const { error: clearErr } = await supabase
           .from("candidate_units")
           .update({ is_primary: false })
           .eq("candidate_id", guard.id)
           .neq("unit_id", primaryId);
         if (clearErr) throw clearErr;
-        const { error: setErr } = await supabase
-          .from("candidate_units")
-          .update({ is_primary: true })
-          .eq("candidate_id", guard.id)
-          .eq("unit_id", primaryId);
-        if (setErr) throw setErr;
       }
+
+      // Keep the legacy home unit in sync so rosters, attendance and dashboards
+      // follow the primary unit.
+      const { error: homeErr } = await supabase
+        .from("candidates")
+        .update({ unit_id: primaryId })
+        .eq("id", guard.id);
+      if (homeErr && !homeErr.message.toLowerCase().includes("row-level security")) throw homeErr;
+
       toast.success(`Updated ${guard.full_name}'s unit mapping`);
       if (primaryChanged) {
-        void autoIssuePostingOrder({ candidateId: guard.id, unitId: primaryId }).then((r) => {
-          if (r.sent) toast.success(`Posting order emailed to ${r.to}`);
-        });
+        const r = await autoIssuePostingOrder({ candidateId: guard.id, unitId: primaryId });
+        if (r.sent) toast.success(`Work order emailed to ${r.to}`);
+        else toast.warning(`Work order not sent — ${r.reason}`);
       }
       await qc.invalidateQueries({ queryKey: ["field-dashboard"] });
       onClose();
@@ -1163,6 +1199,7 @@ function ManageGuardUnitsDialog({
       setSaving(false);
     }
   };
+
 
 
   return (
