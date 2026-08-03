@@ -1146,6 +1146,7 @@ export type Database = {
           id: string
           name: string
           notes: string
+          party: string
           percentage: number
           sort_order: number
           state: string
@@ -1172,6 +1173,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string
+          party?: string
           percentage?: number
           sort_order?: number
           state?: string
@@ -1198,6 +1200,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string
+          party?: string
           percentage?: number
           sort_order?: number
           state?: string
