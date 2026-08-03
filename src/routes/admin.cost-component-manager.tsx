@@ -128,6 +128,7 @@ type CostComponent = {
   amount: number | null;
   state: string;
   party: PartyKind;
+  description: string;
   notes: string;
   enabled: boolean;
   sort_order: number;
@@ -170,6 +171,7 @@ function rowToItem(r: Record<string, unknown>): CostComponent {
     party: (["employee", "employer", "both"].includes(String(r.party))
       ? (r.party as PartyKind)
       : "both"),
+    description: String(r.description ?? ""),
     notes: String(r.notes ?? ""),
     enabled: Boolean(r.enabled ?? true),
     sort_order: Number(r.sort_order ?? 0),
@@ -253,6 +255,7 @@ function useCostComponents() {
     amount: p.calc_type === "fixed" ? p.amount : null,
     state: p.state || "N/A",
     party: p.party || "both",
+    description: p.description?.trim() ? p.description.trim() : null,
     notes: p.notes,
     enabled: p.enabled,
     sort_order: p.sort_order,
@@ -597,6 +600,7 @@ function CostComponentDialog({
   const [amount, setAmount] = useState<string>("");
   const [state, setState] = useState<string>("N/A");
   const [party, setParty] = useState<PartyKind>("both");
+  const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [sortOrder, setSortOrder] = useState<string>("0");
@@ -616,6 +620,7 @@ function CostComponentDialog({
     setAmount(initial?.amount != null ? String(initial.amount) : "");
     setState(initial?.state ?? "N/A");
     setParty(initial?.party ?? "both");
+    setDescription(initial?.description ?? "");
     setNotes(initial?.notes ?? "");
     setEnabled(initial?.enabled ?? true);
     setSortOrder(String(initial?.sort_order ?? 0));
@@ -856,6 +861,7 @@ function CostComponentDialog({
                 amount: amount ? Number(amount) : null,
                 state: state || "N/A",
                 party,
+                description,
                 notes,
                 enabled,
                 sort_order: Number(sortOrder) || 0,
