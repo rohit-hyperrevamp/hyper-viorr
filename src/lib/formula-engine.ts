@@ -37,7 +37,7 @@ export const FORMULA_VARIABLES: { key: keyof FormulaContext; label: string; desc
   { key: "days_in_month",label: "days_in_month",desc: "Calendar days in the payroll month (28/29/30/31)" },
   { key: "present",      label: "present",      desc: "Present duties" },
   { key: "worked",       label: "worked",       desc: "Alias of present duties (legacy)" },
-  { key: "ot",           label: "ot",           desc: "Overtime duties (OT hrs / 8)" },
+  { key: "ot",           label: "ot",           desc: "Extra duty days (ED hrs / 8)" },
   { key: "ph",           label: "ph",           desc: "Public holiday duties" },
   { key: "wo",           label: "wo",           desc: "Weekly off duties" },
   { key: "el",           label: "el",           desc: "Earned leave" },
