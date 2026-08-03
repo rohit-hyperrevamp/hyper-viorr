@@ -321,7 +321,9 @@ function Tile({
 
 export function WorkforceCoverageCard() {
   const { data: rows = [], isLoading } = useWorkforceCoverage();
+  const { data: unmapped = [] } = useUnmappedGuards();
   const [open, setOpen] = useState(false);
+  const [unmappedOpen, setUnmappedOpen] = useState(false);
 
   const totals = useMemo(() => {
     const committed = rows.reduce((s, r) => s + r.committed, 0);
@@ -361,7 +363,7 @@ export function WorkforceCoverageCard() {
         </Button>
       </div>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <Tile label="Committed" value={totals.committed} icon={Users} tone="accent" />
         <Tile
           label="Actual deployed"
@@ -381,6 +383,19 @@ export function WorkforceCoverageCard() {
           icon={Gauge}
           tone={totals.tone === "ok" ? "success" : totals.tone}
         />
+        <button
+          type="button"
+          onClick={() => unmapped.length && setUnmappedOpen(true)}
+          className="text-left"
+          aria-label="View unmapped employees"
+        >
+          <Tile
+            label="Unmapped staff"
+            value={unmapped.length}
+            icon={AlertTriangle}
+            tone={unmapped.length > 0 ? "destructive" : "success"}
+          />
+        </button>
       </div>
 
       {totals.shortUnits > 0 && (
@@ -389,6 +404,26 @@ export function WorkforceCoverageCard() {
           unit(s) currently under-deployed against contract.
         </p>
       )}
+
+      {unmapped.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setUnmappedOpen(true)}
+          className="mt-2 flex w-full items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-left text-xs font-medium text-destructive"
+        >
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            <span className="font-bold tabular-nums">{unmapped.length}</span> active
+            employee(s) are not mapped to any unit — they are paid but deployed nowhere.
+          </span>
+        </button>
+      )}
+
+      <UnmappedGuardsDialog
+        open={unmappedOpen}
+        onOpenChange={setUnmappedOpen}
+        rows={unmapped}
+      />
 
       <DeploymentCharterDialog open={open} onOpenChange={setOpen} rows={rows} />
     </div>
