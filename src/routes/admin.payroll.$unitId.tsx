@@ -1326,9 +1326,20 @@ function PayrollUnitPage() {
         </div>
       </div>
 
-      <DeductionsSection rows={rows as unknown as DeductionSourceRow[]} />
+      <div id="payroll-deductions-section" className="scroll-mt-24">
+        <DeductionsSection rows={rows as unknown as DeductionSourceRow[]} />
+      </div>
+
+      <div id="payroll-employer-contrib-section" className="scroll-mt-24">
+        <EmployerContribSection rows={rows as unknown as DeductionSourceRow[]} />
+      </div>
     </div>
   );
+}
+
+function scrollToSection(id: string) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // --------------------------------------------------------------------------
@@ -1341,8 +1352,12 @@ type DeductionSourceRow = {
   employeeCode: string;
   name: string;
   designation: string;
-  wages: { deductions: { name: string; amount: number }[] } | null;
+  wages: {
+    deductions: { name: string; amount: number }[];
+    employerContributions?: { name: string; amount: number }[];
+  } | null;
 };
+
 
 const DEDUCTION_BUCKETS = [
   { key: "epf", label: "EPF", re: /\b(epf|pf|provident)\b/i },
