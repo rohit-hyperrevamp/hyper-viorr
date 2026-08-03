@@ -1663,7 +1663,7 @@ function UnitDeployment({
     <div className="grid gap-4 md:grid-cols-2">
       <div className="rounded-xl border border-border/60 bg-card p-3">
         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tree</div>
-        {fms.length === 0 && <p className="text-xs text-muted-foreground">No field officer mapped to this unit (directly or via branch/organization/state).</p>}
+        {fms.length === 0 && <p className="text-xs text-muted-foreground">No field officer posted to this unit yet.</p>}
         {fms.map(({ fm, sources }) => (
           <div key={fm.id} className="mb-2">
             <div className="flex items-center gap-2 text-sm">
