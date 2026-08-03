@@ -1060,6 +1060,8 @@ function MusterRollPage() {
           emp,
           isPrimary: false,
           reliever: true,
+          otOnly: true,
+
         });
       }
 
