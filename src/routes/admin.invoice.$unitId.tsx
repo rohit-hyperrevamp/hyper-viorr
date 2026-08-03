@@ -326,7 +326,9 @@ function PayrollUnitPage() {
             else if (b === "ph") prev.phDays += sign * dayDelta;
             else prev.otherPaidDays += sign * dayDelta;
           }
-          prev.tDays += sign * dayDelta * Math.max(1, list.length);
+          // Only P / ED / PH buckets add to total PAID days.
+          const paidBuckets = list.filter((b) => b === "present" || b === "worked" || b === "ot" || b === "ph").length;
+          prev.tDays += sign * dayDelta * paidBuckets;
           dayAdjustmentByCandidate.set(cid, prev);
         };
         const SYSTEM_COMPUTED_BUCKETS = new Set(["ph", "ot"]);
