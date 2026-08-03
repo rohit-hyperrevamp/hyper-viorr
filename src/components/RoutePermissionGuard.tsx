@@ -15,6 +15,7 @@ const ALWAYS_ALLOW_PREFIXES: readonly string[] = [
   "/admin/dashboard",
   "/admin/my-attendance",
   "/admin/my-inventory",
+  "/admin/my-reportees",
 ];
 
 /**
