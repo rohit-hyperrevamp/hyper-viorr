@@ -190,18 +190,47 @@ function EmployeeDashboard() {
       if (me?.unit_id) set.add(me.unit_id);
       const { data } = await supabase
         .from("candidate_units" as never)
-        .select("unit_id,is_primary")
+        .select("unit_id,is_primary,designation_id")
         .eq("candidate_id", me!.id);
-      const rows = ((data as unknown) as Array<{ unit_id: string; is_primary: boolean | null }>) ?? [];
+      const rows =
+        ((data as unknown) as Array<{
+          unit_id: string;
+          is_primary: boolean | null;
+          designation_id: string | null;
+        }>) ?? [];
       for (const r of rows) {
         if (r.unit_id) set.add(r.unit_id);
       }
       const primaryId = rows.find((r) => r.is_primary)?.unit_id ?? null;
-      return { ids: Array.from(set), primaryId };
+
+      // The designation held AT each unit (contracted role slot) — distinct
+      // from the person's system role (e.g. "Security guard").
+      const desigIds = Array.from(
+        new Set(rows.map((r) => r.designation_id).filter(Boolean)),
+      ) as string[];
+      const designationByUnit: Record<string, string> = {};
+      if (desigIds.length) {
+        const { data: desigs } = await supabase
+          .from("designations")
+          .select("id,name")
+          .in("id", desigIds);
+        const nameById = new Map(
+          ((desigs as unknown as Array<{ id: string; name: string }>) ?? []).map((d) => [d.id, d.name]),
+        );
+        for (const r of rows) {
+          if (r.designation_id && nameById.has(r.designation_id)) {
+            designationByUnit[r.unit_id] = nameById.get(r.designation_id)!;
+          }
+        }
+      }
+
+      return { ids: Array.from(set), primaryId, designationByUnit };
     },
   });
   const myUnitIds = useMemo(() => myUnitsQ.data?.ids ?? [], [myUnitsQ.data]);
   const primaryUnitId = myUnitsQ.data?.primaryId ?? null;
+  const designationByUnit = myUnitsQ.data?.designationByUnit ?? {};
+
 
 
   const teamQ = useQuery({
