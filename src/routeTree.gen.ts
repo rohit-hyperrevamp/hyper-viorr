@@ -18,7 +18,6 @@ import { Route as AdminVehiclesRouteImport } from './routes/admin.vehicles'
 import { Route as AdminSystemLogsRouteImport } from './routes/admin.system-logs'
 import { Route as AdminServiceTypeManagerRouteImport } from './routes/admin.service-type-manager'
 import { Route as AdminRolesManagerRouteImport } from './routes/admin.roles-manager'
-import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminRbacRouteImport } from './routes/admin.rbac'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminProfessionalTaxManagerRouteImport } from './routes/admin.professional-tax-manager'
@@ -146,11 +145,6 @@ const AdminServiceTypeManagerRoute = AdminServiceTypeManagerRouteImport.update({
 const AdminRolesManagerRoute = AdminRolesManagerRouteImport.update({
   id: '/roles-manager',
   path: '/roles-manager',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminReportsRoute = AdminReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminRbacRoute = AdminRbacRouteImport.update({
@@ -634,7 +628,6 @@ export interface FileRoutesByFullPath {
   '/admin/professional-tax-manager': typeof AdminProfessionalTaxManagerRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rbac': typeof AdminRbacRoute
-  '/admin/reports': typeof AdminReportsRoute
   '/admin/roles-manager': typeof AdminRolesManagerRoute
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
@@ -726,7 +719,6 @@ export interface FileRoutesByTo {
   '/admin/professional-tax-manager': typeof AdminProfessionalTaxManagerRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rbac': typeof AdminRbacRoute
-  '/admin/reports': typeof AdminReportsRoute
   '/admin/roles-manager': typeof AdminRolesManagerRoute
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
@@ -822,7 +814,6 @@ export interface FileRoutesById {
   '/admin/professional-tax-manager': typeof AdminProfessionalTaxManagerRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rbac': typeof AdminRbacRoute
-  '/admin/reports': typeof AdminReportsRoute
   '/admin/roles-manager': typeof AdminRolesManagerRoute
   '/admin/service-type-manager': typeof AdminServiceTypeManagerRoute
   '/admin/system-logs': typeof AdminSystemLogsRoute
@@ -919,7 +910,6 @@ export interface FileRouteTypes {
     | '/admin/professional-tax-manager'
     | '/admin/profile'
     | '/admin/rbac'
-    | '/admin/reports'
     | '/admin/roles-manager'
     | '/admin/service-type-manager'
     | '/admin/system-logs'
@@ -1011,7 +1001,6 @@ export interface FileRouteTypes {
     | '/admin/professional-tax-manager'
     | '/admin/profile'
     | '/admin/rbac'
-    | '/admin/reports'
     | '/admin/roles-manager'
     | '/admin/service-type-manager'
     | '/admin/system-logs'
@@ -1106,7 +1095,6 @@ export interface FileRouteTypes {
     | '/admin/professional-tax-manager'
     | '/admin/profile'
     | '/admin/rbac'
-    | '/admin/reports'
     | '/admin/roles-manager'
     | '/admin/service-type-manager'
     | '/admin/system-logs'
@@ -1231,13 +1219,6 @@ declare module '@tanstack/react-router' {
       path: '/roles-manager'
       fullPath: '/admin/roles-manager'
       preLoaderRoute: typeof AdminRolesManagerRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/reports': {
-      id: '/admin/reports'
-      path: '/reports'
-      fullPath: '/admin/reports'
-      preLoaderRoute: typeof AdminReportsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/rbac': {
@@ -2003,7 +1984,6 @@ interface AdminRouteChildren {
   AdminProfessionalTaxManagerRoute: typeof AdminProfessionalTaxManagerRoute
   AdminProfileRoute: typeof AdminProfileRoute
   AdminRbacRoute: typeof AdminRbacRoute
-  AdminReportsRoute: typeof AdminReportsRoute
   AdminRolesManagerRoute: typeof AdminRolesManagerRoute
   AdminServiceTypeManagerRoute: typeof AdminServiceTypeManagerRoute
   AdminSystemLogsRoute: typeof AdminSystemLogsRoute
@@ -2058,7 +2038,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminProfessionalTaxManagerRoute: AdminProfessionalTaxManagerRoute,
   AdminProfileRoute: AdminProfileRoute,
   AdminRbacRoute: AdminRbacRoute,
-  AdminReportsRoute: AdminReportsRoute,
   AdminRolesManagerRoute: AdminRolesManagerRoute,
   AdminServiceTypeManagerRoute: AdminServiceTypeManagerRoute,
   AdminSystemLogsRoute: AdminSystemLogsRoute,
