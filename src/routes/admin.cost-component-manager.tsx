@@ -128,6 +128,7 @@ type CostComponent = {
   amount: number | null;
   state: string;
   party: PartyKind;
+  description: string;
   notes: string;
   enabled: boolean;
   sort_order: number;
@@ -170,6 +171,7 @@ function rowToItem(r: Record<string, unknown>): CostComponent {
     party: (["employee", "employer", "both"].includes(String(r.party))
       ? (r.party as PartyKind)
       : "both"),
+    description: String(r.description ?? ""),
     notes: String(r.notes ?? ""),
     enabled: Boolean(r.enabled ?? true),
     sort_order: Number(r.sort_order ?? 0),
@@ -226,6 +228,12 @@ function buildDescription(c: Pick<CostComponent, "calc_type" | "percentage" | "b
   return `${c.percentage}% of ${base}`;
 }
 
+
+/** Stored description wins; otherwise describe the configured formula. */
+function displayDescription(c: CostComponent): string {
+  return c.description?.trim() ? c.description.trim() : buildDescription(c);
+}
+
 function useCostComponents() {
   const qc = useQueryClient();
   const { data: items = [] } = useQuery({
@@ -253,6 +261,7 @@ function useCostComponents() {
     amount: p.calc_type === "fixed" ? p.amount : null,
     state: p.state || "N/A",
     party: p.party || "both",
+    description: p.description?.trim() ? p.description.trim() : null,
     notes: p.notes,
     enabled: p.enabled,
     sort_order: p.sort_order,
@@ -361,7 +370,7 @@ function CostComponentManagerPage() {
     const q = query.trim().toLowerCase();
     if (!q) return items;
     return items.filter((i) => {
-      const desc = buildDescription(i).toLowerCase();
+      const desc = displayDescription(i).toLowerCase();
       return (
         i.name.toLowerCase().includes(q) ||
         i.state.toLowerCase().includes(q) ||
@@ -401,7 +410,7 @@ function CostComponentManagerPage() {
                 "cost-components",
                 filtered.map((i) => ({
                   name: i.name,
-                  description: buildDescription(i),
+                  description: displayDescription(i),
                   calc_type: i.calc_type,
                   percentage: i.percentage,
                   party: PARTY_LABEL[i.party],
@@ -452,7 +461,7 @@ function CostComponentManagerPage() {
                       {i.name}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-foreground/80">{buildDescription(i)}</td>
+                  <td className="px-5 py-3 text-foreground/80">{displayDescription(i)}</td>
                   <td className="px-5 py-3 text-foreground/90">
                     {i.calc_type === "percentage" ? `${i.percentage}%` : "—"}
                   </td>
@@ -597,6 +606,7 @@ function CostComponentDialog({
   const [amount, setAmount] = useState<string>("");
   const [state, setState] = useState<string>("N/A");
   const [party, setParty] = useState<PartyKind>("both");
+  const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [sortOrder, setSortOrder] = useState<string>("0");
@@ -616,6 +626,7 @@ function CostComponentDialog({
     setAmount(initial?.amount != null ? String(initial.amount) : "");
     setState(initial?.state ?? "N/A");
     setParty(initial?.party ?? "both");
+    setDescription(initial?.description ?? "");
     setNotes(initial?.notes ?? "");
     setEnabled(initial?.enabled ?? true);
     setSortOrder(String(initial?.sort_order ?? 0));
@@ -800,6 +811,18 @@ function CostComponentDialog({
 
 
           <div className="grid gap-2">
+            <Label>Description (optional)</Label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Leave blank to auto-generate from the formula"
+            />
+            <p className="text-xs text-muted-foreground">
+              Shown in the Description column. When empty, the system describes the formula automatically.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
             <Label>Notes (optional)</Label>
             <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Internal note" />
           </div>
@@ -856,6 +879,7 @@ function CostComponentDialog({
                 amount: amount ? Number(amount) : null,
                 state: state || "N/A",
                 party,
+                description,
                 notes,
                 enabled,
                 sort_order: Number(sortOrder) || 0,
