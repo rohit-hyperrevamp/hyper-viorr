@@ -520,7 +520,13 @@ function AttendanceUnitsPage() {
         <SummaryPill icon={Building2} label="Organizations" value={summary.organizations} />
         <SummaryPill icon={MapPinned} label="Units" value={summary.units} />
         <SummaryPill icon={Users} label="Active employees" value={summary.activeEmployees} />
+        <Button asChild size="sm" variant="outline" className="ml-auto h-8 gap-1.5 rounded-full text-xs">
+          <Link to="/admin/attendance/employee">
+            <Search className="h-3.5 w-3.5" /> Employee lookup
+          </Link>
+        </Button>
       </div>
+
 
 
       <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20">
