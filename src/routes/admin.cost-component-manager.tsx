@@ -228,6 +228,12 @@ function buildDescription(c: Pick<CostComponent, "calc_type" | "percentage" | "b
   return `${c.percentage}% of ${base}`;
 }
 
+
+/** Stored description wins; otherwise describe the configured formula. */
+function displayDescription(c: CostComponent): string {
+  return c.description?.trim() ? c.description.trim() : buildDescription(c);
+}
+
 function useCostComponents() {
   const qc = useQueryClient();
   const { data: items = [] } = useQuery({
