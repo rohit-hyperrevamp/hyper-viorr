@@ -54,7 +54,7 @@ type FixedDutyDivisor = string;
 
 const FIXED_DUTY_BUCKETS: { value: FixedDutyBucket; label: string; short: string }[] = [
   { value: "p_days", label: "P Days (present)", short: "P" },
-  { value: "ot_days", label: "OT Days", short: "OT" },
+  { value: "ot_days", label: "ED Days", short: "ED" },
   { value: "ph_days", label: "PH Days (public holiday)", short: "PH" },
   { value: "other_paid_days", label: "Other Paid Days", short: "OPL" },
 ];

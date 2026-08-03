@@ -868,7 +868,7 @@ export function computeWages(
   const otAmount = round2(perDutyOt * totals.otDays);
   const otDuties = totals.otDays;
   if (otAmount > 0) {
-    components.push({ name: "Overtime", amount: otAmount, calcType: "fixed" });
+    components.push({ name: "Extra Duty", amount: otAmount, calcType: "fixed" });
   }
 
 

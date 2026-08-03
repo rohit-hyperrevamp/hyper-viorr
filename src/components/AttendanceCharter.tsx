@@ -375,7 +375,7 @@ export function AttendanceCharter({
         Variance: r.actual - r.committed,
         "Projected man-hours (MTD)": Math.round(r.projectedHours),
         "Actual man-hours (MTD)": Math.round(r.actualHours),
-        "Overtime hours (MTD)": Math.round(r.otHours),
+        "Extra duty hours (MTD)": Math.round(r.otHours),
         "MTD attendance %": r.mtdPct,
       })),
     );
@@ -399,7 +399,7 @@ export function AttendanceCharter({
           sub={`of ${fmtHours(totals.projectedHours)} projected`}
           icon={UserCheck}
         />
-        <Stat label="Overtime" value={fmtHours(totals.otHours)} sub="month till date" icon={TrendingDown} tone="warning" />
+        <Stat label="Extra duty" value={fmtHours(totals.otHours)} sub="month till date" icon={TrendingDown} tone="warning" />
         <Stat
           label="MTD attendance"
           value={`${totals.mtdPct}%`}
@@ -497,7 +497,7 @@ export function AttendanceCharter({
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">OT</div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">ED</div>
                         <div className="font-semibold">{fmtHours(r.otHours)}</div>
                       </div>
                     </div>
@@ -556,7 +556,7 @@ export function AttendanceCharter({
                                 <th className="px-3 py-2 text-left font-medium">Employee</th>
                                 <th className="px-2 py-2 text-right font-medium">Shift</th>
                                 <th className="px-2 py-2 text-right font-medium">Days</th>
-                                <th className="px-2 py-2 text-right font-medium">OT hrs</th>
+                                <th className="px-2 py-2 text-right font-medium">ED hrs</th>
                                 <th className="px-2 py-2 text-right font-medium">Actual</th>
                                 <th className="px-2 py-2 text-right font-medium">Projected</th>
                                 <th className="px-3 py-2 text-right font-medium">MTD</th>

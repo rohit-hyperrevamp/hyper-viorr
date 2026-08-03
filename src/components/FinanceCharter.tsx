@@ -638,7 +638,7 @@ export function FinanceCharter({
                               <tr className="border-b border-border/60 text-[10px] uppercase tracking-wide text-muted-foreground">
                                 <th className="px-3 py-2 text-left font-medium">Employee</th>
                                 <th className="px-2 py-2 text-right font-medium">Paid days</th>
-                                <th className="px-2 py-2 text-right font-medium">OT days</th>
+                                <th className="px-2 py-2 text-right font-medium">ED days</th>
                                 {mode === "payroll" ? (
                                   <>
                                     <th className="px-2 py-2 text-right font-medium">Contracted</th>

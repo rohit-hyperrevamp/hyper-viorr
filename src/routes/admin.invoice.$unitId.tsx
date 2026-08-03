@@ -712,7 +712,7 @@ function PayrollUnitPage() {
 
   const exportCsv = () => {
     const headers = [
-      "Emp ID", "Name", "Designation", "P Days", "PH Days", "OT Hrs", "OT Days", "Billed Days",
+      "Emp ID", "Name", "Designation", "P Days", "PH Days", "ED Hrs", "ED Days", "Billed Days",
       "Payroll Days", "Per Day Rate", "Contracted Invoice", "Actual Invoice", "Variance",
     ];
     const columns = headers.map((h) => ({ key: h, header: h }));
@@ -724,8 +724,8 @@ function PayrollUnitPage() {
         "Designation": r.designation,
         "P Days": r.totals.pDays,
         "PH Days": r.totals.phDays,
-        "OT Hrs": r.totals.otHours,
-        "OT Days": r.totals.otDays,
+        "ED Hrs": r.totals.otHours,
+        "ED Days": r.totals.otDays,
         "Billed Days": m.billedDays,
         "Payroll Days": m.payrollDays,
         "Per Day Rate": m.perDay,
@@ -1058,7 +1058,7 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium">Emp ID</th>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
-                <th className="px-4 py-3 text-right font-medium" title="Days actually billed (present + paid holidays + other paid + OT days)">Days billed</th>
+                <th className="px-4 py-3 text-right font-medium" title="Days actually billed (present + paid holidays + other paid + extra duty days)">Days billed</th>
                 <th className="px-4 py-3 text-right font-medium" title="Payroll days for this contract in this period">Payroll days</th>
                 <th className="px-4 py-3 text-right font-medium" title="Contracted invoice ÷ payroll days">Per day</th>
                 <th className="px-4 py-3 text-right font-medium" title="Full contract value for this designation">Contracted invoice</th>
@@ -1303,7 +1303,7 @@ function SalaryBreakdownPreview({
                   <tr key={`x-${c.name}`}>
                     <td>
                       {c.name}
-                      {/overtime|ot/i.test(c.name) && otHours > 0 && (
+                      {/overtime|extra duty|^ot$/i.test(c.name) && otHours > 0 && (
                         <span className="ml-2 text-[11px] text-muted-foreground">{otHours} hrs</span>
                       )}
                     </td>
