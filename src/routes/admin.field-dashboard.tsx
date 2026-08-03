@@ -50,7 +50,7 @@ export const Route = createFileRoute("/admin/field-dashboard")({
   component: FieldOfficerDashboard,
 });
 
-type Guard = { id: string; full_name: string; designation: string };
+type Guard = { id: string; full_name: string; employee_code: string | null; designation: string };
 type CoFo = { id: string; full_name: string; employee_code: string | null };
 type UnitNode = {
   id: string;
@@ -181,9 +181,11 @@ function FieldOfficerDashboard() {
 
       let guardQuery = supabase
         .from("candidates")
-        .select("id,full_name,designation_id,unit_id,role_key,status,is_enabled,reports_to,created_by,created_at")
+        .select("id,full_name,employee_code,designation_id,unit_id,role_key,status,is_enabled,created_at")
         .in("role_key", ["guard", "security_guard"])
-        .eq("status", "active").eq("is_enabled", true);
+        .eq("status", "active").eq("is_enabled", true)
+        .order("full_name", { ascending: true })
+        .order("employee_code", { ascending: true });
       // Team follows the FO's current unit assignments only. Historical
       // reports_to / created_by links must never pull old guards (or their old
       // units) into the dashboard after the FO is transferred.
@@ -194,7 +196,7 @@ function FieldOfficerDashboard() {
 
       guardQuery = guardQuery.or(teamFilters.join(","));
       const { data: myGuards } = await guardQuery;
-      const guardList = (myGuards ?? []) as Array<{ id: string; full_name: string; designation_id: string | null; unit_id: string | null; created_at: string | null }>;
+      const guardList = (myGuards ?? []) as Array<{ id: string; full_name: string; employee_code: string | null; designation_id: string | null; unit_id: string | null; created_at: string | null }>;
 
       // Co-field-officers: other FOs mapped to any of our unitIds via candidate_units,
       // esa unit, esa branch, or esa customer. Used to show peer coverage on each unit.
@@ -265,7 +267,7 @@ function FieldOfficerDashboard() {
         const extras = guardExtraUnits.get(g.id);
         if (extras) for (const uid of extras) placements.add(uid);
         guardIdToUnit.set(g.id, primary);
-        const entry = { id: g.id, full_name: g.full_name, designation: (g.designation_id && desigMap.get(g.designation_id)) || "—" };
+        const entry = { id: g.id, full_name: g.full_name, employee_code: g.employee_code, designation: (g.designation_id && desigMap.get(g.designation_id)) || "—" };
         for (const uid of placements) {
           const arr = guardsByUnit.get(uid) ?? [];
           if (!arr.some((x) => x.id === entry.id)) arr.push(entry);
@@ -1004,7 +1006,9 @@ function UnitRow({ unit, allUnits }: { unit: UnitNode; allUnits: UnitNode[] }) {
                 <li key={g.id} className="flex items-center justify-between gap-2 px-3 py-2">
                   <div className="min-w-0">
                     <div className="truncate text-[13px] font-semibold text-foreground">{g.full_name}</div>
-                    <div className="truncate text-[11px] text-muted-foreground">{g.designation}</div>
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      {g.employee_code ? `${g.employee_code} · ` : ""}{g.designation}
+                    </div>
                   </div>
                   <Button
                     size="sm"
@@ -1022,6 +1026,7 @@ function UnitRow({ unit, allUnits }: { unit: UnitNode; allUnits: UnitNode[] }) {
       )}
 
       <ManageGuardUnitsDialog
+        key={manageGuard?.id ?? "closed"}
         guard={manageGuard}
         currentUnitId={unit.id}
         assignableUnits={assignableUnits}
@@ -1231,7 +1236,7 @@ function ManageGuardUnitsDialog({
           <DialogTitle>Manage units</DialogTitle>
           <DialogDescription>
             {guard ? (
-              <>Tick every unit <span className="font-semibold text-foreground">{guard.full_name}</span> should cover, then mark one as <span className="font-semibold text-foreground">Primary</span>. Attendance and the work order go to the primary unit; every other unit is a reliever unit for extra duty (ED) only.</>
+              <>Tick every unit <span className="font-semibold text-foreground">{guard.full_name}{guard.employee_code ? ` (${guard.employee_code})` : ""}</span> should cover, then mark one as <span className="font-semibold text-foreground">Primary</span>. Attendance and the work order go to the primary unit; every other unit is a reliever unit for extra duty (ED) only.</>
             ) : null}
           </DialogDescription>
         </DialogHeader>
