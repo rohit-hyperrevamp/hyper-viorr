@@ -452,6 +452,10 @@ function MusterRollPage() {
     const m = new Map<string, number>();
     if (!unitEpfCapEnabled) return m;
     for (const d of contractDesignations) {
+      // "Actual Days in Month" already means every visible calendar date in
+      // this register is eligible for Present. Do not run it through the cap
+      // rejection path; the calendar itself is the only limit (July = 31).
+      if (d.payrollDayBase?.method === "actual_days") continue;
       const cap = resolvePayrollDayCount(d.payrollDayBase, dates);
       if (cap != null && cap > 0) m.set(d.designationId, cap);
     }
@@ -1173,8 +1177,20 @@ function MusterRollPage() {
       const v = c.day_value == null || Number.isNaN(Number(c.day_value)) ? 1 : Number(c.day_value);
       return v;
     };
+    const contractResource = designation_id
+      ? contractDesignations.find((resource) => resource.designationId === designation_id)
+      : undefined;
+    const usesActualCalendarDays = contractResource?.payrollDayBase?.method === "actual_days";
     const desigCap = designation_id ? maxPDaysByDesignation.get(designation_id) : undefined;
-    const cap = desigCap != null ? desigCap : unitMaxPDays;
+    // A known contract designation must use its own rule. The unit fallback is
+    // only for designations absent from the contract; otherwise an Accounts
+    // line configured as Actual Days could incorrectly inherit another line's
+    // Fixed 26 Days restriction.
+    const cap = usesActualCalendarDays
+      ? null
+      : contractResource
+      ? desigCap ?? null
+      : unitMaxPDays;
     let capped = filtered;
     let rejectedDays = 0;
     if (cap != null) {
