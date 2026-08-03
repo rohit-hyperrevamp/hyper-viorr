@@ -1155,14 +1155,12 @@ function MusterRollPage() {
     designation_id: string | null,
     rows: Array<{ entry_date: string; code: string; ot_hours: number }>,
   ) => {
-    const relieverOnly = (employees ?? []).some(
-      (employee) => employee.id === candidate_id && employee.is_reliever,
-    );
-    // Final UI-layer guard for manual entry and both upload paths. The
-    // database applies the same invariant, so relievers can retain ED only.
-    const filtered = rows
-      .filter((r) => r.entry_date <= todayStr)
-      .map((r) => (relieverOnly ? { ...r, code: "" } : r));
+    // Reliever status belongs to a specific muster line, not the employee as
+    // a whole. A guard may have an ED-only reliever line and a normal primary
+    // line in the same unit; blanking by employee silently discarded valid P
+    // marks on the primary line. Callers block reliever lines and the database
+    // trigger remains the final invariant.
+    const filtered = rows.filter((r) => r.entry_date <= todayStr);
     if (filtered.length === 0) {
       toast.error("All selected dates are in the future — nothing marked");
       return 0;
@@ -1233,10 +1231,19 @@ function MusterRollPage() {
       ot_hours: r.ot_hours,
     }));
 
-    const { error } = await supabase
+    const { data: savedRows, error } = await supabase
       .from("attendance_entries")
-      .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" });
+      .upsert(payload, { onConflict: "unit_id,candidate_id,designation_id,entry_date" })
+      .select("entry_date,code,ot_hours");
     if (error) throw error;
+    const savedByDate = new Map((savedRows ?? []).map((row) => [row.entry_date, row]));
+    const mismatched = capped.filter((row) => {
+      const saved = savedByDate.get(row.entry_date);
+      return !saved || saved.code !== row.code || Number(saved.ot_hours ?? 0) !== row.ot_hours;
+    });
+    if (mismatched.length > 0) {
+      throw new Error(`Attendance was not saved for ${mismatched.length} selected cell${mismatched.length === 1 ? "" : "s"}`);
+    }
     if (rejectedDays > 0) {
       toast.warning(
         `Payroll days limit (${cap}) reached — ${rejectedDays} day${rejectedDays === 1 ? "" : "s"} not marked; record them as ED hours`,
@@ -1988,7 +1995,7 @@ function MusterRollPage() {
         toast.error("Reliever lines are Extra Duty only — mark ED hours on the ED row instead");
       }
 
-      queryClient.invalidateQueries({ queryKey: entriesQK });
+      await queryClient.invalidateQueries({ queryKey: entriesQK });
       setPickerOpen(false);
       setSelectedCells(new Set());
       setSelAnchor(null);
@@ -2022,7 +2029,7 @@ function MusterRollPage() {
         await upsertEntries(row.candidateId, row.designationId, rows);
         count += dates.length;
       }
-      queryClient.invalidateQueries({ queryKey: entriesQK });
+      await queryClient.invalidateQueries({ queryKey: entriesQK });
       setOtPickerOpen(false);
       setOtSelectedCells(new Set());
       setOtSelAnchor(null);
