@@ -2888,7 +2888,12 @@ function MusterRollPage() {
                           </td>
                         );
                       })}
-                      <td className={cn(cellBase, "p-1 font-semibold")}>{totals.otDays}</td>
+                      <td className={cn(cellBase, "p-1 font-semibold")}>
+                        {Math.round(
+                          totals.otDays * shiftHoursFor(shiftMap, unitId, mr.designationId ?? null) * 4,
+                        ) / 4}
+                      </td>
+
                     </tr>,
                   ];
                 })
