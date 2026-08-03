@@ -4583,8 +4583,10 @@ function CandidateWizard({
   // ----- Build payload helper ----- //
   const buildPayload = (status: string) => {
     const emergencyContact = form.contacts.find((c) => c.is_emergency) ?? form.contacts[0] ?? null;
-    // Strip the form-only field unit_ids; mirror primary into unit_id for backward compat.
-    const { unit_ids, ...rest } = form;
+    // Strip form-only assignment fields. Per-unit designations are persisted in
+    // candidate_units, never on candidates (there is no unit_designations column).
+    const { unit_ids, unit_designations: _unitDesignations, ...rest } = form;
+    void _unitDesignations;
     const mirroredPrimary = unit_ids[0] ?? null;
     const basePayload = form.same_as_permanent
       ? {
@@ -4646,12 +4648,6 @@ function CandidateWizard({
     }
   };
 
-  const unitAssignmentsChanged = () => {
-    if (!editing) return true;
-    if (form.unit_ids.length !== initialUnitIds.length) return true;
-    return form.unit_ids.some((id, idx) => id !== initialUnitIds[idx]);
-  };
-
   const persist = async (status: string, successMsg: string) => {
     const payload = buildPayload(status);
     const normalizedAadhaar = String((payload as { aadhaar_number?: unknown }).aadhaar_number ?? "").replace(/\D/g, "");
@@ -4703,10 +4699,9 @@ function CandidateWizard({
         .update(patched as never)
         .eq("id", editing.id);
       if (error) throw error;
-      if (unitAssignmentsChanged()) {
-        await syncCandidateUnits(editing.id);
-        setInitialUnitIds([...form.unit_ids]);
-      }
+      // Always sync: unit IDs may be unchanged while a per-unit designation changed.
+      await syncCandidateUnits(editing.id);
+      setInitialUnitIds([...form.unit_ids]);
       await logActivity({
         module: "Employees",
         action: isResubmit ? "resubmit" : "update",
