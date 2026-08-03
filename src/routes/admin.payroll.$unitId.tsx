@@ -887,7 +887,7 @@ function PayrollUnitPage() {
       ...F_CONTRACT_COMPONENT_COLS,
       "F Gross Salary",
       "Fixed Duties", "Present Days", "PH Days", "Other Paid Days",
-      "OT Hours", "OT Duties", "Total Days",
+      "ED Hours", "ED Duties", "Total Days",
       ...E_EARNED_COMPONENT_COLS,
       ...additionCols,
       "E Gross Salary",
@@ -938,7 +938,7 @@ function PayrollUnitPage() {
     const numericHeaderSet = new Set<string>([
       ...F_CONTRACT_COMPONENT_COLS, "F Gross Salary",
       "Fixed Duties", "Present Days", "PH Days", "Other Paid Days",
-      "OT Hours", "OT Duties", "Total Days",
+      "ED Hours", "ED Duties", "Total Days",
       ...E_EARNED_COMPONENT_COLS, ...additionCols, "E Gross Salary",
       ...DEDUCTION_HEADERS, "Total Deductions", "Net Pay",
     ]);
@@ -963,7 +963,7 @@ function PayrollUnitPage() {
     const paySheetStatutoryDed = STATUTORY_LABELS.filter((h) => DEDUCTION_HEADERS.includes(h));
     const paySheetHeaders = [
       "SI No", "Employee ID", "Employee Name", "Designation",
-      "Fixed Duties", "Present Days", "PH Days", "OT Hours", "OT Duties", "Total Days",
+      "Fixed Duties", "Present Days", "PH Days", "ED Hours", "ED Duties", "Total Days",
       "F Gross Salary", "E Gross Salary",
       ...paySheetStatutoryDed,
       "Total Deductions", "Net Pay",
@@ -1190,10 +1190,10 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium">Designation</th>
                 <th className="px-4 py-3 font-medium" title="Present (worked) days">P Days</th>
                 <th className="px-4 py-3 font-medium" title="Paid Holiday days (incl. additions)">PH Days</th>
-                <th className="px-4 py-3 font-medium" title="OT Days (0.5 = half OT day, 1 = one OT day)">OT Days</th>
-                <th className="px-4 py-3 font-medium" title="Total payable days (P + PH + Other Paid + OT)">T Days</th>
+                <th className="px-4 py-3 font-medium" title="Extra Duty Days (0.5 = half ED day, 1 = one ED day)">ED Days</th>
+                <th className="px-4 py-3 font-medium" title="Total payable days (P + PH + Other Paid + ED)">T Days</th>
                 <th className="px-4 py-3 text-left font-medium" title="Full contract gross — what would be paid for a full month">Projected</th>
-                <th className="px-4 py-3 text-left font-medium" title="Sum of every earned wage line, including overtime and paid holiday">Earned gross</th>
+                <th className="px-4 py-3 text-left font-medium" title="Sum of every earned wage line, including extra duty and paid holiday">Earned gross</th>
                 <th className="px-4 py-3 text-left font-medium">Deductions</th>
                 <th className="px-4 py-3 text-left font-medium">Net pay</th>
                 <th className="px-4 py-3 text-left font-medium">Employer cost</th>
@@ -1408,7 +1408,7 @@ function PaySheetPanel({ r }: { r: PaySheetRow }) {
     { label: "Present", value: r.totals.pDays },
     { label: "Paid holiday", value: r.totals.phDays },
     { label: "Other paid", value: r.totals.otherPaidDays },
-    { label: "Overtime days", value: r.totals.otDays },
+    { label: "Extra duty days", value: r.totals.otDays },
     { label: "Total days", value: r.totals.tDays },
   ];
 

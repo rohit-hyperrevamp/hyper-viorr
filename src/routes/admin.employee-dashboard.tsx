@@ -438,7 +438,7 @@ function EmployeeDashboard() {
 
         <div className="relative mt-4 grid grid-cols-3 min-[320px]:grid-cols-3 gap-2 sm:gap-3">
           <HeroStat label="Present" value={attStats.present} tint="emerald" />
-          <HeroStat label="OT hrs" value={attStats.ot} tint="sky" />
+          <HeroStat label="ED hrs" value={attStats.ot} tint="sky" />
           <HeroStat label="Team" value={guardTeam.length + 1} tint="amber" />
         </div>
       </section>
@@ -485,7 +485,7 @@ function EmployeeDashboard() {
                 <dd className="font-medium tabular-nums">{unit?.shift_start_time || "—"}</dd>
                 <dt className="text-muted-foreground">Shift end</dt>
                 <dd className="font-medium tabular-nums">{unit?.shift_end_time || "—"}</dd>
-                <dt className="text-muted-foreground">OT this month</dt>
+                <dt className="text-muted-foreground">Extra duty this month</dt>
                 <dd className="font-medium tabular-nums">{attStats.ot} hrs</dd>
                 <dt className="text-muted-foreground">Site</dt>
                 <dd className="truncate font-medium">{unit?.site_address || unit?.name || "—"}</dd>

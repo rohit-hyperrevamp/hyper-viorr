@@ -51,7 +51,7 @@ type FixedDutyDivisor = "base_days" | "days_in_month" | "payable_days" | "fixed_
 
 const FIXED_DUTY_BUCKETS: { value: FixedDutyBucket; label: string; short: string }[] = [
   { value: "p_days", label: "P Days (present)", short: "P" },
-  { value: "ot_days", label: "OT Days", short: "OT" },
+  { value: "ot_days", label: "ED Days", short: "ED" },
   { value: "ph_days", label: "PH Days (public holiday)", short: "PH" },
   { value: "other_paid_days", label: "Other Paid Days", short: "OPL" },
 ];
@@ -308,7 +308,7 @@ function AllowanceManagerPage() {
                 <th className="px-5 py-3">Short</th>
                 <th className="px-5 py-3">Formula</th>
                 <th className="px-5 py-3">Default</th>
-                <th className="px-5 py-3">In OT</th>
+                <th className="px-5 py-3">In ED</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right" data-col="actions">Actions</th>
               </tr>
@@ -707,8 +707,8 @@ function AllowanceFormDialog({
 
           <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
             <div>
-              <div className="text-sm font-medium">Include in OT Calculation</div>
-              <div className="text-xs text-muted-foreground">If off, this allowance is excluded from the OT base amount</div>
+              <div className="text-sm font-medium">Include in Extra Duty Calculation</div>
+              <div className="text-xs text-muted-foreground">If off, this allowance is excluded from the extra duty base amount</div>
             </div>
             <Switch checked={includeInOt} onCheckedChange={setIncludeInOt} />
           </div>

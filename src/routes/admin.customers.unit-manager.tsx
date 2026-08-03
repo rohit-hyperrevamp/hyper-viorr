@@ -1283,7 +1283,7 @@ function UnitFormDialog({
                   </div>
                   <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
                     Capped: EPF is computed on the ₹15,000 wage ceiling and attendance is limited to the contract payroll days
-                    (extra duties must be marked as OT). No cap: EPF is computed on full wages and Present days are not limited
+                    (extra duties must be marked as ED). No cap: EPF is computed on full wages and Present days are not limited
                     by payroll days. Contracts on this unit inherit this setting.
                   </p>
                 </div>

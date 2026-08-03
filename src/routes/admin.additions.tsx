@@ -379,7 +379,7 @@ function EmployeeMultiCombobox({
 
 const DAY_BUCKETS: { value: DayBucket; label: string }[] = [
   { value: "present", label: "Present Duties" },
-  { value: "ot", label: "OT" },
+  { value: "ot", label: "ED" },
   { value: "ph", label: "PH" },
 ];
 

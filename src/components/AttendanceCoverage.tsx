@@ -416,7 +416,7 @@ export function AttendanceTodayCard() {
               {totals.leave} on leave · {totals.off} weekly off.{" "}
             </>
           )}
-          {totals.otHours > 0 && <>{totals.otHours} OT hours logged today.</>}
+          {totals.otHours > 0 && <>{totals.otHours} ED hours logged today.</>}
         </p>
       )}
 
@@ -472,7 +472,7 @@ function AttendanceCharterDialog({
         Designation: p.designation,
         Code: p.code ?? "",
         Status: STATUS_META[p.status].label,
-        "OT hours": p.otHours,
+        "ED hours": p.otHours,
       })),
     );
     downloadCsv("attendance-today", data);
@@ -617,7 +617,7 @@ function AttendanceCharterDialog({
                               <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
                                 <th className="py-1 text-left font-medium">Employee</th>
                                 <th className="py-1 text-left font-medium">Designation</th>
-                                <th className="py-1 text-right font-medium">OT</th>
+                                <th className="py-1 text-right font-medium">ED</th>
                                 <th className="py-1 text-right font-medium">Status</th>
                               </tr>
                             </thead>

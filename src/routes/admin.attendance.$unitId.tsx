@@ -964,7 +964,7 @@ function MusterRollPage() {
         entityId: cand.id,
         entityLabel: `${cand.full_name} → ${mapSlot.designationName} @ ${unit?.name ?? unitId}`,
       });
-      toast.success(`${cand.full_name} added as reliever (R) on ${mapSlot.designationName} — overtime only`);
+      toast.success(`${cand.full_name} added as reliever (R) on ${mapSlot.designationName} — extra duty only`);
       setMapSlot(null);
       setMapQuery("");
     } catch (e) {
@@ -1174,7 +1174,7 @@ function MusterRollPage() {
 
     if (capped.length === 0) {
       toast.error(
-        `Payroll days limit (${cap}) reached — mark the extra ${rejectedDays} day${rejectedDays === 1 ? "" : "s"} as OT hours instead`,
+        `Payroll days limit (${cap}) reached — mark the extra ${rejectedDays} day${rejectedDays === 1 ? "" : "s"} as ED hours instead`,
       );
       return 0;
     }
@@ -1194,7 +1194,7 @@ function MusterRollPage() {
     if (error) throw error;
     if (rejectedDays > 0) {
       toast.warning(
-        `Payroll days limit (${cap}) reached — ${rejectedDays} day${rejectedDays === 1 ? "" : "s"} not marked; record them as OT hours`,
+        `Payroll days limit (${cap}) reached — ${rejectedDays} day${rejectedDays === 1 ? "" : "s"} not marked; record them as ED hours`,
       );
     }
     return capped.length;
@@ -1972,8 +1972,8 @@ function MusterRollPage() {
       setOtSelAnchor(null);
       toast.success(
         hours > 0
-          ? `Set ${hours}h OT on ${count} cell${count > 1 ? "s" : ""}`
-          : `Cleared OT on ${count} cell${count > 1 ? "s" : ""}`,
+          ? `Set ${hours}h ED on ${count} cell${count > 1 ? "s" : ""}`
+          : `Cleared ED on ${count} cell${count > 1 ? "s" : ""}`,
       );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save");
@@ -2458,13 +2458,13 @@ function MusterRollPage() {
       {otSelectedCells.size > 0 && !isOtDragging && (
         <div className="sticky top-2 z-20 flex items-center justify-between gap-3 rounded-md border border-amber-500/50 bg-amber-50 px-3 py-2 text-sm shadow-sm print:hidden">
           <div>
-            <span className="font-semibold">{otSelectedCells.size}</span> OT cell
+            <span className="font-semibold">{otSelectedCells.size}</span> ED cell
             {otSelectedCells.size > 1 ? "s" : ""} selected for{" "}
             <span className="font-semibold">{selectionLabel(Array.from(otSelectedCells))}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={clearOtSelection}>Clear</Button>
-            <Button size="sm" onClick={openOtPickerForSelection}>Set OT hours</Button>
+            <Button size="sm" onClick={openOtPickerForSelection}>Set ED hours</Button>
           </div>
         </div>
       )}
@@ -2529,7 +2529,7 @@ function MusterRollPage() {
                 <th className="border border-slate-400 p-1 align-middle">DOJ</th>
                 <th className="border border-slate-400 p-1 align-middle" colSpan={dayCount}>Days</th>
                 <th className="border border-slate-400 p-1 align-middle" rowSpan={2}>P<br />Days</th>
-                <th className="border border-slate-400 p-1 align-middle">OT<br />Days</th>
+                <th className="border border-slate-400 p-1 align-middle">ED<br />Days</th>
                 <th className="border border-slate-400 p-1 align-middle" rowSpan={2}>PH<br />Days</th>
                 <th className="border border-slate-400 p-1 align-middle" rowSpan={2}>T<br />Days</th>
               </tr>
@@ -2557,7 +2557,7 @@ function MusterRollPage() {
                     </th>
                   );
                 })}
-                <th className="border border-slate-400 p-1 text-[9px] font-medium">OT<br />Hrs</th>
+                <th className="border border-slate-400 p-1 text-[9px] font-medium">ED<br />Hrs</th>
               </tr>
             </thead>
             <tbody>
@@ -2666,7 +2666,7 @@ function MusterRollPage() {
                         {mr.reliever && !mr.vacant && (
                           <span
                             className="ml-1 font-semibold text-violet-700"
-                            title="Reliever (stand-in) line — tracked as overtime only"
+                            title="Reliever (stand-in) line — tracked as extra duty only"
                           >
                             (R)
                           </span>
@@ -2715,7 +2715,7 @@ function MusterRollPage() {
                             }}
                             title={
                               mr.otOnly
-                                ? "Reliever line — tracked as overtime only. Use the OT row below."
+                                ? "Reliever line — tracked as extra duty only. Use the ED row below."
                                 : beforeDoj
                                 ? `Before joining date (${mr.emp.doj})`
                                 : isFuture
@@ -2832,7 +2832,7 @@ function MusterRollPage() {
                               );
                             }}
                             onClick={(e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }}
-                            title={beforeDoj ? `Before joining date (${mr.emp.doj})` : isFuture ? "Future date — cannot mark OT" : `OT for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`}
+                            title={beforeDoj ? `Before joining date (${mr.emp.doj})` : isFuture ? "Future date — cannot mark extra duty" : `ED for ${date}${hrs > 0 ? ` · ${hrs}h` : ""}`}
                           >
                             <div
                               className={cn(
@@ -2880,7 +2880,7 @@ function MusterRollPage() {
         </div>
 
         <div className="mt-3 text-[10px] text-slate-600">
-          Att = Attendance · OT row = Overtime hours (converted to OT days at the contractual shift length) · Each (employee × designation) is a separate payroll line.
+          Att = Attendance · ED row = Extra duty hours (converted to ED days at the contractual shift length) · Each (employee × designation) is a separate payroll line.
         </div>
       </div>
 
@@ -2974,9 +2974,9 @@ function MusterRollPage() {
       <Dialog open={otPickerOpen} onOpenChange={setOtPickerOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Set OT hours</DialogTitle>
+            <DialogTitle>Set ED hours</DialogTitle>
             <DialogDescription>
-              Pick overtime in hours (0.5 – 16). Converted to OT days at each row&apos;s contractual
+              Pick extra duty in hours (0.5 – 16). Converted to ED days at each row&apos;s contractual
               shift. {otPickerCells.length} cell{otPickerCells.length > 1 ? "s" : ""} selected
               {otPickerCells.length ? ` for ${selectionLabel(otPickerCells)}` : ""}
             </DialogDescription>
@@ -2990,7 +2990,7 @@ function MusterRollPage() {
                   key={n}
                   type="button"
                   onClick={() => applyOtToSelection(n)}
-                  title={`${n}h = ${days} OT day${days === 1 ? "" : "s"}`}
+                  title={`${n}h = ${days} ED day${days === 1 ? "" : "s"}`}
                   className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-sm font-bold leading-tight text-amber-800 transition hover:border-amber-400 hover:bg-amber-100"
                 >
                   {n}h
@@ -3004,7 +3004,7 @@ function MusterRollPage() {
             onClick={() => applyOtToSelection(0)}
             className="mt-2 w-full rounded-md border border-border px-2 py-2 text-sm text-muted-foreground hover:bg-muted"
           >
-            Clear OT
+            Clear ED
           </button>
         </DialogContent>
       </Dialog>

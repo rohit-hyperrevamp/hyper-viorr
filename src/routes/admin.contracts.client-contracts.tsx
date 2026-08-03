@@ -4702,10 +4702,10 @@ function ResourceFormDialog({
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Overtime (OT)
+                  Extra Duty (ED)
                 </h4>
                 <p className="text-[11px] text-muted-foreground">
-                  Pick which wage components form the OT base for this resource. All wage components are included by default — remove any that shouldn't be paid on overtime.
+                  Pick which wage components form the ED base for this resource. All wage components are included by default — remove any that shouldn't be paid on extra duty.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -4734,7 +4734,7 @@ function ResourceFormDialog({
 
             {components.length === 0 ? (
               <div className="py-4 text-center text-xs text-muted-foreground">
-                Add wage components first — overtime is calculated from them.
+                Add wage components first — extra duty is calculated from them.
               </div>
             ) : (
               <>
@@ -4774,12 +4774,12 @@ function ResourceFormDialog({
 
                 <div className="mt-3 flex flex-wrap items-center justify-end gap-x-6 gap-y-1 border-t border-border pt-3">
                   <span className="text-[11px] text-muted-foreground">
-                    OT per duty = OT base ÷ payroll days
+                    ED per duty = ED base ÷ payroll days
                     {otDivisorDays ? ` (${otDivisorDays})` : ""}
                     {otDivisorDays ? ` = ${(otBaseTotal / otDivisorDays).toFixed(2)}` : ""}
                   </span>
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    OT Base
+                    ED Base
                   </span>
                   <span className="text-base font-bold text-foreground">
                     {otBaseTotal.toFixed(2)}
