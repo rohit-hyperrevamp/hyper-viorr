@@ -2,6 +2,18 @@ import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
+const STALE_BUILD_RELOAD_KEY = "radiant.stale-build-reload";
+
+if (typeof window !== "undefined") {
+  window.addEventListener("vite:preloadError", (event) => {
+    event.preventDefault();
+    const lastReload = Number(window.sessionStorage.getItem(STALE_BUILD_RELOAD_KEY) ?? 0);
+    if (Date.now() - lastReload < 30_000) return;
+    window.sessionStorage.setItem(STALE_BUILD_RELOAD_KEY, String(Date.now()));
+    window.location.reload();
+  });
+}
+
 export const getRouter = () => {
   const queryClient = new QueryClient({
     defaultOptions: {

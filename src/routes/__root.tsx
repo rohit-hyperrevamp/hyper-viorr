@@ -3,7 +3,6 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
-  useRouter,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -12,6 +11,7 @@ import { useEffect } from "react";
 import appCss from "../styles.css?url";
 import favicon from "../assets/radiant-logo-v2.png";
 import { Toaster } from "@/components/ui/sonner";
+import { Button } from "@/components/ui/button";
 import { ConfirmProvider } from "@/components/ConfirmProvider";
 import { ExportChooser } from "@/components/ExportChooser";
 import { LanguageProvider } from "@/lib/i18n";
@@ -43,9 +43,24 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error }: { error: Error; reset: () => void }) {
   console.error(error);
-  const router = useRouter();
+
+  useEffect(() => {
+    const message = `${error.name}: ${error.message}`.toLowerCase();
+    const isStaleBuildError =
+      message.includes("chunkloaderror") ||
+      message.includes("dynamically imported module") ||
+      message.includes("failed to fetch module script") ||
+      message.includes("importing a module script failed");
+    if (!isStaleBuildError) return;
+
+    const key = "radiant.stale-build-reload";
+    const lastReload = Number(window.sessionStorage.getItem(key) ?? 0);
+    if (Date.now() - lastReload < 30_000) return;
+    window.sessionStorage.setItem(key, String(Date.now()));
+    window.location.reload();
+  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -57,15 +72,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
+          <Button
             onClick={() => {
-              router.invalidate();
-              reset();
+              window.location.reload();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Try again
-          </button>
+          </Button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
