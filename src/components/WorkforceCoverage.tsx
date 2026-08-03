@@ -8,6 +8,7 @@ import {
   TrendingDown,
   Gauge,
   Download,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -180,6 +181,55 @@ export function useWorkforceCoverage() {
   return useQuery({ queryKey: QK_COVERAGE, queryFn: fetchCoverage });
 }
 
+export type UnmappedGuard = {
+  id: string;
+  name: string;
+  code: string | null;
+  role: string;
+};
+
+/**
+ * Active, billable site staff that are not mapped to ANY unit — neither through
+ * candidate_units nor the legacy primary unit on the record. These people are
+ * on the payroll but deployed nowhere, so they are surfaced as a red flag.
+ */
+async function fetchUnmappedGuards(): Promise<UnmappedGuard[]> {
+  const [candRes, mapRes] = await Promise.all([
+    supabase
+      .from("candidates" as never)
+      .select("id,full_name,employee_code,candidate_code,role_key,status,non_billable,unit_id,is_enabled")
+      .eq("status", "active"),
+    supabase.from("candidate_units" as never).select("candidate_id"),
+  ]);
+
+  const mapped = new Set(
+    ((mapRes.data as unknown as Record<string, unknown>[]) ?? []).map((m) =>
+      String(m.candidate_id ?? ""),
+    ),
+  );
+
+  return ((candRes.data as unknown as Record<string, unknown>[]) ?? [])
+    .filter(
+      (c) =>
+        c.is_enabled !== false &&
+        !c.non_billable &&
+        !EXCLUDED_ROLE_KEYS.has(String(c.role_key ?? "")) &&
+        !String(c.unit_id ?? "") &&
+        !mapped.has(String(c.id)),
+    )
+    .map((c) => ({
+      id: String(c.id),
+      name: String(c.full_name ?? "—"),
+      code: (c.employee_code as string | null) ?? (c.candidate_code as string | null) ?? null,
+      role: String(c.role_key ?? "—").replace(/_/g, " "),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function useUnmappedGuards() {
+  return useQuery({ queryKey: ["admin", "unmapped-guards"], queryFn: fetchUnmappedGuards });
+}
+
 /**
  * Deployment shortfall tone rule (shared by dashboard + client contracts):
  *  - fully covered            → neutral / emerald
@@ -272,7 +322,9 @@ function Tile({
 
 export function WorkforceCoverageCard() {
   const { data: rows = [], isLoading } = useWorkforceCoverage();
+  const { data: unmapped = [] } = useUnmappedGuards();
   const [open, setOpen] = useState(false);
+  const [unmappedOpen, setUnmappedOpen] = useState(false);
 
   const totals = useMemo(() => {
     const committed = rows.reduce((s, r) => s + r.committed, 0);
@@ -312,7 +364,7 @@ export function WorkforceCoverageCard() {
         </Button>
       </div>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <Tile label="Committed" value={totals.committed} icon={Users} tone="accent" />
         <Tile
           label="Actual deployed"
@@ -332,6 +384,19 @@ export function WorkforceCoverageCard() {
           icon={Gauge}
           tone={totals.tone === "ok" ? "success" : totals.tone}
         />
+        <button
+          type="button"
+          onClick={() => unmapped.length && setUnmappedOpen(true)}
+          className="text-left"
+          aria-label="View unmapped employees"
+        >
+          <Tile
+            label="Unmapped staff"
+            value={unmapped.length}
+            icon={AlertTriangle}
+            tone={unmapped.length > 0 ? "destructive" : "success"}
+          />
+        </button>
       </div>
 
       {totals.shortUnits > 0 && (
@@ -340,6 +405,26 @@ export function WorkforceCoverageCard() {
           unit(s) currently under-deployed against contract.
         </p>
       )}
+
+      {unmapped.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setUnmappedOpen(true)}
+          className="mt-2 flex w-full items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-left text-xs font-medium text-destructive"
+        >
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            <span className="font-bold tabular-nums">{unmapped.length}</span> active
+            employee(s) are not mapped to any unit — they are paid but deployed nowhere.
+          </span>
+        </button>
+      )}
+
+      <UnmappedGuardsDialog
+        open={unmappedOpen}
+        onOpenChange={setUnmappedOpen}
+        rows={unmapped}
+      />
 
       <DeploymentCharterDialog open={open} onOpenChange={setOpen} rows={rows} />
     </div>
@@ -543,6 +628,56 @@ function DeploymentCharterDialog({
                 );
               })}
             </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UnmappedGuardsDialog({
+  open,
+  onOpenChange,
+  rows,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  rows: UnmappedGuard[];
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[80vh] max-w-lg overflow-hidden p-0">
+        <DialogHeader className="border-b border-border px-5 py-4">
+          <DialogTitle className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-4 w-4" /> Employees not mapped to any unit
+          </DialogTitle>
+          <DialogDescription>
+            These active, billable employees have no primary unit and no reliever
+            mapping. Map them to a unit so attendance, payroll and billing line up.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[55vh] overflow-y-auto px-5 py-3">
+          {rows.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Everyone is mapped to a unit.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-destructive/30">
+              {rows.map((g) => (
+                <li key={g.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">{g.name}</div>
+                    <div className="truncate text-[11px] capitalize text-muted-foreground">
+                      {g.code ? `${g.code} · ` : ""}
+                      {g.role}
+                    </div>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+                    No unit
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </DialogContent>

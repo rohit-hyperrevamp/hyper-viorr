@@ -1114,10 +1114,42 @@ function ManageGuardUnitsDialog({
     setPrimaryId((p) => (p === uid ? null : p));
   };
 
+  /** Completely unmaps the guard — removes every unit, including the primary. */
+  const removeFromAllUnits = async () => {
+    if (!guard) return;
+    const ok = window.confirm(
+      `Remove ${guard.full_name} from every unit? They will no longer appear on any roster or attendance sheet until they are mapped again.`,
+    );
+    if (!ok) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("candidate_units")
+        .delete()
+        .eq("candidate_id", guard.id);
+      if (error) throw error;
+      const { error: homeErr } = await supabase
+        .from("candidates")
+        .update({ unit_id: null, designation_id: null, reports_to: null })
+        .eq("id", guard.id);
+      if (homeErr && !homeErr.message.toLowerCase().includes("row-level security")) throw homeErr;
+      toast.success(`${guard.full_name} removed from all units`);
+      await qc.invalidateQueries({ queryKey: ["field-officer-dashboard-v4"] });
+      await qc.invalidateQueries({ queryKey: ["my-reportees"] });
+      await qc.invalidateQueries({ queryKey: ["admin", "unmapped-guards"] });
+      onClose();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to remove the guard from their units";
+      toast.error(msg.includes("row-level security") ? "You don't have permission to remove this guard." : msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const save = async () => {
     if (!guard) return;
     if (selected.size === 0) {
-      toast.error("A guard must be mapped to at least one unit.");
+      toast.error('No unit ticked — use "Remove from all units" if this guard should be unmapped.');
       return;
     }
     if (!primaryId || !selected.has(primaryId)) {
@@ -1218,6 +1250,7 @@ function ManageGuardUnitsDialog({
       }
       await qc.invalidateQueries({ queryKey: ["field-officer-dashboard-v4"] });
       await qc.invalidateQueries({ queryKey: ["my-reportees"] });
+      await qc.invalidateQueries({ queryKey: ["admin", "unmapped-guards"] });
       onClose();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to update unit mapping";
@@ -1313,7 +1346,17 @@ function ManageGuardUnitsDialog({
           </>
         )}
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+          <Button
+            variant="outline"
+            onClick={removeFromAllUnits}
+            disabled={saving || loading}
+            data-force-enabled="true"
+            className="border-destructive/40 text-destructive hover:bg-destructive/10"
+          >
+            Remove from all units
+          </Button>
+          <div className="flex gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button
             onClick={save}
@@ -1324,6 +1367,7 @@ function ManageGuardUnitsDialog({
             {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
             Save mapping
           </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
