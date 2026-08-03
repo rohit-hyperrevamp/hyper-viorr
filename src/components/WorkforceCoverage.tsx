@@ -634,3 +634,53 @@ function DeploymentCharterDialog({
     </Dialog>
   );
 }
+
+function UnmappedGuardsDialog({
+  open,
+  onOpenChange,
+  rows,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  rows: UnmappedGuard[];
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[80vh] max-w-lg overflow-hidden p-0">
+        <DialogHeader className="border-b border-border px-5 py-4">
+          <DialogTitle className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-4 w-4" /> Employees not mapped to any unit
+          </DialogTitle>
+          <DialogDescription>
+            These active, billable employees have no primary unit and no reliever
+            mapping. Map them to a unit so attendance, payroll and billing line up.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[55vh] overflow-y-auto px-5 py-3">
+          {rows.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Everyone is mapped to a unit.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-destructive/30">
+              {rows.map((g) => (
+                <li key={g.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">{g.name}</div>
+                    <div className="truncate text-[11px] capitalize text-muted-foreground">
+                      {g.code ? `${g.code} · ` : ""}
+                      {g.role}
+                    </div>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+                    No unit
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
