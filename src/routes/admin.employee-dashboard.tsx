@@ -512,15 +512,42 @@ function EmployeeDashboard() {
               {myUnits.length === 0 ? (
                 <div className="text-sm text-muted-foreground">Not assigned</div>
               ) : (
-                <ul className="space-y-1.5">
-                  {myUnits.map((u) => (
-                    <li key={u.id} className="flex items-center justify-between gap-2 rounded-lg bg-secondary/40 px-2.5 py-1.5 ring-1 ring-border">
-                      <span className="truncate text-sm font-semibold text-foreground">{u.name}</span>
-                      {u.code && <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{u.code}</span>}
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="space-y-1.5">
+                    {[...myUnits]
+                      .sort((a, b) => Number(b.id === primaryUnitId) - Number(a.id === primaryUnitId))
+                      .map((u) => {
+                        const isPrimary = u.id === primaryUnitId;
+                        return (
+                          <li key={u.id} className="flex items-center justify-between gap-2 rounded-lg bg-secondary/40 px-2.5 py-1.5 ring-1 ring-border">
+                            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{u.name}</span>
+                            <span
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${
+                                isPrimary
+                                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                  : "bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                              }`}
+                            >
+                              {isPrimary ? "Primary" : "Reliever · ED"}
+                            </span>
+                            {u.code && <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{u.code}</span>}
+                          </li>
+                        );
+                      })}
+                  </ul>
+                  {isGuard && !primaryUnitId && (
+                    <div className="mt-2 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20">
+                      No primary unit assigned yet — ask your field officer to set one.
+                    </div>
+                  )}
+                  {isGuard && primaryUnitId && myUnits.length > 1 && (
+                    <div className="mt-2 text-[11px] text-muted-foreground">
+                      Attendance is marked at your primary unit. Reliever units record extra duty (ED) only.
+                    </div>
+                  )}
+                </>
               )}
+
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <div className="rounded-xl bg-secondary/60 px-3 py-2 text-center ring-1 ring-border">
                   <div className="font-display text-lg font-bold tabular-nums">{guardTeam.length + 1}</div>
