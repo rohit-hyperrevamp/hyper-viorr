@@ -190,15 +190,19 @@ function EmployeeDashboard() {
       if (me?.unit_id) set.add(me.unit_id);
       const { data } = await supabase
         .from("candidate_units" as never)
-        .select("unit_id")
+        .select("unit_id,is_primary")
         .eq("candidate_id", me!.id);
-      for (const r of ((data as unknown) as Array<{ unit_id: string }>) ?? []) {
+      const rows = ((data as unknown) as Array<{ unit_id: string; is_primary: boolean | null }>) ?? [];
+      for (const r of rows) {
         if (r.unit_id) set.add(r.unit_id);
       }
-      return Array.from(set);
+      const primaryId = rows.find((r) => r.is_primary)?.unit_id ?? null;
+      return { ids: Array.from(set), primaryId };
     },
   });
-  const myUnitIds = useMemo(() => myUnitsQ.data ?? [], [myUnitsQ.data]);
+  const myUnitIds = useMemo(() => myUnitsQ.data?.ids ?? [], [myUnitsQ.data]);
+  const primaryUnitId = myUnitsQ.data?.primaryId ?? null;
+
 
   const teamQ = useQuery({
     queryKey: ["me-team", myUnitIds.join(","), me?.id],
