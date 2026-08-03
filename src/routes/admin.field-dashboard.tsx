@@ -1054,6 +1054,8 @@ function ManageGuardUnitsDialog({
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [initial, setInitial] = useState<Set<string>>(new Set());
+  const [primaryId, setPrimaryId] = useState<string | null>(null);
+  const [initialPrimary, setInitialPrimary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const open = !!guard;
@@ -1065,18 +1067,22 @@ function ManageGuardUnitsDialog({
       setLoading(true);
       const { data, error } = await supabase
         .from("candidate_units")
-        .select("unit_id")
+        .select("unit_id,is_primary")
         .eq("candidate_id", guard.id);
       if (cancel) return;
       if (error) {
         toast.error(error.message || "Failed to load unit mappings");
       }
-      const ids = new Set<string>(((data ?? []) as Array<{ unit_id: string }>).map((r) => r.unit_id));
+      const rows = (data ?? []) as Array<{ unit_id: string; is_primary: boolean | null }>;
+      const ids = new Set<string>(rows.map((r) => r.unit_id));
       // Ensure the unit the guard is currently visible under is reflected as selected
       // even if only tracked via candidates.unit_id and not candidate_units.
       ids.add(currentUnitId);
+      const pri = rows.find((r) => r.is_primary)?.unit_id ?? null;
       setSelected(new Set(ids));
       setInitial(new Set(ids));
+      setPrimaryId(pri);
+      setInitialPrimary(pri);
       setLoading(false);
     })();
     return () => {
@@ -1091,6 +1097,7 @@ function ManageGuardUnitsDialog({
       else next.add(uid);
       return next;
     });
+    setPrimaryId((p) => (p === uid ? null : p));
   };
 
   const save = async () => {
@@ -1099,9 +1106,14 @@ function ManageGuardUnitsDialog({
       toast.error("A guard must be mapped to at least one unit.");
       return;
     }
+    if (!primaryId || !selected.has(primaryId)) {
+      toast.error("Pick a primary unit — that is where attendance and the work order are issued.");
+      return;
+    }
     const toAdd = [...selected].filter((u) => !initial.has(u));
     const toRemove = [...initial].filter((u) => !selected.has(u));
-    if (toAdd.length === 0 && toRemove.length === 0) {
+    const primaryChanged = primaryId !== initialPrimary;
+    if (toAdd.length === 0 && toRemove.length === 0 && !primaryChanged) {
       onClose();
       return;
     }
@@ -1120,7 +1132,26 @@ function ManageGuardUnitsDialog({
           .in("unit_id", toRemove);
         if (error) throw error;
       }
+      if (primaryChanged) {
+        const { error: clearErr } = await supabase
+          .from("candidate_units")
+          .update({ is_primary: false })
+          .eq("candidate_id", guard.id)
+          .neq("unit_id", primaryId);
+        if (clearErr) throw clearErr;
+        const { error: setErr } = await supabase
+          .from("candidate_units")
+          .update({ is_primary: true })
+          .eq("candidate_id", guard.id)
+          .eq("unit_id", primaryId);
+        if (setErr) throw setErr;
+      }
       toast.success(`Updated ${guard.full_name}'s unit mapping`);
+      if (primaryChanged) {
+        void autoIssuePostingOrder({ candidateId: guard.id, unitId: primaryId }).then((r) => {
+          if (r.sent) toast.success(`Posting order emailed to ${r.to}`);
+        });
+      }
       await qc.invalidateQueries({ queryKey: ["field-dashboard"] });
       onClose();
     } catch (e) {
@@ -1130,6 +1161,7 @@ function ManageGuardUnitsDialog({
       setSaving(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
