@@ -145,7 +145,7 @@ function EmployeeDashboard() {
     },
   });
   const unit = lookupsQ.data?.unit ?? null;
-  const desig = lookupsQ.data?.designation ?? null;
+  
 
   const monthStart = useMemo(() => {
     const now = new Date();
