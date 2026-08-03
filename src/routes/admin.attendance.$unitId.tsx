@@ -1529,7 +1529,8 @@ function MusterRollPage() {
           else if (meta.is_paid) otherPaidDays += dayValue;
         }
         const otDays = roundHalf(otHours);
-        const tDays = roundHalf(pDays + otherPaidDays + phCount * 2 + otDays);
+        // Paid days = P + PH (double) + ED only. Other paid codes never add days.
+        const tDays = roundHalf(pDays + phCount * 2 + otDays);
         return {
           candidate_id: "",
           p_days: roundHalf(pDays),
@@ -2102,7 +2103,7 @@ function MusterRollPage() {
     const otDays = Math.round(otDaysSum * 100) / 100;
     // OT cell value is OT-days; expose under both names for display compat.
     const otHours = otDays;
-    const tDays = pDays + phDays + otherPaidDays + otDays;
+    const tDays = pDays + phDays + otDays;
     return { pDays, otHours, otDays, phDays, tDays };
   };
 
@@ -2633,7 +2634,7 @@ function MusterRollPage() {
                 <th className="border border-slate-400 p-1 align-middle" rowSpan={2}>P<br />Days</th>
                 <th className="border border-slate-400 p-1 align-middle">ED<br />Days</th>
                 <th className="border border-slate-400 p-1 align-middle" rowSpan={2}>PH<br />Days</th>
-                <th className="border border-slate-400 p-1 align-middle" rowSpan={2} title="Total payable days = P + ED + PH + other paid days">Total<br />Payable<br />Days</th>
+                <th className="border border-slate-400 p-1 align-middle" rowSpan={2} title="Total paid days = P + ED + PH">Total<br />Paid<br />Days</th>
               </tr>
               <tr className="bg-slate-50">
                 <th className="border border-slate-400 p-1"></th>
