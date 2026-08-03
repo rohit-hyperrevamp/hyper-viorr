@@ -1325,10 +1325,211 @@ function PayrollUnitPage() {
         </div>
       </div>
 
-      
+      <DeductionsSection rows={rows as unknown as DeductionSourceRow[]} />
     </div>
   );
 }
+
+// --------------------------------------------------------------------------
+// Deductions breakdown: one row per employee with every deduction bucketed
+// into EPF / ESI / PT / Uniform / GPAIP / Recruitment fee / Other, searchable
+// by employee or by deduction head.
+// --------------------------------------------------------------------------
+type DeductionSourceRow = {
+  id: string;
+  employeeCode: string;
+  name: string;
+  designation: string;
+  wages: { deductions: { name: string; amount: number }[] } | null;
+};
+
+const DEDUCTION_BUCKETS = [
+  { key: "epf", label: "EPF", re: /\b(epf|pf|provident)\b/i },
+  { key: "esi", label: "ESI", re: /\besi(c)?\b/i },
+  { key: "pt", label: "PT", re: /professional\s*tax|\bpt\b/i },
+  { key: "uniform", label: "Uniform", re: /uniform|kit\b/i },
+  { key: "gpaip", label: "GPAIP", re: /gpaip|group\s*personal\s*accident/i },
+  { key: "recruitment", label: "Recruitment fee", re: /recruit/i },
+] as const;
+
+type BucketKey = (typeof DEDUCTION_BUCKETS)[number]["key"] | "other";
+
+function bucketOf(name: string): BucketKey {
+  for (const b of DEDUCTION_BUCKETS) if (b.re.test(name)) return b.key;
+  return "other";
+}
+
+function DeductionsSection({ rows }: { rows: DeductionSourceRow[] }) {
+  const [search, setSearch] = useState("");
+  const [head, setHead] = useState<BucketKey | "all">("all");
+
+  const people = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        id: string;
+        employeeCode: string;
+        name: string;
+        designations: Set<string>;
+        buckets: Record<string, number>;
+        lines: { name: string; amount: number }[];
+        total: number;
+      }
+    >();
+    for (const r of rows) {
+      if (!r.wages) continue;
+      let p = map.get(r.id);
+      if (!p) {
+        p = {
+          id: r.id,
+          employeeCode: r.employeeCode,
+          name: r.name,
+          designations: new Set<string>(),
+          buckets: {},
+          lines: [],
+          total: 0,
+        };
+        map.set(r.id, p);
+      }
+      if (r.designation && r.designation !== "—") p.designations.add(r.designation);
+      for (const d of r.wages.deductions) {
+        const amt = Math.round((Number(d.amount) || 0) * 100) / 100;
+        if (!amt) continue;
+        const clean = cleanLedgerName(d.name) || d.name;
+        const key = bucketOf(clean);
+        p.buckets[key] = Math.round(((p.buckets[key] ?? 0) + amt) * 100) / 100;
+        p.lines.push({ name: clean, amount: amt });
+        p.total = Math.round((p.total + amt) * 100) / 100;
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      (a.employeeCode || a.name).localeCompare(b.employeeCode || b.name),
+    );
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return people.filter((p) => {
+      if (head !== "all" && !(p.buckets[head] > 0)) return false;
+      if (!q) return true;
+      if (p.name.toLowerCase().includes(q)) return true;
+      if (p.employeeCode.toLowerCase().includes(q)) return true;
+      if (Array.from(p.designations).some((d) => d.toLowerCase().includes(q))) return true;
+      return p.lines.some((l) => l.name.toLowerCase().includes(q));
+    });
+  }, [people, search, head]);
+
+  const colTotals = useMemo(() => {
+    const t: Record<string, number> = { other: 0, total: 0 };
+    for (const p of filtered) {
+      for (const b of DEDUCTION_BUCKETS) t[b.key] = Math.round(((t[b.key] ?? 0) + (p.buckets[b.key] ?? 0)) * 100) / 100;
+      t.other = Math.round((t.other + (p.buckets.other ?? 0)) * 100) / 100;
+      t.total = Math.round((t.total + p.total) * 100) / 100;
+    }
+    return t;
+  }, [filtered]);
+
+  if (people.length === 0) return null;
+
+  const chip = (key: BucketKey | "all", label: string, amount?: number) => (
+    <button
+      key={key}
+      onClick={() => setHead(head === key ? "all" : key)}
+      className={cn(
+        "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+        head === key
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border/60 bg-background text-muted-foreground hover:bg-muted",
+      )}
+    >
+      {label}
+      {amount !== undefined && <span className="ml-1.5 tabular-nums opacity-80">{fmtINR(amount)}</span>}
+    </button>
+  );
+
+  return (
+    <div className="rounded-3xl border border-border/70 bg-card shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Deductions</div>
+          <div className="mt-0.5 text-sm text-muted-foreground">
+            {filtered.length} employee{filtered.length === 1 ? "" : "s"} · {fmtINR(colTotals.total)} total
+          </div>
+        </div>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search employee, designation or deduction (EPF, ESI, PT…)"
+          className="h-9 w-full rounded-xl border border-border/60 bg-background px-3 text-sm md:w-96"
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-2 border-b border-border/60 px-4 py-3">
+        {chip("all", "All")}
+        {DEDUCTION_BUCKETS.map((b) => chip(b.key, b.label, colTotals[b.key] ?? 0))}
+        {chip("other", "Other", colTotals.other)}
+      </div>
+
+      <div className="overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
+        <table className="ios-table min-w-[1000px] table-auto text-sm whitespace-nowrap">
+          <thead className="border-b border-border/60 bg-secondary/40">
+            <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
+              <th className="px-4 py-3 font-medium">Emp ID</th>
+              <th className="px-4 py-3 font-medium">Name</th>
+              <th className="px-4 py-3 font-medium">Designation</th>
+              {DEDUCTION_BUCKETS.map((b) => (
+                <th key={b.key} className="px-4 py-3 text-left font-medium">{b.label}</th>
+              ))}
+              <th className="px-4 py-3 text-left font-medium">Other</th>
+              <th className="px-4 py-3 text-left font-medium">Total deduction</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/50">
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={DEDUCTION_BUCKETS.length + 5} className="px-4 py-10 text-center text-muted-foreground">
+                  No deductions match this search.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((p) => (
+                <tr key={p.id} className="hover:bg-muted/40">
+                  <td className="px-4 py-3 font-mono text-xs">{p.employeeCode || "—"}</td>
+                  <td className="px-4 py-3 font-medium">{p.name}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {Array.from(p.designations).join(", ") || "—"}
+                  </td>
+                  {DEDUCTION_BUCKETS.map((b) => (
+                    <td key={b.key} className="px-4 py-3 text-left tabular-nums">
+                      {p.buckets[b.key] ? fmtINR(p.buckets[b.key]) : "—"}
+                    </td>
+                  ))}
+                  <td className="px-4 py-3 text-left tabular-nums">
+                    {p.buckets.other ? fmtINR(p.buckets.other) : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-left font-semibold tabular-nums">{fmtINR(p.total)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          {filtered.length > 0 && (
+            <tfoot className="border-t border-border/60 bg-secondary/30 text-sm font-semibold">
+              <tr>
+                <td className="px-4 py-3" colSpan={3}>Totals</td>
+                {DEDUCTION_BUCKETS.map((b) => (
+                  <td key={b.key} className="px-4 py-3 text-left tabular-nums">{fmtINR(colTotals[b.key] ?? 0)}</td>
+                ))}
+                <td className="px-4 py-3 text-left tabular-nums">{fmtINR(colTotals.other)}</td>
+                <td className="px-4 py-3 text-left tabular-nums">{fmtINR(colTotals.total)}</td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </div>
+  );
+}
+
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: "emerald" | "amber" }) {
   const cls = tone === "emerald" ? "text-emerald-700" : tone === "amber" ? "text-amber-700" : "text-foreground";
