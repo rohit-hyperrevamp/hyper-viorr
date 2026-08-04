@@ -1650,6 +1650,25 @@ function PayrollUnitPage() {
                   id={isHighlighted ? `payroll-row-${r.id}` : `payroll-row-${r.rowKey}`}
                   className={`hover:bg-muted/40 ${isHighlighted ? "bg-emerald-50 ring-2 ring-emerald-400 dark:bg-emerald-950/40" : ""}`}
                 >
+                  {showHoldColumn && (
+                    <td className="px-3 py-3">
+                      {isProcessed ? (
+                        holdDraft.has(r.id) ? (
+                          <PauseCircle className="h-4 w-4 text-amber-600" aria-label="On hold" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-label="Paid" />
+                        )
+                      ) : (
+                        <input
+                          type="checkbox"
+                          aria-label={`Include ${r.name} in payroll`}
+                          checked={!holdDraft.has(r.id)}
+                          onChange={() => toggleHold(r.id)}
+                          className="h-4 w-4 cursor-pointer accent-primary"
+                        />
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <button
                       onClick={() => {
