@@ -499,7 +499,7 @@ The platform is deployed on a hybrid model: **AWS (Mumbai, ap-south-1)** hosts t
 | Networking | **VPC, private subnets, NAT, Security Groups** | Compute runs in private subnets; only the ALB is internet-facing |
 | Secrets | **AWS Secrets Manager / SSM Parameter Store** | Stores API keys, service credentials and connection strings; injected into Fargate tasks at runtime |
 | Observability | **CloudWatch Logs, Metrics, Alarms** | Container logs, error-rate and latency alarms, auto-scaling triggers |
-| Backend data | **Supabase (managed PostgreSQL)** | Primary transactional database with Row-Level Security, PostgREST Data API, Auth (JWT/OTP/biometric session), Storage buckets, Realtime channels and scheduled `pg_cron` jobs |
+| Backend data | **Supabase (PostgreSQL)** or **MongoDB (NoSQL)** — to be finalized after load testing | Primary transactional database. PostgreSQL path uses Row-Level Security, PostgREST Data API, Auth, Storage, Realtime and `pg_cron`. MongoDB path uses document collections with equivalent application-level access control, Atlas Search and change streams; Auth/Storage handled by AWS/self-managed services if Supabase is not used |
 
 ### 23.2 Component Descriptions
 
