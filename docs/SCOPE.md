@@ -571,3 +571,179 @@ Expected steady state is **USD 25 – 150 per month**, i.e. approximately **INR 
 - Reserved capacity options (Compute Savings Plans on Fargate) can reduce compute cost by 20 – 30 percent once the steady-state baseline is measured after go-live.
 
 ---
+## 24. Disaster Recovery (DR)
+
+> **Commercial note: Disaster Recovery is NOT included in the base engagement.** The DR process, runbooks and architecture are defined here, and can be implemented and operated **on actuals** — i.e. the client is billed the incremental infrastructure cost plus a one-time DR setup effort, over and above the base hosting cost in Section 23.
+
+### 24.1 Objectives
+
+| Parameter | Base (included) | With DR (additional, on actuals) |
+|---|---|---|
+| **RPO** (max acceptable data loss) | Up to 24 hours (daily backup) with 7-day PITR on the database | **5 – 15 minutes** (continuous replication + PITR) |
+| **RTO** (max acceptable downtime) | 4 – 12 hours (rebuild from backups into the same region) | **30 – 120 minutes** (warm standby in a second region) |
+| **Scope of failure covered** | Single task / single AZ failure, accidental data deletion | Full AWS region outage, backend region outage, ransomware / malicious deletion |
+
+### 24.2 DR Strategy — Warm Standby (recommended)
+
+Three DR postures were evaluated:
+
+| Posture | How it works | RTO / RPO | Relative monthly cost |
+|---|---|---|---|
+| **Backup & Restore** (cheapest) | Backups and container images copied cross-region; infrastructure rebuilt from Infrastructure-as-Code only when disaster is declared | RTO 4 – 12 hrs, RPO up to 24 hrs | Lowest |
+| **Warm Standby** (recommended) | A minimal always-on copy of the stack in a second region (Hyderabad / Singapore) with data continuously replicated; scaled up on failover | RTO 30 – 120 min, RPO 5 – 15 min | Moderate |
+| **Active-Active** | Full production capacity live in both regions behind global routing | RTO near zero, RPO near zero | Highest (roughly 2x base) |
+
+**Recommendation: Warm Standby**, primary in **Mumbai (ap-south-1)**, secondary in **Hyderabad (ap-south-2)** for data residency, with **Singapore (ap-southeast-1)** as an alternative if a wider blast radius is required.
+
+### 24.3 DR Architecture Components
+
+1. **DNS-level failover** — Route 53 health checks on the primary ALB; automatic (or one-click manual) failover of the application hostname to the standby region's ALB.
+2. **Standby application tier** — ECS Fargate service in the secondary region running a minimal task count (1 web task, worker at zero) from the same container image, scaled out on failover via auto-scaling policy.
+3. **Cross-region container registry replication** — ECR replication so the exact production image is already present in the DR region.
+4. **Static assets & documents** — S3 **Cross-Region Replication (CRR)** for the document/asset bucket; CloudFront configured with an origin group (primary origin + failover origin) so static delivery survives a region loss with no DNS change.
+5. **Database (Supabase / PostgreSQL)** — one of:
+   - Supabase **Point-in-Time Recovery** plus scheduled logical dumps shipped to a locked S3 bucket in the DR region (lower cost), or
+   - A **continuously replicated read replica / logical replication target** in the DR region promoted to primary on failover (lower RPO, higher cost).
+6. **Secrets & configuration** — AWS Secrets Manager multi-region secret replication so credentials exist in the DR region.
+7. **Infrastructure as Code** — the entire stack defined in Terraform/CDK so the standby is provably identical and can be re-created on demand.
+8. **Immutable backup vault** — AWS Backup with **Vault Lock (compliance mode)** in a separate AWS account: backups cannot be deleted or shortened by any operator, including a compromised administrator. This is the primary ransomware defence.
+
+### 24.4 DR Process (Runbook)
+
+**Detection**
+1. CloudWatch alarms and Route 53 health checks fire on sustained failure of the primary region (ALB 5xx, health-check failure, database unreachable).
+2. On-call is paged; incident severity classified (P1 = region loss / data corruption).
+
+**Declaration**
+3. Nominated authority (client IT head + vendor lead) formally declares a disaster. Declaration is logged with timestamp and reason.
+
+**Failover**
+4. Promote the DR database (replica promotion or restore from latest PITR / immutable snapshot).
+5. Scale the standby ECS service to production task counts; start the worker service.
+6. Point the application hostname to the DR ALB via Route 53 failover record.
+7. Verify S3/CloudFront origin failover is serving assets.
+8. Smoke-test: login, attendance mark, payroll read, invoice read, notification dispatch.
+9. Communicate to users (in-app banner, WhatsApp/email broadcast) with expected data-loss window.
+
+**Operate in DR**
+10. Run in the DR region with monitoring; backups continue from the DR region.
+
+**Failback**
+11. Re-establish the primary region; replicate data back from DR to primary.
+12. Schedule a low-traffic cutover window (typically a Sunday night, outside the 26th–25th payroll close).
+13. Reverse replication direction, switch DNS back, verify, and close the incident.
+
+**Post-incident**
+14. Root-cause analysis document, corrective actions, and runbook update within 10 working days.
+
+### 24.5 Ransomware-Specific Recovery
+
+- **Immutable, air-gapped backups** in a separate AWS account with Vault Lock — cannot be encrypted or deleted by an attacker holding production credentials.
+- **S3 Object Lock + Versioning + MFA Delete** on document buckets; every prior version recoverable.
+- **Point-in-time restore** to a timestamp immediately before the first malicious write, identified from the append-only system activity log.
+- **Clean-room restore**: recovery into a freshly provisioned account/VPC from IaC, never back into the compromised environment.
+- **Credential rotation** of all secrets, API keys and service accounts as part of recovery.
+
+### 24.6 DR Testing & Governance
+
+| Activity | Frequency |
+|---|---|
+| Backup restore verification (automated) | Weekly |
+| Tabletop DR walkthrough | Quarterly |
+| Full failover drill (non-production traffic) | Half-yearly |
+| Full failover drill including production cutover | Annually (optional, on actuals) |
+| Runbook review and contact-list refresh | Quarterly |
+
+Each drill produces a signed report recording measured RTO/RPO against target.
+
+### 24.7 DR Cost Delta (additional, billed on actuals)
+
+Incremental monthly cost **over and above** the base infrastructure in Section 23. Warm-standby posture, secondary region, ap-south-2/ap-southeast-1, at ~INR 90 per USD.
+
+| # | DR Component | Basis | Indicative additional INR / month |
+|---|---|---|---|
+| 1 | Standby ECS Fargate (1 minimal task, 24x7) | Fargate vCPU-hr + GB-hr | **4,000 – 7,000** |
+| 2 | Standby Application Load Balancer | ALB hourly + minimal LCU | **2,000 – 3,000** |
+| 3 | Standby NAT gateway + public IPv4 (2 – 3 IPs) | NAT hourly + IPv4 at INR ~325 per IP | **4,000 – 5,500** |
+| 4 | S3 Cross-Region Replication (replication transfer + duplicate storage) | Per GB replicated + per GB stored in DR region | **2,000 – 4,500** |
+| 5 | Database replication / cross-region PITR & dumps (Supabase add-on or replica target) | Add-on plan or replica compute + storage | **6,000 – 14,000** |
+| 6 | AWS Backup cross-region + cross-account copies with Vault Lock | Backup storage per GB + cross-region copy | **3,000 – 6,000** |
+| 7 | ECR cross-region image replication | Storage + transfer | **200 – 500** |
+| 8 | Route 53 health checks + failover records | Per health check | **300 – 700** |
+| 9 | CloudWatch in DR region (logs, alarms, synthetic canaries) | Ingestion + alarms + canaries | **1,000 – 2,500** |
+| 10 | Cross-region data transfer (replication egress) | Per GB inter-region | **1,500 – 4,000** |
+| | **Total DR infrastructure delta** | | **INR ~24,000 – 48,000 per month (budget INR 25,000 – 45,000)** |
+
+**One-time DR implementation effort (billed separately, on actuals):** IaC for the secondary region, replication setup, failover automation, runbook authoring and the first validated failover drill — typically **3 – 5 person-weeks**.
+
+**Ongoing DR operations (optional, on actuals):** quarterly tabletop + half-yearly failover drills, runbook maintenance and drill reporting.
+
+**Lower-cost alternative:** a **Backup & Restore** posture (cross-region immutable backups + IaC, no standby running) reduces the delta to approximately **INR 8,000 – 15,000 per month**, at an RTO of 4 – 12 hours and RPO of up to 24 hours.
+
+---
+
+## 25. Additional Security Hardening (Not Included — On Actuals)
+
+The base engagement already includes: TLS 1.2/1.3 in transit, encryption at rest, Row-Level Security on every table, role-based access control, append-only system activity logs, private-subnet application containers, secrets in AWS Secrets Manager, and biometric/device-bound mobile authentication.
+
+The controls below are **security enhancements that are explicitly NOT included in the base price**. Each can be enabled on request and is **billed on actuals** (AWS/vendor usage charges) plus a small one-time configuration effort.
+
+### 25.1 Perimeter & Application Protection
+
+| # | Control | What it protects against | Indicative additional INR / month |
+|---|---|---|---|
+| 1 | **AWS WAF** with AWS Managed Rules (OWASP Top 10, SQL injection, XSS, bad inputs) | Web exploitation of the application layer | **900 – 2,500** |
+| 2 | **WAF Bot Control + Rate-based rules** | Credential stuffing, scraping, brute-force on login/OTP | **1,500 – 4,000** |
+| 3 | **AWS Shield Advanced** (optional, enterprise DDoS) | Large-scale volumetric and application DDoS, with DDoS cost protection and 24x7 response team | **~USD 3,000 / month (~INR 2,70,000)** — recommended only if contractually mandated |
+| 4 | **CloudFront geo-restriction + origin shield** | Traffic from out-of-scope geographies, origin overload | **500 – 1,500** |
+
+### 25.2 Ransomware & Data Integrity Defence
+
+| # | Control | What it protects against | Indicative additional INR / month |
+|---|---|---|---|
+| 5 | **AWS Backup Vault Lock (compliance mode) in a separate, isolated AWS account** | Backup deletion/encryption by a compromised admin — the single most important ransomware control | **3,000 – 7,000** |
+| 6 | **S3 Object Lock + Versioning + MFA Delete** on document and export buckets | Malicious or accidental overwrite/deletion of KYC documents, payslips, invoices | **1,000 – 3,000** |
+| 7 | **Amazon GuardDuty** (threat detection incl. Malware Protection and S3 protection) | Credential misuse, crypto-mining, anomalous API activity, malicious uploads | **2,500 – 7,000** |
+| 8 | **Amazon Inspector** (continuous container image & workload vulnerability scanning) | Vulnerable dependencies and OS packages shipped in container images | **1,500 – 4,000** |
+| 9 | **Clean-room recovery environment** (pre-built isolated account + IaC for restore after compromise) | Re-infection when restoring into a compromised environment | One-time setup + **1,000 – 2,500** standby |
+| 10 | **Anti-malware scanning of user uploads** (documents, KYC photos) before storage | Malicious files entering the document store | **2,000 – 5,000** (volume-based) |
+
+### 25.3 Detection, Audit & Governance
+
+| # | Control | What it protects against | Indicative additional INR / month |
+|---|---|---|---|
+| 11 | **AWS CloudTrail organisation trail with log-file validation, to a locked S3 bucket** | Tampering with the audit trail; loss of forensic evidence | **1,000 – 3,000** |
+| 12 | **AWS Security Hub + AWS Config conformance packs** (CIS / PCI-aligned) | Configuration drift, non-compliant resources | **2,000 – 6,000** |
+| 13 | **Centralised SIEM / log analytics with alerting** (OpenSearch or third-party) | Slow detection of an in-progress attack | **6,000 – 20,000** |
+| 14 | **24x7 managed SOC / incident response retainer** (third party) | No out-of-hours human response | **On quotation** |
+
+### 25.4 Identity & Access Hardening
+
+| # | Control | What it protects against | Indicative additional cost |
+|---|---|---|---|
+| 15 | **Mandatory TOTP / passkey MFA for HR, Finance, Admin and Leadership roles** | Account takeover of high-privilege users | Implementation effort only; no recurring AWS cost |
+| 16 | **Hardware FIDO2 security keys for infrastructure administrators** | Phishing of cloud admin credentials | **One-time INR ~5,000 – 9,000 per key** |
+| 17 | **Just-in-time privileged access with approval workflow and session recording** | Standing admin privileges being abused | **Effort + INR 2,000 – 6,000 / month** |
+| 18 | **IP allow-listing / private access for admin console** | Admin access from untrusted networks | Effort only |
+
+### 25.5 Assurance Activities (One-Time / Periodic, On Actuals)
+
+| # | Activity | Frequency | Indicative cost |
+|---|---|---|---|
+| 19 | **Third-party VAPT** (web + mobile + API) with remediation retest | Annual or pre-go-live | **INR 1,50,000 – 4,00,000 per cycle** |
+| 20 | **Source-code security review / SAST tooling licence** | Continuous | **On quotation** |
+| 21 | **DPDP Act readiness / data-protection audit** | Annual | **On quotation** |
+| 22 | **Security awareness training for HR/Finance users** | Annual | **On quotation** |
+
+### 25.6 Commercial Summary
+
+| Bucket | Status |
+|---|---|
+| Base hosting & platform security (Section 23) | **Included** — INR 25,000 – 35,000 / month AWS + USD 25 – 150 / month backend |
+| **Disaster Recovery (Section 24)** | **Not included — on actuals.** Warm standby: **INR 25,000 – 45,000 / month** delta + one-time 3 – 5 person-weeks setup. Backup & Restore alternative: **INR 8,000 – 15,000 / month** |
+| **Additional security hardening (Section 25)** | **Not included — on actuals.** Recommended starter bundle (WAF + rate limiting + Vault Lock + GuardDuty + CloudTrail lock + Object Lock): **INR ~10,000 – 25,000 / month** |
+| Shield Advanced, managed SOC, VAPT, SIEM | **Not included — on quotation / actuals** |
+
+All "on actuals" items are passed through at the actual AWS/vendor invoice value with no margin, plus the agreed implementation effort. Nothing in Sections 24 and 25 is enabled without prior written approval from the client.
+
+---
