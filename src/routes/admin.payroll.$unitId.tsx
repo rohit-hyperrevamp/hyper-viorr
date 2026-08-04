@@ -1596,12 +1596,28 @@ function PayrollUnitPage() {
           <table className="ios-table min-w-[1180px] table-auto text-sm whitespace-nowrap">
             <thead className="border-b border-border/60 bg-secondary/40">
               <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                {showHoldColumn && (
+                  <th className="px-3 py-3 font-medium w-[44px]">
+                    <input
+                      type="checkbox"
+                      aria-label="Include all employees"
+                      disabled={isProcessed}
+                      checked={holdDraft.size === 0}
+                      ref={(el) => {
+                        if (el) el.indeterminate = holdDraft.size > 0 && holdDraft.size < rows.length;
+                      }}
+                      onChange={(e) =>
+                        setHoldDraft(e.target.checked ? new Set() : new Set(rows.map((r) => r.id)))
+                      }
+                      className="h-4 w-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </th>
+                )}
                 <th className="px-4 py-3 font-medium w-[60px]"></th>
                 <th className="px-4 py-3 font-medium">Emp ID</th>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
                 <th className="px-4 py-3 font-medium" title="Total paid days (P + PH + ED)">Total Paid Days</th>
-                {showHoldColumn && <th className="px-4 py-3 font-medium">Pay status</th>}
                 {earningCols.map((n) => (
                   <th key={`h-e-${n}`} className="px-4 py-3 text-left font-medium" title={`Earned ${n}`}>{n}</th>
                 ))}
@@ -1634,6 +1650,25 @@ function PayrollUnitPage() {
                   id={isHighlighted ? `payroll-row-${r.id}` : `payroll-row-${r.rowKey}`}
                   className={`hover:bg-muted/40 ${isHighlighted ? "bg-emerald-50 ring-2 ring-emerald-400 dark:bg-emerald-950/40" : ""}`}
                 >
+                  {showHoldColumn && (
+                    <td className="px-3 py-3">
+                      {isProcessed ? (
+                        holdDraft.has(r.id) ? (
+                          <PauseCircle className="h-4 w-4 text-amber-600" aria-label="On hold" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-label="Paid" />
+                        )
+                      ) : (
+                        <input
+                          type="checkbox"
+                          aria-label={`Include ${r.name} in payroll`}
+                          checked={!holdDraft.has(r.id)}
+                          onChange={() => toggleHold(r.id)}
+                          className="h-4 w-4 cursor-pointer accent-primary"
+                        />
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <button
                       onClick={() => {
@@ -1676,34 +1711,6 @@ function PayrollUnitPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-left tabular-nums font-medium">{r.totals.tDays}</td>
-                  {showHoldColumn && (
-                    <td className="px-4 py-3">
-                      {isProcessed ? (
-                        holdDraft.has(r.id) ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
-                            <PauseCircle className="h-3 w-3" /> On hold
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
-                            <CheckCircle2 className="h-3 w-3" /> Paid
-                          </span>
-                        )
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => toggleHold(r.id)}
-                          className={cn(
-                            "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors",
-                            holdDraft.has(r.id)
-                              ? "border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200"
-                              : "border-border/60 bg-background text-muted-foreground hover:bg-muted",
-                          )}
-                        >
-                          {holdDraft.has(r.id) ? <><PauseCircle className="h-3 w-3" /> On hold</> : <><PlayCircle className="h-3 w-3" /> Include</>}
-                        </button>
-                      )}
-                    </td>
-                  )}
                   {earningCols.map((n) => (
                     <td key={`${r.rowKey}-e-${n}`} className="px-4 py-3 text-left tabular-nums">
                       {r.wages ? fmtINR(lookupAmount(r.wages.components as NamedAmount[], n)) : "—"}
