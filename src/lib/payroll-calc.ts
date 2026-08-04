@@ -217,6 +217,9 @@ export type WageComputation = {
   totalOtAmount: number;
 };
 
+// Earned-component name matching the Extra Duty (ED) wage line.
+export const EXTRA_DUTY_COMPONENT_RE = /extra\s*duty|\bovertime\b|\bover\s*time\b/i;
+
 const ESI_NAME_RE = /\besi(c)?\b/i;
 const ESI_EARNED_GROSS_CEILING = 21000;
 const EPF_NAME_RE = /\bepf\b|provident\s*fund|\bpf\b/i;
@@ -327,11 +330,18 @@ export function applyEsiToWageComputation(
   const ceiling = opts.isDisabled
     ? Math.max(configuredCeiling, ESI_DISABILITY_CEILING)
     : configuredCeiling;
-  const esi = calculateEsiAmounts(wages.earnedGross, wages.components, {
+  const edAmount = wages.components
+    .filter((c) => EXTRA_DUTY_COMPONENT_RE.test(c.name))
+    .reduce((s2, c) => s2 + (Number(c.amount) || 0), 0);
+  const esi = calculateEsiAmounts(
+    Math.max(0, round2(wages.earnedGross - edAmount)),
+    wages.components.filter((c) => !EXTRA_DUTY_COMPONENT_RE.test(c.name)),
+    {
     employeePct: Number(employeeEsi?.percentage) || 0.75,
     employerPct: Number(employerEsi?.percentage) || 3.25,
-    ceiling,
-  });
+      ceiling,
+    },
+  );
   const deductions = applyEsiRule(wages.deductions, esi.employee, "ESI Employee Contribution");
   const employerContributions = applyEsiRule(
     wages.employerContributions,
@@ -883,6 +893,16 @@ export function computeWages(
     components.push({ name: "Extra Duty", amount: otAmount, calcType: "fixed" });
   }
 
+  // Extra Duty (ED) is a pure earning. Statutory / contractual deductions and
+  // employer contributions are NEVER computed on ED wages, so every benefit
+  // base uses the earned components WITHOUT the Extra Duty line.
+  const benefitBaseComponents = components.filter(
+    (c) => !EXTRA_DUTY_COMPONENT_RE.test(c.name),
+  );
+  const earnedGrossExcludingEd = round2(
+    benefitBaseComponents.reduce((s2, c) => s2 + (Number(c.amount) || 0), 0),
+  );
+
 
   const earnedGross = round2(
     components.reduce((s, c) => s + (Number(c.amount) || 0), 0),
@@ -942,7 +962,7 @@ export function computeWages(
         : isFixedItem(i)
         ? resolveFixedAmount(i)
         : i.calcType === "percentage"
-        ? benefitAmountFromConfig(i, components, resource.components, earnedSalaryRatio)
+        ? benefitAmountFromConfig(i, benefitBaseComponents, resource.components, earnedSalaryRatio)
         : round2((Number(i.amount) || 0) * earnedSalaryRatio);
       return { ...i, name: i.name, amount };
     });
@@ -998,13 +1018,13 @@ export function computeWages(
   const employerEpfItem = applyEpfDefaults(findEpf(resource.employerContributions));
   const employeeEpfAmount = benefitAmountFromConfig(
     employeeEpfItem,
-    components,
+    benefitBaseComponents,
     resource.components,
     earnedSalaryRatio,
   );
   const employerEpfAmount = benefitAmountFromConfig(
     employerEpfItem,
-    components,
+    benefitBaseComponents,
     resource.components,
     earnedSalaryRatio,
   );
@@ -1051,13 +1071,13 @@ export function computeWages(
   const employerBonusItem = applyBonusDefaults(findBonus(resource.employerContributions));
   const employeeBonusAmount = benefitAmountFromConfig(
     employeeBonusItem,
-    components,
+    benefitBaseComponents,
     resource.components,
     earnedSalaryRatio,
   );
   const employerBonusAmount = benefitAmountFromConfig(
     employerBonusItem,
-    components,
+    benefitBaseComponents,
     resource.components,
     earnedSalaryRatio,
   );
@@ -1094,7 +1114,7 @@ export function computeWages(
   const employerGratuityItem = applyGratuityDefaults(findGratuity(resource.employerContributions));
   const employerGratuityAmount = benefitAmountFromConfig(
     employerGratuityItem,
-    components,
+    benefitBaseComponents,
     resource.components,
     earnedSalaryRatio,
   );
@@ -1118,7 +1138,7 @@ export function computeWages(
   const findEsi = (items: BenefitLike[]) => items.find((i) => ESI_NAME_RE.test(i.name));
   const employeeEsiItem = findEsi(resource.deductions);
   const employerEsiItem = findEsi(resource.employerContributions);
-  const esi = calculateEsiAmounts(earnedGross, components, {
+  const esi = calculateEsiAmounts(earnedGrossExcludingEd, benefitBaseComponents, {
     employeePct: Number(employeeEsiItem?.percentage) || 0.75,
     employerPct: Number(employerEsiItem?.percentage) || 3.25,
     ceiling:
