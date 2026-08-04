@@ -868,6 +868,53 @@ function PayrollUnitPage() {
     );
   }, [rows]);
 
+  // On-screen register columns: earnings (Basic / DA / HRA / …) and employee
+  // deductions (EE EPF / EE ESIC / EE PT / …) are derived from what the
+  // contract actually configures, so the table adapts per client. Columns that
+  // are zero across every row are dropped. Employer contributions are hidden
+  // by default and can be toggled on.
+  const registerCols = useMemo(() => {
+    const collect = (pick: (r: (typeof rows)[number]) => NamedAmount[] | undefined) => {
+      const seen = new Map<string, string>();
+      rows.forEach((r) => {
+        (pick(r) ?? []).forEach((it) => {
+          if (!it?.name) return;
+          const key = normColName(it.name);
+          if (!key || seen.has(key)) return;
+          seen.set(key, it.name);
+        });
+      });
+      return Array.from(seen.values());
+    };
+
+    const earningNames = collect((r) => r.wages?.components as NamedAmount[] | undefined)
+      .filter((n) => rows.some((r) => Math.abs(lookupAmount(r.wages?.components as NamedAmount[] | undefined, n)) > 0.005));
+    const deductionGroups = groupColsByHeader(
+      collect((r) => r.wages?.deductions as NamedAmount[] | undefined),
+      deductionHeaderOf,
+    ).filter((g) => rows.some((r) => Math.abs(sumAmounts(r.wages?.deductions as NamedAmount[] | undefined, g.names)) > 0.005));
+    const employerGroups = groupColsByHeader(
+      collect((r) => r.wages?.employerContributions as NamedAmount[] | undefined),
+      employerHeaderOf,
+    ).filter((g) => rows.some((r) => Math.abs(sumAmounts(r.wages?.employerContributions as NamedAmount[] | undefined, g.names)) > 0.005));
+
+    return { earningNames, deductionGroups, employerGroups };
+  }, [rows]);
+
+  const [showEarnings, setShowEarnings] = useState(true);
+  const [showDeductionCols, setShowDeductionCols] = useState(true);
+  const [showEmployerCols, setShowEmployerCols] = useState(false);
+
+  const earningCols = showEarnings ? registerCols.earningNames : [];
+  const deductionCols = showDeductionCols ? registerCols.deductionGroups : [];
+  const employerCols = showEmployerCols ? registerCols.employerGroups : [];
+  // expander + emp id + name + designation + total paid days
+  // + earnings + earned gross + deductions + total deductions + net pay
+  // + employer groups (+ employer cost when shown)
+  const registerColCount =
+    5 + earningCols.length + 1 + deductionCols.length + 1 + 1 + employerCols.length + (showEmployerCols ? 1 : 0);
+
+
   const exportCsv = () => {
     if (isLoading || rows.length === 0) {
       toast.error(
