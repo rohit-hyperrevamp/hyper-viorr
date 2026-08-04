@@ -378,7 +378,7 @@ This section lists every external integration planned for the Radiant Workforce 
 
 ### 21.2 What Is Included
 
-- All connector development, API wrappers, webhook handlers, and error-handering logic within the Radiant platform.
+- All connector development, API wrappers, webhook handlers, and error-handling logic within the Radiant platform.
 - Configuration UI and field-mapping screens where required.
 - Rate-limit handling, retry logic, idempotency keys, and audit logging for every integration call.
 - Fallback routing (for example, WhatsApp or SMS OTP fallback when email OTP fails).
