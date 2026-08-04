@@ -531,3 +531,43 @@ The platform is deployed on a hybrid model: **AWS (Mumbai, ap-south-1)** hosts t
 - Third-party usage charges described in Section 21 (Aadhaar verification, WhatsApp messaging, SMS/email beyond free tiers, bank/GST/Tally API fees) are separate from these hosting costs.
 
 ---
+
+### 23.5 Line-Item Infrastructure Cost Breakdown (AWS Mumbai, ap-south-1)
+
+All figures are indicative monthly costs at the expected operating load (7,000 registered users, a few hundred to low-thousand concurrent sessions at peaks). USD figures converted at approximately INR 90 per USD. AWS pricing is usage-based, so actuals move with traffic, storage and data transfer.
+
+| # | Service | What it is charged on | List rate (ap-south-1) | Assumed usage | Indicative INR / month |
+|---|---------|----------------------|------------------------|---------------|------------------------|
+| 1 | **ECS on AWS Fargate** (application containers) | Per vCPU-hour and per GB-hour, billed per second while a task runs | ~USD 0.04048 per vCPU-hr; ~USD 0.004445 per GB-hr | 2 baseline tasks (1 vCPU / 2 GB) running 24x7, auto-scaling to 4-6 tasks during morning attendance and payroll peaks | **INR 8,000 – 13,000** |
+| 2 | **Fargate worker service** (payroll, invoices, batch jobs) | Same Fargate rates | As above | 1 task (1 vCPU / 2 GB), running mostly during batch windows | **INR 1,500 – 3,500** |
+| 3 | **Application Load Balancer (ELB)** | Fixed hourly charge + LCU (Load Balancer Capacity Unit) charge | ~USD 0.0225 per ALB-hour (~USD 16.4 / month fixed) + ~USD 0.008 per LCU-hour | 1 ALB, 2-5 LCUs average | **INR 2,500 – 4,000** |
+| 4 | **Amazon S3** (static bundle, PDFs, exports, documents) | Storage per GB-month + PUT/GET requests + data transfer out | ~USD 0.025 per GB-month (Standard); ~USD 0.005 per 1,000 PUT; ~USD 0.0004 per 1,000 GET | 150 – 400 GB growing storage with moderate request volume | **INR 700 – 2,000** |
+| 5 | **Amazon CloudFront (CDN)** | Data transfer out to internet + HTTPS requests, priced by region of the viewer | ~USD 0.109 per GB for India edge locations; ~USD 0.0120 per 10,000 HTTPS requests | 300 – 600 GB egress per month (app bundle, images, PDFs, mobile assets) | **INR 3,000 – 6,000** |
+| 6 | **Public dedicated IPv4 addresses** | Per in-use public IPv4 address, per hour (charged since Feb 2024 on all public IPv4) | **USD 0.005 per IP-hour = ~USD 3.60 per IP-month = ~INR 325 per IP-month** | 2 ALB public IPs (one per AZ) + 1 NAT gateway IP = 3 IPs | **INR 950 – 1,300** |
+| 7 | **NAT Gateway** (outbound access for private subnets) | Hourly charge + per-GB processed | ~USD 0.056 per NAT-hour (~USD 41 / month) + ~USD 0.056 per GB processed | 1 NAT gateway, 50 – 150 GB processed | **INR 4,000 – 5,000** |
+| 8 | **CloudWatch** (logs, metrics, alarms) | Log ingestion per GB, storage per GB, custom metrics, alarms | ~USD 0.57 per GB ingested; ~USD 0.03 per GB-month archived; ~USD 0.30 per custom metric | 15 – 30 GB logs per month with retention | **INR 900 – 2,000** |
+| 9 | **AWS Secrets Manager** | Per secret per month + API calls | ~USD 0.40 per secret / month; ~USD 0.05 per 10,000 API calls | 8 – 15 secrets | **INR 350 – 700** |
+| 10 | **Amazon ECR** (container image registry) | Storage per GB-month | ~USD 0.10 per GB-month | 5 – 15 GB of images | **INR 50 – 150** |
+| 11 | **Route 53** (DNS) | Per hosted zone + per million queries | ~USD 0.50 per hosted zone; ~USD 0.40 per million queries | 1 – 2 zones | **INR 100 – 200** |
+| 12 | **AWS WAF** (optional web application firewall) | Per web ACL + per rule + per million requests | ~USD 5.00 per web ACL; ~USD 1.00 per rule; ~USD 0.60 per million requests | 1 web ACL with managed rule groups | **INR 900 – 1,800** |
+| 13 | **AWS Backup / snapshots, KMS, misc data transfer** | Storage, key usage, inter-AZ transfer | ~USD 1.00 per KMS key/month; snapshot storage per GB | Standard configuration | **INR 800 – 1,500** |
+| | **Total AWS** | | | | **INR ~24,000 – 41,000; budgeted at INR 25,000 – 35,000** |
+
+**Supabase (backend) — separate from AWS:**
+
+| Plan | What it includes | Cost |
+|------|------------------|------|
+| **Supabase Pro** | Dedicated project compute, 8 GB database storage baseline, 100 GB file storage, daily backups, 7-day point-in-time recovery, 100,000 monthly active auth users, email support | **USD 25 per month (~INR 2,250)** |
+| **Supabase Pro with scaled compute / add-ons** | Larger compute instance (more CPU/RAM for reporting and payroll load), extended PITR, additional database and file storage, higher egress | **USD 60 – 150 per month (~INR 5,400 – 13,500)** |
+
+Expected steady state is **USD 25 – 150 per month**, i.e. approximately **INR 2,250 – 13,500 per month**, and this is **included** in the engagement.
+
+**Notes on cost behaviour**
+
+- **Fargate is the single biggest lever.** Because it bills per second, scaling to zero-idle at night and using right-sized tasks (1 vCPU / 2 GB) keeps compute far cheaper than always-on EC2 instances of equivalent peak capacity.
+- **Public IPv4 is a small but real fixed cost** — INR ~325 per IP per month — which is why containers run in private subnets with no public IPs; only the load balancer and NAT gateway hold public addresses.
+- **NAT gateway and CloudFront egress** are the two costs that grow fastest with usage; document/photo heavy months (bulk KYC uploads, large report exports) push these up.
+- **Single-AZ vs Multi-AZ:** the figures assume two Availability Zones for resilience. A single-AZ configuration would cut ALB, NAT and IPv4 costs by roughly a third but removes automatic AZ failover, so it is not recommended for production.
+- Reserved capacity options (Compute Savings Plans on Fargate) can reduce compute cost by 20 – 30 percent once the steady-state baseline is measured after go-live.
+
+---
