@@ -856,7 +856,7 @@ A structured change-management process keeps the platform stable while new featu
 | **Sprint** | 30 days | Day 1 – Day 30 | Feature development, bug fixes, statutory/config changes, backlog grooming |
 | **QA & Staging** | 14 days | Day 31 – Day 44 | Functional, regression, security and mobile-app store testing; UAT sign-off |
 | **Production deployment + maintenance** | 1 day | Day 45 | Release to production, instance maintenance, post-release monitoring |
-| **Next cycle begins** | — | Day 46 | New sprint planning with prioritized change the change board |
+| **Next cycle begins** | — | Day 46 | New sprint planning with the prioritized change board |
 
 **Key rule:** every **45th day** is treated as a scheduled maintenance window. Production deployments happen on this day, not ad-hoc, unless a critical security or business-continuity fix is required.
 
@@ -936,7 +936,7 @@ All channels feed into a single ticketing system so nothing is lost, and every r
 ### 27.4 Escalation Path
 
 1. **L1 Support** — triage, basic how-to, password/reset help, ticket creation.
-2. **L2 Support / Product Team** — functional bugs, configuration issues, payroll/think, data fixes.
+2. **L2 Support / Product Team** — functional bugs, configuration issues, payroll/attendance, data fixes.
 3. **L3 Engineering** — code defects, database issues, mobile app crashes, integrations.
 4. **Client Success / Account Manager** — commercial, scope or SLA disputes.
 
