@@ -75,6 +75,53 @@ const isPtItem = (item: { name?: unknown }) => PT_COMPONENT_RE.test(String(item.
 const contractTotalAmount = (item: { name?: unknown; amount?: unknown }) =>
   isEsiItem(item) || isPtItem(item) ? 0 : Number(item.amount) || 0;
 
+// ---- Register column helpers (shared by the on-screen table and the CSV) ----
+type NamedAmount = { name: string; amount: number };
+
+const normColName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+function lookupAmount(items: NamedAmount[] | undefined, label: string): number {
+  if (!items) return 0;
+  const target = normColName(label);
+  const hit = items.find((i) => normColName(i.name) === target);
+  return hit ? Number(hit.amount) || 0 : 0;
+}
+
+const sumAmounts = (items: NamedAmount[] | undefined, names: string[]) =>
+  names.reduce((s, n) => s + lookupAmount(items, n), 0);
+
+function deductionHeaderOf(name: string): string {
+  const n = name.toLowerCase();
+  if (/\b(e)?pf\b/.test(n)) return "EE EPF";
+  if (/\besi(c)?\b/.test(n)) return "EE ESIC";
+  if (/professional\s*tax|\bpt\b/.test(n)) return "EE PT";
+  if (/\blwf\b|labour\s*welfare/.test(n)) return "EE LWF";
+  const clean = name.replace(/\(.*?\)/g, "").replace(/employee\s*contribution/gi, "").replace(/\bnet\b/gi, "").trim().replace(/\s+/g, " ");
+  return clean ? `EE ${clean}` : `EE ${name.trim()}`;
+}
+
+function employerHeaderOf(name: string): string {
+  const n = name.toLowerCase();
+  if (/\b(e)?pf\b/.test(n)) return "ER EPF";
+  if (/\besi(c)?\b/.test(n)) return "ER ESIC";
+  if (/\blwf\b|labour\s*welfare/.test(n)) return "ER LWF";
+  if (/management\s*fee|\bmgmt\s*fee\b/.test(n)) return "ER Management Fee";
+  const clean = name.replace(/\(.*?\)/g, "").replace(/employer\s*contribution/gi, "").replace(/\bnet\b/gi, "").trim().replace(/\s+/g, " ");
+  return clean ? `ER ${clean}` : `ER ${name.trim()}`;
+}
+
+function groupColsByHeader(cols: string[], fmt: (name: string) => string): { header: string; names: string[] }[] {
+  const map = new Map<string, string[]>();
+  const order: string[] = [];
+  for (const name of cols) {
+    const h = fmt(name).trim().replace(/\s+/g, " ");
+    if (!h) continue;
+    if (!map.has(h)) { map.set(h, []); order.push(h); }
+    map.get(h)!.push(name);
+  }
+  return order.map((h) => ({ header: h, names: map.get(h)! }));
+}
+
 function fmtPretty(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
   return `${String(d).padStart(2, "0")} ${MONTH_NAMES[m - 1].slice(0, 3)} ${y}`;
@@ -255,8 +302,11 @@ function PayrollUnitPage() {
     (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["payroll-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
-    enabled: !!ptSlabs && !!pincodeRanges && !!lwfRows,
+    queryKey: ["payroll-register-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    // `unit` feeds PT state / pincode / EPF-cap policy — computing before it
+    // lands produces a wrong (often zero) first render that only self-corrects
+    // on a hard refresh.
+    enabled: unit !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
     queryFn: async () => {
       await supabaseSessionReady();
       // 1. Roster: candidates mapped to this unit (primary + secondary).
@@ -818,6 +868,53 @@ function PayrollUnitPage() {
     );
   }, [rows]);
 
+  // On-screen register columns: earnings (Basic / DA / HRA / …) and employee
+  // deductions (EE EPF / EE ESIC / EE PT / …) are derived from what the
+  // contract actually configures, so the table adapts per client. Columns that
+  // are zero across every row are dropped. Employer contributions are hidden
+  // by default and can be toggled on.
+  const registerCols = useMemo(() => {
+    const collect = (pick: (r: (typeof rows)[number]) => NamedAmount[] | undefined) => {
+      const seen = new Map<string, string>();
+      rows.forEach((r) => {
+        (pick(r) ?? []).forEach((it) => {
+          if (!it?.name) return;
+          const key = normColName(it.name);
+          if (!key || seen.has(key)) return;
+          seen.set(key, it.name);
+        });
+      });
+      return Array.from(seen.values());
+    };
+
+    const earningNames = collect((r) => r.wages?.components as NamedAmount[] | undefined)
+      .filter((n) => rows.some((r) => Math.abs(lookupAmount(r.wages?.components as NamedAmount[] | undefined, n)) > 0.005));
+    const deductionGroups = groupColsByHeader(
+      collect((r) => r.wages?.deductions as NamedAmount[] | undefined),
+      deductionHeaderOf,
+    ).filter((g) => rows.some((r) => Math.abs(sumAmounts(r.wages?.deductions as NamedAmount[] | undefined, g.names)) > 0.005));
+    const employerGroups = groupColsByHeader(
+      collect((r) => r.wages?.employerContributions as NamedAmount[] | undefined),
+      employerHeaderOf,
+    ).filter((g) => rows.some((r) => Math.abs(sumAmounts(r.wages?.employerContributions as NamedAmount[] | undefined, g.names)) > 0.005));
+
+    return { earningNames, deductionGroups, employerGroups };
+  }, [rows]);
+
+  const [showEarnings, setShowEarnings] = useState(true);
+  const [showDeductionCols, setShowDeductionCols] = useState(true);
+  const [showEmployerCols, setShowEmployerCols] = useState(false);
+
+  const earningCols = showEarnings ? registerCols.earningNames : [];
+  const deductionCols = showDeductionCols ? registerCols.deductionGroups : [];
+  const employerCols = showEmployerCols ? registerCols.employerGroups : [];
+  // expander + emp id + name + designation + total paid days
+  // + earnings + earned gross + deductions + total deductions + net pay
+  // + employer groups (+ employer cost when shown)
+  const registerColCount =
+    5 + earningCols.length + 1 + deductionCols.length + 1 + 1 + employerCols.length + (showEmployerCols ? 1 : 0);
+
+
   const exportCsv = () => {
     if (isLoading || rows.length === 0) {
       toast.error(
@@ -1245,7 +1342,29 @@ function PayrollUnitPage() {
       </Dialog>
 
       <div className="rounded-3xl border border-border/70 bg-card shadow-sm">
-        <div className="overflow-x-auto overscroll-x-contain rounded-3xl [scrollbar-gutter:stable] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-muted/30">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-4 py-3">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Columns</span>
+          {[
+            { label: "Earnings", on: showEarnings, set: setShowEarnings, count: registerCols.earningNames.length },
+            { label: "Deductions", on: showDeductionCols, set: setShowDeductionCols, count: registerCols.deductionGroups.length },
+            { label: "Employer contribution", on: showEmployerCols, set: setShowEmployerCols, count: registerCols.employerGroups.length },
+          ].map((c) => (
+            <button
+              key={c.label}
+              type="button"
+              onClick={() => c.set(!c.on)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                c.on
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border/60 bg-background text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {c.label}{c.count ? ` (${c.count})` : ""}
+            </button>
+          ))}
+        </div>
+        <div className="overflow-x-auto overscroll-x-contain rounded-b-3xl [scrollbar-gutter:stable] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-muted/30">
           <table className="ios-table min-w-[1180px] table-auto text-sm whitespace-nowrap">
             <thead className="border-b border-border/60 bg-secondary/40">
               <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
@@ -1253,24 +1372,29 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium">Emp ID</th>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
-                <th className="px-4 py-3 font-medium" title="Present (worked) days">P Days</th>
-                <th className="px-4 py-3 font-medium" title="Paid Holiday days (incl. additions)">PH Days</th>
-                <th className="px-4 py-3 font-medium" title="Extra Duty Days (0.5 = half ED day, 1 = one ED day)">ED Days</th>
                 <th className="px-4 py-3 font-medium" title="Total paid days (P + PH + ED)">Total Paid Days</th>
-                <th className="px-4 py-3 text-left font-medium" title="Full contract gross — what would be paid for a full month">Projected</th>
+                {earningCols.map((n) => (
+                  <th key={`h-e-${n}`} className="px-4 py-3 text-left font-medium" title={`Earned ${n}`}>{n}</th>
+                ))}
                 <th className="px-4 py-3 text-left font-medium" title="Sum of every earned wage line, including extra duty and paid holiday">Earned gross</th>
-                <th className="px-4 py-3 text-left font-medium">Deductions</th>
+                {deductionCols.map((g) => (
+                  <th key={`h-d-${g.header}`} className="px-4 py-3 text-left font-medium" title={g.names.join(", ")}>{g.header}</th>
+                ))}
+                <th className="px-4 py-3 text-left font-medium">Total deductions</th>
                 <th className="px-4 py-3 text-left font-medium">Net pay</th>
-                <th className="px-4 py-3 text-left font-medium">Employer cost</th>
+                {employerCols.map((g) => (
+                  <th key={`h-r-${g.header}`} className="px-4 py-3 text-left font-medium" title={g.names.join(", ")}>{g.header}</th>
+                ))}
+                {showEmployerCols && <th className="px-4 py-3 text-left font-medium">Employer cost</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
               {isLoading ? (
-                <tr><td colSpan={13} className="px-4 py-10 text-center text-muted-foreground">Computing wages…</td></tr>
+                <tr><td colSpan={registerColCount} className="px-4 py-10 text-center text-muted-foreground">Computing wages…</td></tr>
               ) : error ? (
-                <tr><td colSpan={13} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
+                <tr><td colSpan={registerColCount} className="px-4 py-10 text-center text-destructive">{error instanceof Error ? error.message : "Failed"}</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={13} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
+                <tr><td colSpan={registerColCount} className="px-4 py-10 text-center text-muted-foreground">No employees mapped to this unit.</td></tr>
               ) : rows.map((r) => {
                 const isHighlighted = highlightCandidate === r.id;
                 const isExpanded = expandedRows.has(r.rowKey);
@@ -1296,20 +1420,43 @@ function PayrollUnitPage() {
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{r.employeeCode || "—"}</td>
                   <td className="px-4 py-3 font-medium">{r.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{r.designation}</td>
-                  <td className="px-4 py-3 text-left tabular-nums">{r.totals.pDays}</td>
-                  <td className="px-4 py-3 text-left tabular-nums">{r.totals.phDays}</td>
-                  <td className="px-4 py-3 text-left tabular-nums">{r.totals.otDays}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {r.designation}
+                    {!r.wages && (
+                      <span
+                        className="ml-2 text-xs text-amber-600"
+                        title={`The contract for this unit has no resource line for the designation "${r.designation}". Add it on the contract, or change the employee's designation to a contracted one.`}
+                      >
+                        not on contract
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-left tabular-nums font-medium">{r.totals.tDays}</td>
-                  <td className="px-4 py-3 text-left text-muted-foreground">{r.wages ? fmtINR(r.wages.contractGross) : <span className="text-xs text-amber-600" title={`The contract for this unit has no resource line for the designation "${r.designation}". Add it on the contract, or change the employee's designation to a contracted one.`}>no “{r.designation}” on contract</span>}</td>
+                  {earningCols.map((n) => (
+                    <td key={`${r.rowKey}-e-${n}`} className="px-4 py-3 text-left tabular-nums">
+                      {r.wages ? fmtINR(lookupAmount(r.wages.components as NamedAmount[], n)) : "—"}
+                    </td>
+                  ))}
                   <td className="px-4 py-3 text-left font-medium">{r.wages ? fmtINR(r.wages.earnedGross) : "—"}</td>
+                  {deductionCols.map((g) => (
+                    <td key={`${r.rowKey}-d-${g.header}`} className="px-4 py-3 text-left tabular-nums">
+                      {r.wages ? fmtINR(sumAmounts(r.wages.deductions as NamedAmount[], g.names)) : "—"}
+                    </td>
+                  ))}
                   <td className="px-4 py-3 text-left">{r.wages ? fmtINR(r.wages.totalDeductions) : "—"}</td>
                   <td className="px-4 py-3 text-left font-semibold text-emerald-700">{r.wages ? fmtINR(r.wages.netPay) : "—"}</td>
-                  <td className="px-4 py-3 text-left">{r.wages ? fmtINR(r.wages.employerCost) : "—"}</td>
+                  {employerCols.map((g) => (
+                    <td key={`${r.rowKey}-r-${g.header}`} className="px-4 py-3 text-left tabular-nums">
+                      {r.wages ? fmtINR(sumAmounts(r.wages.employerContributions as NamedAmount[], g.names)) : "—"}
+                    </td>
+                  ))}
+                  {showEmployerCols && (
+                    <td className="px-4 py-3 text-left">{r.wages ? fmtINR(r.wages.employerCost) : "—"}</td>
+                  )}
                 </tr>
                 {isExpanded && r.wages && r.resource && (
                   <tr key={`${r.rowKey}-detail`} className="bg-secondary/20">
-                    <td colSpan={13} className="px-4 py-0">
+                    <td colSpan={registerColCount} className="px-4 py-0">
                       <PaySheetPanel r={r as unknown as PaySheetRow} />
                     </td>
                   </tr>
@@ -1322,18 +1469,33 @@ function PayrollUnitPage() {
               <tfoot className="border-t border-border/60 bg-secondary/30 text-sm font-semibold">
                 <tr>
                   <td className="px-4 py-3" />
-                  <td className="px-4 py-3" colSpan={7}>Totals</td>
-                  <td className="px-4 py-3 text-left text-muted-foreground">{fmtINR(rows.reduce((s, r) => s + (r.wages?.contractGross ?? 0), 0))}</td>
+                  <td className="px-4 py-3" colSpan={4}>Totals</td>
+                  {earningCols.map((n) => (
+                    <td key={`f-e-${n}`} className="px-4 py-3 text-left tabular-nums">
+                      {fmtINR(rows.reduce((s, r) => s + lookupAmount(r.wages?.components as NamedAmount[] | undefined, n), 0))}
+                    </td>
+                  ))}
                   <td className="px-4 py-3 text-left">{fmtINR(totals.earnedGross)}</td>
+                  {deductionCols.map((g) => (
+                    <td key={`f-d-${g.header}`} className="px-4 py-3 text-left tabular-nums">
+                      {fmtINR(rows.reduce((s, r) => s + sumAmounts(r.wages?.deductions as NamedAmount[] | undefined, g.names), 0))}
+                    </td>
+                  ))}
                   <td className="px-4 py-3 text-left">{fmtINR(totals.deductions)}</td>
                   <td className="px-4 py-3 text-left text-emerald-700">{fmtINR(totals.net)}</td>
-                  <td className="px-4 py-3 text-left">{fmtINR(totals.employerCost)}</td>
+                  {employerCols.map((g) => (
+                    <td key={`f-r-${g.header}`} className="px-4 py-3 text-left tabular-nums">
+                      {fmtINR(rows.reduce((s, r) => s + sumAmounts(r.wages?.employerContributions as NamedAmount[] | undefined, g.names), 0))}
+                    </td>
+                  ))}
+                  {showEmployerCols && <td className="px-4 py-3 text-left">{fmtINR(totals.employerCost)}</td>}
                 </tr>
               </tfoot>
             )}
           </table>
         </div>
       </div>
+
 
       <div id="payroll-deductions-section" className="scroll-mt-24">
         <DeductionsSection rows={rows as unknown as DeductionSourceRow[]} />
