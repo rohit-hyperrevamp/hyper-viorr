@@ -1518,6 +1518,7 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
                 <th className="px-4 py-3 font-medium" title="Total paid days (P + PH + ED)">Total Paid Days</th>
+                {showHoldColumn && <th className="px-4 py-3 font-medium">Pay status</th>}
                 {earningCols.map((n) => (
                   <th key={`h-e-${n}`} className="px-4 py-3 text-left font-medium" title={`Earned ${n}`}>{n}</th>
                 ))}
