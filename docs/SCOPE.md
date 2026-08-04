@@ -549,7 +549,7 @@ All figures are indicative monthly costs at the expected operating load (7,000 r
 | 9 | **AWS Secrets Manager** | Per secret per month + API calls | ~USD 0.40 per secret / month; ~USD 0.05 per 10,000 API calls | 8 – 15 secrets | **INR 350 – 700** |
 | 10 | **Amazon ECR** (container image registry) | Storage per GB-month | ~USD 0.10 per GB-month | 5 – 15 GB of images | **INR 50 – 150** |
 | 11 | **Route 53** (DNS) | Per hosted zone + per million queries | ~USD 0.50 per hosted zone; ~USD 0.40 per million queries | 1 – 2 zones | **INR 100 – 200** |
-| 12 | **AWS WAF** (optional web application firewall) | Per web ACL + per rule + per million requests | ~USD 5.00 per web ACL; ~USD 1.00 per rule; ~USD 0.60 per million requests | 1 web ACL with managed rule groups | **INR 900 – 1,800** |
+| 12 | **AWS WAF** (web application firewall) — **not included in base; billed on actuals, see Section 25** | Per web ACL + per rule + per million requests | ~USD 5.00 per web ACL; ~USD 1.00 per rule; ~USD 0.60 per million requests | 1 web ACL with managed rule groups | **INR 900 – 1,800 (additional)** |
 | 13 | **AWS Backup / snapshots, KMS, misc data transfer** | Storage, key usage, inter-AZ transfer | ~USD 1.00 per KMS key/month; snapshot storage per GB | Standard configuration | **INR 800 – 1,500** |
 | | **Total AWS** | | | | **INR ~24,000 – 41,000; budgeted at INR 25,000 – 35,000** |
 
