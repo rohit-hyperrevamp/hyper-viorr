@@ -358,3 +358,52 @@ Settings · **System Logs**.
 - Reconciliation of disbursement status (success / failure / pending) back against individual employee payroll records.
 
 ---
+
+## 21. Third-Party Integrations
+
+This section lists every external integration planned for the Radiant Workforce Platform, its purpose, current status, what is included in the project cost, and what remains the client's / third-party's responsibility.
+
+### 21.1 Integration Cost Matrix
+
+| Integration | Purpose | Status | Implementation Cost | API / Usage Cost | Notes |
+|---|---|---|---|---|---|
+| **ICICI Bank** | Direct salary disbursement, payment posting, status callbacks | Awaiting API details from ICICI Bank | Included | Not applicable (to be borne by Radiant as per bank agreement) | Tele file generation is built-in; the API layer will be added once ICICI shares the specifications. |
+| **Tally** | Accounting / GST invoice sync, ledger push | API integration included | No implementation charge | Unknown (Tally may charge for API / cloud connector; to be confirmed) | One-way / bi-directional sync scope to be finalized with the finance team. |
+| **Aadhaar Verification** | Validate Aadhaar during onboarding, duplicate detection, rehire trigger | Provider to be selected (Karza / AuthBridge / HyperVerge / Signzy / Cashfree / Decentro) | Included | ~₹10 – ₹20 per verification; volume discounts available | Cost is on actual usage. Connector development, validation workflow, and audit logging are included. |
+| **WhatsApp Business API** | Transactional alerts, OTP fallback, approval notifications | Implementation ready | Included | On actuals (conversation-based Meta pricing) | Sailesh (Radiant IT) already has WhatsApp APIs which can be reused to minimize cost. |
+| **Email OTP (MSG91)** | OTP and transactional emails for login and notifications | Ready to configure | Included | 3,000 emails / OTP free per month; thereafter as per MSG91 tariff | Personal email login flows will use this service. |
+| **SMS OTP** | Backup OTP channel when email delivery fails | Ready to configure | Included | On actuals | Will use Sailesh's SMS gateway or WhatsApp OTP as fallback. |
+| **GST Integration** | Auto GST return push / e-invoicing / GSTR reconciliation | Implementation pre-included | Included | Unknown; GST API availability and pricing to be confirmed | GSTIN validation is already built into the platform. |
+| **Google Gemini 2.5 Flash** | Document scanning, OCR, and data extraction from attendance sheets, invoices, Aadhaar cards, POs, GRNs | Active (via Lovable AI Gateway) | Included | ~₹500 – ₹1,500 / month estimated at current USD/INR rates (~₹29 per million input tokens, ~₹239 per million output tokens) | Cost scales with the number of documents scanned; a free tier is available from Google. |
+
+### 21.2 What Is Included
+
+- All connector development, API wrappers, webhook handlers, and error-handling logic within the Radiant platform.
+- Configuration UI and field-mapping screens where required.
+- Rate-limit handling, retry logic, idempotency keys, and audit logging for every integration call.
+- Fallback routing (for example, WhatsApp or SMS OTP fallback when email OTP fails).
+- Security controls: credential vaulting, request signing, and token refresh handled server-side.
+
+### 21.3 What Is Not Included
+
+- Third-party subscription fees, per-transaction charges, or API usage bills:
+  - MSG91 email beyond the 3,000 free OTP/month tier.
+  - Aadhaar per-verification charges.
+  - WhatsApp conversation charges.
+  - Tally / GST API costs.
+  - Google Gemini token usage beyond the free tier.
+- Custom hardware, dedicated bank POS devices, or biometric scanners.
+- Licenses for Tally, GST Suvidha Provider (GSP), or Aadhaar Authentication User Agency (AUA) registrations if required by the chosen provider.
+- Changes forced by third-party API version upgrades after go-live (these will be handled under AMC if opted).
+
+### 21.4 Assumptions & Dependencies
+
+- **ICICI Bank:** API documentation and sandbox/test credentials are required from the bank before development can start.
+- **Tally:** Tally Prime / Tally.ERP 9 with GST enabled and API/cloud connector access must be available.
+- **Aadhaar:** The selected provider must share API credentials and acceptable-use documentation; Radiant will sign required agreements directly with the provider.
+- **WhatsApp:** Business phone number verification and a Meta Business Manager account must be provided by Radiant.
+- **MSG91:** Account to be created and funded by Radiant for volumes beyond the free tier.
+- **GST:** GSP / API access and credentials to be arranged by Radiant once the API is available / selected.
+- **Google Gemini:** Document volume assumptions are indicative; actual cost will depend on pages scanned, image resolution, and extraction complexity.
+
+---
