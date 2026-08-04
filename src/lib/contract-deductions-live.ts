@@ -82,6 +82,18 @@ export async function fetchLiveContractDeductions(args: {
   const empty: LiveDeductionResult = { rows: [], total: 0, byLine: [] };
   if (!unitId || periodDates.length === 0) return empty;
 
+  // Once the payroll run is PROCESSED these lines are materialised as real
+  // rows in `deductions`, so showing the live computation too would double
+  // count the period.
+  const { data: processedRun } = await supabase
+    .from("payroll_runs" as never)
+    .select("payroll_status")
+    .eq("unit_id", unitId)
+    .eq("period_start", start)
+    .eq("period_end", end)
+    .maybeSingle();
+  if ((processedRun as { payroll_status?: string } | null)?.payroll_status === "processed") return empty;
+
   const candidateCols = "id, employee_code, full_name, designation_id, gender, is_disabled";
 
   const [{ data: unit }, { data: primary }, { data: links }] = await Promise.all([
