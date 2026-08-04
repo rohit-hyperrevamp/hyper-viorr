@@ -943,7 +943,7 @@ Data in transit means any data moving across a network: from browser/mobile to t
 | **DPDP Act 2023 — data security safeguard** | Encryption at rest and in transit is a technical safeguard for personal data of employees and clients. |
 | **IT Act 2000 / SPDI Rules** | Sensitive personal data (Aadhaar, bank details, health data) is encrypted both at rest and in transit. |
 | **ISO 27001 / SOC 2 Type II** | Encryption is documented as a control; key management and rotation evidence is produced during audit. |
-| ** RBI / NPCI payment-related guidance** | Banking integration traffic uses TLS 1.2+ and mTLS where mandated; no card data is stored. |
+| **RBI / NPCI payment-related guidance** | Banking integration traffic uses TLS 1.2+ and mTLS where mandated; no card data is stored. |
 
 ### 25.6 How the Client Can Verify Encryption
 
