@@ -75,6 +75,53 @@ const isPtItem = (item: { name?: unknown }) => PT_COMPONENT_RE.test(String(item.
 const contractTotalAmount = (item: { name?: unknown; amount?: unknown }) =>
   isEsiItem(item) || isPtItem(item) ? 0 : Number(item.amount) || 0;
 
+// ---- Register column helpers (shared by the on-screen table and the CSV) ----
+type NamedAmount = { name: string; amount: number };
+
+const normColName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+function lookupAmount(items: NamedAmount[] | undefined, label: string): number {
+  if (!items) return 0;
+  const target = normColName(label);
+  const hit = items.find((i) => normColName(i.name) === target);
+  return hit ? Number(hit.amount) || 0 : 0;
+}
+
+const sumAmounts = (items: NamedAmount[] | undefined, names: string[]) =>
+  names.reduce((s, n) => s + lookupAmount(items, n), 0);
+
+function deductionHeaderOf(name: string): string {
+  const n = name.toLowerCase();
+  if (/\b(e)?pf\b/.test(n)) return "EE EPF";
+  if (/\besi(c)?\b/.test(n)) return "EE ESIC";
+  if (/professional\s*tax|\bpt\b/.test(n)) return "EE PT";
+  if (/\blwf\b|labour\s*welfare/.test(n)) return "EE LWF";
+  const clean = name.replace(/\(.*?\)/g, "").replace(/employee\s*contribution/gi, "").replace(/\bnet\b/gi, "").trim().replace(/\s+/g, " ");
+  return clean ? `EE ${clean}` : `EE ${name.trim()}`;
+}
+
+function employerHeaderOf(name: string): string {
+  const n = name.toLowerCase();
+  if (/\b(e)?pf\b/.test(n)) return "ER EPF";
+  if (/\besi(c)?\b/.test(n)) return "ER ESIC";
+  if (/\blwf\b|labour\s*welfare/.test(n)) return "ER LWF";
+  if (/management\s*fee|\bmgmt\s*fee\b/.test(n)) return "ER Management Fee";
+  const clean = name.replace(/\(.*?\)/g, "").replace(/employer\s*contribution/gi, "").replace(/\bnet\b/gi, "").trim().replace(/\s+/g, " ");
+  return clean ? `ER ${clean}` : `ER ${name.trim()}`;
+}
+
+function groupColsByHeader(cols: string[], fmt: (name: string) => string): { header: string; names: string[] }[] {
+  const map = new Map<string, string[]>();
+  const order: string[] = [];
+  for (const name of cols) {
+    const h = fmt(name).trim().replace(/\s+/g, " ");
+    if (!h) continue;
+    if (!map.has(h)) { map.set(h, []); order.push(h); }
+    map.get(h)!.push(name);
+  }
+  return order.map((h) => ({ header: h, names: map.get(h)! }));
+}
+
 function fmtPretty(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
   return `${String(d).padStart(2, "0")} ${MONTH_NAMES[m - 1].slice(0, 3)} ${y}`;
