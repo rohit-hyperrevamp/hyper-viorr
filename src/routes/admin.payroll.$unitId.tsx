@@ -1000,8 +1000,10 @@ function PayrollUnitPage() {
   // expander + emp id + name + designation + total paid days
   // + earnings + earned gross + deductions + total deductions + net pay
   // + employer groups (+ employer cost when shown)
+  // Pay-status / hold column only matters once payroll is approved.
+  const showHoldColumn = runStatus === "approved";
   const registerColCount =
-    5 + earningCols.length + 1 + deductionCols.length + 1 + 1 + employerCols.length + (showEmployerCols ? 1 : 0);
+    5 + (showHoldColumn ? 1 : 0) + earningCols.length + 1 + deductionCols.length + 1 + 1 + employerCols.length + (showEmployerCols ? 1 : 0);
 
 
   const exportCsv = () => {
