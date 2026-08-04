@@ -1596,12 +1596,28 @@ function PayrollUnitPage() {
           <table className="ios-table min-w-[1180px] table-auto text-sm whitespace-nowrap">
             <thead className="border-b border-border/60 bg-secondary/40">
               <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                {showHoldColumn && (
+                  <th className="px-3 py-3 font-medium w-[44px]">
+                    <input
+                      type="checkbox"
+                      aria-label="Include all employees"
+                      disabled={isProcessed}
+                      checked={holdDraft.size === 0}
+                      ref={(el) => {
+                        if (el) el.indeterminate = holdDraft.size > 0 && holdDraft.size < rows.length;
+                      }}
+                      onChange={(e) =>
+                        setHoldDraft(e.target.checked ? new Set() : new Set(rows.map((r) => r.id)))
+                      }
+                      className="h-4 w-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </th>
+                )}
                 <th className="px-4 py-3 font-medium w-[60px]"></th>
                 <th className="px-4 py-3 font-medium">Emp ID</th>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
                 <th className="px-4 py-3 font-medium" title="Total paid days (P + PH + ED)">Total Paid Days</th>
-                {showHoldColumn && <th className="px-4 py-3 font-medium">Pay status</th>}
                 {earningCols.map((n) => (
                   <th key={`h-e-${n}`} className="px-4 py-3 text-left font-medium" title={`Earned ${n}`}>{n}</th>
                 ))}
