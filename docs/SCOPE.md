@@ -407,3 +407,77 @@ This section lists every external integration planned for the Radiant Workforce 
 - **Google Gemini:** Document volume assumptions are indicative; actual cost will depend on pages scanned, image resolution, and extraction complexity.
 
 ---
+
+## 22. Data Migration Plan
+
+A structured, phase-wise data migration plan will be executed to move Radiant's existing operational data into the Radiant Workforce Platform without disrupting live operations. For every module listed below, a dedicated **migration utility / data loader** will be developed and tested before cutover. Each utility will support validation, dry-run, error reporting, and rollback capability.
+
+### 22.1 Migration Sequence
+
+The migration will follow a dependency-driven order so that master data is loaded before transactional data:
+
+````text
+Phase 1: Master Data
+  ├─ Employees (workforce master)
+  ├─ Organizations / Customers
+  ├─ Branches & States
+  ├─ Units (client sites)
+  └─ Client Contracts (with service lines, designation rates, statutory config)
+
+Phase 2: Historical Operations
+  ├─ Past attendance registers (muster rolls)
+  ├─ Leave balances and attendance codes
+  └─ Extra Duty / reliever historical records
+
+Phase 3: Financial & Compliance
+  ├─ Payroll runs (earnings, deductions, employer contributions)
+  ├─ Invoices (raised and pending)
+  ├─ Statutory compliances:
+  │   ├─ EPF (employee & employer, UAN mapping, wage ceiling history)
+  │   ├─ ESIC (employee & employer, IP number mapping)
+  │   ├─ Professional Tax (state-wise, gender-aware slabs)
+  │   ├─ Labour Welfare Fund (LWF)
+  │   ├─ Bonus accrual records
+  │   ├─ Gratuity accrual records
+  │   └─ GPAIP and recruitment fee ledgers
+
+Phase 4: Material & Assets
+  ├─ Inventory opening stock (warehouses, units)
+  ├─ Item master, vendor rate cards, purchase orders
+  ├─ Goods receipts, transfers, issuances, collections
+  ├─ Asset master and employee/unit assignments
+  └─ Vehicle fleet, insurance, PUC, FastTag, service history
+````
+
+### 22.2 Module-wise Migration Utilities
+
+| # | Module | Source Data Expected From Radiant | Migration Utility Output |
+|---|--------|-----------------------------------|--------------------------|
+| 1 | **Employees** | Employee master (personal, KYC, bank, family, designation, joining date, role, branch, primary/reliever unit mappings) | Validated employee records with auto-generated EMP codes; Aadhaar duplicate flagging routed to rehire workflow |
+| 2 | **Organizations** | Client company list with GSTIN, PAN, registered/billing addresses, contacts | Organization records with auto client codes (e.g., CLI4375) |
+| 3 | **Units** | Site/unit list with addresses, states, branches, sanctioned strength by designation, commercial switches (EPF cap, ESI, recruitment fee, GPAIP) | Unit records with auto unit codes (e.g., UN-CPL-BARAMATI) and deployment tree scaffolding |
+| 4 | **Client Contracts** | Contract headers, start/end/renewal dates, designation-wise pay/billing bifurcation, statutory applicability, billing type, payroll-days basis | Contract records with auto contract numbers (e.g., CON16021), linked service lines and cost-component configuration |
+| 5 | **Attendance** | Historical muster rolls / punch data (date-wise P/A/L/HD/WO/CL/SL/ED codes) | Window-aware attendance grids; hard cap validation against contract payroll-days basis; surplus P days converted to ED |
+| 6 | **Payroll** | Historical salary sheets, earnings, deductions, employer contributions, loan/advance/fine records | Period-wise payroll runs with statutory-accurate EPF/ESI/PT/LWF/Bonus/Gratuity/GPAIP/recruitment fee calculations |
+| 7 | **Invoicing** | Past invoices, billing rates, service charges, GST splits | Invoice records with CGST/SGST/IGST determination and P&L reconciliation against payroll |
+| 8 | **Statutory Compliance** | EPF/ESI/UAN/IP histories, PT/LWF payment records, bonus/gratuity accruals, FORM VII data | Compliance registers and expiry-tracked document records |
+| 9 | **Inventory** | Item master, opening stock by warehouse/unit, vendor master, PO/GRN/transfer/issuance history | Stock ledger, on-hand balances, demand/transfer workflows |
+| 10 | **Assets** | Asset categories, asset register, employee/unit assignments, loan/recovery schedules | Asset lifecycle records with recovery linkage to payroll deductions |
+| 11 | **Vehicles** | Vehicle inventory, ownership, insurance/PUC/FastTag/service logs, fuel/expense records | Fleet records with expiry alerts and Insight Lab analytics |
+
+### 22.3 Migration Approach
+
+- **Data templates:** Standardized Excel/CSV templates will be provided to Radiant for each module so the source data can be collected in the exact format the loader expects.
+- **Validation engine:** Every loader will run pre-validation (data type, referential integrity, duplicate detection, statutory rule checks) and produce an error report before any write operation.
+- **Dry-run mode:** Each utility supports a dry-run that simulates the full migration and reports counts, errors, and warnings without touching production data.
+- **Incremental loading:** Master data can be loaded incrementally; transactional data can be loaded period by period (month/window) to avoid lock contention.
+- **Audit trail:** Every migrated record will carry `created_by`, `created_at`, and a migration batch identifier so the origin of imported data remains traceable.
+- **Rollback plan:** A snapshot of the target database will be taken before each phase; rollback scripts will be maintained for the duration of the cutover window.
+
+### 22.4 Cutover & Sign-off
+
+- **UAT parallel run:** Migrated data will first be loaded into a UAT/staging environment where Radiant's operations team can reconcile reports against their existing records.
+- **Reconciliation reports:** Module-wise reconciliation reports (record counts, totals, sample spot checks) will be generated for sign-off.
+- **Go-live cutover:** After sign-off, the final migration utilities will be executed in a maintenance window, followed by smoke tests on login, attendance capture, payroll generation, and invoice generation.
+
+---
