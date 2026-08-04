@@ -557,7 +557,7 @@ All figures are indicative monthly costs at the expected operating load (7,000 r
 | 9 | **AWS Secrets Manager** | Per secret per month + API calls | ~USD 0.40 per secret / month; ~USD 0.05 per 10,000 API calls | 8 – 15 secrets | **INR 350 – 700** |
 | 10 | **Amazon ECR** (container image registry) | Storage per GB-month | ~USD 0.10 per GB-month | 5 – 15 GB of images | **INR 50 – 150** |
 | 11 | **Route 53** (DNS) | Per hosted zone + per million queries | ~USD 0.50 per hosted zone; ~USD 0.40 per million queries | 1 – 2 zones | **INR 100 – 200** |
-| 12 | **AWS WAF** (web application firewall) — **not included in base; billed on actuals, see Section 25** | Per web ACL + per rule + per million requests | ~USD 5.00 per web ACL; ~USD 1.00 per rule; ~USD 0.60 per million requests | 1 web ACL with managed rule groups | **INR 900 – 1,800 (additional)** |
+| 12 | **AWS WAF** (web application firewall) — **not included in base; billed on actuals, see Section 26** | Per web ACL + per rule + per million requests | ~USD 5.00 per web ACL; ~USD 1.00 per rule; ~USD 0.60 per million requests | 1 web ACL with managed rule groups | **INR 900 – 1,800 (additional)** |
 | 13 | **AWS Backup / snapshots, KMS, misc data transfer** | Storage, key usage, inter-AZ transfer | ~USD 1.00 per KMS key/month; snapshot storage per GB | Standard configuration | **INR 800 – 1,500** |
 | | **Total AWS** | | | | **INR ~24,000 – 41,000; budgeted at INR 25,000 – 35,000** |
 
@@ -1029,14 +1029,14 @@ The controls below are **security enhancements that are explicitly NOT included 
 |---|---|
 | Base hosting & platform security (Section 23) | **Included** — INR 25,000 – 35,000 / month AWS + USD 25 – 150 / month backend |
 | **Disaster Recovery (Section 24)** | **Not included — on actuals.** Warm standby: **INR 25,000 – 45,000 / month** delta + one-time 3 – 5 person-weeks setup. Backup & Restore alternative: **INR 8,000 – 15,000 / month** |
-| **Additional security hardening (Section 25)** | **Not included — on actuals.** Recommended starter bundle (WAF + rate limiting + Vault Lock + GuardDuty + CloudTrail lock + Object Lock): **INR ~10,000 – 25,000 / month** |
+| **Additional security hardening (Section 26)** | **Not included — on actuals.** Recommended starter bundle (WAF + rate limiting + Vault Lock + GuardDuty + CloudTrail lock + Object Lock): **INR ~10,000 – 25,000 / month** |
 | Shield Advanced, managed SOC, VAPT, SIEM | **Not included — on quotation / actuals** |
 
-All "on actuals" items are passed through at the actual AWS/vendor invoice value with no margin, plus the agreed implementation effort. Nothing in Sections 24 and 25 is enabled without prior written approval from the client.
+All "on actuals" items are passed through at the actual AWS/vendor invoice value with no margin, plus the agreed implementation effort. Nothing in Sections 24 and 26 is enabled without prior written approval from the client.
 
 ---
 
-## 26. Change Management Plan
+## 27. Change Management Plan
 
 A structured change-management process keeps the platform stable while new features, fixes and statutory updates are rolled out to ~7,000 users across web and native mobile.
 
@@ -1093,7 +1093,7 @@ For critical production defects (payroll incorrect, attendance data corruption, 
 
 ---
 
-## 27. Support Plan
+## 28. Support Plan
 
 A multi-channel support model is provided for end-users, field officers, HR, finance, operations and leadership.
 
