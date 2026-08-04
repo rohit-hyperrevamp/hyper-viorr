@@ -1595,7 +1595,6 @@ export function parsePostingOrderConfig(body: string): PostingOrderTemplateConfi
 export const DEFAULT_TEMPLATE_BODY: Partial<Record<DocType, string>> = {
   id_card: DEFAULT_ID_CARD_TEMPLATE,
   posting_order: serializePostingOrderConfig(DEFAULT_POSTING_ORDER_CONFIG),
-  wage_slip: DEFAULT_WAGE_SLIP_TEMPLATE,
 };
 
 /** Extra styles for the posting order letterhead, appended to the shared page CSS. */
@@ -1765,3 +1764,6 @@ export async function downloadWageSlipPdf(d: WageSlipData, fileName?: string): P
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+// Registered after declaration to avoid a temporal-dead-zone read at module init.
+DEFAULT_TEMPLATE_BODY.wage_slip = DEFAULT_WAGE_SLIP_TEMPLATE;
