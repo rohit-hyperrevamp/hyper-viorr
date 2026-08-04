@@ -35,6 +35,7 @@ import {
   type ContractResourceLike,
   type PincodeRangeLike,
   type PtSlabLike,
+  EXTRA_DUTY_COMPONENT_RE,
 } from "@/lib/payroll-calc";
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { openExport } from "@/lib/csv-export";
