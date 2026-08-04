@@ -658,7 +658,15 @@ function PayrollUnitPage() {
             state: unitState,
             pincode: unitPincode,
             gender: candidateGender,
-            earnedGross: wages.earnedGross,
+            // PT slabs are read on regular earned gross; extra duty never
+            // counts towards any deduction base.
+            earnedGross: Math.max(
+              0,
+              wages.earnedGross -
+                wages.components
+                  .filter((c) => EXTRA_DUTY_COMPONENT_RE.test(c.name))
+                  .reduce((s2, c) => s2 + (Number(c.amount) || 0), 0),
+            ),
             slabs: (ptSlabs ?? []) as PtSlabLike[],
             ranges: (pincodeRanges ?? []) as PincodeRangeLike[],
           });
