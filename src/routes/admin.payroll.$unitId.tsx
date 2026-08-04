@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Download, CheckCircle2, XCircle, Send, ChevronDown, ChevronUp, Banknote, PauseCircle, PlayCircle } from "lucide-react";
+import { ChevronLeft, Download, CheckCircle2, XCircle, Send, ChevronDown, ChevronUp, Banknote, PauseCircle, PlayCircle, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -41,6 +41,7 @@ import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { openExport } from "@/lib/csv-export";
 import { processPayrollRun } from "@/lib/payroll-process";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -879,6 +880,75 @@ function PayrollUnitPage() {
 
   const rows = data ?? [];
 
+  // ---- Form XVI wage slips -------------------------------------------------
+  const [slipBusy, setSlipBusy] = useState<string | null>(null);
+
+  const buildSlip = (r: (typeof rows)[number]): WageSlipData => {
+    const w = r.wages!;
+    const comps = (w.components ?? []) as NamedAmount[];
+    const pick = (re: RegExp) =>
+      comps.filter((c) => re.test(c.name)).reduce((s2, c) => s2 + (Number(c.amount) || 0), 0);
+    const basic = pick(/\bbasic\b/i);
+    const da = pick(/\bd\.?\s*a\.?\b|dearness/i);
+    const ed = pick(EXTRA_DUTY_COMPONENT_RE);
+    const other = Math.max(0, (Number(w.earnedGross) || 0) - basic - da - ed);
+    const deds = (w.deductions ?? []) as NamedAmount[];
+    const dedSum = (re: RegExp) =>
+      deds.filter((d) => re.test(d.name)).reduce((s2, d) => s2 + (Number(d.amount) || 0), 0);
+    const pf = dedSum(/\bepf\b|provident\s*fund|\bpf\b/i);
+    const esi = dedSum(/\besi(c)?\b/i);
+    const total = Number(w.totalDeductions) || 0;
+    return {
+      employeeName: r.name,
+      employeeCode: r.employeeCode,
+      designation: r.designation,
+      uan: r.uan || "",
+      bankAccountNumber: r.bankAccountNumber || "",
+      wagePeriod: `${fmtPretty(start)} – ${fmtPretty(end)}`,
+      period: `${fmtPretty(start)} – ${fmtPretty(end)}`,
+      establishmentAddress: [unit?.name, unit?.customer_name].filter(Boolean).join(", "),
+      rateBasic: basic,
+      rateDa: da,
+      rateOther: other,
+      totalAttendance: `${r.totals.tDays} paid day(s) (P ${r.totals.pDays} · PH ${r.totals.phDays} · ED ${r.totals.otDays})`,
+      extraDutyWages: ed,
+      grossWages: Number(w.earnedGross) || 0,
+      dedPf: pf,
+      dedEsi: esi,
+      dedOthers: Math.max(0, total - pf - esi),
+      totalDeductions: total,
+      netWages: Number(w.netPay) || 0,
+    };
+  };
+
+  const downloadSlip = async (r: (typeof rows)[number]) => {
+    if (!r.wages) return;
+    setSlipBusy(r.rowKey);
+    try {
+      await downloadWageSlipPdf(buildSlip(r));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not generate wage slip");
+    } finally {
+      setSlipBusy(null);
+    }
+  };
+
+  const downloadAllSlips = async () => {
+    const list = rows.filter((r) => r.wages);
+    if (list.length === 0) return;
+    setSlipBusy("__all__");
+    try {
+      for (const r of list) {
+        await downloadWageSlipPdf(buildSlip(r));
+      }
+      toast.success(`${list.length} wage slip(s) downloaded`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not generate wage slips");
+    } finally {
+      setSlipBusy(null);
+    }
+  };
+
   // Process payroll: park every computed money line into its permanent ledger.
   const processRun = useMutation({
     mutationFn: async () => {
@@ -1313,10 +1383,21 @@ function PayrollUnitPage() {
         >
           <ChevronLeft className="h-4 w-4" /> Back to payroll units
         </Link>
-        <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || rows.length === 0}>
-          <Download className="mr-1.5 h-4 w-4" />
-          {isLoading ? "Loading…" : "Export"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadAllSlips}
+            disabled={isLoading || rows.length === 0 || slipBusy !== null}
+          >
+            {slipBusy === "__all__" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileText className="mr-1.5 h-4 w-4" />}
+            Wage slips
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || rows.length === 0}>
+            <Download className="mr-1.5 h-4 w-4" />
+            {isLoading ? "Loading…" : "Export"}
+          </Button>
+        </div>
 
       </div>
 
@@ -1567,7 +1648,22 @@ function PayrollUnitPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{r.employeeCode || "—"}</td>
-                  <td className="px-4 py-3 font-medium">{r.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <div className="flex items-center gap-2">
+                      <span>{r.name}</span>
+                      {r.wages && (
+                        <button
+                          type="button"
+                          title="Download Form XVI wage slip"
+                          onClick={() => downloadSlip(r)}
+                          disabled={slipBusy !== null}
+                          className="inline-flex items-center justify-center rounded-lg border border-border/60 bg-background p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                        >
+                          {slipBusy === r.rowKey ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                        </button>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {r.designation}
                     {!r.wages && (
