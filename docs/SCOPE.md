@@ -627,9 +627,9 @@ Three DR postures were evaluated:
 2. **Standby application tier** — ECS Fargate service in the secondary region running a minimal task count (1 web task, worker at zero) from the same container image, scaled out on failover via auto-scaling policy.
 3. **Cross-region container registry replication** — ECR replication so the exact production image is already present in the DR region.
 4. **Static assets & documents** — S3 **Cross-Region Replication (CRR)** for the document/asset bucket; CloudFront configured with an origin group (primary origin + failover origin) so static delivery survives a region loss with no DNS change.
-5. **Database (Supabase / PostgreSQL)** — one of:
-   - Supabase **Point-in-Time Recovery** plus scheduled logical dumps shipped to a locked S3 bucket in the DR region (lower cost), or
-   - A **continuously replicated read replica / logical replication target** in the DR region promoted to primary on failover (lower RPO, higher cost).
+5. **Database** — strategy depends on the database selected after load testing:
+   - **Supabase / PostgreSQL:** Supabase **Point-in-Time Recovery** plus scheduled logical dumps shipped to a locked S3 bucket in the DR region (lower cost), or a **continuously replicated read replica / logical replication target** in the DR region promoted to primary on failover (lower RPO, higher cost).
+   - **MongoDB Atlas:** **Atlas cross-region replication** to a secondary node in Hyderabad (or Singapore), with automated cloud backups and snapshot export to a locked S3 bucket. On failover, the secondary region is promoted to primary through Atlas tooling.
 6. **Secrets & configuration** — AWS Secrets Manager multi-region secret replication so credentials exist in the DR region.
 7. **Infrastructure as Code** — the entire stack defined in Terraform/CDK so the standby is provably identical and can be re-created on demand.
 8. **Immutable backup vault** — AWS Backup with **Vault Lock (compliance mode)** in a separate AWS account: backups cannot be deleted or shortened by any operator, including a compromised administrator. This is the primary ransomware defence.
