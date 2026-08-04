@@ -2293,3 +2293,12 @@ function SummaryCell({ label, value, tone }: { label: string; value: number; ton
 }
 
 
+
+function ProcessLineItem({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={cn("tabular-nums", strong ? "text-base font-semibold" : "font-medium")}>{value}</span>
+    </div>
+  );
+}
