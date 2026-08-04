@@ -347,3 +347,16 @@ Settings · **System Logs**.
 | 14 | Dashboards | 7 |
 | 15 | Notifications | 4 |
 | 16 | Mobile (iOS + Android) | 8 |
+
+---
+
+## 20. Banking & Disbursement Integrations
+
+- **Bank integration** for direct salary disbursement from the payroll module.
+- **Tele file generation** in the format required by Tele's banking/specification standards, produced automatically per payroll run.
+- **API integration** with Tele / banking partner if supported by the provider, enabling straight-through payment posting and status callbacks.
+- Reconciliation of disbursement status (success / failure / pending) back against individual employee payroll records.
+
+---
+
+## 21. Module Count Summary
