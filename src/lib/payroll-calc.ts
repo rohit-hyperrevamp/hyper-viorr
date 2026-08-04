@@ -1167,11 +1167,17 @@ export function computeWages(
     employerGratuityAmount,
   );
 
-  const totalDeductions = deductions.reduce((s, d) => s + d.amount, 0);
-  const totalEmployerContributions = employerContributions.reduce(
-    (s, d) => s + d.amount,
-    0,
-  );
+  // Extra-duty-only lines (no regular earnings in this window) carry NO
+  // deductions and NO employer contributions at all.
+  const edOnly = earnedGrossExcludingEd <= 0 && earnedGross > 0;
+  if (edOnly) {
+    deductions.forEach((d) => { d.amount = 0; });
+    employerContributions.forEach((d) => { d.amount = 0; });
+  }
+  const totalDeductions = edOnly ? 0 : deductions.reduce((s, d) => s + d.amount, 0);
+  const totalEmployerContributions = edOnly
+    ? 0
+    : employerContributions.reduce((s, d) => s + d.amount, 0);
 
   const netPay = Math.max(0, round2(earnedGross - totalDeductions));
   const employerCost =
