@@ -844,3 +844,128 @@ The controls below are **security enhancements that are explicitly NOT included 
 All "on actuals" items are passed through at the actual AWS/vendor invoice value with no margin, plus the agreed implementation effort. Nothing in Sections 24 and 25 is enabled without prior written approval from the client.
 
 ---
+
+## 26. Change Management Plan
+
+A structured change-management process keeps the platform stable while new features, fixes and statutory updates are rolled out to ~7,000 users across web and native mobile.
+
+### 26.1 Release Cadence — 45-Day Maintenance Cycle
+
+| Phase | Duration | Calendar position | Purpose |
+|---|---|---|---|
+| **Sprint** | 30 days | Day 1 – Day 30 | Feature development, bug fixes, statutory/config changes, backlog grooming |
+| **QA & Staging** | 14 days | Day 31 – Day 44 | Functional, regression, security and mobile-app store testing; UAT sign-off |
+| **Production deployment + maintenance** | 1 day | Day 45 | Release to production, instance maintenance, post-release monitoring |
+| **Next cycle begins** | — | Day 46 | New sprint planning with prioritized change the change board |
+
+**Key rule:** every **45th day** is treated as a scheduled maintenance window. Production deployments happen on this day, not ad-hoc, unless a critical security or business-continuity fix is required.
+
+### 26.2 Change Request Process
+
+1. **Intake** — Business user / client sponsor logs a change request (CR) via email or the agreed support channel.
+2. **Triage** — Product owner and tech lead classify the CR as:
+   - **Standard** — fits the next 45-day release cycle.
+   - **Expedited** — security, compliance or revenue-impacting; may be hot-fixed outside the cycle.
+   - **Deferred** — low priority or out of scope; parked for a future cycle.
+3. **Impact assessment** — Effort, dependencies, affected modules (payroll, attendance, mobile app, etc.), regression risk and data-migration needs are documented.
+4. **Approval** — Client approves scope, effort and any cost impact before development begins.
+5. **Build & QA** — Changes are built in the 30-day sprint and hardened in the 14-day QA window.
+6. **Release note & communication** — A release note is shared at least 48 hours before Day 45, listing what is changing, who is affected and any action required.
+7. **Deploy & validate** — Production release on Day 45, followed by smoke tests and a 24-hour watch period.
+8. **Retro** — Sprint retrospective captures what went well, incidents and improvements for the next cycle.
+
+### 26.3 Environment Strategy
+
+| Environment | Purpose | Who accesses |
+|---|---|---|
+| **Development** | Active feature work | Internal engineering team |
+| **Staging / UAT** | Pre-release QA and client acceptance | QA, product owner, client business users |
+| **Production** | Live users | All end-users |
+
+No code reaches production without passing staging UAT. Mobile app binaries are submitted to App Store / Play Console during the QA phase so they are ready for release on Day 45.
+
+### 26.4 Communication & Training
+
+- **Release notes** — published before every Day-45 release.
+- **In-app banners** — used for high-impact changes (e.g., attendance workflow changes, new statutory deductions).
+- **Training sessions** — conducted for major modules (payroll, attendance, Radar) when the UX changes significantly.
+- **Admin guides** — updated in the shared documentation repository with every release.
+- **Rollback plan** — every release has a documented rollback procedure and a database snapshot taken before deployment.
+
+### 26.5 Emergency Change Protocol
+
+For critical production defects (payroll incorrect, attendance data corruption, auth failure, mobile crash):
+- A hot-fix branch is created immediately.
+- Fix is peer-reviewed and smoke-tested on staging.
+- Client is notified before and after deployment.
+- Post-incident report is shared within 48 hours.
+
+---
+
+## 27. Support Plan
+
+A multi-channel support model is provided for end-users, field officers, HR, finance, operations and leadership.
+
+### 27.1 Support Channels
+
+| Channel | How to reach | Best for |
+|---|---|---|
+| **Email support** | `support@radiantworkforce.in` (example; actual address configured at go-live) | Detailed issues, attachments (screenshots, payslip queries, document uploads), non-urgent requests |
+| **WhatsApp support** | Dedicated WhatsApp business number | Quick queries, screenshots, field officer issues, attendance/punch problems |
+| **SMS support** | Short-code / long-code SMS helpline | Users with no data connectivity; used for ticket creation and status updates |
+
+All channels feed into a single ticketing system so nothing is lost, and every request gets a ticket number for tracking.
+
+### 27.2 Support Hours
+
+| Tier | Hours | Coverage |
+|---|---|---|
+| **Standard support** | Monday – Saturday, 09:00 – 19:00 IST | General queries, functional help, minor bugs |
+| **Extended support** | Monday – Saturday, 07:00 – 22:00 IST | Payroll window days, month-end attendance closure, invoice generation periods |
+| **Critical / on-call** | 24 x 7 | Production downtime, data corruption, security incidents, auth failure, mobile app crash affecting attendance |
+
+### 27.3 Severity Levels & Response Targets
+
+| Severity | Definition | First response | Resolution target |
+|---|---|---|---|
+| **P1 — Critical** | Production down, payroll blocked, mass attendance failure, data breach / auth compromise | 30 minutes | 4 hours |
+| **P2 — High** | Major feature broken, invoice/payslip incorrect for a unit, mobile app crash on key workflow | 2 hours | 1 business day |
+| **P3 — Medium** | Non-critical bug, report formatting issue, minor UI defect, how-to question | 4 hours | 3 business days |
+| **P4 — Low** | Cosmetic issue, enhancement request, documentation update | 1 business day | Next 45-day release cycle |
+
+### 27.4 Escalation Path
+
+1. **L1 Support** — triage, basic how-to, password/reset help, ticket creation.
+2. **L2 Support / Product Team** — functional bugs, configuration issues, payroll/think, data fixes.
+3. **L3 Engineering** — code defects, database issues, mobile app crashes, integrations.
+4. **Client Success / Account Manager** — commercial, scope or SLA disputes.
+
+Escalation is automatic if a P1/P2 ticket is not acknowledged within the target time.
+
+### 27.5 Maintenance Windows
+
+- **Scheduled maintenance** happens every **45th day** as part of the release cycle.
+- Maintenance windows are communicated at least **72 hours in advance** via email, WhatsApp and in-app banner.
+- During maintenance, the web console may be in read-only mode; mobile attendance is queued locally and synced once service resumes.
+- **Emergency maintenance** (security patch, critical hot-fix) is communicated as soon as it is scheduled.
+
+### 27.6 What Is Covered vs. What Is Billable
+
+| Item | Coverage |
+|---|---|
+| Bugs/defects in delivered scope | Included |
+| How-to training and name/code changes, report formatting tweaks | Included (P3/P4) |
+| New modules, major workflow changes, third-party integration changes | Billable / scoped as a new CR |
+| Additional support hours beyond agreed SLA window | Billable on actuals |
+| Data recovery due to client-induced deletion | Billable on actuals |
+
+### 27.7 Reporting
+
+A monthly support report is shared with the client containing:
+- Ticket volume by channel (email, WhatsApp, SMS).
+- Ticket volume by severity and module.
+- Average first-response and resolution times.
+- Top recurring issues and preventive actions planned.
+- Upcoming release and maintenance schedule.
+
+---
