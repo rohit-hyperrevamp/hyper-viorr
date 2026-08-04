@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Download, CheckCircle2, XCircle, Send, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronLeft, Download, CheckCircle2, XCircle, Send, ChevronDown, ChevronUp, Banknote, PauseCircle, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -39,6 +39,7 @@ import {
 } from "@/lib/payroll-calc";
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { openExport } from "@/lib/csv-export";
+import { processPayrollRun } from "@/lib/payroll-process";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 
 const searchSchema = z.object({
@@ -229,6 +230,8 @@ function PayrollUnitPage() {
     rejection_reason: string | null;
     approved_at: string | null;
     submitted_at: string | null;
+    payroll_status: string | null;
+    payroll_processed_at: string | null;
   };
   const runQK = ["payroll-run", unitId, start, end];
   const { data: run } = useQuery({
@@ -236,7 +239,7 @@ function PayrollUnitPage() {
     queryFn: async (): Promise<RunRow | null> => {
       const { data, error } = await supabase
         .from("payroll_runs" as never)
-        .select("id, status, rejection_reason, approved_at, submitted_at")
+        .select("id, status, rejection_reason, approved_at, submitted_at, payroll_status, payroll_processed_at")
         .eq("unit_id", unitId)
         .eq("period_start", start)
         .eq("period_end", end)
@@ -246,6 +249,37 @@ function PayrollUnitPage() {
     },
   });
   const runStatus: RunStatus = run?.status ?? "draft";
+  const isProcessed = run?.payroll_status === "processed";
+
+  // Employees excluded from processing for this run.
+  const holdsQK = ["payroll-holds", run?.id ?? "none"];
+  const { data: savedHolds = [] } = useQuery({
+    queryKey: holdsQK,
+    enabled: !!run?.id,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase
+        .from("payroll_processing_holds" as never)
+        .select("candidate_id")
+        .eq("payroll_run_id", run!.id);
+      if (error) throw error;
+      return ((data ?? []) as unknown as { candidate_id: string }[]).map((h) => h.candidate_id);
+    },
+  });
+  const [holdDraft, setHoldDraft] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setHoldDraft(new Set(savedHolds));
+  }, [savedHolds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  const toggleHold = (candidateId: string) => {
+    setHoldDraft((prev) => {
+      const next = new Set(prev);
+      if (next.has(candidateId)) next.delete(candidateId);
+      else next.add(candidateId);
+      return next;
+    });
+  };
+
+  const [processOpen, setProcessOpen] = useState(false);
+  const [holdReason, setHoldReason] = useState("");
 
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -845,6 +879,61 @@ function PayrollUnitPage() {
 
   const rows = data ?? [];
 
+  // Process payroll: park every computed money line into its permanent ledger.
+  const processRun = useMutation({
+    mutationFn: async () => {
+      if (!run?.id) throw new Error("Payroll run not found");
+      const payloadRows = rows
+        .filter((r) => r.wages)
+        .map((r) => ({
+          candidateId: r.id,
+          employeeCode: r.employeeCode,
+          name: r.name,
+          deductions: (r.wages!.deductions ?? []).map((d) => ({ name: cleanLedgerName(d.name) || d.name, amount: Number(d.amount) || 0 })),
+          employerContributions: (r.wages!.employerContributions ?? []).map((d) => ({ name: d.name, amount: Number(d.amount) || 0 })),
+          additions: (((r.wages as unknown as { additions?: { name: string; amount: number }[] }).additions) ?? []).map((a) => ({
+            name: cleanLedgerName(a.name) || a.name,
+            amount: Number(a.amount) || 0,
+          })),
+          netPay: Number(r.wages!.netPay) || 0,
+        }));
+      const result = await processPayrollRun({
+        runId: run.id,
+        unitId,
+        unitLabel: (unit?.name as string) || (unit?.code as string) || unitId,
+        periodStart: start,
+        periodEnd: end,
+        rows: payloadRows,
+        heldCandidateIds: Array.from(holdDraft),
+        holdReason,
+      });
+      void logActivity({
+        module: "Payroll",
+        action: "process",
+        entityType: "payroll_runs",
+        entityLabel: `${unitId} ${start} → ${end}`,
+        details: { unit_id: unitId, period_start: start, period_end: end, ...result },
+      });
+      return result;
+    },
+    onSuccess: (res) => {
+      setProcessOpen(false);
+      queryClient.invalidateQueries({ queryKey: runQK });
+      queryClient.invalidateQueries({ queryKey: holdsQK });
+      queryClient.invalidateQueries({ queryKey: ["admin", "employer-contributions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "deductions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "additions"] });
+      toast.success(
+        `Payroll processed — ${res.processed} employee${res.processed === 1 ? "" : "s"} paid (${fmtINR(res.netTotal)}). ` +
+          `${res.deductionRows} deduction, ${res.employerRows} employer contribution and ${res.additionRows} add-on lines posted.` +
+          (res.held ? ` ${res.held} on hold.` : "") +
+          " Bank disbursement is not integrated yet — mark the transfer in your bank portal.",
+        { duration: 8000 },
+      );
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to process payroll"),
+  });
+
   useEffect(() => {
     if (!highlightCandidate || rows.length === 0) return;
     const el = document.getElementById(`payroll-row-${highlightCandidate}`);
@@ -911,8 +1000,10 @@ function PayrollUnitPage() {
   // expander + emp id + name + designation + total paid days
   // + earnings + earned gross + deductions + total deductions + net pay
   // + employer groups (+ employer cost when shown)
+  // Pay-status / hold column only matters once payroll is approved.
+  const showHoldColumn = runStatus === "approved";
   const registerColCount =
-    5 + earningCols.length + 1 + deductionCols.length + 1 + 1 + employerCols.length + (showEmployerCols ? 1 : 0);
+    5 + (showHoldColumn ? 1 : 0) + earningCols.length + 1 + deductionCols.length + 1 + 1 + employerCols.length + (showEmployerCols ? 1 : 0);
 
 
   const exportCsv = () => {
@@ -1314,13 +1405,69 @@ function PayrollUnitPage() {
           {runStatus === "submitted" && !canApprove && (
             <span className="text-xs text-muted-foreground">Awaiting leadership approval</span>
           )}
-          {runStatus === "approved" && canApprove && (
-            <Button size="sm" variant="outline" onClick={() => transitionRun.mutate({ status: "draft" })} disabled={transitionRun.isPending}>
-              <RotateCcw className="mr-1.5 h-4 w-4" /> Reopen
-            </Button>
+          {runStatus === "approved" && !isProcessed && (
+            <>
+              {holdDraft.size > 0 && (
+                <span className="text-xs font-medium text-amber-700">{holdDraft.size} on hold</span>
+              )}
+              <Button
+                size="sm"
+                className="bg-violet-600 hover:bg-violet-700"
+                onClick={() => setProcessOpen(true)}
+                disabled={processRun.isPending || rows.length === 0}
+              >
+                <Banknote className="mr-1.5 h-4 w-4" /> Process Payroll
+              </Button>
+            </>
+          )}
+          {isProcessed && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Payroll processed
+              {run?.payroll_processed_at ? ` · ${new Date(run.payroll_processed_at).toLocaleDateString("en-IN")}` : ""}
+            </span>
           )}
         </div>
       </div>
+
+      <Dialog open={processOpen} onOpenChange={setProcessOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Process payroll</DialogTitle>
+            <DialogDescription>
+              Attendance and payroll are approved and locked. Processing posts every line to its ledger.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 rounded-2xl border border-border/60 bg-muted/30 p-3 text-sm">
+            <ProcessLineItem label="Employees to be paid" value={String(rows.filter((r) => r.wages && !holdDraft.has(r.id)).length)} />
+            <ProcessLineItem label="On hold (excluded)" value={String(holdDraft.size)} />
+            <ProcessLineItem label="Deductions → Deductions ledger" value={fmtINR(totals.deductions)} />
+            <ProcessLineItem label="Employer contributions → Employer Contributions" value={fmtINR(totals.employerContrib)} />
+            <ProcessLineItem label="Net payable" value={fmtINR(totals.net)} strong />
+          </div>
+          {holdDraft.size > 0 && (
+            <Textarea
+              value={holdReason}
+              onChange={(e) => setHoldReason(e.target.value)}
+              placeholder="Reason for holding the excluded employees…"
+              rows={2}
+            />
+          )}
+          <p className="text-xs text-muted-foreground">
+            Bank disbursement is not integrated yet — record the actual transfer in your bank portal. Salary slips for
+            this unit will show <span className="font-semibold text-foreground">Paid</span> once processed.
+          </p>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="ghost" onClick={() => setProcessOpen(false)}>Cancel</Button>
+            <Button
+              className="bg-violet-600 hover:bg-violet-700"
+              onClick={() => processRun.mutate()}
+              disabled={processRun.isPending}
+            >
+              {processRun.isPending ? "Processing…" : "Process payroll"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent className="max-w-sm">
@@ -1373,6 +1520,7 @@ function PayrollUnitPage() {
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
                 <th className="px-4 py-3 font-medium" title="Total paid days (P + PH + ED)">Total Paid Days</th>
+                {showHoldColumn && <th className="px-4 py-3 font-medium">Pay status</th>}
                 {earningCols.map((n) => (
                   <th key={`h-e-${n}`} className="px-4 py-3 text-left font-medium" title={`Earned ${n}`}>{n}</th>
                 ))}
@@ -1432,6 +1580,34 @@ function PayrollUnitPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-left tabular-nums font-medium">{r.totals.tDays}</td>
+                  {showHoldColumn && (
+                    <td className="px-4 py-3">
+                      {isProcessed ? (
+                        holdDraft.has(r.id) ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
+                            <PauseCircle className="h-3 w-3" /> On hold
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
+                            <CheckCircle2 className="h-3 w-3" /> Paid
+                          </span>
+                        )
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => toggleHold(r.id)}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors",
+                            holdDraft.has(r.id)
+                              ? "border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200"
+                              : "border-border/60 bg-background text-muted-foreground hover:bg-muted",
+                          )}
+                        >
+                          {holdDraft.has(r.id) ? <><PauseCircle className="h-3 w-3" /> On hold</> : <><PlayCircle className="h-3 w-3" /> Include</>}
+                        </button>
+                      )}
+                    </td>
+                  )}
                   {earningCols.map((n) => (
                     <td key={`${r.rowKey}-e-${n}`} className="px-4 py-3 text-left tabular-nums">
                       {r.wages ? fmtINR(lookupAmount(r.wages.components as NamedAmount[], n)) : "—"}
@@ -2117,3 +2293,12 @@ function SummaryCell({ label, value, tone }: { label: string; value: number; ton
 }
 
 
+
+function ProcessLineItem({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={cn("tabular-nums", strong ? "text-base font-semibold" : "font-medium")}>{value}</span>
+    </div>
+  );
+}

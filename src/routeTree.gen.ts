@@ -37,6 +37,7 @@ import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 import { Route as AdminFieldDashboardRouteImport } from './routes/admin.field-dashboard'
 import { Route as AdminExServiceManagerRouteImport } from './routes/admin.ex-service-manager'
 import { Route as AdminEsicBranchManagerRouteImport } from './routes/admin.esic-branch-manager'
+import { Route as AdminEmployerContributionsRouteImport } from './routes/admin.employer-contributions'
 import { Route as AdminEmployeesRouteImport } from './routes/admin.employees'
 import { Route as AdminEmployeeDashboardRouteImport } from './routes/admin.employee-dashboard'
 import { Route as AdminDutyManagerRouteImport } from './routes/admin.duty-manager'
@@ -246,6 +247,12 @@ const AdminEsicBranchManagerRoute = AdminEsicBranchManagerRouteImport.update({
   path: '/esic-branch-manager',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminEmployerContributionsRoute =
+  AdminEmployerContributionsRouteImport.update({
+    id: '/employer-contributions',
+    path: '/employer-contributions',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminEmployeesRoute = AdminEmployeesRouteImport.update({
   id: '/employees',
   path: '/employees',
@@ -622,6 +629,7 @@ export interface FileRoutesByFullPath {
   '/admin/duty-manager': typeof AdminDutyManagerRoute
   '/admin/employee-dashboard': typeof AdminEmployeeDashboardRoute
   '/admin/employees': typeof AdminEmployeesRoute
+  '/admin/employer-contributions': typeof AdminEmployerContributionsRoute
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
@@ -717,6 +725,7 @@ export interface FileRoutesByTo {
   '/admin/duty-manager': typeof AdminDutyManagerRoute
   '/admin/employee-dashboard': typeof AdminEmployeeDashboardRoute
   '/admin/employees': typeof AdminEmployeesRoute
+  '/admin/employer-contributions': typeof AdminEmployerContributionsRoute
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
@@ -812,6 +821,7 @@ export interface FileRoutesById {
   '/admin/duty-manager': typeof AdminDutyManagerRoute
   '/admin/employee-dashboard': typeof AdminEmployeeDashboardRoute
   '/admin/employees': typeof AdminEmployeesRoute
+  '/admin/employer-contributions': typeof AdminEmployerContributionsRoute
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
@@ -910,6 +920,7 @@ export interface FileRouteTypes {
     | '/admin/duty-manager'
     | '/admin/employee-dashboard'
     | '/admin/employees'
+    | '/admin/employer-contributions'
     | '/admin/esic-branch-manager'
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
@@ -1005,6 +1016,7 @@ export interface FileRouteTypes {
     | '/admin/duty-manager'
     | '/admin/employee-dashboard'
     | '/admin/employees'
+    | '/admin/employer-contributions'
     | '/admin/esic-branch-manager'
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
@@ -1099,6 +1111,7 @@ export interface FileRouteTypes {
     | '/admin/duty-manager'
     | '/admin/employee-dashboard'
     | '/admin/employees'
+    | '/admin/employer-contributions'
     | '/admin/esic-branch-manager'
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
@@ -1376,6 +1389,13 @@ declare module '@tanstack/react-router' {
       path: '/esic-branch-manager'
       fullPath: '/admin/esic-branch-manager'
       preLoaderRoute: typeof AdminEsicBranchManagerRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/employer-contributions': {
+      id: '/admin/employer-contributions'
+      path: '/employer-contributions'
+      fullPath: '/admin/employer-contributions'
+      preLoaderRoute: typeof AdminEmployerContributionsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/employees': {
@@ -2006,6 +2026,7 @@ interface AdminRouteChildren {
   AdminDutyManagerRoute: typeof AdminDutyManagerRoute
   AdminEmployeeDashboardRoute: typeof AdminEmployeeDashboardRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
+  AdminEmployerContributionsRoute: typeof AdminEmployerContributionsRoute
   AdminEsicBranchManagerRoute: typeof AdminEsicBranchManagerRoute
   AdminExServiceManagerRoute: typeof AdminExServiceManagerRoute
   AdminFieldDashboardRoute: typeof AdminFieldDashboardRoute
@@ -2061,6 +2082,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminDutyManagerRoute: AdminDutyManagerRoute,
   AdminEmployeeDashboardRoute: AdminEmployeeDashboardRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
+  AdminEmployerContributionsRoute: AdminEmployerContributionsRoute,
   AdminEsicBranchManagerRoute: AdminEsicBranchManagerRoute,
   AdminExServiceManagerRoute: AdminExServiceManagerRoute,
   AdminFieldDashboardRoute: AdminFieldDashboardRoute,
@@ -2108,13 +2130,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

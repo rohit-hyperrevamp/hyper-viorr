@@ -1,11 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { CalendarDays, TrendingUp, TrendingDown } from "lucide-react";
+import { CalendarDays, TrendingUp, TrendingDown, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { to: "/admin/payroll", label: "Payroll", icon: CalendarDays },
   { to: "/admin/additions", label: "Additions", icon: TrendingUp },
   { to: "/admin/deductions", label: "Deductions", icon: TrendingDown },
+  { to: "/admin/employer-contributions", label: "Employer Contributions", icon: Building2 },
 ];
 
 export function PayrollTabs() {

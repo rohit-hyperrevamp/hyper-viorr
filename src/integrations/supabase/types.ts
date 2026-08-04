@@ -81,6 +81,8 @@ export type Database = {
           installments: number
           per_day_amount: number | null
           qty: number | null
+          source_kind: string
+          source_ref: string
           status: string
           updated_at: string
         }
@@ -102,6 +104,8 @@ export type Database = {
           installments?: number
           per_day_amount?: number | null
           qty?: number | null
+          source_kind?: string
+          source_ref?: string
           status?: string
           updated_at?: string
         }
@@ -123,6 +127,8 @@ export type Database = {
           installments?: number
           per_day_amount?: number | null
           qty?: number | null
+          source_kind?: string
+          source_ref?: string
           status?: string
           updated_at?: string
         }
@@ -1680,6 +1686,71 @@ export type Database = {
           version?: number
         }
         Relationships: []
+      }
+      employer_contributions: {
+        Row: {
+          amount: number
+          candidate_id: string
+          contribution_date: string
+          contribution_name: string
+          created_at: string
+          frequency: string
+          id: string
+          notes: string
+          payroll_run_id: string | null
+          period_end: string | null
+          period_start: string | null
+          source_kind: string
+          source_ref: string
+          status: string
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          candidate_id: string
+          contribution_date?: string
+          contribution_name: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          notes?: string
+          payroll_run_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          source_kind?: string
+          source_ref?: string
+          status?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          candidate_id?: string
+          contribution_date?: string
+          contribution_name?: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          notes?: string
+          payroll_run_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          source_kind?: string
+          source_ref?: string
+          status?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_contributions_payroll_run_id_fkey"
+            columns: ["payroll_run_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       esic_branches: {
         Row: {
@@ -3593,6 +3664,50 @@ export type Database = {
           weekly_off_day?: number | null
         }
         Relationships: []
+      }
+      payroll_processing_holds: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          payroll_run_id: string
+          reason: string
+          status: string
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payroll_run_id: string
+          reason?: string
+          status?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payroll_run_id?: string
+          reason?: string
+          status?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_processing_holds_payroll_run_id_fkey"
+            columns: ["payroll_run_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payroll_runs: {
         Row: {
