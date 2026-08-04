@@ -358,5 +358,3 @@ Settings · **System Logs**.
 - Reconciliation of disbursement status (success / failure / pending) back against individual employee payroll records.
 
 ---
-
-## 21. Module Count Summary
