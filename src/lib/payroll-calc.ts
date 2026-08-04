@@ -1167,11 +1167,31 @@ export function computeWages(
     employerGratuityAmount,
   );
 
+  // ---- EPF wage-ceiling clamp ----
+  // No EPF line (employee or employer, however it is configured — percentage,
+  // formula or flat) may ever exceed its percentage applied to the PF wage
+  // ceiling. Unit policy `epfCapEnabled === false` opts out of the ceiling.
+  const clampEpf = (items: WageComponent[], contractItems: BenefitLike[]): WageComponent[] => {
+    if (epfCapPolicy === false) return items;
+    return items.map((i) => {
+      if (!EPF_NAME_RE.test(i.name)) return i;
+      const src = contractItems.find((c) => EPF_NAME_RE.test(c.name));
+      const ceiling = Number(src?.capAmount) > 0 ? Number(src?.capAmount) : EPF_WAGE_CEILING;
+      const pct = Number(src?.percentage) > 0 ? Number(src?.percentage) : 12;
+      const maxAmount = Number(src?.capFlatAmount) > 0
+        ? round2(Number(src?.capFlatAmount))
+        : round2((pct * ceiling) / 100);
+      return i.amount > maxAmount ? { ...i, amount: maxAmount } : i;
+    });
+  };
+
   // Extra-duty-only lines (no regular earnings in this window) carry NO
   // deductions and NO employer contributions at all.
   const edOnly = earnedGrossExcludingEd <= 0 && earnedGross > 0;
-  const finalDeductions = edOnly ? [] : deductions;
-  const finalEmployerContributions = edOnly ? [] : employerContributions;
+  const finalDeductions = edOnly ? [] : clampEpf(deductions, resource.deductions);
+  const finalEmployerContributions = edOnly
+    ? []
+    : clampEpf(employerContributions, resource.employerContributions);
   const totalDeductions = finalDeductions.reduce((s, d) => s + d.amount, 0);
   const totalEmployerContributions = finalEmployerContributions.reduce(
     (s, d) => s + d.amount,
