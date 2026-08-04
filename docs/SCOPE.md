@@ -510,10 +510,14 @@ The platform is deployed on a hybrid model: **AWS (Mumbai, ap-south-1)** hosts t
 - **VPC & private networking** — Application containers have no public IP. Outbound calls (Supabase, bank APIs, WhatsApp, Gemini) route through a NAT gateway; inbound traffic arrives only through the ALB.
 - **AWS Secrets Manager** — Central store for all credentials with rotation support. No secret is committed to the repository or baked into an image.
 - **CloudWatch** — Centralised logging and metrics with alarms on 5xx rate, task health, latency and auto-scaling events; log retention configured for audit needs.
-- **Supabase PostgreSQL** — The system of record for all employees, units, contracts, attendance, payroll, invoicing, inventory, assets and compliance data. Row-Level Security enforces branch/unit/role scoping at the database layer, so access rules cannot be bypassed by the client. Point-in-time recovery and daily backups are enabled on the paid plan.
-- **Supabase Auth** — Handles user identity, JWT issuance, session refresh, OTP flows and integration with device biometrics (Face ID / fingerprint) on the mobile apps.
-- **Supabase Storage** — Bucketed file storage for KYC documents, photographs, uniform/asset images and signed attendance evidence, protected by the same RLS-driven access policies.
-- **Supabase Realtime & pg_cron** — Powers live dashboards (Radar tracking, coverage tiles) and scheduled jobs such as annual GPAIP accrual, document-expiry alerts and daily attendance derivation.
+- **Supabase PostgreSQL (primary path)** — The system of record for all employees, units, contracts, attendance, payroll, invoicing, inventory, assets and compliance data. Row-Level Security enforces branch/unit/role scoping at the database layer, so access rules cannot be bypassed by the client. Point-in-time recovery and daily backups are enabled on the paid plan.
+- **MongoDB Atlas (alternative path)** — Document database option evaluated under load testing. Provides horizontal scaling via sharding, flexible schema for evolving compliance forms, and Atlas Search for fast guard/client lookup. Access control, audit logging and encryption are configured at the Atlas project level; application-layer middleware enforces branch/unit/role scoping equivalent to PostgreSQL RLS.
+- **Supabase Auth (primary path)** — Handles user identity, JWT issuance, session refresh, OTP flows and integration with device biometrics (Face ID / fingerprint) on the mobile apps.
+- **MongoDB-backed Auth (alternative path)** — If MongoDB is selected, authentication is implemented with AWS Cognito or a self-managed JWT/OTP service inside Fargate, still integrating with device biometrics on mobile.
+- **Supabase Storage (primary path)** — Bucketed file storage for KYC documents, photographs, uniform/asset images and signed attendance evidence, protected by the same RLS-driven access policies.
+- **S3-backed Storage (alternative path)** — If MongoDB is selected, document and image storage moves to encrypted S3 buckets with signed-URL access controlled by the application tier.
+- **Supabase Realtime & pg_cron (primary path)** — Powers live dashboards (Radar tracking, coverage tiles) and scheduled jobs such as annual GPAIP accrual, document-expiry alerts and daily attendance derivation.
+- **MongoDB Change Streams / Atlas Triggers (alternative path)** — Provides realtime notifications and scheduled data jobs if the MongoDB route is chosen.
 
 ### 23.3 Scalability Posture
 
