@@ -1619,3 +1619,149 @@ export const POSTING_ORDER_CSS = `
 .govdoc .po-divider { border-top: 1px dashed #666; margin: 18px 0; }
 .govdoc .po-email .k { width: 150px; }
 `;
+
+/* ------------------------------------------------------------------ */
+/* Form XVI — Wage Slip                                                */
+/* ------------------------------------------------------------------ */
+
+export const DEFAULT_WAGE_SLIP_TEMPLATE = `<div class="wage-slip-doc">
+  <div class="doc-title">FORM XVI</div>
+  <div class="doc-rule" style="font-weight:400">(See rule 72(2))</div>
+  <div class="doc-sub">Wage slip</div>
+
+  <table class="plain ws-head">
+    <tr><td>Date of issue: <b>$issue_date</b></td><td class="right">Period: <b>$period</b></td></tr>
+    <tr><td colspan="2">Name of the Establishment: <b>$company_name</b></td></tr>
+    <tr><td colspan="2">Address: $establishment_address</td></tr>
+  </table>
+
+  <table class="ws-table">
+    <tr><td class="n">1.</td><td class="k">Name of the Employee</td><td class="v" colspan="3">$employee_name</td></tr>
+    <tr><td class="n">2.</td><td class="k">Employee ID</td><td class="v" colspan="3">$employee_code</td></tr>
+    <tr><td class="n">3.</td><td class="k">Designation</td><td class="v" colspan="3">$designation</td></tr>
+    <tr><td class="n">4.</td><td class="k">UAN</td><td class="v" colspan="3">$uan</td></tr>
+    <tr><td class="n">5.</td><td class="k">Bank Account Number</td><td class="v" colspan="3">$bank_account_number</td></tr>
+    <tr><td class="n">6.</td><td class="k">Wage period</td><td class="v" colspan="3">$wage_period</td></tr>
+    <tr>
+      <td class="n">7.</td><td class="k">Rate of wages payable</td>
+      <td class="v">a) Basic<br/><b>$rate_basic</b></td>
+      <td class="v">b) D.A.<br/><b>$rate_da</b></td>
+      <td class="v">c) Other allowances<br/><b>$rate_other</b></td>
+    </tr>
+    <tr><td class="n">8.</td><td class="k">Total attendance/unit of work done</td><td class="v" colspan="3">$total_attendance</td></tr>
+    <tr><td class="n">9.</td><td class="k">Extra duty wages</td><td class="v" colspan="3">$extra_duty_wages</td></tr>
+    <tr><td class="n">10.</td><td class="k">Gross wages payable</td><td class="v" colspan="3"><b>$gross_wages</b></td></tr>
+    <tr>
+      <td class="n">11.</td><td class="k">Total deductions <b>$total_deductions</b></td>
+      <td class="v">a) PF<br/><b>$ded_pf</b></td>
+      <td class="v">b) ESI<br/><b>$ded_esi</b></td>
+      <td class="v">c) Others<br/><b>$ded_others</b></td>
+    </tr>
+    <tr><td class="n">12.</td><td class="k">Net wages paid</td><td class="v" colspan="3"><b>$net_wages</b></td></tr>
+  </table>
+
+  <div class="ws-sign">
+    <img class="ws-stamp" src="$company_stamp" alt="" />
+    <div class="sign-line">Employer / Pay-in-charge signature</div>
+  </div>
+</div>`;
+
+export const WAGE_SLIP_CSS = `
+.govdoc .wage-slip-doc { font-size: 13px; }
+.govdoc .wage-slip-doc .ws-head { width: 100%; margin: 14px 0 10px; font-size: 12.5px; }
+.govdoc .wage-slip-doc .ws-head td { padding: 2px 0; }
+.govdoc .wage-slip-doc .ws-head .right { text-align: right; }
+.govdoc .wage-slip-doc .ws-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.govdoc .wage-slip-doc .ws-table td { border: 1px solid #000; padding: 6px 8px; vertical-align: top; }
+.govdoc .wage-slip-doc .ws-table .n { width: 28px; text-align: center; }
+.govdoc .wage-slip-doc .ws-table .k { width: 240px; }
+.govdoc .wage-slip-doc .ws-table .v { text-align: left; }
+.govdoc .wage-slip-doc .ws-sign { margin-top: 26px; text-align: right; }
+.govdoc .wage-slip-doc .ws-stamp { height: 74px; object-fit: contain; display: inline-block; }
+.govdoc .wage-slip-doc .sign-line { font-size: 12px; margin-top: 2px; }
+`;
+
+export type WageSlipData = {
+  employeeName: string;
+  employeeCode: string;
+  designation: string;
+  uan: string;
+  bankAccountNumber: string;
+  wagePeriod: string;
+  period: string;
+  establishmentAddress: string;
+  rateBasic: number;
+  rateDa: number;
+  rateOther: number;
+  totalAttendance: string;
+  extraDutyWages: number;
+  grossWages: number;
+  dedPf: number;
+  dedEsi: number;
+  dedOthers: number;
+  totalDeductions: number;
+  netWages: number;
+};
+
+function inr(n: number): string {
+  return `₹${(Math.round((Number(n) || 0) * 100) / 100).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+export function buildWageSlipPlaceholderMap(d: WageSlipData): Record<string, string> {
+  return {
+    issue_date: fmtDate(new Date().toISOString()),
+    period: d.period || "_______",
+    company_name: "Radiant Guard Services Pvt. Ltd.",
+    establishment_address: d.establishmentAddress || COMPANY_CONTACT.address,
+    employee_name: d.employeeName || "_______",
+    employee_code: d.employeeCode || "_______",
+    designation: d.designation || "_______",
+    uan: d.uan || "—",
+    bank_account_number: d.bankAccountNumber || "—",
+    wage_period: d.wagePeriod || d.period || "_______",
+    rate_basic: inr(d.rateBasic),
+    rate_da: inr(d.rateDa),
+    rate_other: inr(d.rateOther),
+    total_attendance: d.totalAttendance || "—",
+    extra_duty_wages: inr(d.extraDutyWages),
+    gross_wages: inr(d.grossWages),
+    ded_pf: inr(d.dedPf),
+    ded_esi: inr(d.dedEsi),
+    ded_others: inr(d.dedOthers),
+    total_deductions: inr(d.totalDeductions),
+    net_wages: inr(d.netWages),
+    company_stamp: absoluteAssetUrl(COMPANY_STAMP_URL),
+    company_logo: absoluteAssetUrl(COMPANY_LOGO_URL),
+  };
+}
+
+/** Fetch the active wage slip template body, falling back to the built-in default. */
+export async function getWageSlipTemplateBody(): Promise<string> {
+  const { data } = await supabase
+    .from("company_document_templates")
+    .select("body")
+    .eq("doc_type", "wage_slip")
+    .eq("is_active", true)
+    .eq("is_archived", false)
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data?.body as string) || DEFAULT_WAGE_SLIP_TEMPLATE;
+}
+
+/** Render + download a Form XVI wage slip PDF for one employee. */
+export async function downloadWageSlipPdf(d: WageSlipData, fileName?: string): Promise<void> {
+  const body = renderTemplate(await getWageSlipTemplateBody(), buildWageSlipPlaceholderMap(d));
+  const blob = await generateHtmlDocumentPdf({ body });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName || `Wage-Slip-${d.employeeCode || d.employeeName}-${d.period}.pdf`.replace(/\s+/g, "-");
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
