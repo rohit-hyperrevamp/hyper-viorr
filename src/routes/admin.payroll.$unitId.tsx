@@ -1578,6 +1578,34 @@ function PayrollUnitPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-left tabular-nums font-medium">{r.totals.tDays}</td>
+                  {showHoldColumn && (
+                    <td className="px-4 py-3">
+                      {isProcessed ? (
+                        holdDraft.has(r.id) ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
+                            <PauseCircle className="h-3 w-3" /> On hold
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
+                            <CheckCircle2 className="h-3 w-3" /> Paid
+                          </span>
+                        )
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => toggleHold(r.id)}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors",
+                            holdDraft.has(r.id)
+                              ? "border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200"
+                              : "border-border/60 bg-background text-muted-foreground hover:bg-muted",
+                          )}
+                        >
+                          {holdDraft.has(r.id) ? <><PauseCircle className="h-3 w-3" /> On hold</> : <><PlayCircle className="h-3 w-3" /> Include</>}
+                        </button>
+                      )}
+                    </td>
+                  )}
                   {earningCols.map((n) => (
                     <td key={`${r.rowKey}-e-${n}`} className="px-4 py-3 text-left tabular-nums">
                       {r.wages ? fmtINR(lookupAmount(r.wages.components as NamedAmount[], n)) : "—"}
