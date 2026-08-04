@@ -482,9 +482,11 @@ Phase 4: Material & Assets
 
 ---
 
-## 23. Hosting Architecture & Infrastructure Cost (AWS + Supabase)
+## 23. Hosting Architecture & Infrastructure Cost (AWS + Database)
 
-The platform is deployed on a hybrid model: **AWS (Mumbai, ap-south-1)** hosts the application tier and static/CDN delivery, while **Supabase** provides the managed PostgreSQL backend, authentication, storage and realtime layer. This split keeps the stack production-grade and horizontally scalable without the cost and operational overhead of self-managing a database cluster.
+The platform is deployed on a hybrid model: **AWS (Mumbai, ap-south-1)** hosts the application tier and static/CDN delivery, while the backend database layer will be either **Supabase (managed PostgreSQL)** or **MongoDB (managed NoSQL)**. Both options are kept contractually open and the final selection will be made after load testing and data-access pattern validation. This split keeps the stack production-grade and horizontally scalable without the cost and operational overhead of self-managing a database cluster.
+
+> **Database decision note:** Supabase/PostgreSQL is the current implementation and is preferred for relational integrity, complex payroll/invoice joins, Row-Level Security and mature auth/storage integrations. MongoDB is included as an alternative should load testing prove that document-oriented scaling, sharding or specific read-heavy reporting patterns deliver materially better performance or cost at 7,000 employees. The contract covers both; the final choice is confirmed before production go-live.
 
 ### 23.1 Architecture Summary
 
@@ -497,7 +499,7 @@ The platform is deployed on a hybrid model: **AWS (Mumbai, ap-south-1)** hosts t
 | Networking | **VPC, private subnets, NAT, Security Groups** | Compute runs in private subnets; only the ALB is internet-facing |
 | Secrets | **AWS Secrets Manager / SSM Parameter Store** | Stores API keys, service credentials and connection strings; injected into Fargate tasks at runtime |
 | Observability | **CloudWatch Logs, Metrics, Alarms** | Container logs, error-rate and latency alarms, auto-scaling triggers |
-| Backend data | **Supabase (managed PostgreSQL)** | Primary transactional database with Row-Level Security, PostgREST Data API, Auth (JWT/OTP/biometric session), Storage buckets, Realtime channels and scheduled `pg_cron` jobs |
+| Backend data | **Supabase (PostgreSQL)** or **MongoDB (NoSQL)** — to be finalized after load testing | Primary transactional database. PostgreSQL path uses Row-Level Security, PostgREST Data API, Auth, Storage, Realtime and `pg_cron`. MongoDB path uses document collections with equivalent application-level access control, Atlas Search and change streams; Auth/Storage handled by AWS/self-managed services if Supabase is not used |
 
 ### 23.2 Component Descriptions
 
@@ -508,22 +510,28 @@ The platform is deployed on a hybrid model: **AWS (Mumbai, ap-south-1)** hosts t
 - **VPC & private networking** — Application containers have no public IP. Outbound calls (Supabase, bank APIs, WhatsApp, Gemini) route through a NAT gateway; inbound traffic arrives only through the ALB.
 - **AWS Secrets Manager** — Central store for all credentials with rotation support. No secret is committed to the repository or baked into an image.
 - **CloudWatch** — Centralised logging and metrics with alarms on 5xx rate, task health, latency and auto-scaling events; log retention configured for audit needs.
-- **Supabase PostgreSQL** — The system of record for all employees, units, contracts, attendance, payroll, invoicing, inventory, assets and compliance data. Row-Level Security enforces branch/unit/role scoping at the database layer, so access rules cannot be bypassed by the client. Point-in-time recovery and daily backups are enabled on the paid plan.
-- **Supabase Auth** — Handles user identity, JWT issuance, session refresh, OTP flows and integration with device biometrics (Face ID / fingerprint) on the mobile apps.
-- **Supabase Storage** — Bucketed file storage for KYC documents, photographs, uniform/asset images and signed attendance evidence, protected by the same RLS-driven access policies.
-- **Supabase Realtime & pg_cron** — Powers live dashboards (Radar tracking, coverage tiles) and scheduled jobs such as annual GPAIP accrual, document-expiry alerts and daily attendance derivation.
+- **Supabase PostgreSQL (primary path)** — The system of record for all employees, units, contracts, attendance, payroll, invoicing, inventory, assets and compliance data. Row-Level Security enforces branch/unit/role scoping at the database layer, so access rules cannot be bypassed by the client. Point-in-time recovery and daily backups are enabled on the paid plan.
+- **MongoDB Atlas (alternative path)** — Document database option evaluated under load testing. Provides horizontal scaling via sharding, flexible schema for evolving compliance forms, and Atlas Search for fast guard/client lookup. Access control, audit logging and encryption are configured at the Atlas project level; application-layer middleware enforces branch/unit/role scoping equivalent to PostgreSQL RLS.
+- **Supabase Auth (primary path)** — Handles user identity, JWT issuance, session refresh, OTP flows and integration with device biometrics (Face ID / fingerprint) on the mobile apps.
+- **MongoDB-backed Auth (alternative path)** — If MongoDB is selected, authentication is implemented with AWS Cognito or a self-managed JWT/OTP service inside Fargate, still integrating with device biometrics on mobile.
+- **Supabase Storage (primary path)** — Bucketed file storage for KYC documents, photographs, uniform/asset images and signed attendance evidence, protected by the same RLS-driven access policies.
+- **S3-backed Storage (alternative path)** — If MongoDB is selected, document and image storage moves to encrypted S3 buckets with signed-URL access controlled by the application tier.
+- **Supabase Realtime & pg_cron (primary path)** — Powers live dashboards (Radar tracking, coverage tiles) and scheduled jobs such as annual GPAIP accrual, document-expiry alerts and daily attendance derivation.
+- **MongoDB Change Streams / Atlas Triggers (alternative path)** — Provides realtime notifications and scheduled data jobs if the MongoDB route is chosen.
 
 ### 23.3 Scalability Posture
 
-- 7,000 registered users translate to a few hundred to low-thousand concurrent sessions at attendance and payroll peaks; the Fargate + Supabase combination absorbs this comfortably.
-- Horizontal scaling is achieved by increasing Fargate task count (auto-scaling policy) and, on the data side, by moving up Supabase compute tiers and adding read replicas if reporting load grows.
+- 7,000 registered users translate to a few hundred to low-thousand concurrent sessions at attendance and payroll peaks; the Fargate + Supabase combination absorbs this comfortably, and the Fargate + MongoDB Atlas combination is expected to scale similarly with appropriate indexing and sharding.
+- Horizontal scaling is achieved by increasing Fargate task count (auto-scaling policy). On the data side: Supabase scales by moving up compute tiers and adding read replicas; MongoDB scales vertically and horizontally via sharding/partitioning if load testing justifies it.
+- A formal load-testing cycle will compare PostgreSQL vs MongoDB response times for the heaviest operations (bulk payroll generation, attendance roster load, invoice aggregation, guard search) before the database is finalized.
 - Long-running jobs (bulk payroll generation, invoice PDF batches, migration loaders) run on a separate worker service so they never block the interactive web API.
 
 ### 23.4 Infrastructure Cost (Included in Scope)
 
 | Component | Plan / Sizing | Indicative Monthly Cost | Commercial Treatment |
 |-----------|---------------|-------------------------|----------------------|
-| **Supabase** | Paid plan (Pro tier and above, sized to load) | **USD 25 – USD 150 per month** | **Included** |
+| **Database — Supabase (PostgreSQL)** | Paid plan (Pro tier and above, sized to load) | **USD 25 – USD 150 per month** | **Included** |
+| **Database — MongoDB Atlas (NoSQL)** | M10/M30 tier or equivalent, sized to load; includes backups & monitoring | **USD 60 – USD 200 per month (~INR 5,400 – 18,000)** | **Included** |
 | **AWS (ECS Fargate + S3 + CloudFront + ALB + CloudWatch + supporting services)** | Mumbai region (ap-south-1), auto-scaled | **INR 25,000 – INR 35,000 per month** | **Included** |
 
 - Both hosting costs above are **included** in the engagement; no separate infrastructure billing is raised for the ranges stated.
@@ -553,14 +561,16 @@ All figures are indicative monthly costs at the expected operating load (7,000 r
 | 13 | **AWS Backup / snapshots, KMS, misc data transfer** | Storage, key usage, inter-AZ transfer | ~USD 1.00 per KMS key/month; snapshot storage per GB | Standard configuration | **INR 800 – 1,500** |
 | | **Total AWS** | | | | **INR ~24,000 – 41,000; budgeted at INR 25,000 – 35,000** |
 
-**Supabase (backend) — separate from AWS:**
+**Database backend — separate from AWS (either Supabase PostgreSQL or MongoDB Atlas):**
 
 | Plan | What it includes | Cost |
 |------|------------------|------|
 | **Supabase Pro** | Dedicated project compute, 8 GB database storage baseline, 100 GB file storage, daily backups, 7-day point-in-time recovery, 100,000 monthly active auth users, email support | **USD 25 per month (~INR 2,250)** |
 | **Supabase Pro with scaled compute / add-ons** | Larger compute instance (more CPU/RAM for reporting and payroll load), extended PITR, additional database and file storage, higher egress | **USD 60 – 150 per month (~INR 5,400 – 13,500)** |
+| **MongoDB Atlas M10 / M30** | Managed MongoDB cluster, 10–40 GB storage baseline, automated backups, monitoring, Atlas Search, encryption at rest | **USD 60 – 120 per month (~INR 5,400 – 10,800)** |
+| **MongoDB Atlas with scaling / add-ons** | Larger tier (M40+), sharding, extended backups, higher ops/sec, cross-region replica | **USD 120 – 200 per month (~INR 10,800 – 18,000)** |
 
-Expected steady state is **USD 25 – 150 per month**, i.e. approximately **INR 2,250 – 13,500 per month**, and this is **included** in the engagement.
+Expected steady state is **USD 25 – 200 per month** depending on the chosen database and load, i.e. approximately **INR 2,250 – 18,000 per month**, and this is **included** in the engagement. The final database and tier are selected after load testing; both Supabase and MongoDB costs are contractually covered.
 
 **Notes on cost behaviour**
 
@@ -617,9 +627,9 @@ Three DR postures were evaluated:
 2. **Standby application tier** — ECS Fargate service in the secondary region running a minimal task count (1 web task, worker at zero) from the same container image, scaled out on failover via auto-scaling policy.
 3. **Cross-region container registry replication** — ECR replication so the exact production image is already present in the DR region.
 4. **Static assets & documents** — S3 **Cross-Region Replication (CRR)** for the document/asset bucket; CloudFront configured with an origin group (primary origin + failover origin) so static delivery survives a region loss with no DNS change.
-5. **Database (Supabase / PostgreSQL)** — one of:
-   - Supabase **Point-in-Time Recovery** plus scheduled logical dumps shipped to a locked S3 bucket in the DR region (lower cost), or
-   - A **continuously replicated read replica / logical replication target** in the DR region promoted to primary on failover (lower RPO, higher cost).
+5. **Database** — strategy depends on the database selected after load testing:
+   - **Supabase / PostgreSQL:** Supabase **Point-in-Time Recovery** plus scheduled logical dumps shipped to a locked S3 bucket in the DR region (lower cost), or a **continuously replicated read replica / logical replication target** in the DR region promoted to primary on failover (lower RPO, higher cost).
+   - **MongoDB Atlas:** **Atlas cross-region replication** to a secondary node in Hyderabad (or Singapore), with automated cloud backups and snapshot export to a locked S3 bucket. On failover, the secondary region is promoted to primary through Atlas tooling.
 6. **Secrets & configuration** — AWS Secrets Manager multi-region secret replication so credentials exist in the DR region.
 7. **Infrastructure as Code** — the entire stack defined in Terraform/CDK so the standby is provably identical and can be re-created on demand.
 8. **Immutable backup vault** — AWS Backup with **Vault Lock (compliance mode)** in a separate AWS account: backups cannot be deleted or shortened by any operator, including a compromised administrator. This is the primary ransomware defence.
@@ -695,7 +705,7 @@ Everything below is **DR-only incremental cost**. It excludes the base productio
 | 7 | S3 storage in DR region (replicated copy of documents/assets) | $0.025 per GB-month (S3 Standard, Hyderabad) | 250 GB | **560 – 900** |
 | 8 | S3 Cross-Region Replication — replication PUT requests | $0.005 per 1,000 PUTs | ~300k objects/month | **135 – 300** |
 | 9 | Cross-region data transfer (S3 CRR + app replication egress) | $0.086 per GB inter-region | ~150 GB/month | **1,160 – 3,000** |
-| 10 | Database replication target / cross-region PITR (Supabase read replica add-on **or** self-managed logical replica on RDS) | Supabase read replica add-on from ~$100/mo; or db.t4g.medium replica ~$0.096/hr + storage | 1 replica + 120 GB storage | **6,500 – 14,000** |
+| 10 | Database replication target / cross-region PITR — **Supabase read replica add-on, RDS logical replica, or MongoDB Atlas cross-region node** | Supabase read replica add-on from ~$100/mo; or db.t4g.medium replica ~$0.096/hr + storage; or MongoDB Atlas multi-region cluster add-on ~$60–150/mo | 1 replica + 120 GB storage | **6,500 – 14,000** |
 | 11 | Scheduled logical dumps to locked S3 bucket in DR region | S3 storage + PUT | 120 GB retained | **300 – 700** |
 | 12 | AWS Backup — cross-region + cross-account copies with Vault Lock | $0.05 per GB-month warm backup + $0.086/GB copy transfer | 120 GB + monthly copies | **1,100 – 2,600** |
 | 13 | ECR cross-region image replication | $0.10 per GB-month + transfer | ~10 GB of images | **200 – 500** |
