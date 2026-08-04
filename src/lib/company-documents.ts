@@ -7,6 +7,7 @@ export type DocType =
   | "company_stamp"
   | "id_card"
   | "posting_order"
+  | "wage_slip"
   | "posting_order_email"
   | "posting_order_whatsapp";
 
@@ -17,6 +18,7 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   company_stamp: "Company Stamp and Signatures",
   id_card: "Employee ID",
   posting_order: "Posting Order",
+  wage_slip: "Form XVI — Wage Slip",
   posting_order_email: "Posting Order — Email Template",
   posting_order_whatsapp: "Posting Order — WhatsApp Template",
 };
@@ -28,6 +30,7 @@ export const DOC_TYPE_SHORT: Record<DocType, string> = {
   company_stamp: "Stamp & Signatures",
   id_card: "Employee ID",
   posting_order: "Posting Order",
+  wage_slip: "Wage Slip",
   posting_order_email: "Posting Order Email",
   posting_order_whatsapp: "Posting Order WhatsApp",
 };
@@ -40,6 +43,7 @@ export const COMPANY_DOCUMENT_TYPES: DocType[] = [
   "company_stamp",
   "id_card",
   "posting_order",
+  "wage_slip",
 ];
 
 
@@ -1053,7 +1057,7 @@ export function buildDocumentPageHtml(body: string): string {
   if (isIdCardBody(body)) {
     return `<style>${ID_CARD_CSS}</style>${expandIdCardBody(body)}`;
   }
-  return `<style>${DOCUMENT_PAGE_CSS}${POSTING_ORDER_CSS}</style><div class="govdoc">${body}</div>`;
+  return `<style>${DOCUMENT_PAGE_CSS}${POSTING_ORDER_CSS}${WAGE_SLIP_CSS}</style><div class="govdoc">${body}</div>`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1371,7 +1375,7 @@ export async function generateHtmlDocumentPdf(opts: {
 
 
 
-  const hasFixedSignatureLayout = /class=["'][^"']*\bform-vii-doc\b/.test(opts.body);
+  const hasFixedSignatureLayout = /class=["'][^"']*\b(form-vii-doc|wage-slip-doc)\b/.test(opts.body);
   const [empSig, compSig] = await Promise.all([
     resolveImageDataUrl(opts.employeeSignatureDataUrl),
     resolveImageDataUrl(opts.companySignatureDataUrl),
@@ -1591,6 +1595,7 @@ export function parsePostingOrderConfig(body: string): PostingOrderTemplateConfi
 export const DEFAULT_TEMPLATE_BODY: Partial<Record<DocType, string>> = {
   id_card: DEFAULT_ID_CARD_TEMPLATE,
   posting_order: serializePostingOrderConfig(DEFAULT_POSTING_ORDER_CONFIG),
+  wage_slip: DEFAULT_WAGE_SLIP_TEMPLATE,
 };
 
 /** Extra styles for the posting order letterhead, appended to the shared page CSS. */
