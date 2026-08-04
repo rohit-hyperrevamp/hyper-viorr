@@ -1170,14 +1170,13 @@ export function computeWages(
   // Extra-duty-only lines (no regular earnings in this window) carry NO
   // deductions and NO employer contributions at all.
   const edOnly = earnedGrossExcludingEd <= 0 && earnedGross > 0;
-  if (edOnly) {
-    deductions.forEach((d) => { d.amount = 0; });
-    employerContributions.forEach((d) => { d.amount = 0; });
-  }
-  const totalDeductions = edOnly ? 0 : deductions.reduce((s, d) => s + d.amount, 0);
-  const totalEmployerContributions = edOnly
-    ? 0
-    : employerContributions.reduce((s, d) => s + d.amount, 0);
+  const finalDeductions = edOnly ? [] : deductions;
+  const finalEmployerContributions = edOnly ? [] : employerContributions;
+  const totalDeductions = finalDeductions.reduce((s, d) => s + d.amount, 0);
+  const totalEmployerContributions = finalEmployerContributions.reduce(
+    (s, d) => s + d.amount,
+    0,
+  );
 
   const netPay = Math.max(0, round2(earnedGross - totalDeductions));
   const employerCost =
@@ -1191,8 +1190,8 @@ export function computeWages(
     ratio,
     components,
     benefits,
-    deductions,
-    employerContributions,
+    deductions: finalDeductions,
+    employerContributions: finalEmployerContributions,
     totalDeductions: round2(totalDeductions),
     totalEmployerContributions: round2(totalEmployerContributions),
     netPay,
