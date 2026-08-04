@@ -521,8 +521,9 @@ The platform is deployed on a hybrid model: **AWS (Mumbai, ap-south-1)** hosts t
 
 ### 23.3 Scalability Posture
 
-- 7,000 registered users translate to a few hundred to low-thousand concurrent sessions at attendance and payroll peaks; the Fargate + Supabase combination absorbs this comfortably.
-- Horizontal scaling is achieved by increasing Fargate task count (auto-scaling policy) and, on the data side, by moving up Supabase compute tiers and adding read replicas if reporting load grows.
+- 7,000 registered users translate to a few hundred to low-thousand concurrent sessions at attendance and payroll peaks; the Fargate + Supabase combination absorbs this comfortably, and the Fargate + MongoDB Atlas combination is expected to scale similarly with appropriate indexing and sharding.
+- Horizontal scaling is achieved by increasing Fargate task count (auto-scaling policy). On the data side: Supabase scales by moving up compute tiers and adding read replicas; MongoDB scales vertically and horizontally via sharding/partitioning if load testing justifies it.
+- A formal load-testing cycle will compare PostgreSQL vs MongoDB response times for the heaviest operations (bulk payroll generation, attendance roster load, invoice aggregation, guard search) before the database is finalized.
 - Long-running jobs (bulk payroll generation, invoice PDF batches, migration loaders) run on a separate worker service so they never block the interactive web API.
 
 ### 23.4 Infrastructure Cost (Included in Scope)
