@@ -481,3 +481,53 @@ Phase 4: Material & Assets
 - **Go-live cutover:** After sign-off, the final migration utilities will be executed in a maintenance window, followed by smoke tests on login, attendance capture, payroll generation, and invoice generation.
 
 ---
+
+## 23. Hosting Architecture & Infrastructure Cost (AWS + Supabase)
+
+The platform is deployed on a hybrid model: **AWS (Mumbai, ap-south-1)** hosts the application tier and static/CDN delivery, while **Supabase** provides the managed PostgreSQL backend, authentication, storage and realtime layer. This split keeps the stack production-grade and horizontally scalable without the cost and operational overhead of self-managing a database cluster.
+
+### 23.1 Architecture Summary
+
+| Layer | Service | Purpose |
+|-------|---------|---------|
+| Edge / CDN | **Amazon CloudFront** | Global edge caching of the web app bundle, images and documents; TLS termination; DDoS absorption via AWS Shield Standard |
+| Static hosting | **Amazon S3** | Hosts the built React/TanStack Start client bundle and static assets; also used as an origin for report/document downloads |
+| Application compute | **Amazon ECS on AWS Fargate** | Runs the SSR / server-function containers. Serverless containers — no EC2 instances to patch, scale or pay for while idle |
+| Load balancing | **Application Load Balancer (ALB)** | Routes HTTPS traffic to Fargate tasks, health checks, path-based routing for `/api/*` |
+| Networking | **VPC, private subnets, NAT, Security Groups** | Compute runs in private subnets; only the ALB is internet-facing |
+| Secrets | **AWS Secrets Manager / SSM Parameter Store** | Stores API keys, service credentials and connection strings; injected into Fargate tasks at runtime |
+| Observability | **CloudWatch Logs, Metrics, Alarms** | Container logs, error-rate and latency alarms, auto-scaling triggers |
+| Backend data | **Supabase (managed PostgreSQL)** | Primary transactional database with Row-Level Security, PostgREST Data API, Auth (JWT/OTP/biometric session), Storage buckets, Realtime channels and scheduled `pg_cron` jobs |
+
+### 23.2 Component Descriptions
+
+- **Amazon CloudFront** — Content delivery network sitting in front of S3 and the ALB. Caches static assets at Indian edge locations for fast first paint on low-bandwidth field devices, serves everything over HTTPS, and shields the origin from traffic spikes and volumetric attacks.
+- **Amazon S3** — Object storage for the compiled front-end bundle, images, generated PDFs (payslips, invoices, posting orders, FORM VII) and export files. Versioning and lifecycle rules retain historical artefacts; server-side encryption (SSE-KMS) is enabled by default.
+- **AWS Fargate (ECS)** — Serverless container runtime for the application server: SSR rendering, server functions, payroll/invoice computation endpoints and integration connectors. Tasks scale out automatically on CPU/request count during morning attendance peaks and payroll windows, and scale back down at night, so cost tracks real usage rather than provisioned capacity.
+- **Application Load Balancer** — Terminates TLS, distributes traffic across healthy Fargate tasks across two Availability Zones, and provides automatic failover if a task or AZ becomes unhealthy.
+- **VPC & private networking** — Application containers have no public IP. Outbound calls (Supabase, bank APIs, WhatsApp, Gemini) route through a NAT gateway; inbound traffic arrives only through the ALB.
+- **AWS Secrets Manager** — Central store for all credentials with rotation support. No secret is committed to the repository or baked into an image.
+- **CloudWatch** — Centralised logging and metrics with alarms on 5xx rate, task health, latency and auto-scaling events; log retention configured for audit needs.
+- **Supabase PostgreSQL** — The system of record for all employees, units, contracts, attendance, payroll, invoicing, inventory, assets and compliance data. Row-Level Security enforces branch/unit/role scoping at the database layer, so access rules cannot be bypassed by the client. Point-in-time recovery and daily backups are enabled on the paid plan.
+- **Supabase Auth** — Handles user identity, JWT issuance, session refresh, OTP flows and integration with device biometrics (Face ID / fingerprint) on the mobile apps.
+- **Supabase Storage** — Bucketed file storage for KYC documents, photographs, uniform/asset images and signed attendance evidence, protected by the same RLS-driven access policies.
+- **Supabase Realtime & pg_cron** — Powers live dashboards (Radar tracking, coverage tiles) and scheduled jobs such as annual GPAIP accrual, document-expiry alerts and daily attendance derivation.
+
+### 23.3 Scalability Posture
+
+- 7,000 registered users translate to a few hundred to low-thousand concurrent sessions at attendance and payroll peaks; the Fargate + Supabase combination absorbs this comfortably.
+- Horizontal scaling is achieved by increasing Fargate task count (auto-scaling policy) and, on the data side, by moving up Supabase compute tiers and adding read replicas if reporting load grows.
+- Long-running jobs (bulk payroll generation, invoice PDF batches, migration loaders) run on a separate worker service so they never block the interactive web API.
+
+### 23.4 Infrastructure Cost (Included in Scope)
+
+| Component | Plan / Sizing | Indicative Monthly Cost | Commercial Treatment |
+|-----------|---------------|-------------------------|----------------------|
+| **Supabase** | Paid plan (Pro tier and above, sized to load) | **USD 25 – USD 150 per month** | **Included** |
+| **AWS (ECS Fargate + S3 + CloudFront + ALB + CloudWatch + supporting services)** | Mumbai region (ap-south-1), auto-scaled | **INR 25,000 – INR 35,000 per month** | **Included** |
+
+- Both hosting costs above are **included** in the engagement; no separate infrastructure billing is raised for the ranges stated.
+- The ranges reflect normal operating load for the stated user base. Sustained usage materially beyond this scope (significant increase in headcount, data volume, media storage or reporting concurrency) would be reviewed jointly before any revision.
+- Third-party usage charges described in Section 21 (Aadhaar verification, WhatsApp messaging, SMS/email beyond free tiers, bank/GST/Tally API fees) are separate from these hosting costs.
+
+---
