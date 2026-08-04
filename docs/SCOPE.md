@@ -705,7 +705,7 @@ Everything below is **DR-only incremental cost**. It excludes the base productio
 | 7 | S3 storage in DR region (replicated copy of documents/assets) | $0.025 per GB-month (S3 Standard, Hyderabad) | 250 GB | **560 – 900** |
 | 8 | S3 Cross-Region Replication — replication PUT requests | $0.005 per 1,000 PUTs | ~300k objects/month | **135 – 300** |
 | 9 | Cross-region data transfer (S3 CRR + app replication egress) | $0.086 per GB inter-region | ~150 GB/month | **1,160 – 3,000** |
-| 10 | Database replication target / cross-region PITR (Supabase read replica add-on **or** self-managed logical replica on RDS) | Supabase read replica add-on from ~$100/mo; or db.t4g.medium replica ~$0.096/hr + storage | 1 replica + 120 GB storage | **6,500 – 14,000** |
+| 10 | Database replication target / cross-region PITR — **Supabase read replica add-on, RDS logical replica, or MongoDB Atlas cross-region node** | Supabase read replica add-on from ~$100/mo; or db.t4g.medium replica ~$0.096/hr + storage; or MongoDB Atlas multi-region cluster add-on ~$60–150/mo | 1 replica + 120 GB storage | **6,500 – 14,000** |
 | 11 | Scheduled logical dumps to locked S3 bucket in DR region | S3 storage + PUT | 120 GB retained | **300 – 700** |
 | 12 | AWS Backup — cross-region + cross-account copies with Vault Lock | $0.05 per GB-month warm backup + $0.086/GB copy transfer | 120 GB + monthly copies | **1,100 – 2,600** |
 | 13 | ECR cross-region image replication | $0.10 per GB-month + transfer | ~10 GB of images | **200 – 500** |
