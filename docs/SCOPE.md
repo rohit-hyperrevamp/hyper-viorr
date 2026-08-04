@@ -976,7 +976,7 @@ The base engagement already includes: TLS 1.2/1.3 in transit, encryption at rest
 
 The controls below are **security enhancements that are explicitly NOT included in the base price**. Each can be enabled on request and is **billed on actuals** (AWS/vendor usage charges) plus a small one-time configuration effort.
 
-### 25.1 Perimeter & Application Protection
+### 26.1 Perimeter & Application Protection
 
 | # | Control | What it protects against | Indicative additional INR / month |
 |---|---|---|---|
@@ -985,7 +985,7 @@ The controls below are **security enhancements that are explicitly NOT included 
 | 3 | **AWS Shield Advanced** (optional, enterprise DDoS) | Large-scale volumetric and application DDoS, with DDoS cost protection and 24x7 response team | **~USD 3,000 / month (~INR 2,70,000)** — recommended only if contractually mandated |
 | 4 | **CloudFront geo-restriction + origin shield** | Traffic from out-of-scope geographies, origin overload | **500 – 1,500** |
 
-### 25.2 Ransomware & Data Integrity Defence
+### 26.2 Ransomware & Data Integrity Defence
 
 | # | Control | What it protects against | Indicative additional INR / month |
 |---|---|---|---|
@@ -996,7 +996,7 @@ The controls below are **security enhancements that are explicitly NOT included 
 | 9 | **Clean-room recovery environment** (pre-built isolated account + IaC for restore after compromise) | Re-infection when restoring into a compromised environment | One-time setup + **1,000 – 2,500** standby |
 | 10 | **Anti-malware scanning of user uploads** (documents, KYC photos) before storage | Malicious files entering the document store | **2,000 – 5,000** (volume-based) |
 
-### 25.3 Detection, Audit & Governance
+### 26.3 Detection, Audit & Governance
 
 | # | Control | What it protects against | Indicative additional INR / month |
 |---|---|---|---|
@@ -1005,7 +1005,7 @@ The controls below are **security enhancements that are explicitly NOT included 
 | 13 | **Centralised SIEM / log analytics with alerting** (OpenSearch or third-party) | Slow detection of an in-progress attack | **6,000 – 20,000** |
 | 14 | **24x7 managed SOC / incident response retainer** (third party) | No out-of-hours human response | **On quotation** |
 
-### 25.4 Identity & Access Hardening
+### 26.4 Identity & Access Hardening
 
 | # | Control | What it protects against | Indicative additional cost |
 |---|---|---|---|
@@ -1014,7 +1014,7 @@ The controls below are **security enhancements that are explicitly NOT included 
 | 17 | **Just-in-time privileged access with approval workflow and session recording** | Standing admin privileges being abused | **Effort + INR 2,000 – 6,000 / month** |
 | 18 | **IP allow-listing / private access for admin console** | Admin access from untrusted networks | Effort only |
 
-### 25.5 Assurance Activities (One-Time / Periodic, On Actuals)
+### 26.5 Assurance Activities (One-Time / Periodic, On Actuals)
 
 | # | Activity | Frequency | Indicative cost |
 |---|---|---|---|
@@ -1023,7 +1023,7 @@ The controls below are **security enhancements that are explicitly NOT included 
 | 21 | **DPDP Act readiness / data-protection audit** | Annual | **On quotation** |
 | 22 | **Security awareness training for HR/Finance users** | Annual | **On quotation** |
 
-### 25.6 Commercial Summary
+### 26.6 Commercial Summary
 
 | Bucket | Status |
 |---|---|
