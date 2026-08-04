@@ -1040,7 +1040,7 @@ All "on actuals" items are passed through at the actual AWS/vendor invoice value
 
 A structured change-management process keeps the platform stable while new features, fixes and statutory updates are rolled out to ~7,000 users across web and native mobile.
 
-### 26.1 Release Cadence — 45-Day Maintenance Cycle
+### 27.1 Release Cadence — 45-Day Maintenance Cycle
 
 | Phase | Duration | Calendar position | Purpose |
 |---|---|---|---|
@@ -1051,7 +1051,7 @@ A structured change-management process keeps the platform stable while new featu
 
 **Key rule:** every **45th day** is treated as a scheduled maintenance window. Production deployments happen on this day, not ad-hoc, unless a critical security or business-continuity fix is required.
 
-### 26.2 Change Request Process
+### 27.2 Change Request Process
 
 1. **Intake** — Business user / client sponsor logs a change request (CR) via email or the agreed support channel.
 2. **Triage** — Product owner and tech lead classify the CR as:
@@ -1065,7 +1065,7 @@ A structured change-management process keeps the platform stable while new featu
 7. **Deploy & validate** — Production release on Day 45, followed by smoke tests and a 24-hour watch period.
 8. **Retro** — Sprint retrospective captures what went well, incidents and improvements for the next cycle.
 
-### 26.3 Environment Strategy
+### 27.3 Environment Strategy
 
 | Environment | Purpose | Who accesses |
 |---|---|---|
@@ -1075,7 +1075,7 @@ A structured change-management process keeps the platform stable while new featu
 
 No code reaches production without passing staging UAT. Mobile app binaries are submitted to App Store / Play Console during the QA phase so they are ready for release on Day 45.
 
-### 26.4 Communication & Training
+### 27.4 Communication & Training
 
 - **Release notes** — published before every Day-45 release.
 - **In-app banners** — used for high-impact changes (e.g., attendance workflow changes, new statutory deductions).
@@ -1083,7 +1083,7 @@ No code reaches production without passing staging UAT. Mobile app binaries are 
 - **Admin guides** — updated in the shared documentation repository with every release.
 - **Rollback plan** — every release has a documented rollback procedure and a database snapshot taken before deployment.
 
-### 26.5 Emergency Change Protocol
+### 27.5 Emergency Change Protocol
 
 For critical production defects (payroll incorrect, attendance data corruption, auth failure, mobile crash):
 - A hot-fix branch is created immediately.
@@ -1097,7 +1097,7 @@ For critical production defects (payroll incorrect, attendance data corruption, 
 
 A multi-channel support model is provided for end-users, field officers, HR, finance, operations and leadership.
 
-### 27.1 Support Channels
+### 28.1 Support Channels
 
 | Channel | How to reach | Best for |
 |---|---|---|
@@ -1107,7 +1107,7 @@ A multi-channel support model is provided for end-users, field officers, HR, fin
 
 All channels feed into a single ticketing system so nothing is lost, and every request gets a ticket number for tracking.
 
-### 27.2 Support Hours
+### 28.2 Support Hours
 
 | Tier | Hours | Coverage |
 |---|---|---|
@@ -1115,7 +1115,7 @@ All channels feed into a single ticketing system so nothing is lost, and every r
 | **Extended support** | Monday – Saturday, 07:00 – 22:00 IST | Payroll window days, month-end attendance closure, invoice generation periods |
 | **Critical / on-call** | 24 x 7 | Production downtime, data corruption, security incidents, auth failure, mobile app crash affecting attendance |
 
-### 27.3 Severity Levels & Response Targets
+### 28.3 Severity Levels & Response Targets
 
 | Severity | Definition | First response | Resolution target |
 |---|---|---|---|
@@ -1124,7 +1124,7 @@ All channels feed into a single ticketing system so nothing is lost, and every r
 | **P3 — Medium** | Non-critical bug, report formatting issue, minor UI defect, how-to question | 4 hours | 3 business days |
 | **P4 — Low** | Cosmetic issue, enhancement request, documentation update | 1 business day | Next 45-day release cycle |
 
-### 27.4 Escalation Path
+### 28.4 Escalation Path
 
 1. **L1 Support** — triage, basic how-to, password/reset help, ticket creation.
 2. **L2 Support / Product Team** — functional bugs, configuration issues, payroll/attendance, data fixes.
@@ -1133,14 +1133,14 @@ All channels feed into a single ticketing system so nothing is lost, and every r
 
 Escalation is automatic if a P1/P2 ticket is not acknowledged within the target time.
 
-### 27.5 Maintenance Windows
+### 28.5 Maintenance Windows
 
 - **Scheduled maintenance** happens every **45th day** as part of the release cycle.
 - Maintenance windows are communicated at least **72 hours in advance** via email, WhatsApp and in-app banner.
 - During maintenance, the web console may be in read-only mode; mobile attendance is queued locally and synced once service resumes.
 - **Emergency maintenance** (security patch, critical hot-fix) is communicated as soon as it is scheduled.
 
-### 27.6 What Is Covered vs. What Is Billable
+### 28.6 What Is Covered vs. What Is Billable
 
 | Item | Coverage |
 |---|---|
@@ -1150,7 +1150,7 @@ Escalation is automatic if a P1/P2 ticket is not acknowledged within the target 
 | Additional support hours beyond agreed SLA window | Billable on actuals |
 | Data recovery due to client-induced deletion | Billable on actuals |
 
-### 27.7 Reporting
+### 28.7 Reporting
 
 A monthly support report is shared with the client containing:
 - Ticket volume by channel (email, WhatsApp, SMS).
