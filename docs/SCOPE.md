@@ -530,7 +530,8 @@ The platform is deployed on a hybrid model: **AWS (Mumbai, ap-south-1)** hosts t
 
 | Component | Plan / Sizing | Indicative Monthly Cost | Commercial Treatment |
 |-----------|---------------|-------------------------|----------------------|
-| **Supabase** | Paid plan (Pro tier and above, sized to load) | **USD 25 – USD 150 per month** | **Included** |
+| **Database — Supabase (PostgreSQL)** | Paid plan (Pro tier and above, sized to load) | **USD 25 – USD 150 per month** | **Included** |
+| **Database — MongoDB Atlas (NoSQL)** | M10/M30 tier or equivalent, sized to load; includes backups & monitoring | **USD 60 – USD 200 per month (~INR 5,400 – 18,000)** | **Included** |
 | **AWS (ECS Fargate + S3 + CloudFront + ALB + CloudWatch + supporting services)** | Mumbai region (ap-south-1), auto-scaled | **INR 25,000 – INR 35,000 per month** | **Included** |
 
 - Both hosting costs above are **included** in the engagement; no separate infrastructure billing is raised for the ranges stated.
