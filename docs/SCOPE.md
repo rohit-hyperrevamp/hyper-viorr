@@ -482,9 +482,11 @@ Phase 4: Material & Assets
 
 ---
 
-## 23. Hosting Architecture & Infrastructure Cost (AWS + Supabase)
+## 23. Hosting Architecture & Infrastructure Cost (AWS + Database)
 
-The platform is deployed on a hybrid model: **AWS (Mumbai, ap-south-1)** hosts the application tier and static/CDN delivery, while **Supabase** provides the managed PostgreSQL backend, authentication, storage and realtime layer. This split keeps the stack production-grade and horizontally scalable without the cost and operational overhead of self-managing a database cluster.
+The platform is deployed on a hybrid model: **AWS (Mumbai, ap-south-1)** hosts the application tier and static/CDN delivery, while the backend database layer will be either **Supabase (managed PostgreSQL)** or **MongoDB (managed NoSQL)**. Both options are kept contractually open and the final selection will be made after load testing and data-access pattern validation. This split keeps the stack production-grade and horizontally scalable without the cost and operational overhead of self-managing a database cluster.
+
+> **Database decision note:** Supabase/PostgreSQL is the current implementation and is preferred for relational integrity, complex payroll/invoice joins, Row-Level Security and mature auth/storage integrations. MongoDB is included as an alternative should load testing prove that document-oriented scaling, sharding or specific read-heavy reporting patterns deliver materially better performance or cost at 7,000 employees. The contract covers both; the final choice is confirmed before production go-live.
 
 ### 23.1 Architecture Summary
 
