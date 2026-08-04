@@ -575,6 +575,22 @@ Expected steady state is **USD 25 – 150 per month**, i.e. approximately **INR 
 
 > **Commercial note: Disaster Recovery is NOT included in the base engagement.** The DR process, runbooks and architecture are defined here, and can be implemented and operated **on actuals** — i.e. the client is billed the incremental infrastructure cost plus a one-time DR setup effort, over and above the base hosting cost in Section 23.
 
+### 24.0 Write-up — What Disaster Recovery Means Here
+
+The production system runs in AWS Mumbai with the database and authentication on a managed PostgreSQL backend. Day-to-day resilience is already built in: the application runs as multiple containers spread across two Availability Zones, the load balancer removes any unhealthy container automatically, and the database is backed up daily with point-in-time recovery. If a single container, or even a whole Availability Zone inside Mumbai, fails, the system keeps running with no manual action. **That level of protection is included in the base price.**
+
+Disaster Recovery addresses a different and much rarer class of event: the **entire Mumbai region becomes unavailable**, the **database is corrupted or maliciously encrypted**, or **someone with administrator credentials deletes data**. In those situations there is nothing left in Mumbai to fail over to, so recovery depends on having a second, independent copy of the platform in another region, kept continuously up to date.
+
+The proposed posture is **Warm Standby**. A permanently running but deliberately small copy of the application sits in a second AWS region (Hyderabad). It runs the identical container image, has the identical configuration and secrets, and receives a continuous stream of data from the primary — documents replicate to a second S3 bucket, the database replicates to a standby copy, and immutable backups are written into a separate, locked AWS account that production credentials cannot reach. In normal operation this standby costs very little because it is running at minimum size and serving no traffic.
+
+When a disaster is declared, the standby is promoted rather than built: the database replica is promoted to primary, the application is scaled from one container to full production size, and the public hostname is switched to the standby load balancer through Route 53. In practice this brings the platform back in **30 to 120 minutes**, with **5 to 15 minutes of data loss at most**. Without DR, the same event means rebuilding the environment from backups — realistically **4 to 12 hours down and up to a day of lost data**, which for this system means a lost day of attendance marking across every unit and a delayed payroll close.
+
+The ransomware case is handled slightly differently from a region outage. Replication alone does not help against ransomware, because malicious changes replicate too. The defence is the **immutable backup vault**: backups are written under Vault Lock in compliance mode in a separate AWS account, meaning nobody — including a fully compromised administrator — can delete them or shorten their retention. Recovery is then a point-in-time restore into a clean, freshly provisioned environment, using the append-only activity log to identify the exact moment before the first malicious write.
+
+DR is not a one-time build. It only holds value if it is exercised, so the plan includes automated weekly backup-restore verification, a quarterly tabletop walkthrough, and a half-yearly failover drill that produces a signed report of the measured RTO and RPO against target.
+
+Commercially, DR is quoted separately from the base hosting for a simple reason: it roughly doubles the running infrastructure, and the client should be able to see exactly what that second copy costs and decide whether the warm-standby posture, the cheaper backup-and-restore posture, or no DR at all is the right fit. Section 24.7 gives that cost component by component, with AWS unit rates, and includes WAF and Shield pricing separately since those are usually decided at the same time.
+
 ### 24.1 Objectives
 
 | Parameter | Base (included) | With DR (additional, on actuals) |
