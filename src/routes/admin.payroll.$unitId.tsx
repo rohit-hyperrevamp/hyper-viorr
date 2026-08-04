@@ -302,8 +302,11 @@ function PayrollUnitPage() {
     (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["payroll-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
-    enabled: !!ptSlabs && !!pincodeRanges && !!lwfRows,
+    queryKey: ["payroll-register-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+    // `unit` feeds PT state / pincode / EPF-cap policy — computing before it
+    // lands produces a wrong (often zero) first render that only self-corrects
+    // on a hard refresh.
+    enabled: unit !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
     queryFn: async () => {
       await supabaseSessionReady();
       // 1. Roster: candidates mapped to this unit (primary + secondary).
