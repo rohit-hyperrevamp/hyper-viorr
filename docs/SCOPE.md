@@ -561,14 +561,16 @@ All figures are indicative monthly costs at the expected operating load (7,000 r
 | 13 | **AWS Backup / snapshots, KMS, misc data transfer** | Storage, key usage, inter-AZ transfer | ~USD 1.00 per KMS key/month; snapshot storage per GB | Standard configuration | **INR 800 – 1,500** |
 | | **Total AWS** | | | | **INR ~24,000 – 41,000; budgeted at INR 25,000 – 35,000** |
 
-**Supabase (backend) — separate from AWS:**
+**Database backend — separate from AWS (either Supabase PostgreSQL or MongoDB Atlas):**
 
 | Plan | What it includes | Cost |
 |------|------------------|------|
 | **Supabase Pro** | Dedicated project compute, 8 GB database storage baseline, 100 GB file storage, daily backups, 7-day point-in-time recovery, 100,000 monthly active auth users, email support | **USD 25 per month (~INR 2,250)** |
 | **Supabase Pro with scaled compute / add-ons** | Larger compute instance (more CPU/RAM for reporting and payroll load), extended PITR, additional database and file storage, higher egress | **USD 60 – 150 per month (~INR 5,400 – 13,500)** |
+| **MongoDB Atlas M10 / M30** | Managed MongoDB cluster, 10–40 GB storage baseline, automated backups, monitoring, Atlas Search, encryption at rest | **USD 60 – 120 per month (~INR 5,400 – 10,800)** |
+| **MongoDB Atlas with scaling / add-ons** | Larger tier (M40+), sharding, extended backups, higher ops/sec, cross-region replica | **USD 120 – 200 per month (~INR 10,800 – 18,000)** |
 
-Expected steady state is **USD 25 – 150 per month**, i.e. approximately **INR 2,250 – 13,500 per month**, and this is **included** in the engagement.
+Expected steady state is **USD 25 – 200 per month** depending on the chosen database and load, i.e. approximately **INR 2,250 – 18,000 per month**, and this is **included** in the engagement. The final database and tier are selected after load testing; both Supabase and MongoDB costs are contractually covered.
 
 **Notes on cost behaviour**
 
