@@ -656,29 +656,110 @@ Three DR postures were evaluated:
 
 Each drill produces a signed report recording measured RTO/RPO against target.
 
-### 24.7 DR Cost Delta (additional, billed on actuals)
+### 24.7 DR Cost — Component by Component (DR ONLY)
 
-Incremental monthly cost **over and above** the base infrastructure in Section 23. Warm-standby posture, secondary region, ap-south-2/ap-southeast-1, at ~INR 90 per USD.
+Everything below is **DR-only incremental cost**. It excludes the base production hosting in Section 23 entirely. Assumptions: secondary region **ap-south-2 (Hyderabad)**, warm-standby posture, **1 USD = INR 90**, ~730 hours per month, ~250 GB of documents/assets replicated, ~120 GB of database + backup data, ~150 GB per month of cross-region replication traffic.
 
-| # | DR Component | Basis | Indicative additional INR / month |
-|---|---|---|---|
-| 1 | Standby ECS Fargate (1 minimal task, 24x7) | Fargate vCPU-hr + GB-hr | **4,000 – 7,000** |
-| 2 | Standby Application Load Balancer | ALB hourly + minimal LCU | **2,000 – 3,000** |
-| 3 | Standby NAT gateway + public IPv4 (2 – 3 IPs) | NAT hourly + IPv4 at INR ~325 per IP | **4,000 – 5,500** |
-| 4 | S3 Cross-Region Replication (replication transfer + duplicate storage) | Per GB replicated + per GB stored in DR region | **2,000 – 4,500** |
-| 5 | Database replication / cross-region PITR & dumps (Supabase add-on or replica target) | Add-on plan or replica compute + storage | **6,000 – 14,000** |
-| 6 | AWS Backup cross-region + cross-account copies with Vault Lock | Backup storage per GB + cross-region copy | **3,000 – 6,000** |
-| 7 | ECR cross-region image replication | Storage + transfer | **200 – 500** |
-| 8 | Route 53 health checks + failover records | Per health check | **300 – 700** |
-| 9 | CloudWatch in DR region (logs, alarms, synthetic canaries) | Ingestion + alarms + canaries | **1,000 – 2,500** |
-| 10 | Cross-region data transfer (replication egress) | Per GB inter-region | **1,500 – 4,000** |
-| | **Total DR infrastructure delta** | | **INR ~24,000 – 48,000 per month (budget INR 25,000 – 45,000)** |
+#### A. Standby compute & networking
 
-**One-time DR implementation effort (billed separately, on actuals):** IaC for the secondary region, replication setup, failover automation, runbook authoring and the first validated failover drill — typically **3 – 5 person-weeks**.
+| # | Component | Unit rate (Mumbai/Hyderabad, USD) | Sizing assumed | INR / month |
+|---|---|---|---|---|
+| 1 | ECS Fargate standby web task | $0.04656 per vCPU-hr, $0.00511 per GB-hr | 1 task, 0.5 vCPU + 1 GB, 24x7 (~$20/mo) | **1,700 – 2,000** |
+| 2 | ECS Fargate scale-out headroom (pre-warmed second task during business hours) | same as above | 1 extra task, 12 hrs/day | **900 – 1,200** |
+| 3 | Application Load Balancer (standby) | $0.0225 per ALB-hr (~$16.4/mo) + LCU $0.008/hr | 1 ALB, low LCU | **1,700 – 2,600** |
+| 4 | NAT Gateway (standby VPC) | $0.056 per NAT-hr (~$41/mo) + $0.056 per GB processed | 1 NAT (2 NATs if 2-AZ DR) | **3,700 – 5,000** |
+| 5 | Public IPv4 addresses | $0.005 per IP-hr = **INR ~325 per IP / month** | 2 – 3 IPs (ALB/NAT) | **650 – 975** |
+| 6 | VPC, security groups, route tables | No charge | — | **0** |
+| | **Sub-total A** | | | **8,650 – 11,775** |
 
-**Ongoing DR operations (optional, on actuals):** quarterly tabletop + half-yearly failover drills, runbook maintenance and drill reporting.
+#### B. Data replication & storage
 
-**Lower-cost alternative:** a **Backup & Restore** posture (cross-region immutable backups + IaC, no standby running) reduces the delta to approximately **INR 8,000 – 15,000 per month**, at an RTO of 4 – 12 hours and RPO of up to 24 hours.
+| # | Component | Unit rate (USD) | Sizing assumed | INR / month |
+|---|---|---|---|---|
+| 7 | S3 storage in DR region (replicated copy of documents/assets) | $0.025 per GB-month (S3 Standard, Hyderabad) | 250 GB | **560 – 900** |
+| 8 | S3 Cross-Region Replication — replication PUT requests | $0.005 per 1,000 PUTs | ~300k objects/month | **135 – 300** |
+| 9 | Cross-region data transfer (S3 CRR + app replication egress) | $0.086 per GB inter-region | ~150 GB/month | **1,160 – 3,000** |
+| 10 | Database replication target / cross-region PITR (Supabase read replica add-on **or** self-managed logical replica on RDS) | Supabase read replica add-on from ~$100/mo; or db.t4g.medium replica ~$0.096/hr + storage | 1 replica + 120 GB storage | **6,500 – 14,000** |
+| 11 | Scheduled logical dumps to locked S3 bucket in DR region | S3 storage + PUT | 120 GB retained | **300 – 700** |
+| 12 | AWS Backup — cross-region + cross-account copies with Vault Lock | $0.05 per GB-month warm backup + $0.086/GB copy transfer | 120 GB + monthly copies | **1,100 – 2,600** |
+| 13 | ECR cross-region image replication | $0.10 per GB-month + transfer | ~10 GB of images | **200 – 500** |
+| | **Sub-total B** | | | **9,955 – 22,000** |
+
+#### C. Failover control, monitoring & drills
+
+| # | Component | Unit rate (USD) | Sizing assumed | INR / month |
+|---|---|---|---|---|
+| 14 | Route 53 health checks | $0.50 per basic health check, $1.00 with HTTPS/string match | 3 – 5 checks | **200 – 500** |
+| 15 | Route 53 failover records + DNS queries | $0.50 per hosted zone + $0.40 per million queries | 1 zone, low volume | **100 – 250** |
+| 16 | CloudWatch in DR region (logs, metrics, alarms) | $0.57 per GB ingested, $0.10 per alarm | ~10 GB + 20 alarms | **700 – 1,600** |
+| 17 | CloudWatch Synthetics canary probing the DR stack | $0.0012 per canary run | 1 canary every 5 min | **500 – 900** |
+| 18 | Secrets Manager multi-region secret replication | $0.40 per secret-month per region | 8 – 12 secrets | **300 – 500** |
+| 19 | AWS Config + drift detection in DR region | $0.003 per configuration item | Small footprint | **300 – 800** |
+| | **Sub-total C** | | | **2,100 – 4,550** |
+
+#### D. DR total (recurring)
+
+| Bucket | INR / month |
+|---|---|
+| A. Standby compute & networking | 8,650 – 11,775 |
+| B. Data replication & storage | 9,955 – 22,000 |
+| C. Failover control, monitoring & drills | 2,100 – 4,550 |
+| **Total DR-only recurring cost** | **INR ~20,700 – 38,300 per month** |
+| Budget figure to quote (with 15% buffer) | **INR 25,000 – 45,000 per month** |
+
+#### E. DR one-time and periodic cost
+
+| Item | Basis | Indicative cost |
+|---|---|---|
+| DR build-out: Terraform/CDK for the secondary region, replication setup, failover automation, runbook authoring | 3 – 5 person-weeks | **On actuals at agreed rate card** |
+| First validated failover drill with signed RTO/RPO report | Included in build-out | — |
+| Half-yearly failover drill | ~3 – 5 person-days each | **On actuals** |
+| Quarterly tabletop walkthrough | ~1 person-day each | **On actuals** |
+| Failover event itself (DR region running at full production size) | Duration of the incident only | Approx. **INR 700 – 1,200 per day** additional while scaled up |
+
+#### F. Cheaper DR option — Backup & Restore (no standby running)
+
+| Component | INR / month |
+|---|---|
+| Cross-region immutable backups (AWS Backup + Vault Lock) | 3,000 – 6,000 |
+| S3 CRR storage + replication traffic | 1,900 – 4,200 |
+| Database dumps shipped cross-region | 1,500 – 3,000 |
+| ECR replication + Route 53 health checks + minimal monitoring | 700 – 1,500 |
+| **Total** | **INR ~7,100 – 14,700 per month** |
+| Trade-off | RTO 4 – 12 hours, RPO up to 24 hours (vs 30 – 120 min / 5 – 15 min for warm standby) |
+
+#### G. WAF, Shield and related protection — DR-adjacent, priced separately
+
+These are **not part of the DR delta above** and are **not part of the base price**. They are listed here with real unit rates because they are usually bought at the same time as DR.
+
+| # | Control | Unit rate (USD) | Sizing assumed | INR / month |
+|---|---|---|---|---|
+| 1 | **AWS Shield Standard** (automatic L3/L4 DDoS protection on CloudFront, ALB, Route 53) | **Free** | Always on | **0** |
+| 2 | **AWS WAF** — Web ACL | $5.00 per Web ACL / month | 1 ACL (2 if DR region also protected) | **450 – 900** |
+| 3 | **AWS WAF** — rules | $1.00 per rule / month | 8 – 12 rules | **720 – 1,080** |
+| 4 | **AWS WAF** — request charges | $0.60 per million requests | 5 – 20 M requests/month | **270 – 1,080** |
+| 5 | **AWS Managed Rule Groups** (OWASP Top 10 / SQLi / bad inputs) | Most $0 – $1.00 per group / month | 3 – 4 groups | **0 – 360** |
+| 6 | **WAF Bot Control** (managed rule group) | $10 per month + $1.00 per million requests inspected | 5 – 20 M requests | **1,350 – 2,700** |
+| 7 | **WAF Rate-based rules** (login/OTP brute-force protection) | Counted as a standard rule | 2 – 3 rules | **180 – 270** |
+| 8 | **WAF Fraud Control / Account Takeover Prevention** (optional, protects the login endpoint) | $10 per month + $1.00 per 1,000 login attempts inspected | ~200k logins/month | **On actuals, typically 900 – 18,000** |
+| 9 | **WAF logging to S3 / CloudWatch** | Storage + ingestion | ~20 GB/month | **500 – 1,200** |
+| | **WAF subtotal (typical, without Fraud Control)** | | | **INR ~3,500 – 7,500 per month** |
+| 10 | **AWS Shield Advanced** | **USD 3,000 per month per organisation** (12-month commitment) + data-transfer-out fees; includes DDoS Response Team and DDoS cost protection | Enterprise DDoS mandate only | **INR ~2,70,000 per month** |
+
+**Recommendation on DDoS:** Shield **Standard** (free) plus **CloudFront + WAF with rate-based rules** is the correct posture for this workload — roughly **INR 3,500 – 7,500 per month**. Shield **Advanced** at INR ~2.7 lakh per month is only justified if the client's own security policy or a regulator contractually mandates it; we do not recommend it at this scale.
+
+#### H. What the client actually pays for DR — single view
+
+| Line | INR / month |
+|---|---|
+| DR infrastructure (warm standby) | **20,700 – 38,300** (quote 25,000 – 45,000) |
+| — or — DR infrastructure (backup & restore) | **7,100 – 14,700** |
+| WAF + Shield Standard (recommended add-on) | **3,500 – 7,500** |
+| Shield Advanced (only if mandated) | **2,70,000** |
+| DR build-out, drills, failover events | On actuals |
+
+All AWS/vendor charges are passed through at actual invoice value with no margin. Rates are AWS ap-south-1/ap-south-2 list prices as of the proposal date and are subject to AWS revision and INR/USD movement.
+
 
 ---
 
