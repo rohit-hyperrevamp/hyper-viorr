@@ -205,20 +205,30 @@ function PayrollUnitPage() {
     },
   });
 
+  const sheetQK = ["payroll-sheet", unitId, start, end];
   const { data: sheet } = useQuery({
-    queryKey: ["payroll-sheet", unitId, start, end],
+    queryKey: sheetQK,
     queryFn: async () => {
       await supabaseSessionReady();
       const { data } = await supabase
         .from("attendance_sheets" as never)
-        .select("status, approved_at")
+        .select("id, status, approved_at, current_version, amendment_status")
         .eq("unit_id", unitId)
         .eq("period_start", start)
         .eq("period_end", end)
         .maybeSingle();
-      return data as unknown as { status: string; approved_at: string | null } | null;
+      return data as unknown as {
+        id: string;
+        status: string;
+        approved_at: string | null;
+        current_version: number | null;
+        amendment_status: string | null;
+      } | null;
     },
   });
+  const sheetVersion = Math.max(1, Number(sheet?.current_version) || 1);
+  const amendmentStatus = sheet?.amendment_status ?? "none";
+
 
   const queryClient = useQueryClient();
   const { can } = useCurrentPermissions();
