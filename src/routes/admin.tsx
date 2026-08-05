@@ -183,7 +183,11 @@ function AdminLayout() {
   const { user, logout, isReady } = useAuth();
   const me = useMe();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { can, canSub, isLoading: permsLoading, isSuperAdmin, roleKey } = useCurrentPermissions();
+  const { can, canSub, isLoading: permsLoading, isSuperAdmin: isRbacSuperAdmin, roleKey } = useCurrentPermissions();
+  // useAuth and RBAC hydrate in separate hook instances. Preserve the explicit
+  // authenticated role during that hand-off so the route guard cannot issue a
+  // one-way frontline redirect before RBAC catches up.
+  const isSuperAdmin = user?.role === "super_admin" || isRbacSuperAdmin;
   // Frontline / FO-onboarded employees (guards, VMS/BMS operators, housekeeping,
   // drivers, etc.) — anyone who is not super admin, not a field officer, and
   // not on an admin-console role. They see only the employee dashboard,
