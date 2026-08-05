@@ -1072,7 +1072,7 @@ function PayrollUnitPage() {
       out.push({ candidateId, employeeCode: l.code, name: l.name, before, after });
     }
     return out;
-  }, [amendmentPending, lastSnapshotVersion, snapshots, rows]);
+  }, [amendmentPending, lastSnapshotVersion, snapshots, rows, amendedCandidateIds]);
 
 
   const [amendReviewOpen, setAmendReviewOpen] = useState(false);
