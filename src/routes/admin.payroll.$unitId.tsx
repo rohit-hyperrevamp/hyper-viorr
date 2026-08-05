@@ -1111,6 +1111,8 @@ function PayrollUnitPage() {
       setProcessOpen(false);
       queryClient.invalidateQueries({ queryKey: runQK });
       queryClient.invalidateQueries({ queryKey: holdsQK });
+      queryClient.invalidateQueries({ queryKey: snapshotsQK });
+
       queryClient.invalidateQueries({ queryKey: ["admin", "employer-contributions"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "deductions"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "additions"] });
