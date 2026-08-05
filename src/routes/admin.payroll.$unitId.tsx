@@ -45,6 +45,7 @@ import {
   processPayrollRun,
   processPayrollAmendment,
   fetchRunSnapshots,
+  asError,
   type AmendmentDelta,
 } from "@/lib/payroll-process";
 import { setAmendmentStatus } from "@/lib/attendance-versions";
@@ -1124,7 +1125,7 @@ function PayrollUnitPage() {
         { duration: 8000 },
       );
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to process payroll"),
+    onError: (e: unknown) => toast.error(asError(e, "Failed to process payroll").message, { duration: 12000 }),
   });
 
   useEffect(() => {

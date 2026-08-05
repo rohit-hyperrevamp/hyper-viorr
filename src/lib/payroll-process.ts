@@ -74,6 +74,14 @@ function frequencyOf(name: string): "monthly" | "annual" | "half_yearly" {
   return "monthly";
 }
 
+/** Turn any Supabase/Postgrest error object into a real Error with a readable message. */
+export function asError(e: unknown, context: string): Error {
+  if (e instanceof Error) return e;
+  const o = (e ?? {}) as Record<string, unknown>;
+  const bits = [o.message, o.details, o.hint, o.code].filter(Boolean).join(" — ");
+  return new Error(`${context}: ${bits || JSON.stringify(o)}`);
+}
+
 /** Persist the exact figures paid for a run version so amendments can diff against them. */
 async function writeSnapshots(args: {
   runId: string;
@@ -89,32 +97,41 @@ async function writeSnapshots(args: {
     .eq("payroll_run_id", args.runId)
     .eq("version", args.version);
 
-  const payload = args.rows.map((r) => ({
-    payroll_run_id: args.runId,
-    unit_id: args.unitId,
-    candidate_id: r.candidateId,
-    version: args.version,
-    employee_code: r.employeeCode ?? "",
-    full_name: r.name ?? "",
-    paid_days: Number(r.paidDays) || 0,
-    ed_days: Number(r.edDays) || 0,
-    gross: Number(r.gross) || 0,
-    total_deductions: (r.deductions ?? []).reduce((s, d) => s + (Number(d.amount) || 0), 0),
-    total_employer: (r.employerContributions ?? []).reduce((s, d) => s + (Number(d.amount) || 0), 0),
-    net_pay: Number(r.netPay) || 0,
-    earnings: r.earnings ?? [],
-    deductions: r.deductions ?? [],
-    employer_contributions: r.employerContributions ?? [],
-    additions: r.additions ?? [],
-    on_hold: args.heldIds.has(r.candidateId),
-    posted_by: args.uid,
-  }));
+  // One snapshot per candidate — the table is unique on (run, candidate, version).
+  const seen = new Set<string>();
+  const payload = args.rows
+    .filter((r) => {
+      if (!r.candidateId || seen.has(r.candidateId)) return false;
+      seen.add(r.candidateId);
+      return true;
+    })
+    .map((r) => ({
+      payroll_run_id: args.runId,
+      unit_id: args.unitId,
+      candidate_id: r.candidateId,
+      version: args.version,
+      employee_code: r.employeeCode ?? "",
+      full_name: r.name ?? "",
+      paid_days: Number(r.paidDays) || 0,
+      ed_days: Number(r.edDays) || 0,
+      gross: Number(r.gross) || 0,
+      total_deductions: (r.deductions ?? []).reduce((s, d) => s + (Number(d.amount) || 0), 0),
+      total_employer: (r.employerContributions ?? []).reduce((s, d) => s + (Number(d.amount) || 0), 0),
+      net_pay: Number(r.netPay) || 0,
+      earnings: r.earnings ?? [],
+      deductions: r.deductions ?? [],
+      employer_contributions: r.employerContributions ?? [],
+      additions: r.additions ?? [],
+      on_hold: args.heldIds.has(r.candidateId),
+      posted_by: args.uid,
+    }));
   if (!payload.length) return;
   for (let i = 0; i < payload.length; i += 300) {
     const { error } = await supabase.from("payroll_run_snapshots" as never).insert(payload.slice(i, i + 300) as never);
-    if (error) throw error;
+    if (error) throw asError(error, "Could not save pay sheet snapshot");
   }
 }
+
 
 export async function processPayrollRun(args: {
   runId: string;
@@ -148,12 +165,13 @@ export async function processPayrollRun(args: {
   const periodLabel = `${unitLabel} · ${periodStart} → ${periodEnd}`;
 
   // Idempotent re-run: clear anything posted earlier for this run.
-  await Promise.all([
+  const cleanup = await Promise.all([
     supabase.from("deductions").delete().eq("source_kind", "payroll_run").eq("source_ref", ref),
     supabase.from("additions" as never).delete().eq("source_kind", "payroll_run").eq("source_ref", ref),
     supabase.from("employer_contributions" as never).delete().eq("payroll_run_id", runId),
     supabase.from("payroll_processing_holds" as never).delete().eq("payroll_run_id", runId),
   ]);
+  for (const c of cleanup) if (c.error) throw asError(c.error, "Could not clear previously posted payroll lines");
 
   const deductionRows: Record<string, unknown>[] = [];
   const additionRows: Record<string, unknown>[] = [];
@@ -236,19 +254,19 @@ export async function processPayrollRun(args: {
 
   for (const part of chunk(deductionRows)) {
     const { error } = await supabase.from("deductions").insert(part as never);
-    if (error) throw error;
+    if (error) throw asError(error, "Could not post deductions");
   }
   for (const part of chunk(additionRows)) {
     const { error } = await supabase.from("additions" as never).insert(part as never);
-    if (error) throw error;
+    if (error) throw asError(error, "Could not post additions");
   }
   for (const part of chunk(employerRows)) {
     const { error } = await supabase.from("employer_contributions" as never).insert(part as never);
-    if (error) throw error;
+    if (error) throw asError(error, "Could not post employer contributions");
   }
   if (holdRows.length) {
     const { error } = await supabase.from("payroll_processing_holds" as never).insert(holdRows as never);
-    if (error) throw error;
+    if (error) throw asError(error, "Could not save on-hold employees");
   }
 
   await writeSnapshots({ runId, unitId, version: args.version ?? 1, rows, heldIds: held, uid });
@@ -263,7 +281,7 @@ export async function processPayrollRun(args: {
       payroll_processed_by: uid,
     } as never)
     .eq("id", runId);
-  if (runErr) throw runErr;
+  if (runErr) throw asError(runErr, "Could not mark the run processed");
 
   return {
     processed: payable.length,
@@ -419,15 +437,15 @@ export async function processPayrollAmendment(args: {
 
   if (additionRows.length) {
     const { error } = await supabase.from("additions" as never).insert(additionRows as never);
-    if (error) throw error;
+    if (error) throw asError(error, "Could not post arrears");
   }
   if (deductionRows.length) {
     const { error } = await supabase.from("deductions").insert(deductionRows as never);
-    if (error) throw error;
+    if (error) throw asError(error, "Could not post recoveries");
   }
   if (employerRows.length) {
     const { error } = await supabase.from("employer_contributions" as never).insert(employerRows as never);
-    if (error) throw error;
+    if (error) throw asError(error, "Could not post employer adjustments");
   }
 
   await writeSnapshots({ runId, unitId, version, rows: args.rows, heldIds: held, uid });
@@ -440,7 +458,7 @@ export async function processPayrollAmendment(args: {
       payroll_processed_by: uid,
     } as never)
     .eq("id", runId);
-  if (runErr) throw runErr;
+  if (runErr) throw asError(runErr, "Could not mark the run processed");
 
   return {
     version,
