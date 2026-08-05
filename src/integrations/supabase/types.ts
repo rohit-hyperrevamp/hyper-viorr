@@ -343,11 +343,61 @@ export type Database = {
           },
         ]
       }
-      attendance_sheets: {
+      attendance_sheet_versions: {
         Row: {
           approved_at: string | null
           approved_by: string | null
           created_at: string
+          created_by: string | null
+          id: string
+          period_end: string
+          period_start: string
+          reason: string
+          snapshot: Json
+          status: string
+          unit_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          reason?: string
+          snapshot?: Json
+          status?: string
+          unit_id: string
+          updated_at?: string
+          version: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          reason?: string
+          snapshot?: Json
+          status?: string
+          unit_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      attendance_sheets: {
+        Row: {
+          amendment_status: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          current_version: number
           id: string
           period_end: string
           period_start: string
@@ -362,9 +412,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          amendment_status?: string
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          current_version?: number
           id?: string
           period_end: string
           period_start: string
@@ -379,9 +431,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          amendment_status?: string
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          current_version?: number
           id?: string
           period_end?: string
           period_start?: string
@@ -3702,6 +3756,89 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "payroll_processing_holds_payroll_run_id_fkey"
+            columns: ["payroll_run_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_run_snapshots: {
+        Row: {
+          additions: Json
+          candidate_id: string
+          created_at: string
+          deductions: Json
+          earnings: Json
+          ed_days: number
+          employee_code: string
+          employer_contributions: Json
+          full_name: string
+          gross: number
+          id: string
+          net_pay: number
+          on_hold: boolean
+          paid_days: number
+          payroll_run_id: string
+          posted_at: string
+          posted_by: string | null
+          total_deductions: number
+          total_employer: number
+          unit_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          additions?: Json
+          candidate_id: string
+          created_at?: string
+          deductions?: Json
+          earnings?: Json
+          ed_days?: number
+          employee_code?: string
+          employer_contributions?: Json
+          full_name?: string
+          gross?: number
+          id?: string
+          net_pay?: number
+          on_hold?: boolean
+          paid_days?: number
+          payroll_run_id: string
+          posted_at?: string
+          posted_by?: string | null
+          total_deductions?: number
+          total_employer?: number
+          unit_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          additions?: Json
+          candidate_id?: string
+          created_at?: string
+          deductions?: Json
+          earnings?: Json
+          ed_days?: number
+          employee_code?: string
+          employer_contributions?: Json
+          full_name?: string
+          gross?: number
+          id?: string
+          net_pay?: number
+          on_hold?: boolean
+          paid_days?: number
+          payroll_run_id?: string
+          posted_at?: string
+          posted_by?: string | null
+          total_deductions?: number
+          total_employer?: number
+          unit_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_run_snapshots_payroll_run_id_fkey"
             columns: ["payroll_run_id"]
             isOneToOne: false
             referencedRelation: "payroll_runs"

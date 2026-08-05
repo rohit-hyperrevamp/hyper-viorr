@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search } from "lucide-react";
+import { ChevronLeft, Printer, Download, CheckCircle2, XCircle, Send, RotateCcw, Plus, X, Upload, Loader2, FileSpreadsheet, Image as ImageIcon, Trash2, Search, History as HistoryIcon, GitCompare } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -19,7 +19,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
+
 import {
   Select,
   SelectContent,
@@ -29,6 +31,16 @@ import {
 } from "@/components/ui/select";
 import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import {
+  fetchAttendanceVersions,
+  startAttendanceAmendment,
+  setAmendmentStatus,
+  diffAttendance,
+  fetchLiveSnapshot,
+  type AmendmentStatus,
+  type AttendanceSnapshotEntry,
+} from "@/lib/attendance-versions";
+
 import { attendanceCodeForShift, fetchShiftHoursMap, overtimeDaysForShift, shiftHoursFor } from "@/lib/shift-hours";
 import { resolvePayrollDayCount, type PayrollDayBaseLike } from "@/lib/payroll-days";
 
@@ -508,6 +520,8 @@ function MusterRollPage() {
     rejection_reason: string;
     review_proof_url: string | null;
     submitted_by: string | null;
+    current_version: number | null;
+    amendment_status: AmendmentStatus | null;
   };
   const sheetQK = ["attendance-sheet", unitId, periodStart, periodEnd];
   const { data: sheet } = useQuery({
@@ -515,7 +529,7 @@ function MusterRollPage() {
     queryFn: async (): Promise<SheetRow | null> => {
       const { data, error } = await supabase
         .from("attendance_sheets" as never)
-        .select("id, status, rejection_reason, review_proof_url, submitted_by")
+        .select("id, status, rejection_reason, review_proof_url, submitted_by, current_version, amendment_status")
         .eq("unit_id", unitId)
         .eq("period_start", periodStart)
         .eq("period_end", periodEnd)
@@ -526,10 +540,17 @@ function MusterRollPage() {
     enabled: Boolean(unitId && periodStart && periodEnd),
   });
   const status: SheetStatus = sheet?.status ?? "draft";
+  const currentVersion = Math.max(1, Number(sheet?.current_version) || 1);
+  const amendment: AmendmentStatus = (sheet?.amendment_status ?? "none") as AmendmentStatus;
 
   // Payroll-run state for this period — used to decide whether the
   // "Send for Payroll & Invoice" handoff has happened.
-  type PayrollRunLite = { id: string; status: "draft" | "submitted" | "approved" | "rejected" };
+  type PayrollRunLite = {
+    id: string;
+    status: "draft" | "submitted" | "approved" | "rejected";
+    payroll_status: string | null;
+    invoice_status: string | null;
+  };
   const payrollRunQK = ["attendance-payroll-run", unitId, periodStart, periodEnd];
   const { data: payrollRun } = useQuery({
     queryKey: payrollRunQK,
@@ -537,7 +558,7 @@ function MusterRollPage() {
     queryFn: async (): Promise<PayrollRunLite | null> => {
       const { data, error } = await supabase
         .from("payroll_runs" as never)
-        .select("id, status")
+        .select("id, status, payroll_status, invoice_status")
         .eq("unit_id", unitId)
         .eq("period_start", periodStart)
         .eq("period_end", periodEnd)
@@ -547,10 +568,31 @@ function MusterRollPage() {
     },
   });
   const sentToPayroll = ["submitted", "approved"].includes(payrollRun?.status ?? "");
+  const payrollProcessed = payrollRun?.payroll_status === "processed";
+
+  // Frozen versions of this muster roll (v1 = the sheet that payroll paid).
+  const versionsQK = ["attendance-versions", unitId, periodStart, periodEnd];
+  const { data: versions = [] } = useQuery({
+    queryKey: versionsQK,
+    enabled: Boolean(unitId && periodStart && periodEnd),
+    queryFn: () => fetchAttendanceVersions(unitId, periodStart, periodEnd),
+  });
+
+  const amendmentOpen = amendment === "open";
+  const amendmentSubmitted = amendment === "submitted";
+  const amendmentApproved = amendment === "approved";
+  const amendmentActive = amendmentOpen || amendmentSubmitted || amendmentApproved;
 
   // FO/admin edit when draft or rejected. Approver may also edit inline while
   // the sheet is submitted (HR can fix in place instead of bouncing back).
-  const editable = status === "draft" || status === "rejected" || (status === "submitted" && canApprove);
+  // An open amendment (v2+) is editable again even though the sheet is approved.
+  const editable =
+    status === "draft" ||
+    status === "rejected" ||
+    (status === "submitted" && canApprove) ||
+    amendmentOpen ||
+    (amendmentSubmitted && canApprove);
+
 
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -755,6 +797,77 @@ function MusterRollPage() {
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to reopen"),
   });
+
+  // ---- Post-payroll amendment ------------------------------------------
+  // Payroll is already processed, so the sheet is never "reopened". The paid
+  // muster roll is frozen as a version and a new editable version is started.
+  const [amendOpen, setAmendOpen] = useState(false);
+  const [amendReason, setAmendReason] = useState("");
+
+  const invalidateAmendment = () => {
+    queryClient.invalidateQueries({ queryKey: sheetQK });
+    queryClient.invalidateQueries({ queryKey: versionsQK });
+    queryClient.invalidateQueries({ queryKey: payrollRunQK });
+    queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0] ?? "").startsWith("payroll") });
+  };
+
+  const startAmendment = useMutation({
+    mutationFn: async () => {
+      const reason = amendReason.trim();
+      if (reason.length < 5) throw new Error("Give a reason (at least 5 characters) for the amendment");
+      return startAttendanceAmendment({
+        unitId,
+        periodStart,
+        periodEnd,
+        sheetId: sheet?.id ?? null,
+        currentVersion,
+        reason,
+      });
+    },
+    onSuccess: (v) => {
+      setAmendOpen(false);
+      setAmendReason("");
+      invalidateAmendment();
+      toast.success(`Version ${v} opened — version ${v - 1} archived as the paid sheet`);
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not start amendment"),
+  });
+
+  const moveAmendment = useMutation({
+    mutationFn: async (next: AmendmentStatus) => {
+      if (!sheet?.id) throw new Error("Attendance sheet not found");
+      await setAmendmentStatus(sheet.id, next);
+      return next;
+    },
+    onSuccess: (next) => {
+      invalidateAmendment();
+      toast.success(
+        next === "submitted"
+          ? `Version ${currentVersion} submitted for approval`
+          : next === "approved"
+            ? `Version ${currentVersion} approved — payroll can now post the difference`
+            : "Amendment updated",
+      );
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not update amendment"),
+  });
+
+  // Live diff of the current (amended) sheet against the last frozen version.
+  const previousVersion = useMemo(
+    () => versions.filter((v) => v.version < currentVersion).sort((a, b) => b.version - a.version)[0] ?? null,
+    [versions, currentVersion],
+  );
+  const { data: amendmentDiff = [] } = useQuery({
+    // Prefixed with the entries key so every attendance save refreshes the diff.
+    queryKey: ["attendance-entries-v4", unitId, periodStart, periodEnd, "amendment-diff", currentVersion],
+
+    enabled: Boolean(amendmentActive && previousVersion),
+    queryFn: async () => {
+      const live = await fetchLiveSnapshot(unitId, periodStart, periodEnd);
+      return diffAttendance((previousVersion?.snapshot ?? []) as AttendanceSnapshotEntry[], live);
+    },
+  });
+
 
   // Approval IS the handoff: once the sheet is approved, payroll & invoice are
   // notified automatically — no separate "send" click.
@@ -2350,9 +2463,25 @@ function MusterRollPage() {
           )}>
             {status === "draft" && "Draft"}
             {status === "submitted" && "Submitted — awaiting approval"}
-            {status === "approved" && <><CheckCircle2 className="h-3.5 w-3.5" /> Approved</>}
+            {status === "approved" && (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {payrollProcessed ? "Approved — payroll processed" : "Approved"}
+              </>
+            )}
+
             {status === "rejected" && <><XCircle className="h-3.5 w-3.5" /> Rejected</>}
           </span>
+          {currentVersion > 1 && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800">
+              <HistoryIcon className="h-3.5 w-3.5" /> Version {currentVersion}
+              {amendmentOpen && " — amendment open"}
+              {amendmentSubmitted && " — awaiting approval"}
+              {amendmentApproved && " — approved, pending payroll"}
+              {amendment === "processed" && " — payroll posted"}
+            </span>
+          )}
+
           {status === "rejected" && sheet?.rejection_reason && (
             <span className="text-xs text-rose-700">Reason: {sheet.rejection_reason}</span>
           )}
@@ -2391,7 +2520,7 @@ function MusterRollPage() {
           {status === "submitted" && !canApprove && (
             <span className="text-xs text-muted-foreground">Awaiting approver action</span>
           )}
-          {status === "approved" && canApprove && !sentToPayroll && (
+          {status === "approved" && canApprove && !payrollProcessed && !amendmentActive && !sentToPayroll && (
             <>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Approved — payroll &amp; invoice updated
@@ -2401,7 +2530,7 @@ function MusterRollPage() {
               </Button>
             </>
           )}
-          {status === "approved" && canApprove && sentToPayroll && (
+          {status === "approved" && canApprove && !payrollProcessed && !amendmentActive && sentToPayroll && (
             <>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Approved — payroll &amp; invoice updated
@@ -2416,13 +2545,52 @@ function MusterRollPage() {
               </Button>
             </>
           )}
+
+          {/* Payroll already paid this period — amend instead of reopen. */}
+          {status === "approved" && payrollProcessed && !amendmentActive && canApprove && (
+            <Button size="sm" variant="outline" onClick={() => setAmendOpen(true)}>
+              <GitCompare className="mr-1.5 h-4 w-4" /> Amend attendance (v{currentVersion + 1})
+            </Button>
+          )}
+          {amendmentOpen && (
+            <Button
+              size="sm"
+              onClick={() => moveAmendment.mutate("submitted")}
+              disabled={moveAmendment.isPending || amendmentDiff.length === 0}
+            >
+              <Send className="mr-1.5 h-4 w-4" /> Submit v{currentVersion} for approval
+            </Button>
+          )}
+          {amendmentSubmitted && canApprove && (
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => moveAmendment.mutate("approved")}
+              disabled={moveAmendment.isPending}
+            >
+              <CheckCircle2 className="mr-1.5 h-4 w-4" /> Approve v{currentVersion}
+            </Button>
+          )}
+          {amendmentSubmitted && !canApprove && (
+            <span className="text-xs text-muted-foreground">Amendment awaiting approver action</span>
+          )}
+          {amendmentApproved && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Approved — process the payroll difference
+            </span>
+          )}
         </div>
       </div>
 
 
       {!editable && (
         <div className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800 print:hidden">
-          This attendance sheet is {status === "approved" ? "approved" : "submitted"} and locked for editing. {status === "submitted" ? "Reject it to allow further edits." : "Reopen it to make changes."}
+          This attendance sheet is {status === "approved" ? "approved" : "submitted"} and locked for editing.{" "}
+          {status === "submitted"
+            ? "Reject it to allow further edits."
+            : payrollProcessed
+              ? "Payroll for this period is processed — start an amendment to correct it; the paid sheet is kept as a version."
+              : "Reopen it to make changes."}
         </div>
       )}
       {status === "submitted" && canApprove && (
@@ -2430,6 +2598,108 @@ function MusterRollPage() {
           You can edit this attendance in place, or reject with a note so the submitter can fix it.
         </div>
       )}
+      {amendmentActive && (
+        <div className="rounded-md border border-indigo-300/60 bg-indigo-50 px-3 py-2 text-xs text-indigo-900 print:hidden">
+          <b>Amendment version {currentVersion}.</b>{" "}
+          {amendmentOpen
+            ? "Edit the muster roll below. Version " + (currentVersion - 1) + " stays archived exactly as it was paid. Submit once the corrections are in."
+            : amendmentSubmitted
+              ? "Submitted for approval. Approving it unlocks the payroll difference."
+              : "Approved. Open Payroll for this unit and process the difference — only affected employees get an arrears or recovery line."}
+          {previousVersion?.reason ? <> Reason: {previousVersion.reason}</> : null}
+        </div>
+      )}
+
+      {/* Version history + change log */}
+      {(versions.length > 0 || amendmentActive) && (
+        <div className="rounded-xl border border-border/60 bg-card p-3 print:hidden">
+          <div className="mb-2 flex items-center gap-2">
+            <HistoryIcon className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Muster roll versions
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {versions.map((v) => (
+              <span key={v.id} className="rounded-full border border-border/60 px-2.5 py-1">
+                v{v.version} · archived {new Date(v.created_at).toLocaleDateString()} · {v.snapshot?.length ?? 0} entries
+              </span>
+            ))}
+            <span className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 font-semibold text-primary">
+              v{currentVersion} · live
+            </span>
+          </div>
+
+          {previousVersion && (
+            <div className="mt-3">
+              <div className="mb-1.5 text-xs font-semibold text-foreground">
+                Changes in v{currentVersion} vs v{previousVersion.version}
+              </div>
+              {amendmentDiff.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No changes yet — edit a cell to record an amendment.</p>
+              ) : (
+                <div className="max-h-64 overflow-auto rounded-lg border border-border/60">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/60">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left font-semibold">Employee</th>
+                        <th className="px-2 py-1.5 text-left font-semibold">Date</th>
+                        <th className="px-2 py-1.5 text-left font-semibold">v{previousVersion.version}</th>
+                        <th className="px-2 py-1.5 text-left font-semibold">v{currentVersion}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {amendmentDiff.map((d) => {
+                        const row = musterRows.find((r) => r.candidateId === d.candidateId);
+                        const label = row ? `${row.emp.employee_code || "—"} · ${row.emp.full_name}` : d.candidateId.slice(0, 8);
+                        return (
+                          <tr key={`${d.candidateId}-${d.date}-${d.designationId ?? ""}`} className="border-t border-border/50">
+                            <td className="px-2 py-1.5">{label}</td>
+                            <td className="px-2 py-1.5">{d.date}</td>
+                            <td className="px-2 py-1.5 text-rose-700">
+                              {d.beforeCode || "—"}{d.beforeEd ? ` +${d.beforeEd} ED` : ""}
+                            </td>
+                            <td className="px-2 py-1.5 font-semibold text-emerald-700">
+                              {d.afterCode || "—"}{d.afterEd ? ` +${d.afterEd} ED` : ""}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <Dialog open={amendOpen} onOpenChange={(o) => { setAmendOpen(o); if (!o) setAmendReason(""); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Amend approved attendance</DialogTitle>
+            <DialogDescription>
+              Payroll for this period is already processed. The current muster roll will be archived as version {currentVersion}
+              {" "}and a new editable version {currentVersion + 1} will open. Nothing that was already paid is deleted — payroll
+              will later post only the difference for affected employees.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={amendReason}
+            onChange={(e) => setAmendReason(e.target.value)}
+            rows={3}
+            placeholder="Why is this being amended? (e.g. EMP-192 was paid for 26 days but was absent on 12 July)"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAmendOpen(false)}>Cancel</Button>
+            <Button onClick={() => startAmendment.mutate()} disabled={startAmendment.isPending}>
+              {startAmendment.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <GitCompare className="mr-1.5 h-4 w-4" />}
+              Start version {currentVersion + 1}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={rejectOpen} onOpenChange={(o) => { setRejectOpen(o); if (!o) { setRejectReason(""); setRejectProof(null); } }}>
         <DialogContent className="max-w-md">

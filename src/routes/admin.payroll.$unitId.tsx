@@ -11,6 +11,8 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
+
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -39,7 +41,14 @@ import {
 } from "@/lib/payroll-calc";
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { openExport } from "@/lib/csv-export";
-import { processPayrollRun } from "@/lib/payroll-process";
+import {
+  processPayrollRun,
+  processPayrollAmendment,
+  fetchRunSnapshots,
+  type AmendmentDelta,
+} from "@/lib/payroll-process";
+import { setAmendmentStatus } from "@/lib/attendance-versions";
+
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
 
@@ -205,20 +214,30 @@ function PayrollUnitPage() {
     },
   });
 
+  const sheetQK = ["payroll-sheet", unitId, start, end];
   const { data: sheet } = useQuery({
-    queryKey: ["payroll-sheet", unitId, start, end],
+    queryKey: sheetQK,
     queryFn: async () => {
       await supabaseSessionReady();
       const { data } = await supabase
         .from("attendance_sheets" as never)
-        .select("status, approved_at")
+        .select("id, status, approved_at, current_version, amendment_status")
         .eq("unit_id", unitId)
         .eq("period_start", start)
         .eq("period_end", end)
         .maybeSingle();
-      return data as unknown as { status: string; approved_at: string | null } | null;
+      return data as unknown as {
+        id: string;
+        status: string;
+        approved_at: string | null;
+        current_version: number | null;
+        amendment_status: string | null;
+      } | null;
     },
   });
+  const sheetVersion = Math.max(1, Number(sheet?.current_version) || 1);
+  const amendmentStatus = sheet?.amendment_status ?? "none";
+
 
   const queryClient = useQueryClient();
   const { can } = useCurrentPermissions();
@@ -949,24 +968,124 @@ function PayrollUnitPage() {
     }
   };
 
+  // ---- Versioned processing --------------------------------------------
+  // Every processed run stores a per-employee snapshot. An amended attendance
+  // sheet (v2+) is settled by posting only the difference against the last
+  // snapshot, so nobody is paid twice for the same period.
+  const snapshotsQK = ["payroll-snapshots", run?.id ?? "none"];
+  const { data: snapshots = [] } = useQuery({
+    queryKey: snapshotsQK,
+    enabled: !!run?.id,
+    queryFn: () => fetchRunSnapshots(run!.id),
+  });
+  const lastSnapshotVersion = snapshots.reduce((m, s) => Math.max(m, Number(s.version) || 0), 0);
+  const amendmentPending = amendmentStatus === "approved" && sheetVersion > lastSnapshotVersion;
+
+  const buildPayloadRows = () =>
+    rows
+      .filter((r) => r.wages)
+      .map((r) => ({
+        candidateId: r.id,
+        employeeCode: r.employeeCode,
+        name: r.name,
+        earnings: (r.wages!.components ?? []).map((c) => ({ name: c.name, amount: Number(c.amount) || 0 })),
+        deductions: (r.wages!.deductions ?? []).map((d) => ({ name: cleanLedgerName(d.name) || d.name, amount: Number(d.amount) || 0 })),
+        employerContributions: (r.wages!.employerContributions ?? []).map((d) => ({ name: d.name, amount: Number(d.amount) || 0 })),
+        additions: (((r.wages as unknown as { additions?: { name: string; amount: number }[] }).additions) ?? []).map((a) => ({
+          name: cleanLedgerName(a.name) || a.name,
+          amount: Number(a.amount) || 0,
+        })),
+        paidDays: Number(r.totals?.tDays) || 0,
+        edDays: Number(r.totals?.otDays) || 0,
+        gross: Number(r.wages!.earnedGross) || 0,
+        netPay: Number(r.wages!.netPay) || 0,
+      }));
+
+  // Employees whose money moved between the last paid snapshot and now.
+  const amendmentDeltas: AmendmentDelta[] = useMemo(() => {
+    if (!amendmentPending || lastSnapshotVersion === 0) return [];
+    const prev = new Map(
+      snapshots.filter((s) => s.version === lastSnapshotVersion).map((s) => [s.candidate_id, s]),
+    );
+    const out: AmendmentDelta[] = [];
+    for (const r of rows) {
+      if (!r.wages) continue;
+      const p = prev.get(r.id);
+      const before = {
+        paidDays: Number(p?.paid_days) || 0,
+        edDays: Number(p?.ed_days) || 0,
+        gross: Number(p?.gross) || 0,
+        totalDeductions: Number(p?.total_deductions) || 0,
+        totalEmployer: Number(p?.total_employer) || 0,
+        netPay: Number(p?.net_pay) || 0,
+      };
+      const after = {
+        paidDays: Number(r.totals?.tDays) || 0,
+        edDays: Number(r.totals?.otDays) || 0,
+        gross: Number(r.wages.earnedGross) || 0,
+        totalDeductions: Number(r.wages.totalDeductions) || 0,
+        totalEmployer: Number(r.wages.totalEmployerContributions) || 0,
+        netPay: Number(r.wages.netPay) || 0,
+      };
+      if (
+        Math.abs(before.netPay - after.netPay) < 0.005 &&
+        Math.abs(before.totalEmployer - after.totalEmployer) < 0.005 &&
+        Math.abs(before.paidDays - after.paidDays) < 0.005
+      ) continue;
+      out.push({ candidateId: r.id, employeeCode: r.employeeCode, name: r.name, before, after });
+    }
+    return out;
+  }, [amendmentPending, lastSnapshotVersion, snapshots, rows]);
+
+  const [amendReviewOpen, setAmendReviewOpen] = useState(false);
+
+  const processAmendment = useMutation({
+    mutationFn: async () => {
+      if (!run?.id) throw new Error("Payroll run not found");
+      const result = await processPayrollAmendment({
+        runId: run.id,
+        unitId,
+        unitLabel: (unit?.name as string) || (unit?.code as string) || unitId,
+        periodStart: start,
+        periodEnd: end,
+        version: sheetVersion,
+        deltas: amendmentDeltas,
+        rows: buildPayloadRows(),
+        heldCandidateIds: Array.from(holdDraft),
+      });
+      if (sheet?.id) await setAmendmentStatus(sheet.id, "processed");
+      void logActivity({
+        module: "Payroll",
+        action: "process",
+        entityType: "payroll_runs",
+        entityLabel: `${unitId} ${start} → ${end} amendment v${sheetVersion}`,
+        details: { unit_id: unitId, period_start: start, period_end: end, ...result },
+      });
+      return result;
+    },
+    onSuccess: (res) => {
+      setAmendReviewOpen(false);
+      queryClient.invalidateQueries({ queryKey: runQK });
+      queryClient.invalidateQueries({ queryKey: sheetQK });
+      queryClient.invalidateQueries({ queryKey: snapshotsQK });
+      queryClient.invalidateQueries({ queryKey: ["admin", "deductions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "additions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "employer-contributions"] });
+      toast.success(
+        `Amendment v${res.version} processed — ${res.affected} employee${res.affected === 1 ? "" : "s"} adjusted. ` +
+          `Arrears ${fmtINR(res.arrears)}, recoveries ${fmtINR(res.recoveries)} (net ${fmtINR(res.netImpact)}).`,
+        { duration: 8000 },
+      );
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to process amendment"),
+  });
+
   // Process payroll: park every computed money line into its permanent ledger.
   const processRun = useMutation({
     mutationFn: async () => {
       if (!run?.id) throw new Error("Payroll run not found");
-      const payloadRows = rows
-        .filter((r) => r.wages)
-        .map((r) => ({
-          candidateId: r.id,
-          employeeCode: r.employeeCode,
-          name: r.name,
-          deductions: (r.wages!.deductions ?? []).map((d) => ({ name: cleanLedgerName(d.name) || d.name, amount: Number(d.amount) || 0 })),
-          employerContributions: (r.wages!.employerContributions ?? []).map((d) => ({ name: d.name, amount: Number(d.amount) || 0 })),
-          additions: (((r.wages as unknown as { additions?: { name: string; amount: number }[] }).additions) ?? []).map((a) => ({
-            name: cleanLedgerName(a.name) || a.name,
-            amount: Number(a.amount) || 0,
-          })),
-          netPay: Number(r.wages!.netPay) || 0,
-        }));
+      const payloadRows = buildPayloadRows();
+
       const result = await processPayrollRun({
         runId: run.id,
         unitId,
@@ -976,6 +1095,8 @@ function PayrollUnitPage() {
         rows: payloadRows,
         heldCandidateIds: Array.from(holdDraft),
         holdReason,
+        version: sheetVersion,
+
       });
       void logActivity({
         module: "Payroll",
@@ -990,6 +1111,8 @@ function PayrollUnitPage() {
       setProcessOpen(false);
       queryClient.invalidateQueries({ queryKey: runQK });
       queryClient.invalidateQueries({ queryKey: holdsQK });
+      queryClient.invalidateQueries({ queryKey: snapshotsQK });
+
       queryClient.invalidateQueries({ queryKey: ["admin", "employer-contributions"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "deductions"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "additions"] });
@@ -1501,14 +1624,102 @@ function PayrollUnitPage() {
               </Button>
             </>
           )}
-          {isProcessed && (
+          {isProcessed && !amendmentPending && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
               <CheckCircle2 className="h-3.5 w-3.5" /> Payroll processed
+              {lastSnapshotVersion > 1 ? ` · v${lastSnapshotVersion}` : ""}
               {run?.payroll_processed_at ? ` · ${new Date(run.payroll_processed_at).toLocaleDateString("en-IN")}` : ""}
             </span>
           )}
+          {amendmentPending && (
+            <Button
+              size="sm"
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={() => setAmendReviewOpen(true)}
+              disabled={processAmendment.isPending || rows.length === 0}
+            >
+              <Banknote className="mr-1.5 h-4 w-4" /> Review &amp; process amendment v{sheetVersion}
+            </Button>
+          )}
         </div>
       </div>
+
+      {amendmentPending && (
+        <div className="rounded-md border border-indigo-300/60 bg-indigo-50 px-3 py-2 text-xs text-indigo-900 print:hidden">
+          <b>Attendance amendment v{sheetVersion} approved.</b> Payroll v{lastSnapshotVersion} is already paid — processing
+          the amendment posts only the difference for the {amendmentDeltas.length} affected employee
+          {amendmentDeltas.length === 1 ? "" : "s"} as arrears or recovery. Nothing already paid is reversed.
+        </div>
+      )}
+      {amendmentStatus === "open" || amendmentStatus === "submitted" ? (
+        <div className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900 print:hidden">
+          An attendance amendment (v{sheetVersion}) is {amendmentStatus === "open" ? "being edited" : "awaiting approval"}.
+          Payroll figures below still reflect the paid version until it is approved.
+        </div>
+      ) : null}
+
+      <Dialog open={amendReviewOpen} onOpenChange={setAmendReviewOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Process payroll amendment v{sheetVersion}</DialogTitle>
+            <DialogDescription>
+              Only the employees below changed. Each gets a single arrears (increase) or recovery (decrease) line dated
+              {" "}{end}. Their earlier pay sheet stays intact as v{lastSnapshotVersion}.
+            </DialogDescription>
+          </DialogHeader>
+          {amendmentDeltas.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No money changed — nothing to post.</p>
+          ) : (
+            <div className="max-h-[50vh] overflow-auto rounded-xl border border-border/60">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/60">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold">Employee</th>
+                    <th className="px-3 py-2 text-right font-semibold">Paid days</th>
+                    <th className="px-3 py-2 text-right font-semibold">Net v{lastSnapshotVersion}</th>
+                    <th className="px-3 py-2 text-right font-semibold">Net v{sheetVersion}</th>
+                    <th className="px-3 py-2 text-right font-semibold">Impact</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {amendmentDeltas.map((d) => {
+                    const delta = Math.round((d.after.netPay - d.before.netPay) * 100) / 100;
+                    return (
+                      <tr key={d.candidateId} className="border-t border-border/50">
+                        <td className="px-3 py-2">
+                          <span className="font-medium">{d.name}</span>
+                          <span className="ml-1 text-muted-foreground">{d.employeeCode}</span>
+                        </td>
+                        <td className="px-3 py-2 text-right">{d.before.paidDays} → {d.after.paidDays}</td>
+                        <td className="px-3 py-2 text-right">{fmtINR(d.before.netPay)}</td>
+                        <td className="px-3 py-2 text-right">{fmtINR(d.after.netPay)}</td>
+                        <td className={cn("px-3 py-2 text-right font-semibold", delta >= 0 ? "text-emerald-700" : "text-rose-700")}>
+                          {delta >= 0 ? "+" : "−"}{fmtINR(Math.abs(delta))}
+                          <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {delta >= 0 ? "arrears" : "recovery"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAmendReviewOpen(false)}>Cancel</Button>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={() => processAmendment.mutate()}
+              disabled={processAmendment.isPending || amendmentDeltas.length === 0}
+            >
+              {processAmendment.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Post difference for {amendmentDeltas.length} employee{amendmentDeltas.length === 1 ? "" : "s"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={processOpen} onOpenChange={setProcessOpen}>
         <DialogContent className="max-w-md">
@@ -1736,7 +1947,11 @@ function PayrollUnitPage() {
                 {isExpanded && r.wages && r.resource && (
                   <tr key={`${r.rowKey}-detail`} className="bg-secondary/20">
                     <td colSpan={registerColCount} className="px-4 py-0">
-                      <PaySheetPanel r={r as unknown as PaySheetRow} />
+                      <PaySheetPanel
+                        r={r as unknown as PaySheetRow}
+                        versions={snapshots.filter((s) => s.candidate_id === r.id)}
+                      />
+
                     </td>
                   </tr>
                 )}
@@ -2293,7 +2508,16 @@ function BreakdownSection({
   );
 }
 
-function PaySheetPanel({ r }: { r: PaySheetRow }) {
+type PaySheetVersion = {
+  version: number;
+  paid_days: number;
+  gross: number;
+  total_deductions: number;
+  net_pay: number;
+  posted_at: string;
+};
+
+function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PaySheetVersion[] }) {
   const w = r.wages;
   const contractComponents = [...(r.resource.components ?? []), ...(r.resource.benefits ?? [])];
   const contractGrossTotal = contractComponents.reduce((s, c) => s + (Number(c.amount) || 0), 0);
@@ -2322,6 +2546,52 @@ function PaySheetPanel({ r }: { r: PaySheetRow }) {
           </span>
         ))}
       </div>
+
+      {versions.length > 1 && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-2.5">
+          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-800">
+            Pay sheet versions
+          </div>
+          <table className="w-full text-[11px]">
+            <thead>
+              <tr className="text-muted-foreground">
+                <th className="px-2 py-1 text-left font-medium">Version</th>
+                <th className="px-2 py-1 text-right font-medium">Paid days</th>
+                <th className="px-2 py-1 text-right font-medium">Gross</th>
+                <th className="px-2 py-1 text-right font-medium">Deductions</th>
+                <th className="px-2 py-1 text-right font-medium">Net</th>
+                <th className="px-2 py-1 text-right font-medium">Posted</th>
+              </tr>
+            </thead>
+            <tbody>
+              {versions.map((v, i) => {
+                const prev = versions[i - 1];
+                const delta = prev ? Math.round((v.net_pay - prev.net_pay) * 100) / 100 : 0;
+                return (
+                  <tr key={v.version} className="border-t border-indigo-200/60">
+                    <td className="px-2 py-1 font-semibold">
+                      v{v.version}
+                      {delta !== 0 && (
+                        <span className={cn("ml-1.5 font-medium", delta > 0 ? "text-emerald-700" : "text-rose-700")}>
+                          {delta > 0 ? "+" : "−"}{fmtINR(Math.abs(delta))}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-2 py-1 text-right tabular-nums">{v.paid_days}</td>
+                    <td className="px-2 py-1 text-right tabular-nums">{fmtINR(v.gross)}</td>
+                    <td className="px-2 py-1 text-right tabular-nums">{fmtINR(v.total_deductions)}</td>
+                    <td className="px-2 py-1 text-right font-semibold tabular-nums">{fmtINR(v.net_pay)}</td>
+                    <td className="px-2 py-1 text-right text-muted-foreground">
+                      {v.posted_at ? new Date(v.posted_at).toLocaleDateString("en-IN") : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
 
       <div className="grid gap-3 lg:grid-cols-2">
         <BreakdownSection
