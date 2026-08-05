@@ -1,8 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
 
 export const createHyperAuthSession = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\+91\d{10}$/) }).parse(input))
@@ -26,26 +24,6 @@ export const createHyperAuthSession = createServerFn({ method: "POST" })
     const email = `phone-${digits}@radiantguard.local`;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const publishableKey = process.env["SUPABASE_PUBLISHABLE_KEY"];
-    const backendUrl = process.env["SUPABASE_URL"];
-    if (!publishableKey || !backendUrl) throw new Error("AUTH_CONFIGURATION_ERROR");
-    const authClient = createClient<Database>(backendUrl, publishableKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-      global: {
-        fetch: (input, init) => {
-          const headers = new Headers(init?.headers);
-          if (
-            publishableKey.startsWith("sb_") &&
-            headers.get("Authorization") === `Bearer ${publishableKey}`
-          ) {
-            headers.delete("Authorization");
-          }
-          headers.set("apikey", publishableKey);
-          return fetch(input, { ...init, headers });
-        },
-      },
-    });
-
     let link = await supabaseAdmin.auth.admin.generateLink({ type: "magiclink", email });
     if (link.error) {
       const created = await supabaseAdmin.auth.admin.createUser({
@@ -60,7 +38,7 @@ export const createHyperAuthSession = createServerFn({ method: "POST" })
       throw link.error ?? new Error("SESSION_CREATION_FAILED");
     }
 
-    const signedIn = await authClient.auth.verifyOtp({
+    const signedIn = await supabaseAdmin.auth.verifyOtp({
       type: "magiclink",
       token_hash: link.data.properties.hashed_token,
     });
