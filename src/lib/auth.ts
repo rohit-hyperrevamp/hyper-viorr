@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity, getClientIp } from "@/lib/activity-log";
+import { restorePhoneSession } from "@/lib/phone-session.functions";
 
 const STORAGE_KEY = "radiant.auth";
 const AUTH_TIMEOUT_MS = 12_000;
@@ -102,7 +104,12 @@ async function authUserFromSession(): Promise<AuthUser | null> {
   return user;
 }
 
-async function ensureSupabaseSession(phone: string) {
+async function ensureSupabaseSession(
+  phone: string,
+  restore: (input: {
+    data: { phone: string };
+  }) => Promise<{ accessToken: string; refreshToken: string }>,
+) {
   const digits = phone.replace(/\D/g, "").slice(-10);
   const isSuperAdmin = digits === SUPER_ADMIN_PHONE;
 
@@ -126,24 +133,24 @@ async function ensureSupabaseSession(phone: string) {
     "Login is taking too long. Please try again.",
   );
   if (!signIn.error) return;
-  // First-time login → sign up, then sign in.
-  const signUp = await withTimeout(
-    supabase.auth.signUp({ email, password }),
-    "Account setup is taking too long. Please try again.",
+
+  const tokens = await withTimeout(
+    restore({ data: { phone: digits } }),
+    "Account restoration is taking too long. Please try again.",
   );
-  if (signUp.error && !/registered/i.test(signUp.error.message)) {
-    throw signUp.error;
+  const restored = await supabase.auth.setSession({
+    access_token: tokens.accessToken,
+    refresh_token: tokens.refreshToken,
+  });
+  if (restored.error || !restored.data.session) {
+    throw restored.error ?? new Error("Could not establish a secure session.");
   }
-  const retry = await withTimeout(
-    supabase.auth.signInWithPassword({ email, password }),
-    "Login is taking too long. Please try again.",
-  );
-  if (retry.error) throw retry.error;
 }
 
 export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(() => read());
-  const [isReady, setIsReady] = useState(() => typeof window === "undefined");
+  const restoreSession = useServerFn(restorePhoneSession);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -222,7 +229,7 @@ export function useAuth() {
       digits === SUPER_ADMIN_PHONE ? "super_admin" : "user";
     const ipPromise = resolveClientIpQuickly();
     try {
-      await ensureSupabaseSession(phone);
+      await ensureSupabaseSession(phone, restoreSession);
     } catch (e) {
       void ipPromise.then((ip) =>
         logActivity({
@@ -269,7 +276,7 @@ export function useAuth() {
       }),
     );
     emit();
-  }, []);
+  }, [restoreSession]);
 
   const logout = useCallback(() => {
     const current = read();
