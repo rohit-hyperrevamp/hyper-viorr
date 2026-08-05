@@ -200,9 +200,6 @@ export function useAuth() {
       if (e instanceof Error && e.message.includes("HYPERAUTH_BLOCKED")) {
         throw new Error("Sign-in isn’t available for this account right now. Please contact your administrator for assistance.");
       }
-      if (e instanceof Error && e.message.includes("ACCOUNT_DISABLED")) {
-        throw new Error("Access disabled. Your account is not active. Please contact your administrator.");
-      }
       throw e;
     }
     const u: AuthUser = { phone, role };

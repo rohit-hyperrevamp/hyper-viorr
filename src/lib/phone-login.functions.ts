@@ -24,16 +24,7 @@ export const createHyperAuthSession = createServerFn({ method: "POST" })
 
     const digits = data.phone.slice(-10);
     const email = `phone-${digits}@radiantguard.local`;
-    const superAdminPhone = process.env["VITE_SUPER_ADMIN_PHONE"] ?? "8373914073";
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    if (digits !== superAdminPhone) {
-      const eligibility = await supabaseAdmin.rpc("can_phone_login" as never, {
-        _mobile: digits,
-      } as never) as unknown as { data: boolean | null; error: { message: string } | null };
-      if (eligibility.error) throw new Error(eligibility.error.message);
-      if (!eligibility.data) throw new Error("ACCOUNT_DISABLED");
-    }
 
     const publishableKey = process.env["SUPABASE_PUBLISHABLE_KEY"];
     const backendUrl = process.env["SUPABASE_URL"];
