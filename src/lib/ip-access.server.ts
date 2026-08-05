@@ -6,18 +6,34 @@ async function resolveCountry(ip: string, rawHeaderCountry: string): Promise<str
   if (/^[A-Z]{2}$/.test(headerCountry)) return headerCountry;
   if (!ip) return "";
 
-  try {
-    const response = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}?fields=success,country_code`, {
-      signal: AbortSignal.timeout(2500),
-      headers: { accept: "application/json" },
-    });
-    if (!response.ok) return "";
-    const payload = (await response.json()) as { success?: boolean; country_code?: string };
-    const country = String(payload.country_code ?? "").trim().toUpperCase();
-    return payload.success !== false && /^[A-Z]{2}$/.test(country) ? country : "";
-  } catch {
-    return "";
+  const lookups = [
+    async () => {
+      const response = await fetch(
+        `https://ipwho.is/${encodeURIComponent(ip)}?fields=success,country_code`,
+        { signal: AbortSignal.timeout(2500), headers: { accept: "application/json" } },
+      );
+      if (!response.ok) return "";
+      const payload = (await response.json()) as { success?: boolean; country_code?: string };
+      return payload.success === false ? "" : String(payload.country_code ?? "");
+    },
+    async () => {
+      const response = await fetch(`https://ipapi.co/${encodeURIComponent(ip)}/country/`, {
+        signal: AbortSignal.timeout(2500),
+        headers: { accept: "text/plain" },
+      });
+      return response.ok ? response.text() : "";
+    },
+  ];
+
+  for (const lookup of lookups) {
+    try {
+      const country = (await lookup()).trim().toUpperCase();
+      if (/^[A-Z]{2}$/.test(country)) return country;
+    } catch {
+      // Try the next independent provider.
+    }
   }
+  return "";
 }
 
 export async function checkRequestAccess(ip: string, rawHeaderCountry: string) {
@@ -39,9 +55,6 @@ export async function checkRequestAccess(ip: string, rawHeaderCountry: string) {
         notes: String(rule.notes ?? ""),
       }),
     );
-    const geoDecision = evaluateCountry(country, geoRules);
-    if (!geoDecision.allowed) return { allowed: false, ip, country, layer: "geo" as const };
-
     const { data, error } = await supabaseAdmin
       .from("ip_access_rules")
       .select("id,label,ip_cidr,mode,is_active,notes");
@@ -56,7 +69,21 @@ export async function checkRequestAccess(ip: string, rawHeaderCountry: string) {
         notes: String(rule.notes ?? ""),
       }),
     );
-    return { allowed: evaluateIp(ip, rules).allowed, ip, country, layer: "ip" as const };
+    const ipDecision = evaluateIp(ip, rules);
+    const geoDecision = evaluateCountry(country, geoRules);
+
+    // A positively identified disallowed country always wins. When an edge
+    // omits geo headers and both independent lookups are unavailable, only an
+    // explicitly matched allow-list subnet may pass. This prevents transient
+    // geo-provider failures from locking out a trusted office network while
+    // still rejecting every unlisted address.
+    if (country && !geoDecision.allowed) {
+      return { allowed: false, ip, country, layer: "geo" as const };
+    }
+    if (!country && ipDecision.reason !== "whitelisted") {
+      return { allowed: false, ip, country, layer: "geo" as const };
+    }
+    return { allowed: ipDecision.allowed, ip, country, layer: "ip" as const };
   } catch (error) {
     console.error("[HyperAuth] Access evaluation failed", {
       ip,
