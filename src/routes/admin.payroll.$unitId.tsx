@@ -471,11 +471,12 @@ function PayrollUnitPage() {
         const [addsRes, dedsRes, priorAttendanceRes, addTypesRes] = await Promise.all([
           supabase
             .from("additions" as never)
-            .select("candidate_id, addition_type_id, addition_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for")
+            .select("candidate_id, addition_type_id, addition_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind")
             .in("candidate_id", candidateIds)
             .gte("addition_date", start)
             .lte("addition_date", end)
             .eq("status", "active"),
+
           supabase
             .from("deductions" as never)
             .select("candidate_id, deduction_name, calculation_type, amount, installments, status, entry_mode, days, include_in_total_days, affects_days_for, source_kind, deduction_date")
