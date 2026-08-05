@@ -65,7 +65,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useAuth } from "@/lib/auth";
+import { readStoredAuthUser, useAuth } from "@/lib/auth";
 import { useMe } from "@/lib/use-me";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { RoutePermissionGuard } from "@/components/RoutePermissionGuard";
@@ -183,7 +183,11 @@ function AdminLayout() {
   const { user, logout, isReady } = useAuth();
   const me = useMe();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { can, canSub, isLoading: permsLoading, isSuperAdmin, roleKey } = useCurrentPermissions();
+  const { can, canSub, isLoading: permsLoading, isSuperAdmin: isRbacSuperAdmin, roleKey } = useCurrentPermissions();
+  // useAuth and RBAC hydrate in separate hook instances. Preserve the explicit
+  // authenticated role during that hand-off so the route guard cannot issue a
+  // one-way frontline redirect before RBAC catches up.
+  const isSuperAdmin = user?.role === "super_admin" || isRbacSuperAdmin;
   // Frontline / FO-onboarded employees (guards, VMS/BMS operators, housekeeping,
   // drivers, etc.) — anyone who is not super admin, not a field officer, and
   // not on an admin-console role. They see only the employee dashboard,
@@ -292,6 +296,10 @@ function AdminLayout() {
   };
   useEffect(() => {
     if (!isReady || permsLoading || !user) return;
+    // Re-read the verified login snapshot at effect execution time. An effect
+    // queued by the pre-RBAC render must not redirect a restored administrator
+    // to the employee dashboard after the correct dashboard navigation.
+    if (readStoredAuthUser()?.role === "super_admin") return;
     // Guards have no module-based permissions; restrict them to their personal pages.
     if (isGuardRole) {
       const allowed =
