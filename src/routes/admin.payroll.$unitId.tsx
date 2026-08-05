@@ -1881,7 +1881,7 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 font-medium">
                     <div className="flex items-center gap-2">
                       <span>{r.name}</span>
-                      {r.wages && (
+                      {r.wages && isProcessed && (
                         <button
                           type="button"
                           title="Download Form XVI wage slip"
