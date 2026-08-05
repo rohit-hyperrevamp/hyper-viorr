@@ -3,6 +3,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ChevronRight, Download, ReceiptText, Search } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -303,8 +304,8 @@ function PtRegisterPage() {
       />
 
       {/* Filters */}
-      <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Input type="month" value={ym} onChange={(e) => setYm(e.target.value)} className="h-9 text-xs" />
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <MonthYearPicker value={ym} onChange={setYm} className="h-9 py-0" />
         <Select value={state} onValueChange={setState}>
           <SelectTrigger className="h-9 text-xs">
             <SelectValue placeholder="State" />
