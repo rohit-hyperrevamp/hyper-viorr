@@ -34,7 +34,7 @@ export const restorePhoneSession = createServerFn({ method: "POST" })
       });
     }
 
-    const tokenHash = link.data?.properties.hashed_token;
+    const tokenHash = link.data?.properties?.hashed_token;
     if (link.error || !tokenHash) {
       throw link.error ?? new Error("Could not restore this account.");
     }
