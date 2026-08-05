@@ -564,7 +564,7 @@ function PayrollUnitPage() {
           const isDayAdj = isSystemComputedDayAdj(a.entry_mode, a.include_in_total_days, a.affects_days_for);
           if (!isDayAdj) {
             const arr = additionsByCandidate.get(a.candidate_id) ?? [];
-            arr.push({ name: cleanLedgerName(a.addition_name), amount: Math.round(amt * 100) / 100 });
+            arr.push({ name: carryLabel(cleanLedgerName(a.addition_name), a.source_kind), amount: Math.round(amt * 100) / 100 });
             additionsByCandidate.set(a.candidate_id, arr);
           }
           if (a.entry_mode === "days_x_per_day" && a.include_in_total_days) {
