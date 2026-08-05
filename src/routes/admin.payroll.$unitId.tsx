@@ -500,8 +500,13 @@ function PayrollUnitPage() {
             .filter((t) => (t.code ?? "").toLowerCase() === "paid_holidays")
             .map((t) => t.id),
         );
-        type RawAdd = { candidate_id: string; addition_type_id?: string | null; addition_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null };
+        type RawAdd = { candidate_id: string; addition_type_id?: string | null; addition_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null; source_kind?: string | null };
         type RawDed = { candidate_id: string; deduction_name: string; calculation_type: string; amount: number | string; installments: number; entry_mode?: string | null; days?: number | string | null; include_in_total_days?: boolean | null; affects_days_for?: string[] | null; source_kind?: string | null; deduction_date: string };
+        // Carry-forward from an amended earlier payroll: flag it on the line so
+        // the register shows it came from a previous month.
+        const carryLabel = (name: string, sourceKind: string | null | undefined) =>
+          sourceKind === "payroll_amendment" ? `${name} — previous period` : name;
+
         const candidatesWithPriorAttendance = new Set(
           ((priorAttendanceRes.data ?? []) as { candidate_id: string }[]).map((row) => row.candidate_id),
         );
