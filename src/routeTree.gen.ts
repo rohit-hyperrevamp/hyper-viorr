@@ -48,6 +48,7 @@ import { Route as AdminDeductionsRouteImport } from './routes/admin.deductions'
 import { Route as AdminDeductionTypeManagerRouteImport } from './routes/admin.deduction-type-manager'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
+import { Route as AdminCountryRestrictionRouteImport } from './routes/admin.country-restriction'
 import { Route as AdminCostComponentManagerRouteImport } from './routes/admin.cost-component-manager'
 import { Route as AdminControlCenterRouteImport } from './routes/admin.control-center'
 import { Route as AdminCompliancePtRouteImport } from './routes/admin.compliance-pt'
@@ -305,6 +306,11 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCountryRestrictionRoute = AdminCountryRestrictionRouteImport.update({
+  id: '/country-restriction',
+  path: '/country-restriction',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCostComponentManagerRoute =
@@ -640,6 +646,7 @@ export interface FileRoutesByFullPath {
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
+  '/admin/country-restriction': typeof AdminCountryRestrictionRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/deduction-type-manager': typeof AdminDeductionTypeManagerRoute
@@ -739,6 +746,7 @@ export interface FileRoutesByTo {
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
+  '/admin/country-restriction': typeof AdminCountryRestrictionRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/deduction-type-manager': typeof AdminDeductionTypeManagerRoute
@@ -838,6 +846,7 @@ export interface FileRoutesById {
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
+  '/admin/country-restriction': typeof AdminCountryRestrictionRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/deduction-type-manager': typeof AdminDeductionTypeManagerRoute
@@ -940,6 +949,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-pt'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
+    | '/admin/country-restriction'
     | '/admin/customers'
     | '/admin/dashboard'
     | '/admin/deduction-type-manager'
@@ -1039,6 +1049,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-pt'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
+    | '/admin/country-restriction'
     | '/admin/customers'
     | '/admin/dashboard'
     | '/admin/deduction-type-manager'
@@ -1137,6 +1148,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-pt'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
+    | '/admin/country-restriction'
     | '/admin/customers'
     | '/admin/dashboard'
     | '/admin/deduction-type-manager'
@@ -1502,6 +1514,13 @@ declare module '@tanstack/react-router' {
       path: '/customers'
       fullPath: '/admin/customers'
       preLoaderRoute: typeof AdminCustomersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/country-restriction': {
+      id: '/admin/country-restriction'
+      path: '/country-restriction'
+      fullPath: '/admin/country-restriction'
+      preLoaderRoute: typeof AdminCountryRestrictionRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/cost-component-manager': {
@@ -2076,6 +2095,7 @@ interface AdminRouteChildren {
   AdminCompliancePtRoute: typeof AdminCompliancePtRoute
   AdminControlCenterRoute: typeof AdminControlCenterRoute
   AdminCostComponentManagerRoute: typeof AdminCostComponentManagerRoute
+  AdminCountryRestrictionRoute: typeof AdminCountryRestrictionRoute
   AdminCustomersRoute: typeof AdminCustomersRouteWithChildren
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminDeductionTypeManagerRoute: typeof AdminDeductionTypeManagerRoute
@@ -2135,6 +2155,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCompliancePtRoute: AdminCompliancePtRoute,
   AdminControlCenterRoute: AdminControlCenterRoute,
   AdminCostComponentManagerRoute: AdminCostComponentManagerRoute,
+  AdminCountryRestrictionRoute: AdminCountryRestrictionRoute,
   AdminCustomersRoute: AdminCustomersRouteWithChildren,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminDeductionTypeManagerRoute: AdminDeductionTypeManagerRoute,
