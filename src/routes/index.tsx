@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useAuth } from "@/lib/auth";
+import { readStoredAuthUser, useAuth } from "@/lib/auth";
 import { useCurrentPermissions } from "@/lib/rbac";
 
 export const Route = createFileRoute("/")({
@@ -37,6 +37,13 @@ function Index() {
     if (!isReady) return;
     if (!user) {
       navigate({ to: "/login", replace: true });
+      return;
+    }
+    // Login persists the verified role before navigating here. Check it before
+    // waiting for the independently-hydrated RBAC query so a stale frontline
+    // redirect can never be queued for a super administrator.
+    if (user.role === "super_admin" || readStoredAuthUser()?.role === "super_admin") {
+      navigate({ to: "/admin/dashboard", replace: true });
       return;
     }
     if (isLoading) return;
