@@ -19,6 +19,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { StatutoryHeadTiles } from "@/components/StatutoryHeadTiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { downloadCsv } from "@/lib/csv-export";
