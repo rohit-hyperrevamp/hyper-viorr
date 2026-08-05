@@ -368,6 +368,20 @@ export async function processPayrollAmendment(args: {
   const ref = `payroll_run:${runId}:v${version}`;
   const periodLabel = `${unitLabel} · ${periodStart} → ${periodEnd}`;
 
+  // An amendment raised after the run was paid is NOT settled money — it is an
+  // open item recovered/paid in the NEXT payroll. It is therefore dated to the
+  // first day of the next window (the apply date) and left status = 'active'
+  // so the next run picks it up, instead of being closed as 'completed'.
+  const applyDate = (() => {
+    const d = new Date(`${periodEnd}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  const registeredOn = new Date().toISOString().slice(0, 10);
+  const fmtDate = (iso: string) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+
+
   const { data: auth } = await supabase.auth.getUser();
   const uid = auth?.user?.id ?? null;
 
