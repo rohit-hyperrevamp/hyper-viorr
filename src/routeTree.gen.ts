@@ -35,6 +35,7 @@ import { Route as AdminLanguageManagerRouteImport } from './routes/admin.languag
 import { Route as AdminIpRestrictionRouteImport } from './routes/admin.ip-restriction'
 import { Route as AdminInvoiceRouteImport } from './routes/admin.invoice'
 import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
+import { Route as AdminHyperauthRouteImport } from './routes/admin.hyperauth'
 import { Route as AdminFieldDashboardRouteImport } from './routes/admin.field-dashboard'
 import { Route as AdminExServiceManagerRouteImport } from './routes/admin.ex-service-manager'
 import { Route as AdminEsicBranchManagerRouteImport } from './routes/admin.esic-branch-manager'
@@ -237,6 +238,11 @@ const AdminInvoiceRoute = AdminInvoiceRouteImport.update({
 const AdminInventoryRoute = AdminInventoryRouteImport.update({
   id: '/inventory',
   path: '/inventory',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminHyperauthRoute = AdminHyperauthRouteImport.update({
+  id: '/hyperauth',
+  path: '/hyperauth',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminFieldDashboardRoute = AdminFieldDashboardRouteImport.update({
@@ -646,6 +652,7 @@ export interface FileRoutesByFullPath {
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
+  '/admin/hyperauth': typeof AdminHyperauthRoute
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/invoice': typeof AdminInvoiceRouteWithChildren
   '/admin/ip-restriction': typeof AdminIpRestrictionRoute
@@ -744,6 +751,7 @@ export interface FileRoutesByTo {
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
+  '/admin/hyperauth': typeof AdminHyperauthRoute
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/ip-restriction': typeof AdminIpRestrictionRoute
   '/admin/language-manager': typeof AdminLanguageManagerRoute
@@ -842,6 +850,7 @@ export interface FileRoutesById {
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
+  '/admin/hyperauth': typeof AdminHyperauthRoute
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/invoice': typeof AdminInvoiceRouteWithChildren
   '/admin/ip-restriction': typeof AdminIpRestrictionRoute
@@ -943,6 +952,7 @@ export interface FileRouteTypes {
     | '/admin/esic-branch-manager'
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
+    | '/admin/hyperauth'
     | '/admin/inventory'
     | '/admin/invoice'
     | '/admin/ip-restriction'
@@ -1041,6 +1051,7 @@ export interface FileRouteTypes {
     | '/admin/esic-branch-manager'
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
+    | '/admin/hyperauth'
     | '/admin/inventory'
     | '/admin/ip-restriction'
     | '/admin/language-manager'
@@ -1138,6 +1149,7 @@ export interface FileRouteTypes {
     | '/admin/esic-branch-manager'
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
+    | '/admin/hyperauth'
     | '/admin/inventory'
     | '/admin/invoice'
     | '/admin/ip-restriction'
@@ -1399,6 +1411,13 @@ declare module '@tanstack/react-router' {
       path: '/inventory'
       fullPath: '/admin/inventory'
       preLoaderRoute: typeof AdminInventoryRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/hyperauth': {
+      id: '/admin/hyperauth'
+      path: '/hyperauth'
+      fullPath: '/admin/hyperauth'
+      preLoaderRoute: typeof AdminHyperauthRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/field-dashboard': {
@@ -2069,6 +2088,7 @@ interface AdminRouteChildren {
   AdminEsicBranchManagerRoute: typeof AdminEsicBranchManagerRoute
   AdminExServiceManagerRoute: typeof AdminExServiceManagerRoute
   AdminFieldDashboardRoute: typeof AdminFieldDashboardRoute
+  AdminHyperauthRoute: typeof AdminHyperauthRoute
   AdminInventoryRoute: typeof AdminInventoryRouteWithChildren
   AdminInvoiceRoute: typeof AdminInvoiceRouteWithChildren
   AdminIpRestrictionRoute: typeof AdminIpRestrictionRoute
@@ -2127,6 +2147,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEsicBranchManagerRoute: AdminEsicBranchManagerRoute,
   AdminExServiceManagerRoute: AdminExServiceManagerRoute,
   AdminFieldDashboardRoute: AdminFieldDashboardRoute,
+  AdminHyperauthRoute: AdminHyperauthRoute,
   AdminInventoryRoute: AdminInventoryRouteWithChildren,
   AdminInvoiceRoute: AdminInvoiceRouteWithChildren,
   AdminIpRestrictionRoute: AdminIpRestrictionRoute,
