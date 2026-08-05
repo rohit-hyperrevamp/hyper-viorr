@@ -12,7 +12,6 @@ import {
   Files,
   Home,
   Boxes,
-  ReceiptText,
   RefreshCw,
   ShieldCheck,
   SlidersHorizontal,
@@ -20,6 +19,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { StatutoryHeadTiles } from "@/components/StatutoryHeadTiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { downloadCsv } from "@/lib/csv-export";
@@ -138,6 +138,8 @@ function CompliancePage() {
     staleTime: 60_000,
   });
 
+  const now = new Date();
+  const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const [domain, setDomain] = useState<DomainKey | "all">("all");
   const [severity, setSeverity] = useState<Severity | "all">("all");
   const [q, setQ] = useState("");
@@ -193,11 +195,6 @@ function CompliancePage() {
         crumbs={[{ label: "Compliance" }]}
         actions={
           <div className="flex items-center gap-2">
-            <Button size="sm" asChild>
-              <Link to="/admin/compliance-pt">
-                <ReceiptText className="mr-1.5 h-3.5 w-3.5" /> PT
-              </Link>
-            </Button>
             <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
               <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isFetching && "animate-spin")} /> Refresh
             </Button>
@@ -279,7 +276,11 @@ function CompliancePage() {
         </div>
       </div>
 
+      {/* Statutory registers */}
+      <StatutoryHeadTiles ym={currentYm} />
+
       {/* Domain grid */}
+
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {(Object.keys(DOMAIN_META) as DomainKey[]).map((key) => {
           const meta = DOMAIN_META[key];
