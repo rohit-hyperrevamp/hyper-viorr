@@ -39,7 +39,14 @@ import {
 } from "@/lib/payroll-calc";
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { openExport } from "@/lib/csv-export";
-import { processPayrollRun } from "@/lib/payroll-process";
+import {
+  processPayrollRun,
+  processPayrollAmendment,
+  fetchRunSnapshots,
+  type AmendmentDelta,
+} from "@/lib/payroll-process";
+import { setAmendmentStatus } from "@/lib/attendance-versions";
+
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
 
