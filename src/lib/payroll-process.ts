@@ -368,6 +368,20 @@ export async function processPayrollAmendment(args: {
   const ref = `payroll_run:${runId}:v${version}`;
   const periodLabel = `${unitLabel} · ${periodStart} → ${periodEnd}`;
 
+  // An amendment raised after the run was paid is NOT settled money — it is an
+  // open item recovered/paid in the NEXT payroll. It is therefore dated to the
+  // first day of the next window (the apply date) and left status = 'active'
+  // so the next run picks it up, instead of being closed as 'completed'.
+  const applyDate = (() => {
+    const d = new Date(`${periodEnd}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  const registeredOn = new Date().toISOString().slice(0, 10);
+  const fmtDate = (iso: string) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+
+
   const { data: auth } = await supabase.auth.getUser();
   const uid = auth?.user?.id ?? null;
 
@@ -397,21 +411,31 @@ export async function processPayrollAmendment(args: {
     if (held.has(d.candidateId)) continue;
     const netDelta = Math.round(((d.after.netPay || 0) - (d.before.netPay || 0)) * 100) / 100;
     const empDelta = Math.round(((d.after.totalEmployer || 0) - (d.before.totalEmployer || 0)) * 100) / 100;
-    const note = `Payroll amendment v${version} — ${periodLabel}. Paid days ${d.before.paidDays} → ${d.after.paidDays}, net ${d.before.netPay} → ${d.after.netPay}.`;
+    const dayDelta = Math.round(((d.after.paidDays || 0) - (d.before.paidDays || 0)) * 100) / 100;
+    const reason =
+      dayDelta === 0
+        ? `Attendance amendment (v${version}) — pay revised`
+        : dayDelta > 0
+          ? `${dayDelta} extra payable day${Math.abs(dayDelta) === 1 ? "" : "s"} credited (v${version})`
+          : `${Math.abs(dayDelta)} payable day${Math.abs(dayDelta) === 1 ? "" : "s"} short-paid, recovery (v${version})`;
+    const note =
+      `Reason: ${reason}. Payroll amendment v${version} — ${periodLabel}. `
+      + `Paid days ${d.before.paidDays} → ${d.after.paidDays}, net ₹${d.before.netPay} → ₹${d.after.netPay}. `
+      + `Registered on ${fmtDate(registeredOn)}; to be applied in the next payroll starting ${fmtDate(applyDate)}.`;
 
     if (netDelta > 0.004) {
       arrears += netDelta;
       additionRows.push({
         candidate_id: d.candidateId,
         addition_type_id: pickAdditionTypeId("arrears", additionTypes),
-        addition_name: `Payroll arrears (v${version})`,
-        addition_date: periodEnd,
+        addition_name: `Payroll arrears (v${version}) — ${periodStart.slice(0, 7)}`,
+        addition_date: applyDate,
         amount: netDelta,
         calculation_type: "lumpsum",
         entry_mode: "lumpsum",
         installments: 1,
         description: note,
-        status: "completed",
+        status: "active",
         source_kind: "payroll_amendment",
         source_ref: ref,
       });
@@ -420,18 +444,19 @@ export async function processPayrollAmendment(args: {
       deductionRows.push({
         candidate_id: d.candidateId,
         deduction_type_id: pickDeductionTypeId("general", deductionTypes),
-        deduction_name: `Payroll recovery (v${version})`,
-        deduction_date: periodEnd,
+        deduction_name: `Payroll recovery (v${version}) — ${periodStart.slice(0, 7)}`,
+        deduction_date: applyDate,
         amount: Math.abs(netDelta),
         calculation_type: "lumpsum",
         entry_mode: "lumpsum",
         installments: 1,
         description: note,
-        status: "completed",
+        status: "active",
         source_kind: "payroll_amendment",
         source_ref: ref,
       });
     }
+
 
     if (Math.abs(empDelta) > 0.004) {
       employerImpact += empDelta;
