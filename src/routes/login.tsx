@@ -71,7 +71,7 @@ function LoginPage() {
   useEffect(() => {
     void checkIpAccess()
       .then((r) => setAccessBlocked(!r.allowed))
-      .catch(() => setAccessBlocked(false));
+      .catch(() => setAccessBlocked(true));
   }, []);
 
   useEffect(() => {
@@ -97,7 +97,7 @@ function LoginPage() {
     e?.preventDefault();
     if (!phoneValid) return;
     setSending(true);
-    const gate = await checkIpAccess().catch(() => ({ allowed: true }));
+    const gate = await checkIpAccess().catch(() => ({ allowed: false }));
     if (!gate.allowed) {
       setSending(false);
       setAccessBlocked(true);
@@ -118,7 +118,7 @@ function LoginPage() {
     if (code.length !== 6 || verifyInFlightRef.current) return;
     verifyInFlightRef.current = true;
     setVerifying(true);
-    const gate = await checkIpAccess().catch(() => ({ allowed: true }));
+    const gate = await checkIpAccess().catch(() => ({ allowed: false }));
     if (!gate.allowed) {
       verifyInFlightRef.current = false;
       setVerifying(false);
@@ -172,6 +172,12 @@ function LoginPage() {
     setBioBusy(true);
     setError(null);
     try {
+      const gate = await checkIpAccess().catch(() => ({ allowed: false }));
+      if (!gate.allowed) {
+        setAccessBlocked(true);
+        setError(ACCESS_BLOCKED_MESSAGE);
+        return;
+      }
       const savedPhone = await signInWithBiometric();
       if (!savedPhone) {
         setBioBusy(false);
