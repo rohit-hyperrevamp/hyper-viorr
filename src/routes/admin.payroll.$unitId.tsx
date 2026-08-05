@@ -1183,9 +1183,9 @@ function PayrollUnitPage() {
     return { earningNames, deductionGroups, employerGroups };
   }, [rows]);
 
-  const [showEarnings, setShowEarnings] = useState(true);
-  const [showDeductionCols, setShowDeductionCols] = useState(true);
-  const [showEmployerCols, setShowEmployerCols] = useState(false);
+  const showEarnings = true;
+  const showDeductionCols = true;
+  const showEmployerCols = false;
 
   const earningCols = showEarnings ? registerCols.earningNames : [];
   const deductionCols = showDeductionCols ? registerCols.deductionGroups : [];
@@ -1507,15 +1507,17 @@ function PayrollUnitPage() {
           <ChevronLeft className="h-4 w-4" /> Back to payroll units
         </Link>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={downloadAllSlips}
-            disabled={isLoading || rows.length === 0 || slipBusy !== null}
-          >
-            {slipBusy === "__all__" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileText className="mr-1.5 h-4 w-4" />}
-            Wage slips
-          </Button>
+          {isProcessed && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadAllSlips}
+              disabled={isLoading || rows.length === 0 || slipBusy !== null}
+            >
+              {slipBusy === "__all__" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileText className="mr-1.5 h-4 w-4" />}
+              Wage slips
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || rows.length === 0}>
             <Download className="mr-1.5 h-4 w-4" />
             {isLoading ? "Loading…" : "Export"}
@@ -1575,12 +1577,16 @@ function PayrollUnitPage() {
             "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
             runStatus === "draft" && "bg-slate-100 text-slate-700",
             runStatus === "submitted" && "bg-amber-100 text-amber-800",
-            runStatus === "approved" && "bg-emerald-100 text-emerald-800",
+            runStatus === "approved" && (isProcessed ? "bg-emerald-100 text-emerald-800" : "bg-sky-100 text-sky-800"),
             runStatus === "rejected" && "bg-rose-100 text-rose-800",
           )}>
             {runStatus === "draft" && "Draft"}
             {runStatus === "submitted" && "Submitted — awaiting approval"}
-            {runStatus === "approved" && <><CheckCircle2 className="h-3.5 w-3.5" /> Approved</>}
+            {runStatus === "approved" && (
+              isProcessed
+                ? <><CheckCircle2 className="h-3.5 w-3.5" /> Processed</>
+                : <><CheckCircle2 className="h-3.5 w-3.5" /> Approved — awaiting processing</>
+            )}
             {runStatus === "rejected" && <><XCircle className="h-3.5 w-3.5" /> Rejected</>}
           </span>
           {runStatus === "rejected" && run?.rejection_reason && (
@@ -1781,28 +1787,6 @@ function PayrollUnitPage() {
       </Dialog>
 
       <div className="rounded-3xl border border-border/70 bg-card shadow-sm">
-        <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-4 py-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Columns</span>
-          {[
-            { label: "Earnings", on: showEarnings, set: setShowEarnings, count: registerCols.earningNames.length },
-            { label: "Deductions", on: showDeductionCols, set: setShowDeductionCols, count: registerCols.deductionGroups.length },
-            { label: "Employer contribution", on: showEmployerCols, set: setShowEmployerCols, count: registerCols.employerGroups.length },
-          ].map((c) => (
-            <button
-              key={c.label}
-              type="button"
-              onClick={() => c.set(!c.on)}
-              className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                c.on
-                  ? "border-primary/40 bg-primary/10 text-primary"
-                  : "border-border/60 bg-background text-muted-foreground hover:bg-muted",
-              )}
-            >
-              {c.label}{c.count ? ` (${c.count})` : ""}
-            </button>
-          ))}
-        </div>
         <div className="overflow-x-auto overscroll-x-contain rounded-b-3xl [scrollbar-gutter:stable] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-muted/30">
           <table className="ios-table min-w-[1180px] table-auto text-sm whitespace-nowrap">
             <thead className="border-b border-border/60 bg-secondary/40">
@@ -1897,7 +1881,7 @@ function PayrollUnitPage() {
                   <td className="px-4 py-3 font-medium">
                     <div className="flex items-center gap-2">
                       <span>{r.name}</span>
-                      {r.wages && (
+                      {r.wages && isProcessed && (
                         <button
                           type="button"
                           title="Download Form XVI wage slip"
