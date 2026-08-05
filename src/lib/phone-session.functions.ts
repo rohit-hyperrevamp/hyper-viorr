@@ -16,23 +16,37 @@ export const restorePhoneSession = createServerFn({ method: "POST" })
     }
 
     const email = `phone-${data.phone}@radiantguard.local`;
-    let link = await supabaseAdmin.auth.admin.generateLink({
+    const password = `RG-${data.phone}-pre-launch!`;
+
+    // Find (or create) the identity, then re-align its password with the
+    // deterministic credential so subsequent logins take the fast path.
+    const existing = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    const found = existing.data?.users?.find(
+      (u) => (u.email ?? "").toLowerCase() === email,
+    );
+
+    if (found) {
+      await supabaseAdmin.auth.admin.updateUserById(found.id, {
+        password,
+        email_confirm: true,
+      });
+    } else {
+      const created = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      });
+      if (created.error) throw created.error;
+    }
+
+    const link = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
       email,
     });
 
-    if (link.error) {
-      const created = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: `${crypto.randomUUID()}${crypto.randomUUID()}`,
-        email_confirm: true,
-      });
-      if (created.error) throw created.error;
-      link = await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        email,
-      });
-    }
 
     const tokenHash = link.data?.properties?.hashed_token;
     if (link.error || !tokenHash) {

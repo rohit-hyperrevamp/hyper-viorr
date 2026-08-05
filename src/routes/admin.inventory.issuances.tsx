@@ -24,7 +24,7 @@ import { useDocItemSummaries } from "@/lib/inv-doc-summary";
 
 
 export const Route = createFileRoute("/admin/inventory/issuances")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { candidate?: string; action?: "issue" | "" } => ({
     candidate: typeof search.candidate === "string" ? search.candidate : "",
     action: search.action === "issue" ? "issue" : "",
   }),

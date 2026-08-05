@@ -10,7 +10,7 @@ import { FieldSenseRangeFilter } from "@/components/FieldSenseRangeFilter";
 
 export const Route = createFileRoute("/admin/field-sense/expenses")({
   component: () => (<FieldSenseAdminGuard sub="expense_manager"><ExpenseManagerPage /></FieldSenseAdminGuard>),
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { range?: string; start?: string; end?: string } => ({
     range: (search.range as string | undefined) ?? undefined,
     start: (search.start as string | undefined) ?? undefined,
     end: (search.end as string | undefined) ?? undefined,
