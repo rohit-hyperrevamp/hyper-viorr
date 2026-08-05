@@ -251,6 +251,10 @@ export async function processPayrollRun(args: {
     if (error) throw error;
   }
 
+  await writeSnapshots({ runId, unitId, version: args.version ?? 1, rows, heldIds: held, uid });
+
+
+
   const { error: runErr } = await supabase
     .from("payroll_runs" as never)
     .update({
