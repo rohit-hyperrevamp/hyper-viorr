@@ -68,11 +68,6 @@ export const createHyperAuthSession = createServerFn({ method: "POST" })
       throw signedIn.error ?? new Error("SESSION_CREATION_FAILED");
     }
 
-    const rotated = await supabaseAdmin.auth.admin.updateUserById(link.data.user.id, {
-      password: crypto.randomUUID() + crypto.randomUUID(),
-    });
-    if (rotated.error) throw rotated.error;
-
     return {
       accessToken: signedIn.data.session.access_token,
       refreshToken: signedIn.data.session.refresh_token,
