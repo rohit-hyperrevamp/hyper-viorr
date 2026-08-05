@@ -74,6 +74,14 @@ function frequencyOf(name: string): "monthly" | "annual" | "half_yearly" {
   return "monthly";
 }
 
+/** Turn any Supabase/Postgrest error object into a real Error with a readable message. */
+export function asError(e: unknown, context: string): Error {
+  if (e instanceof Error) return e;
+  const o = (e ?? {}) as Record<string, unknown>;
+  const bits = [o.message, o.details, o.hint, o.code].filter(Boolean).join(" — ");
+  return new Error(`${context}: ${bits || JSON.stringify(o)}`);
+}
+
 /** Persist the exact figures paid for a run version so amendments can diff against them. */
 async function writeSnapshots(args: {
   runId: string;
@@ -89,32 +97,41 @@ async function writeSnapshots(args: {
     .eq("payroll_run_id", args.runId)
     .eq("version", args.version);
 
-  const payload = args.rows.map((r) => ({
-    payroll_run_id: args.runId,
-    unit_id: args.unitId,
-    candidate_id: r.candidateId,
-    version: args.version,
-    employee_code: r.employeeCode ?? "",
-    full_name: r.name ?? "",
-    paid_days: Number(r.paidDays) || 0,
-    ed_days: Number(r.edDays) || 0,
-    gross: Number(r.gross) || 0,
-    total_deductions: (r.deductions ?? []).reduce((s, d) => s + (Number(d.amount) || 0), 0),
-    total_employer: (r.employerContributions ?? []).reduce((s, d) => s + (Number(d.amount) || 0), 0),
-    net_pay: Number(r.netPay) || 0,
-    earnings: r.earnings ?? [],
-    deductions: r.deductions ?? [],
-    employer_contributions: r.employerContributions ?? [],
-    additions: r.additions ?? [],
-    on_hold: args.heldIds.has(r.candidateId),
-    posted_by: args.uid,
-  }));
+  // One snapshot per candidate — the table is unique on (run, candidate, version).
+  const seen = new Set<string>();
+  const payload = args.rows
+    .filter((r) => {
+      if (!r.candidateId || seen.has(r.candidateId)) return false;
+      seen.add(r.candidateId);
+      return true;
+    })
+    .map((r) => ({
+      payroll_run_id: args.runId,
+      unit_id: args.unitId,
+      candidate_id: r.candidateId,
+      version: args.version,
+      employee_code: r.employeeCode ?? "",
+      full_name: r.name ?? "",
+      paid_days: Number(r.paidDays) || 0,
+      ed_days: Number(r.edDays) || 0,
+      gross: Number(r.gross) || 0,
+      total_deductions: (r.deductions ?? []).reduce((s, d) => s + (Number(d.amount) || 0), 0),
+      total_employer: (r.employerContributions ?? []).reduce((s, d) => s + (Number(d.amount) || 0), 0),
+      net_pay: Number(r.netPay) || 0,
+      earnings: r.earnings ?? [],
+      deductions: r.deductions ?? [],
+      employer_contributions: r.employerContributions ?? [],
+      additions: r.additions ?? [],
+      on_hold: args.heldIds.has(r.candidateId),
+      posted_by: args.uid,
+    }));
   if (!payload.length) return;
   for (let i = 0; i < payload.length; i += 300) {
     const { error } = await supabase.from("payroll_run_snapshots" as never).insert(payload.slice(i, i + 300) as never);
-    if (error) throw error;
+    if (error) throw asError(error, "Could not save pay sheet snapshot");
   }
 }
+
 
 export async function processPayrollRun(args: {
   runId: string;
