@@ -1093,6 +1093,8 @@ function PayrollUnitPage() {
         rows: payloadRows,
         heldCandidateIds: Array.from(holdDraft),
         holdReason,
+        version: sheetVersion,
+
       });
       void logActivity({
         module: "Payroll",
