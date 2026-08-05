@@ -796,6 +796,75 @@ function MusterRollPage() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to reopen"),
   });
 
+  // ---- Post-payroll amendment ------------------------------------------
+  // Payroll is already processed, so the sheet is never "reopened". The paid
+  // muster roll is frozen as a version and a new editable version is started.
+  const [amendOpen, setAmendOpen] = useState(false);
+  const [amendReason, setAmendReason] = useState("");
+
+  const invalidateAmendment = () => {
+    queryClient.invalidateQueries({ queryKey: sheetQK });
+    queryClient.invalidateQueries({ queryKey: versionsQK });
+    queryClient.invalidateQueries({ queryKey: payrollRunQK });
+    queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0] ?? "").startsWith("payroll") });
+  };
+
+  const startAmendment = useMutation({
+    mutationFn: async () => {
+      const reason = amendReason.trim();
+      if (reason.length < 5) throw new Error("Give a reason (at least 5 characters) for the amendment");
+      return startAttendanceAmendment({
+        unitId,
+        periodStart,
+        periodEnd,
+        sheetId: sheet?.id ?? null,
+        currentVersion,
+        reason,
+      });
+    },
+    onSuccess: (v) => {
+      setAmendOpen(false);
+      setAmendReason("");
+      invalidateAmendment();
+      toast.success(`Version ${v} opened — version ${v - 1} archived as the paid sheet`);
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not start amendment"),
+  });
+
+  const moveAmendment = useMutation({
+    mutationFn: async (next: AmendmentStatus) => {
+      if (!sheet?.id) throw new Error("Attendance sheet not found");
+      await setAmendmentStatus(sheet.id, next);
+      return next;
+    },
+    onSuccess: (next) => {
+      invalidateAmendment();
+      toast.success(
+        next === "submitted"
+          ? `Version ${currentVersion} submitted for approval`
+          : next === "approved"
+            ? `Version ${currentVersion} approved — payroll can now post the difference`
+            : "Amendment updated",
+      );
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not update amendment"),
+  });
+
+  // Live diff of the current (amended) sheet against the last frozen version.
+  const previousVersion = useMemo(
+    () => versions.filter((v) => v.version < currentVersion).sort((a, b) => b.version - a.version)[0] ?? null,
+    [versions, currentVersion],
+  );
+  const { data: amendmentDiff = [] } = useQuery({
+    queryKey: ["attendance-amendment-diff", unitId, periodStart, periodEnd, currentVersion, previousVersion?.id ?? "", entriesQueryTick],
+    enabled: Boolean(amendmentActive && previousVersion),
+    queryFn: async () => {
+      const live = await fetchLiveSnapshot(unitId, periodStart, periodEnd);
+      return diffAttendance((previousVersion?.snapshot ?? []) as AttendanceSnapshotEntry[], live);
+    },
+  });
+
+
   // Approval IS the handoff: once the sheet is approved, payroll & invoice are
   // notified automatically — no separate "send" click.
   const autoHandoffRef = useRef<string | null>(null);
