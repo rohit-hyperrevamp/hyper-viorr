@@ -7,7 +7,6 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ShieldCheck } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import favicon from "../assets/radiant-logo-v2.png";
@@ -18,8 +17,6 @@ import { ExportChooser } from "@/components/ExportChooser";
 import { LanguageProvider } from "@/lib/i18n";
 import { initNative } from "@/lib/native";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
-import { checkIpAccess } from "@/lib/ip-access.functions";
-import { ACCESS_BLOCKED_MESSAGE } from "@/lib/ip-access";
 
 import { NativeAppLock } from "@/components/NativeAppLock";
 
@@ -396,9 +393,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <ConfirmProvider>
-          <HyperAuthBoundary>
-            <Outlet />
-          </HyperAuthBoundary>
+          <Outlet />
           <NativeAppLock />
           <Toaster />
           <ExportChooser />
@@ -406,49 +401,6 @@ function RootComponent() {
       </LanguageProvider>
     </QueryClientProvider>
   );
-}
-
-function HyperAuthBoundary({ children }: { children: React.ReactNode }) {
-  const [access, setAccess] = useState<"checking" | "allowed" | "blocked">("checking");
-
-  useEffect(() => {
-    let active = true;
-    void checkIpAccess()
-      .then((result) => {
-        if (active) setAccess(result.allowed ? "allowed" : "blocked");
-      })
-      .catch(() => {
-        if (active) setAccess("blocked");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  if (access === "checking") {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-background" role="status">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
-        <span className="sr-only">Checking access</span>
-      </div>
-    );
-  }
-
-  if (access === "blocked") {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-background px-6">
-        <div className="w-full max-w-md text-center">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-destructive/10 text-destructive">
-            <ShieldCheck className="h-7 w-7" />
-          </div>
-          <h1 className="mt-5 text-2xl font-semibold text-foreground">Access restricted</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{ACCESS_BLOCKED_MESSAGE}</p>
-        </div>
-      </main>
-    );
-  }
-
-  return children;
 }
 
 
