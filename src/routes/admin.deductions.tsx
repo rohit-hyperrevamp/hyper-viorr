@@ -350,7 +350,18 @@ function DeductionList() {
     const out: LineRow[] = [];
     const roster = rosterQ.data;
 
+    // Once payroll is processed the run posts the real deduction rows into the
+    // ledger. From that moment the live contract/statutory projection is a
+    // duplicate (and can differ, because it recomputes on today's attendance),
+    // so it is suppressed for every employee that already has posted lines.
+    const postedCandidates = new Set(
+      (recordedQ.data ?? [])
+        .filter((d) => d.source_kind === "payroll_run" || d.source_kind === "payroll_amendment")
+        .map((d) => d.candidate_id),
+    );
+
     for (const r of liveQ.data?.rows ?? []) {
+      if (postedCandidates.has(r.candidateId)) continue;
       for (const l of r.lines) {
         out.push({
           key: `live:${r.candidateId}:${l.name}`,
@@ -361,13 +372,14 @@ function DeductionList() {
           designation: r.designation,
           head: l.name,
           source: "contract",
-          sourceLabel: "Contract / statutory",
+          sourceLabel: "Contract / statutory (projected)",
           date: `${start} → ${end}`,
           amount: l.amount,
           status: "active",
         });
       }
     }
+
 
     for (const d of recordedQ.data ?? []) {
       if (roster && roster.size > 0 && !roster.has(d.candidate_id)) continue;
@@ -384,7 +396,10 @@ function DeductionList() {
         sourceLabel:
           d.source_kind === "issuance" ? "Auto · Uniform issued"
           : d.source_kind === "unit_fee" ? "Auto · Unit fee"
+          : d.source_kind === "payroll_run" ? "Payroll processed"
+          : d.source_kind === "payroll_amendment" ? "Payroll amendment"
           : "Recorded",
+
         date: d.deduction_date,
         amount: Number(d.amount) || 0,
         status: d.status,
