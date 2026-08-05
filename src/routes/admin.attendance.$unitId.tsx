@@ -2470,6 +2470,16 @@ function MusterRollPage() {
 
             {status === "rejected" && <><XCircle className="h-3.5 w-3.5" /> Rejected</>}
           </span>
+          {currentVersion > 1 && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800">
+              <History className="h-3.5 w-3.5" /> Version {currentVersion}
+              {amendmentOpen && " — amendment open"}
+              {amendmentSubmitted && " — awaiting approval"}
+              {amendmentApproved && " — approved, pending payroll"}
+              {amendment === "processed" && " — payroll posted"}
+            </span>
+          )}
+
           {status === "rejected" && sheet?.rejection_reason && (
             <span className="text-xs text-rose-700">Reason: {sheet.rejection_reason}</span>
           )}
