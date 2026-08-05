@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, Network, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowRight, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 
 export const Route = createFileRoute("/admin/control-center")({
@@ -146,13 +146,6 @@ const tiles: Tile[] = [
     label: "Workflow Manager",
     description: "Configure approval chains such as the rehire pipeline — steps, roles and order.",
     icon: Workflow,
-  },
-  {
-    to: "/admin/hyperauth",
-    label: "HyperAuth",
-    description:
-      "Layered sign-in security — country (geo) restriction first, then IP / subnet restriction.",
-    icon: Network,
   },
   {
     to: "/admin/org-settings",
