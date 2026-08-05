@@ -125,7 +125,7 @@ function buildCandidatePayload(form: any) {
 }
 
 export const Route = createFileRoute("/admin/candidates/$id/details")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { section?: string } => ({
     section: typeof search.section === "string" ? search.section : undefined,
   }),
   component: CandidateDetailsPage,
