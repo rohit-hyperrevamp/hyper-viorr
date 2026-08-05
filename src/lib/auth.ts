@@ -48,8 +48,12 @@ function resolveClientIpQuickly() {
 }
 
 export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(() => read());
-  const [isReady, setIsReady] = useState(() => typeof window === "undefined");
+  // Keep the first server and browser render identical. Reading localStorage
+  // during the browser's initial render caused the admin shell to hydrate with
+  // a different role/navigation tree and briefly run data screens as the wrong
+  // user, leaving their counters at zero until a full refresh.
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const syncStoredUser = () => {
