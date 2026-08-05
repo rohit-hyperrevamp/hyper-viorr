@@ -148,11 +148,19 @@ const tiles: Tile[] = [
     icon: Workflow,
   },
   {
+    to: "/admin/ip-restriction",
+    label: "IP Restriction",
+    description: "Whitelist office IPs/subnets or block networks from signing in.",
+    icon: Network,
+  },
+  {
     to: "/admin/org-settings",
     label: "Company Settings",
     description: "Company name, GSTIN and home state — drives CGST/SGST vs IGST split on invoices.",
     icon: Building2,
   },
+
+
 
 ];
 
