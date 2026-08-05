@@ -108,6 +108,5 @@ export function evaluateIp(ip: string, rules: IpAccessRule[]): IpDecision {
     : { allowed: false, reason: "not_whitelisted" };
 }
 
-/** Deliberately vague — never reveals that IP filtering exists. */
 export const ACCESS_BLOCKED_MESSAGE =
-  "Sign-in isn’t available for this account right now. Please contact your administrator for assistance.";
+  "Access to this application is restricted from your current location or network.";
