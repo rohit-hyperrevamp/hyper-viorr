@@ -247,7 +247,14 @@ function LoginPage() {
                   : `We sent a 6-digit code to +91 ••• ••• ${phone.slice(-4)}.`}
               </p>
 
+              {accessBlocked ? (
+                <div className="mt-5 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[13.5px] leading-relaxed text-destructive">
+                  {ACCESS_BLOCKED_MESSAGE}
+                </div>
+              ) : null}
+
               <div className="mt-7">
+
                 {step === "phone" ? (
                   <form onSubmit={sendOtp} className="space-y-5">
                     <label className="block">
