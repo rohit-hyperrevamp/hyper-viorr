@@ -928,21 +928,35 @@ function PayrollUnitPage() {
   // ---- Form XVI wage slips -------------------------------------------------
   const [slipBusy, setSlipBusy] = useState<string | null>(null);
 
+  // The wage slip is the document handed to the employee for what was ACTUALLY
+  // paid in this period. Once a run is processed the paid figures are frozen in
+  // the v1 snapshot — a later attendance amendment is settled as an
+  // arrear/recovery in the NEXT payroll, so it must NOT rewrite this slip.
   const buildSlip = (r: (typeof rows)[number]): WageSlipData => {
-    const w = r.wages!;
-    const comps = (w.components ?? []) as NamedAmount[];
+    const paid = snapshots
+      .filter((s) => s.candidate_id === r.id)
+      .sort((a, b) => a.version - b.version)[0];
+
+    const comps = (paid ? paid.earnings : r.wages!.components ?? []) as NamedAmount[];
+    const deds = (paid ? paid.deductions : r.wages!.deductions ?? []) as NamedAmount[];
+    const grossWages = paid ? Number(paid.gross) || 0 : Number(r.wages!.earnedGross) || 0;
+    const total = paid
+      ? Number(paid.total_deductions) || 0
+      : Number(r.wages!.totalDeductions) || 0;
+    const netWages = paid ? Number(paid.net_pay) || 0 : Number(r.wages!.netPay) || 0;
+    const paidDays = paid ? Number(paid.paid_days) || 0 : r.totals.tDays;
+    const edDays = paid ? Number(paid.ed_days) || 0 : r.totals.otDays;
+
     const pick = (re: RegExp) =>
       comps.filter((c) => re.test(c.name)).reduce((s2, c) => s2 + (Number(c.amount) || 0), 0);
     const basic = pick(/\bbasic\b/i);
     const da = pick(/\bd\.?\s*a\.?\b|dearness/i);
     const ed = pick(EXTRA_DUTY_COMPONENT_RE);
-    const other = Math.max(0, (Number(w.earnedGross) || 0) - basic - da - ed);
-    const deds = (w.deductions ?? []) as NamedAmount[];
+    const other = Math.max(0, grossWages - basic - da - ed);
     const dedSum = (re: RegExp) =>
       deds.filter((d) => re.test(d.name)).reduce((s2, d) => s2 + (Number(d.amount) || 0), 0);
     const pf = dedSum(/\bepf\b|provident\s*fund|\bpf\b/i);
     const esi = dedSum(/\besi(c)?\b/i);
-    const total = Number(w.totalDeductions) || 0;
     return {
       employeeName: r.name,
       employeeCode: r.employeeCode,
@@ -955,16 +969,19 @@ function PayrollUnitPage() {
       rateBasic: basic,
       rateDa: da,
       rateOther: other,
-      totalAttendance: `${r.totals.tDays} paid day(s) (P ${r.totals.pDays} · PH ${r.totals.phDays} · ED ${r.totals.otDays})`,
+      totalAttendance: paid
+        ? `${paidDays} paid day(s) (incl. ED ${edDays})`
+        : `${r.totals.tDays} paid day(s) (P ${r.totals.pDays} · PH ${r.totals.phDays} · ED ${r.totals.otDays})`,
       extraDutyWages: ed,
-      grossWages: Number(w.earnedGross) || 0,
+      grossWages,
       dedPf: pf,
       dedEsi: esi,
       dedOthers: Math.max(0, total - pf - esi),
       totalDeductions: total,
-      netWages: Number(w.netPay) || 0,
+      netWages,
     };
   };
+
 
   const downloadSlip = async (r: (typeof rows)[number]) => {
     if (!r.wages) return;
@@ -2584,6 +2601,7 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
             <thead>
               <tr className="text-muted-foreground">
                 <th className="px-2 py-1 text-left font-medium">Version</th>
+                <th className="px-2 py-1 text-left font-medium">Settlement</th>
                 <th className="px-2 py-1 text-right font-medium">Paid days</th>
                 <th className="px-2 py-1 text-right font-medium">Gross</th>
                 <th className="px-2 py-1 text-right font-medium">Deductions</th>
@@ -2605,6 +2623,22 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
                         </span>
                       )}
                     </td>
+                    <td className="px-2 py-1">
+                      {i === 0 ? (
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-800">
+                          Paid this period · wage slip issued
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 font-medium",
+                            delta >= 0 ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-800",
+                          )}
+                        >
+                          {delta >= 0 ? "Arrear" : "Recovery"} · applied in next payroll
+                        </span>
+                      )}
+                    </td>
                     <td className="px-2 py-1 text-right tabular-nums">{v.paid_days}</td>
                     <td className="px-2 py-1 text-right tabular-nums">{fmtINR(v.gross)}</td>
                     <td className="px-2 py-1 text-right tabular-nums">{fmtINR(v.total_deductions)}</td>
@@ -2617,8 +2651,14 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
               })}
             </tbody>
           </table>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-indigo-900/80">
+            The wage slip for this period stays frozen at <span className="font-semibold">v1</span> — the amount actually
+            paid. The v2 difference is carried as an open arrear/recovery and will appear on the next month&rsquo;s payroll
+            and wage slip, tagged &ldquo;previous period&rdquo;.
+          </p>
         </div>
       )}
+
 
 
       <div className="grid gap-3 lg:grid-cols-2">
