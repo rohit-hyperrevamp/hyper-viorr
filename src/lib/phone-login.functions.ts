@@ -24,7 +24,6 @@ export const createHyperAuthSession = createServerFn({ method: "POST" })
 
     const digits = data.phone.slice(-10);
     const email = `phone-${digits}@radiantguard.local`;
-    const legacyPassword = `RG-${digits}-pre-launch!`;
     const superAdminPhone = process.env["VITE_SUPER_ADMIN_PHONE"] ?? "8373914073";
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -56,21 +55,29 @@ export const createHyperAuthSession = createServerFn({ method: "POST" })
       },
     });
 
-    let signedIn = await authClient.auth.signInWithPassword({
-      email,
-      password: legacyPassword,
-    });
-    if (signedIn.error) {
+    let link = await supabaseAdmin.auth.admin.generateLink({ type: "magiclink", email });
+    if (link.error) {
       const created = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: legacyPassword,
+        password: crypto.randomUUID() + crypto.randomUUID(),
         email_confirm: true,
       });
-      if (created.error && !/registered|already/i.test(created.error.message)) {
-        throw created.error;
-      }
-      signedIn = await authClient.auth.signInWithPassword({ email, password: legacyPassword });
+      if (created.error) throw created.error;
+      link = await supabaseAdmin.auth.admin.generateLink({ type: "magiclink", email });
     }
+    if (link.error || !link.data.properties.hashed_token || !link.data.user) {
+      throw link.error ?? new Error("SESSION_CREATION_FAILED");
+    }
+
+    const rotated = await supabaseAdmin.auth.admin.updateUserById(link.data.user.id, {
+      password: crypto.randomUUID() + crypto.randomUUID(),
+    });
+    if (rotated.error) throw rotated.error;
+
+    const signedIn = await authClient.auth.verifyOtp({
+      type: "magiclink",
+      token_hash: link.data.properties.hashed_token,
+    });
     if (signedIn.error || !signedIn.data.session) {
       throw signedIn.error ?? new Error("SESSION_CREATION_FAILED");
     }
