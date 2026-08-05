@@ -1945,7 +1945,11 @@ function PayrollUnitPage() {
                 {isExpanded && r.wages && r.resource && (
                   <tr key={`${r.rowKey}-detail`} className="bg-secondary/20">
                     <td colSpan={registerColCount} className="px-4 py-0">
-                      <PaySheetPanel r={r as unknown as PaySheetRow} />
+                      <PaySheetPanel
+                        r={r as unknown as PaySheetRow}
+                        versions={snapshots.filter((s) => s.candidate_id === r.id)}
+                      />
+
                     </td>
                   </tr>
                 )}
