@@ -32,10 +32,8 @@ import { Route as AdminMyInventoryRouteImport } from './routes/admin.my-inventor
 import { Route as AdminMyAttendanceRouteImport } from './routes/admin.my-attendance'
 import { Route as AdminLwfManagerRouteImport } from './routes/admin.lwf-manager'
 import { Route as AdminLanguageManagerRouteImport } from './routes/admin.language-manager'
-import { Route as AdminIpRestrictionRouteImport } from './routes/admin.ip-restriction'
 import { Route as AdminInvoiceRouteImport } from './routes/admin.invoice'
 import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
-import { Route as AdminHyperauthRouteImport } from './routes/admin.hyperauth'
 import { Route as AdminFieldDashboardRouteImport } from './routes/admin.field-dashboard'
 import { Route as AdminExServiceManagerRouteImport } from './routes/admin.ex-service-manager'
 import { Route as AdminEsicBranchManagerRouteImport } from './routes/admin.esic-branch-manager'
@@ -48,7 +46,6 @@ import { Route as AdminDeductionsRouteImport } from './routes/admin.deductions'
 import { Route as AdminDeductionTypeManagerRouteImport } from './routes/admin.deduction-type-manager'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
-import { Route as AdminCountryRestrictionRouteImport } from './routes/admin.country-restriction'
 import { Route as AdminCostComponentManagerRouteImport } from './routes/admin.cost-component-manager'
 import { Route as AdminControlCenterRouteImport } from './routes/admin.control-center'
 import { Route as AdminCompliancePtRouteImport } from './routes/admin.compliance-pt'
@@ -226,11 +223,6 @@ const AdminLanguageManagerRoute = AdminLanguageManagerRouteImport.update({
   path: '/language-manager',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminIpRestrictionRoute = AdminIpRestrictionRouteImport.update({
-  id: '/ip-restriction',
-  path: '/ip-restriction',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminInvoiceRoute = AdminInvoiceRouteImport.update({
   id: '/invoice',
   path: '/invoice',
@@ -239,11 +231,6 @@ const AdminInvoiceRoute = AdminInvoiceRouteImport.update({
 const AdminInventoryRoute = AdminInventoryRouteImport.update({
   id: '/inventory',
   path: '/inventory',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminHyperauthRoute = AdminHyperauthRouteImport.update({
-  id: '/hyperauth',
-  path: '/hyperauth',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminFieldDashboardRoute = AdminFieldDashboardRouteImport.update({
@@ -306,11 +293,6 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCountryRestrictionRoute = AdminCountryRestrictionRouteImport.update({
-  id: '/country-restriction',
-  path: '/country-restriction',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCostComponentManagerRoute =
@@ -646,7 +628,6 @@ export interface FileRoutesByFullPath {
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
-  '/admin/country-restriction': typeof AdminCountryRestrictionRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/deduction-type-manager': typeof AdminDeductionTypeManagerRoute
@@ -659,10 +640,8 @@ export interface FileRoutesByFullPath {
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
-  '/admin/hyperauth': typeof AdminHyperauthRoute
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/invoice': typeof AdminInvoiceRouteWithChildren
-  '/admin/ip-restriction': typeof AdminIpRestrictionRoute
   '/admin/language-manager': typeof AdminLanguageManagerRoute
   '/admin/lwf-manager': typeof AdminLwfManagerRoute
   '/admin/my-attendance': typeof AdminMyAttendanceRoute
@@ -746,7 +725,6 @@ export interface FileRoutesByTo {
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
-  '/admin/country-restriction': typeof AdminCountryRestrictionRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/deduction-type-manager': typeof AdminDeductionTypeManagerRoute
@@ -759,9 +737,7 @@ export interface FileRoutesByTo {
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
-  '/admin/hyperauth': typeof AdminHyperauthRoute
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
-  '/admin/ip-restriction': typeof AdminIpRestrictionRoute
   '/admin/language-manager': typeof AdminLanguageManagerRoute
   '/admin/lwf-manager': typeof AdminLwfManagerRoute
   '/admin/my-attendance': typeof AdminMyAttendanceRoute
@@ -846,7 +822,6 @@ export interface FileRoutesById {
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/control-center': typeof AdminControlCenterRoute
   '/admin/cost-component-manager': typeof AdminCostComponentManagerRoute
-  '/admin/country-restriction': typeof AdminCountryRestrictionRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/deduction-type-manager': typeof AdminDeductionTypeManagerRoute
@@ -859,10 +834,8 @@ export interface FileRoutesById {
   '/admin/esic-branch-manager': typeof AdminEsicBranchManagerRoute
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
-  '/admin/hyperauth': typeof AdminHyperauthRoute
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/invoice': typeof AdminInvoiceRouteWithChildren
-  '/admin/ip-restriction': typeof AdminIpRestrictionRoute
   '/admin/language-manager': typeof AdminLanguageManagerRoute
   '/admin/lwf-manager': typeof AdminLwfManagerRoute
   '/admin/my-attendance': typeof AdminMyAttendanceRoute
@@ -949,7 +922,6 @@ export interface FileRouteTypes {
     | '/admin/compliance-pt'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
-    | '/admin/country-restriction'
     | '/admin/customers'
     | '/admin/dashboard'
     | '/admin/deduction-type-manager'
@@ -962,10 +934,8 @@ export interface FileRouteTypes {
     | '/admin/esic-branch-manager'
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
-    | '/admin/hyperauth'
     | '/admin/inventory'
     | '/admin/invoice'
-    | '/admin/ip-restriction'
     | '/admin/language-manager'
     | '/admin/lwf-manager'
     | '/admin/my-attendance'
@@ -1049,7 +1019,6 @@ export interface FileRouteTypes {
     | '/admin/compliance-pt'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
-    | '/admin/country-restriction'
     | '/admin/customers'
     | '/admin/dashboard'
     | '/admin/deduction-type-manager'
@@ -1062,9 +1031,7 @@ export interface FileRouteTypes {
     | '/admin/esic-branch-manager'
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
-    | '/admin/hyperauth'
     | '/admin/inventory'
-    | '/admin/ip-restriction'
     | '/admin/language-manager'
     | '/admin/lwf-manager'
     | '/admin/my-attendance'
@@ -1148,7 +1115,6 @@ export interface FileRouteTypes {
     | '/admin/compliance-pt'
     | '/admin/control-center'
     | '/admin/cost-component-manager'
-    | '/admin/country-restriction'
     | '/admin/customers'
     | '/admin/dashboard'
     | '/admin/deduction-type-manager'
@@ -1161,10 +1127,8 @@ export interface FileRouteTypes {
     | '/admin/esic-branch-manager'
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
-    | '/admin/hyperauth'
     | '/admin/inventory'
     | '/admin/invoice'
-    | '/admin/ip-restriction'
     | '/admin/language-manager'
     | '/admin/lwf-manager'
     | '/admin/my-attendance'
@@ -1404,13 +1368,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLanguageManagerRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/ip-restriction': {
-      id: '/admin/ip-restriction'
-      path: '/ip-restriction'
-      fullPath: '/admin/ip-restriction'
-      preLoaderRoute: typeof AdminIpRestrictionRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/invoice': {
       id: '/admin/invoice'
       path: '/invoice'
@@ -1423,13 +1380,6 @@ declare module '@tanstack/react-router' {
       path: '/inventory'
       fullPath: '/admin/inventory'
       preLoaderRoute: typeof AdminInventoryRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/hyperauth': {
-      id: '/admin/hyperauth'
-      path: '/hyperauth'
-      fullPath: '/admin/hyperauth'
-      preLoaderRoute: typeof AdminHyperauthRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/field-dashboard': {
@@ -1514,13 +1464,6 @@ declare module '@tanstack/react-router' {
       path: '/customers'
       fullPath: '/admin/customers'
       preLoaderRoute: typeof AdminCustomersRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/country-restriction': {
-      id: '/admin/country-restriction'
-      path: '/country-restriction'
-      fullPath: '/admin/country-restriction'
-      preLoaderRoute: typeof AdminCountryRestrictionRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/cost-component-manager': {
@@ -2095,7 +2038,6 @@ interface AdminRouteChildren {
   AdminCompliancePtRoute: typeof AdminCompliancePtRoute
   AdminControlCenterRoute: typeof AdminControlCenterRoute
   AdminCostComponentManagerRoute: typeof AdminCostComponentManagerRoute
-  AdminCountryRestrictionRoute: typeof AdminCountryRestrictionRoute
   AdminCustomersRoute: typeof AdminCustomersRouteWithChildren
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminDeductionTypeManagerRoute: typeof AdminDeductionTypeManagerRoute
@@ -2108,10 +2050,8 @@ interface AdminRouteChildren {
   AdminEsicBranchManagerRoute: typeof AdminEsicBranchManagerRoute
   AdminExServiceManagerRoute: typeof AdminExServiceManagerRoute
   AdminFieldDashboardRoute: typeof AdminFieldDashboardRoute
-  AdminHyperauthRoute: typeof AdminHyperauthRoute
   AdminInventoryRoute: typeof AdminInventoryRouteWithChildren
   AdminInvoiceRoute: typeof AdminInvoiceRouteWithChildren
-  AdminIpRestrictionRoute: typeof AdminIpRestrictionRoute
   AdminLanguageManagerRoute: typeof AdminLanguageManagerRoute
   AdminLwfManagerRoute: typeof AdminLwfManagerRoute
   AdminMyAttendanceRoute: typeof AdminMyAttendanceRoute
@@ -2155,7 +2095,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCompliancePtRoute: AdminCompliancePtRoute,
   AdminControlCenterRoute: AdminControlCenterRoute,
   AdminCostComponentManagerRoute: AdminCostComponentManagerRoute,
-  AdminCountryRestrictionRoute: AdminCountryRestrictionRoute,
   AdminCustomersRoute: AdminCustomersRouteWithChildren,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminDeductionTypeManagerRoute: AdminDeductionTypeManagerRoute,
@@ -2168,10 +2107,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEsicBranchManagerRoute: AdminEsicBranchManagerRoute,
   AdminExServiceManagerRoute: AdminExServiceManagerRoute,
   AdminFieldDashboardRoute: AdminFieldDashboardRoute,
-  AdminHyperauthRoute: AdminHyperauthRoute,
   AdminInventoryRoute: AdminInventoryRouteWithChildren,
   AdminInvoiceRoute: AdminInvoiceRouteWithChildren,
-  AdminIpRestrictionRoute: AdminIpRestrictionRoute,
   AdminLanguageManagerRoute: AdminLanguageManagerRoute,
   AdminLwfManagerRoute: AdminLwfManagerRoute,
   AdminMyAttendanceRoute: AdminMyAttendanceRoute,
