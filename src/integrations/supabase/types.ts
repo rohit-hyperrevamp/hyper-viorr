@@ -2062,39 +2062,6 @@ export type Database = {
           },
         ]
       }
-      geo_access_rules: {
-        Row: {
-          country_code: string
-          country_name: string
-          created_at: string
-          id: string
-          is_active: boolean
-          mode: string
-          notes: string
-          updated_at: string
-        }
-        Insert: {
-          country_code: string
-          country_name?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          mode?: string
-          notes?: string
-          updated_at?: string
-        }
-        Update: {
-          country_code?: string
-          country_name?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          mode?: string
-          notes?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       indian_states: {
         Row: {
           code: string
@@ -3535,39 +3502,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      ip_access_rules: {
-        Row: {
-          created_at: string
-          id: string
-          ip_cidr: string
-          is_active: boolean
-          label: string
-          mode: string
-          notes: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          ip_cidr: string
-          is_active?: boolean
-          label?: string
-          mode?: string
-          notes?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          ip_cidr?: string
-          is_active?: boolean
-          label?: string
-          mode?: string
-          notes?: string | null
-          updated_at?: string
-        }
-        Relationships: []
       }
       labour_welfare_funds: {
         Row: {
