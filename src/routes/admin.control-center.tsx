@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowRight, BadgeCheck, Briefcase, Building2, Calculator, CalendarCheck, CalendarDays, CalendarRange, ClipboardList, Clock, Coins, FileSignature, HandCoins, Languages, LogOut, Network, Package, Receipt, ReceiptText, Settings, Shield, ShieldCheck, Workflow, TrendingUp, TrendingDown } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 
 export const Route = createFileRoute("/admin/control-center")({
@@ -148,11 +148,19 @@ const tiles: Tile[] = [
     icon: Workflow,
   },
   {
+    to: "/admin/ip-restriction",
+    label: "IP Restriction",
+    description: "Whitelist office IPs/subnets or block networks from signing in.",
+    icon: Network,
+  },
+  {
     to: "/admin/org-settings",
     label: "Company Settings",
     description: "Company name, GSTIN and home state — drives CGST/SGST vs IGST split on invoices.",
     icon: Building2,
   },
+
+
 
 ];
 

@@ -3503,6 +3503,39 @@ export type Database = {
           },
         ]
       }
+      ip_access_rules: {
+        Row: {
+          created_at: string
+          id: string
+          ip_cidr: string
+          is_active: boolean
+          label: string
+          mode: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_cidr: string
+          is_active?: boolean
+          label?: string
+          mode?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_cidr?: string
+          is_active?: boolean
+          label?: string
+          mode?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       labour_welfare_funds: {
         Row: {
           created_at: string

@@ -32,6 +32,7 @@ import { Route as AdminMyInventoryRouteImport } from './routes/admin.my-inventor
 import { Route as AdminMyAttendanceRouteImport } from './routes/admin.my-attendance'
 import { Route as AdminLwfManagerRouteImport } from './routes/admin.lwf-manager'
 import { Route as AdminLanguageManagerRouteImport } from './routes/admin.language-manager'
+import { Route as AdminIpRestrictionRouteImport } from './routes/admin.ip-restriction'
 import { Route as AdminInvoiceRouteImport } from './routes/admin.invoice'
 import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 import { Route as AdminFieldDashboardRouteImport } from './routes/admin.field-dashboard'
@@ -221,6 +222,11 @@ const AdminLwfManagerRoute = AdminLwfManagerRouteImport.update({
 const AdminLanguageManagerRoute = AdminLanguageManagerRouteImport.update({
   id: '/language-manager',
   path: '/language-manager',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminIpRestrictionRoute = AdminIpRestrictionRouteImport.update({
+  id: '/ip-restriction',
+  path: '/ip-restriction',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminInvoiceRoute = AdminInvoiceRouteImport.update({
@@ -642,6 +648,7 @@ export interface FileRoutesByFullPath {
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/invoice': typeof AdminInvoiceRouteWithChildren
+  '/admin/ip-restriction': typeof AdminIpRestrictionRoute
   '/admin/language-manager': typeof AdminLanguageManagerRoute
   '/admin/lwf-manager': typeof AdminLwfManagerRoute
   '/admin/my-attendance': typeof AdminMyAttendanceRoute
@@ -738,6 +745,7 @@ export interface FileRoutesByTo {
   '/admin/ex-service-manager': typeof AdminExServiceManagerRoute
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
+  '/admin/ip-restriction': typeof AdminIpRestrictionRoute
   '/admin/language-manager': typeof AdminLanguageManagerRoute
   '/admin/lwf-manager': typeof AdminLwfManagerRoute
   '/admin/my-attendance': typeof AdminMyAttendanceRoute
@@ -836,6 +844,7 @@ export interface FileRoutesById {
   '/admin/field-dashboard': typeof AdminFieldDashboardRoute
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/invoice': typeof AdminInvoiceRouteWithChildren
+  '/admin/ip-restriction': typeof AdminIpRestrictionRoute
   '/admin/language-manager': typeof AdminLanguageManagerRoute
   '/admin/lwf-manager': typeof AdminLwfManagerRoute
   '/admin/my-attendance': typeof AdminMyAttendanceRoute
@@ -936,6 +945,7 @@ export interface FileRouteTypes {
     | '/admin/field-dashboard'
     | '/admin/inventory'
     | '/admin/invoice'
+    | '/admin/ip-restriction'
     | '/admin/language-manager'
     | '/admin/lwf-manager'
     | '/admin/my-attendance'
@@ -1032,6 +1042,7 @@ export interface FileRouteTypes {
     | '/admin/ex-service-manager'
     | '/admin/field-dashboard'
     | '/admin/inventory'
+    | '/admin/ip-restriction'
     | '/admin/language-manager'
     | '/admin/lwf-manager'
     | '/admin/my-attendance'
@@ -1129,6 +1140,7 @@ export interface FileRouteTypes {
     | '/admin/field-dashboard'
     | '/admin/inventory'
     | '/admin/invoice'
+    | '/admin/ip-restriction'
     | '/admin/language-manager'
     | '/admin/lwf-manager'
     | '/admin/my-attendance'
@@ -1366,6 +1378,13 @@ declare module '@tanstack/react-router' {
       path: '/language-manager'
       fullPath: '/admin/language-manager'
       preLoaderRoute: typeof AdminLanguageManagerRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/ip-restriction': {
+      id: '/admin/ip-restriction'
+      path: '/ip-restriction'
+      fullPath: '/admin/ip-restriction'
+      preLoaderRoute: typeof AdminIpRestrictionRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/invoice': {
@@ -2052,6 +2071,7 @@ interface AdminRouteChildren {
   AdminFieldDashboardRoute: typeof AdminFieldDashboardRoute
   AdminInventoryRoute: typeof AdminInventoryRouteWithChildren
   AdminInvoiceRoute: typeof AdminInvoiceRouteWithChildren
+  AdminIpRestrictionRoute: typeof AdminIpRestrictionRoute
   AdminLanguageManagerRoute: typeof AdminLanguageManagerRoute
   AdminLwfManagerRoute: typeof AdminLwfManagerRoute
   AdminMyAttendanceRoute: typeof AdminMyAttendanceRoute
@@ -2109,6 +2129,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminFieldDashboardRoute: AdminFieldDashboardRoute,
   AdminInventoryRoute: AdminInventoryRouteWithChildren,
   AdminInvoiceRoute: AdminInvoiceRouteWithChildren,
+  AdminIpRestrictionRoute: AdminIpRestrictionRoute,
   AdminLanguageManagerRoute: AdminLanguageManagerRoute,
   AdminLwfManagerRoute: AdminLwfManagerRoute,
   AdminMyAttendanceRoute: AdminMyAttendanceRoute,
