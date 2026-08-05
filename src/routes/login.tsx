@@ -247,12 +247,6 @@ function LoginPage() {
                   : `We sent a 6-digit code to +91 ••• ••• ${phone.slice(-4)}.`}
               </p>
 
-              {accessBlocked ? (
-                <div className="mt-5 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-[13.5px] leading-relaxed text-destructive">
-                  {ACCESS_BLOCKED_MESSAGE}
-                </div>
-              ) : null}
-
               <div className="mt-7">
 
                 {step === "phone" ? (
@@ -284,7 +278,7 @@ function LoginPage() {
 
                     <Button
                       type="submit"
-                      disabled={!phoneValid || sending || accessBlocked}
+                      disabled={!phoneValid || sending}
                       className="group h-14 w-full rounded-2xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-[0_18px_40px_-12px_color-mix(in_oklab,var(--primary)_60%,transparent)] transition-all hover:bg-primary/90 hover:shadow-[0_22px_44px_-12px_color-mix(in_oklab,var(--primary)_70%,transparent)] disabled:bg-slate-700 disabled:text-white disabled:opacity-60"
                     >
                       {sending ? (
