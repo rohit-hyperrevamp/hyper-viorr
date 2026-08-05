@@ -16,7 +16,7 @@ import { AdminEscalationRequestsCard } from "@/components/AdminEscalationRequest
 
 export const Route = createFileRoute("/admin/field-sense/")({
   component: FieldSensePage,
-  validateSearch: (search: Record<string, unknown>): { range?: string; start?: string; end?: string; highlight?: string } => ({
+  validateSearch: (search: Record<string, unknown>) => ({
     range: (search.range as string | undefined) ?? undefined,
     start: (search.start as string | undefined) ?? undefined,
     end: (search.end as string | undefined) ?? undefined,

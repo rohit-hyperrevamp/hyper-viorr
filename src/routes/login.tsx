@@ -248,7 +248,6 @@ function LoginPage() {
               </p>
 
               <div className="mt-7">
-
                 {step === "phone" ? (
                   <form onSubmit={sendOtp} className="space-y-5">
                     <label className="block">
@@ -318,6 +317,7 @@ function LoginPage() {
                         onChange={(v) => {
                           setOtp(v);
                           setError(null);
+                          if (v.length === 6) handleVerify(v);
                         }}
                         containerClassName="justify-between gap-2"
                       >

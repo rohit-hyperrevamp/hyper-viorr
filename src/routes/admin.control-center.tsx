@@ -154,8 +154,6 @@ const tiles: Tile[] = [
     icon: Building2,
   },
 
-
-
 ];
 
 function ControlCenterDashboard() {

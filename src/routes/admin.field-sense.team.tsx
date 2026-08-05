@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/PageHeader";
 
 export const Route = createFileRoute("/admin/field-sense/team")({
   component: () => (<FieldSenseAdminGuard sub="day_patrol"><MyTeamPage /></FieldSenseAdminGuard>),
-  validateSearch: (s: Record<string, unknown>): { date?: string } => ({
+  validateSearch: (s: Record<string, unknown>) => ({
     date: (s.date as string | undefined) ?? undefined,
   }),
   head: () => ({

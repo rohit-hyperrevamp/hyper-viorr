@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity, getClientIp } from "@/lib/activity-log";
-import { restorePhoneSession } from "@/lib/phone-session.functions";
 
 const STORAGE_KEY = "radiant.auth";
 const AUTH_TIMEOUT_MS = 12_000;
@@ -42,6 +40,10 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+/**
+ * Bridge phone-OTP login into a real Supabase Auth session so RLS works.
+ * Each phone gets a deterministic synthetic email + password (pre-launch only).
+ */
 function credsForPhone(phone: string) {
   const digits = phone.replace(/\D/g, "").slice(-10);
   return {
@@ -50,47 +52,13 @@ function credsForPhone(phone: string) {
   };
 }
 
-function withTimeout<T>(promise: Promise<T>, message: string) {
+function withTimeout<T>(promise: Promise<T>, message: string, ms = AUTH_TIMEOUT_MS) {
   return Promise.race<T>([
     promise,
     new Promise<T>((_, reject) => {
-      setTimeout(() => reject(new Error(message)), AUTH_TIMEOUT_MS);
+      setTimeout(() => reject(new Error(message)), ms);
     }),
   ]);
-}
-
-async function ensureDatabaseSession(
-  phone: string,
-  restore: (input: { data: { phone: string } }) => Promise<{ accessToken: string; refreshToken: string }>,
-) {
-  const digits = phone.replace(/\D/g, "").slice(-10);
-  const { email, password } = credsForPhone(phone);
-  const result = await withTimeout(
-    supabase.auth.signInWithPassword({ email, password }),
-    "Login is taking too long. Please try again.",
-  );
-  if (!result.error && result.data.session) return;
-
-  const tokens = await withTimeout(
-    restore({ data: { phone: digits } }),
-    "Account restoration is taking too long. Please try again.",
-  );
-  const restored = await supabase.auth.setSession({
-    access_token: tokens.accessToken,
-    refresh_token: tokens.refreshToken,
-  });
-  if (restored.error || !restored.data.session) {
-    throw restored.error ?? new Error("Could not establish a secure session.");
-  }
-}
-
-function userFromSessionEmail(email: string | undefined): AuthUser | null {
-  const match = (email ?? "").match(/^phone-(\d{10})@radiantguard\.local$/i);
-  if (!match) return null;
-  return {
-    phone: `+91${match[1]}`,
-    role: match[1] === SUPER_ADMIN_PHONE ? "super_admin" : "user",
-  };
 }
 
 function resolveClientIpQuickly() {
@@ -102,14 +70,80 @@ function resolveClientIpQuickly() {
   ]).catch(() => "");
 }
 
+async function authUserFromSession(): Promise<AuthUser | null> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.user) {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+    return null;
+  }
+
+  const stored = read();
+  if (stored) return stored;
+
+  const email = session.user.email ?? "";
+  const match = email.match(/^phone-(\d{10})@radiantguard\.local$/i);
+  if (!match) return null;
+
+  const phone = `+91${match[1]}`;
+  const user: AuthUser = {
+    phone,
+    role: match[1] === SUPER_ADMIN_PHONE ? "super_admin" : "user",
+  };
+
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  }
+
+  return user;
+}
+
+async function ensureSupabaseSession(phone: string) {
+  const digits = phone.replace(/\D/g, "").slice(-10);
+  const isSuperAdmin = digits === SUPER_ADMIN_PHONE;
+
+  // Preflight: only super-admins or active/approved & enabled employees may sign in.
+  if (!isSuperAdmin) {
+    const rpcRes = await withTimeout(
+      Promise.resolve(supabase.rpc("can_phone_login" as never, { _mobile: digits } as never)) as Promise<{ data: boolean | null; error: { message: string } | null }>,
+      "Verifying access is taking too long. Please try again.",
+    );
+    if (rpcRes.error) throw new Error(rpcRes.error.message);
+    if (!rpcRes.data) {
+      throw new Error(
+        "Access disabled. Your account is not active. Please contact your administrator.",
+      );
+    }
+  }
+
+  const { email, password } = credsForPhone(phone);
+  const signIn = await withTimeout(
+    supabase.auth.signInWithPassword({ email, password }),
+    "Login is taking too long. Please try again.",
+  );
+  if (!signIn.error) return;
+  // First-time login → sign up, then sign in.
+  const signUp = await withTimeout(
+    supabase.auth.signUp({ email, password }),
+    "Account setup is taking too long. Please try again.",
+  );
+  if (signUp.error && !/registered/i.test(signUp.error.message)) {
+    throw signUp.error;
+  }
+  const retry = await withTimeout(
+    supabase.auth.signInWithPassword({ email, password }),
+    "Login is taking too long. Please try again.",
+  );
+  if (retry.error) throw retry.error;
+}
+
 export function useAuth() {
-  const restoreSession = useServerFn(restorePhoneSession);
-  // Keep the first server and browser render identical. Reading localStorage
-  // during the browser's initial render caused the admin shell to hydrate with
-  // a different role/navigation tree and briefly run data screens as the wrong
-  // user, leaving their counters at zero until a full refresh.
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(() => read());
+  const [isReady, setIsReady] = useState(() => typeof window === "undefined");
 
   useEffect(() => {
     let active = true;
@@ -117,33 +151,60 @@ export function useAuth() {
       if (!active) return;
       setUser(read());
     };
+
+    const syncFromSession = async () => {
+      try {
+        const nextUser = await authUserFromSession();
+        if (!active) return;
+        setUser(nextUser);
+      } finally {
+        if (!active) return;
+        setIsReady(true);
+      }
+    };
+
     listeners.add(syncStoredUser);
     window.addEventListener("storage", syncStoredUser);
 
-    void supabase.auth.getSession().then(({ data }) => {
+    void syncFromSession().catch(() => {
       if (!active) return;
-      const sessionUser = userFromSessionEmail(data.session?.user.email);
-      if (sessionUser) {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser));
-        setUser(sessionUser);
-      } else {
-        window.localStorage.removeItem(STORAGE_KEY);
-        setUser(null);
-      }
-      setIsReady(true);
-    }).catch(() => {
-      if (!active) return;
-      window.localStorage.removeItem(STORAGE_KEY);
       setUser(null);
       setIsReady(true);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!active) return;
-      const sessionUser = userFromSessionEmail(session?.user.email);
-      if (sessionUser) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser));
-      else window.localStorage.removeItem(STORAGE_KEY);
-      setUser(sessionUser);
+
+      if (!session?.user) {
+        window.localStorage.removeItem(STORAGE_KEY);
+        setUser(null);
+        setIsReady(true);
+        return;
+      }
+
+      const stored = read();
+      if (stored) {
+        setUser(stored);
+        setIsReady(true);
+        return;
+      }
+
+      const email = session.user.email ?? "";
+      const match = email.match(/^phone-(\d{10})@radiantguard\.local$/i);
+      if (!match) {
+        setUser(null);
+        setIsReady(true);
+        return;
+      }
+
+      const nextUser: AuthUser = {
+        phone: `+91${match[1]}`,
+        role: match[1] === SUPER_ADMIN_PHONE ? "super_admin" : "user",
+      };
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
+      setUser(nextUser);
       setIsReady(true);
     });
 
@@ -161,20 +222,22 @@ export function useAuth() {
       digits === SUPER_ADMIN_PHONE ? "super_admin" : "user";
     const ipPromise = resolveClientIpQuickly();
     try {
-      await ensureDatabaseSession(phone, restoreSession);
-    } catch (error) {
-      void ipPromise.then((ip) => logActivity({
-        module: "Authentication",
-        action: "login",
-        entityType: "user",
-        entityLabel: phone,
-        userPhone: phone,
-        userRole: role,
-        ip,
-        status: "failure",
-        errorMessage: error instanceof Error ? error.message : String(error),
-      }));
-      throw error;
+      await ensureSupabaseSession(phone);
+    } catch (e) {
+      void ipPromise.then((ip) =>
+        logActivity({
+          module: "Authentication",
+          action: "login",
+          entityType: "user",
+          entityLabel: phone,
+          userPhone: phone,
+          userRole: role,
+          ip,
+          status: "failure",
+          errorMessage: e instanceof Error ? e.message : String(e),
+        }),
+      );
+      throw e;
     }
     const u: AuthUser = { phone, role };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
@@ -206,7 +269,7 @@ export function useAuth() {
       }),
     );
     emit();
-  }, [restoreSession]);
+  }, []);
 
   const logout = useCallback(() => {
     const current = read();
