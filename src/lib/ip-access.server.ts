@@ -36,12 +36,8 @@ async function resolveCountry(ip: string, rawHeaderCountry: string): Promise<str
   return "";
 }
 
-export async function checkRequestAccess(rawIps: string | string[], rawHeaderCountry: string) {
-  const ips = (Array.isArray(rawIps) ? rawIps : [rawIps])
-    .flatMap((value) => value.split(","))
-    .map(normalizeIpv4)
-    .filter((value, index, values) => value.length > 0 && values.indexOf(value) === index);
-  const fallbackIp = ips[0] ?? "";
+export async function checkRequestAccess(rawIp: string, rawHeaderCountry: string) {
+  const ip = normalizeIpv4(rawIp.split(",")[0] ?? "");
 
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -73,53 +69,26 @@ export async function checkRequestAccess(rawIps: string | string[], rawHeaderCou
         notes: String(rule.notes ?? ""),
       }),
     );
-    const decisions = ips.map((ip) => ({ ip, decision: evaluateIp(ip, rules) }));
-    const whitelisted = decisions.find(({ decision }) => decision.reason === "whitelisted");
-    const denied = decisions.find(({ decision }) => decision.reason === "denied");
-    // A production proxy chain can contain both the real client address and
-    // intermediary infrastructure addresses. A positive allow-list match for
-    // any forwarded client address must win; otherwise an unrelated proxy hop
-    // can falsely deny a trusted office network.
-    const selected = whitelisted ?? denied ?? decisions[0] ?? {
-      ip: fallbackIp,
-      decision: evaluateIp(fallbackIp, rules),
-    };
-    const ip = selected.ip;
-    const ipDecision = selected.decision;
+    const ipDecision = evaluateIp(ip, rules);
     const country = await resolveCountry(ip, rawHeaderCountry);
     const geoDecision = evaluateCountry(country, geoRules);
 
-    // An explicit IP/subnet rule is authoritative. In production there can be
-    // multiple trusted proxies, so any forwarded client address matching the
-    // allow-list must pass regardless of a proxy's geo header. Explicit deny
-    // rules retain highest priority.
-    if (ipDecision.reason === "denied") {
+    // Once an IP allow-list exists, the canonical client IP must match it.
+    // Unknown, malformed, or non-matching addresses are denied.
+    if (!ipDecision.allowed) {
       return { allowed: false, ip, country, layer: "ip" as const };
     }
-    if (ipDecision.reason === "whitelisted") {
-      return { allowed: true, ip, country, layer: "ip" as const };
-    }
-    if (country && !geoDecision.allowed) {
+    if (!geoDecision.allowed) {
       return { allowed: false, ip, country, layer: "geo" as const };
     }
-    // Some production custom-domain proxies do not preserve the original
-    // client address or country. In that case the address above belongs to
-    // hosting infrastructure, not the person signing in, so it must not be
-    // used to deny access. HyperAuth is intentionally fail-open when the
-    // request identity cannot be established reliably.
-    if (!country) {
-      return { allowed: true, ip, country, layer: "unavailable" as const };
-    }
-    return { allowed: ipDecision.allowed, ip, country, layer: "ip" as const };
+    return { allowed: true, ip, country, layer: "ip" as const };
   } catch (error) {
     console.error("[HyperAuth] Access evaluation failed", {
-      ip: fallbackIp,
+      ip,
       error: error instanceof Error ? error.message : String(error),
     });
-    // A backend/configuration outage must never lock every user out of the
-    // application. Explicit, successfully evaluated deny rules still block
-    // above; evaluation failures are fail-open by policy.
-    return { allowed: true, ip: fallbackIp, country: "", layer: "error" as const };
+    // Access-control failures must never become authentication bypasses.
+    return { allowed: false, ip, country: "", layer: "error" as const };
   }
 }
 
