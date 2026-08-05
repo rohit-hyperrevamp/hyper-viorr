@@ -20,9 +20,13 @@ export type ProcessableRow = {
   candidateId: string;
   employeeCode: string;
   name: string;
+  earnings?: ProcessLine[];
   deductions: ProcessLine[];
   employerContributions: ProcessLine[];
   additions: ProcessLine[];
+  paidDays?: number;
+  edDays?: number;
+  gross?: number;
   netPay: number;
 };
 
@@ -34,6 +38,7 @@ export type ProcessResult = {
   additionRows: number;
   netTotal: number;
 };
+
 
 function pickDeductionTypeId(name: string, types: { id: string; code: string; name: string }[]): string {
   const n = name.toLowerCase();
