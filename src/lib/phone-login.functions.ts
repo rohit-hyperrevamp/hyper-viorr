@@ -69,11 +69,6 @@ export const createHyperAuthSession = createServerFn({ method: "POST" })
       throw link.error ?? new Error("SESSION_CREATION_FAILED");
     }
 
-    const rotated = await supabaseAdmin.auth.admin.updateUserById(link.data.user.id, {
-      password: crypto.randomUUID() + crypto.randomUUID(),
-    });
-    if (rotated.error) throw rotated.error;
-
     const signedIn = await authClient.auth.verifyOtp({
       type: "magiclink",
       token_hash: link.data.properties.hashed_token,
@@ -81,6 +76,11 @@ export const createHyperAuthSession = createServerFn({ method: "POST" })
     if (signedIn.error || !signedIn.data.session) {
       throw signedIn.error ?? new Error("SESSION_CREATION_FAILED");
     }
+
+    const rotated = await supabaseAdmin.auth.admin.updateUserById(link.data.user.id, {
+      password: crypto.randomUUID() + crypto.randomUUID(),
+    });
+    if (rotated.error) throw rotated.error;
 
     return {
       accessToken: signedIn.data.session.access_token,
