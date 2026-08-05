@@ -2461,7 +2461,13 @@ function MusterRollPage() {
           )}>
             {status === "draft" && "Draft"}
             {status === "submitted" && "Submitted — awaiting approval"}
-            {status === "approved" && <><CheckCircle2 className="h-3.5 w-3.5" /> Approved</>}
+            {status === "approved" && (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {payrollProcessed ? "Approved — payroll processed" : "Approved"}
+              </>
+            )}
+
             {status === "rejected" && <><XCircle className="h-3.5 w-3.5" /> Rejected</>}
           </span>
           {status === "rejected" && sheet?.rejection_reason && (
