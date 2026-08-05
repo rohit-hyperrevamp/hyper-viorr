@@ -959,24 +959,124 @@ function PayrollUnitPage() {
     }
   };
 
+  // ---- Versioned processing --------------------------------------------
+  // Every processed run stores a per-employee snapshot. An amended attendance
+  // sheet (v2+) is settled by posting only the difference against the last
+  // snapshot, so nobody is paid twice for the same period.
+  const snapshotsQK = ["payroll-snapshots", run?.id ?? "none"];
+  const { data: snapshots = [] } = useQuery({
+    queryKey: snapshotsQK,
+    enabled: !!run?.id,
+    queryFn: () => fetchRunSnapshots(run!.id),
+  });
+  const lastSnapshotVersion = snapshots.reduce((m, s) => Math.max(m, Number(s.version) || 0), 0);
+  const amendmentPending = amendmentStatus === "approved" && sheetVersion > lastSnapshotVersion;
+
+  const buildPayloadRows = () =>
+    rows
+      .filter((r) => r.wages)
+      .map((r) => ({
+        candidateId: r.id,
+        employeeCode: r.employeeCode,
+        name: r.name,
+        earnings: (r.wages!.components ?? []).map((c) => ({ name: c.name, amount: Number(c.amount) || 0 })),
+        deductions: (r.wages!.deductions ?? []).map((d) => ({ name: cleanLedgerName(d.name) || d.name, amount: Number(d.amount) || 0 })),
+        employerContributions: (r.wages!.employerContributions ?? []).map((d) => ({ name: d.name, amount: Number(d.amount) || 0 })),
+        additions: (((r.wages as unknown as { additions?: { name: string; amount: number }[] }).additions) ?? []).map((a) => ({
+          name: cleanLedgerName(a.name) || a.name,
+          amount: Number(a.amount) || 0,
+        })),
+        paidDays: Number(r.totals?.tDays) || 0,
+        edDays: Number(r.totals?.otDays) || 0,
+        gross: Number(r.wages!.earnedGross) || 0,
+        netPay: Number(r.wages!.netPay) || 0,
+      }));
+
+  // Employees whose money moved between the last paid snapshot and now.
+  const amendmentDeltas: AmendmentDelta[] = useMemo(() => {
+    if (!amendmentPending || lastSnapshotVersion === 0) return [];
+    const prev = new Map(
+      snapshots.filter((s) => s.version === lastSnapshotVersion).map((s) => [s.candidate_id, s]),
+    );
+    const out: AmendmentDelta[] = [];
+    for (const r of rows) {
+      if (!r.wages) continue;
+      const p = prev.get(r.id);
+      const before = {
+        paidDays: Number(p?.paid_days) || 0,
+        edDays: Number(p?.ed_days) || 0,
+        gross: Number(p?.gross) || 0,
+        totalDeductions: Number(p?.total_deductions) || 0,
+        totalEmployer: Number(p?.total_employer) || 0,
+        netPay: Number(p?.net_pay) || 0,
+      };
+      const after = {
+        paidDays: Number(r.totals?.tDays) || 0,
+        edDays: Number(r.totals?.otDays) || 0,
+        gross: Number(r.wages.earnedGross) || 0,
+        totalDeductions: Number(r.wages.totalDeductions) || 0,
+        totalEmployer: Number(r.wages.totalEmployerContributions) || 0,
+        netPay: Number(r.wages.netPay) || 0,
+      };
+      if (
+        Math.abs(before.netPay - after.netPay) < 0.005 &&
+        Math.abs(before.totalEmployer - after.totalEmployer) < 0.005 &&
+        Math.abs(before.paidDays - after.paidDays) < 0.005
+      ) continue;
+      out.push({ candidateId: r.id, employeeCode: r.employeeCode, name: r.name, before, after });
+    }
+    return out;
+  }, [amendmentPending, lastSnapshotVersion, snapshots, rows]);
+
+  const [amendReviewOpen, setAmendReviewOpen] = useState(false);
+
+  const processAmendment = useMutation({
+    mutationFn: async () => {
+      if (!run?.id) throw new Error("Payroll run not found");
+      const result = await processPayrollAmendment({
+        runId: run.id,
+        unitId,
+        unitLabel: (unit?.name as string) || (unit?.code as string) || unitId,
+        periodStart: start,
+        periodEnd: end,
+        version: sheetVersion,
+        deltas: amendmentDeltas,
+        rows: buildPayloadRows(),
+        heldCandidateIds: Array.from(holdDraft),
+      });
+      if (sheet?.id) await setAmendmentStatus(sheet.id, "processed");
+      void logActivity({
+        module: "Payroll",
+        action: "process",
+        entityType: "payroll_runs",
+        entityLabel: `${unitId} ${start} → ${end} amendment v${sheetVersion}`,
+        details: { unit_id: unitId, period_start: start, period_end: end, ...result },
+      });
+      return result;
+    },
+    onSuccess: (res) => {
+      setAmendReviewOpen(false);
+      queryClient.invalidateQueries({ queryKey: runQK });
+      queryClient.invalidateQueries({ queryKey: sheetQK });
+      queryClient.invalidateQueries({ queryKey: snapshotsQK });
+      queryClient.invalidateQueries({ queryKey: ["admin", "deductions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "additions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "employer-contributions"] });
+      toast.success(
+        `Amendment v${res.version} processed — ${res.affected} employee${res.affected === 1 ? "" : "s"} adjusted. ` +
+          `Arrears ${fmtINR(res.arrears)}, recoveries ${fmtINR(res.recoveries)} (net ${fmtINR(res.netImpact)}).`,
+        { duration: 8000 },
+      );
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to process amendment"),
+  });
+
   // Process payroll: park every computed money line into its permanent ledger.
   const processRun = useMutation({
     mutationFn: async () => {
       if (!run?.id) throw new Error("Payroll run not found");
-      const payloadRows = rows
-        .filter((r) => r.wages)
-        .map((r) => ({
-          candidateId: r.id,
-          employeeCode: r.employeeCode,
-          name: r.name,
-          deductions: (r.wages!.deductions ?? []).map((d) => ({ name: cleanLedgerName(d.name) || d.name, amount: Number(d.amount) || 0 })),
-          employerContributions: (r.wages!.employerContributions ?? []).map((d) => ({ name: d.name, amount: Number(d.amount) || 0 })),
-          additions: (((r.wages as unknown as { additions?: { name: string; amount: number }[] }).additions) ?? []).map((a) => ({
-            name: cleanLedgerName(a.name) || a.name,
-            amount: Number(a.amount) || 0,
-          })),
-          netPay: Number(r.wages!.netPay) || 0,
-        }));
+      const payloadRows = buildPayloadRows();
+
       const result = await processPayrollRun({
         runId: run.id,
         unitId,
