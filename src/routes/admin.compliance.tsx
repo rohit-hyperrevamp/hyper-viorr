@@ -273,7 +273,11 @@ function CompliancePage() {
         </div>
       </div>
 
+      {/* Statutory registers */}
+      <StatutoryHeadTiles ym={currentYm} />
+
       {/* Domain grid */}
+
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {(Object.keys(DOMAIN_META) as DomainKey[]).map((key) => {
           const meta = DOMAIN_META[key];
