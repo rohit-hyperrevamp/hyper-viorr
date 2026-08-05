@@ -74,9 +74,13 @@ export async function checkRequestAccess(rawIps: string | string[], rawHeaderCou
       }),
     );
     const decisions = ips.map((ip) => ({ ip, decision: evaluateIp(ip, rules) }));
-    const denied = decisions.find(({ decision }) => decision.reason === "denied");
     const whitelisted = decisions.find(({ decision }) => decision.reason === "whitelisted");
-    const selected = denied ?? whitelisted ?? decisions[0] ?? {
+    const denied = decisions.find(({ decision }) => decision.reason === "denied");
+    // A production proxy chain can contain both the real client address and
+    // intermediary infrastructure addresses. A positive allow-list match for
+    // any forwarded client address must win; otherwise an unrelated proxy hop
+    // can falsely deny a trusted office network.
+    const selected = whitelisted ?? denied ?? decisions[0] ?? {
       ip: fallbackIp,
       decision: evaluateIp(fallbackIp, rules),
     };
@@ -98,8 +102,13 @@ export async function checkRequestAccess(rawIps: string | string[], rawHeaderCou
     if (country && !geoDecision.allowed) {
       return { allowed: false, ip, country, layer: "geo" as const };
     }
+    // Some production custom-domain proxies do not preserve the original
+    // client address or country. In that case the address above belongs to
+    // hosting infrastructure, not the person signing in, so it must not be
+    // used to deny access. HyperAuth is intentionally fail-open when the
+    // request identity cannot be established reliably.
     if (!country) {
-      return { allowed: false, ip, country, layer: "geo" as const };
+      return { allowed: true, ip, country, layer: "unavailable" as const };
     }
     return { allowed: ipDecision.allowed, ip, country, layer: "ip" as const };
   } catch (error) {
@@ -107,7 +116,10 @@ export async function checkRequestAccess(rawIps: string | string[], rawHeaderCou
       ip: fallbackIp,
       error: error instanceof Error ? error.message : String(error),
     });
-    return { allowed: false, ip: fallbackIp, country: "", layer: "error" as const };
+    // A backend/configuration outage must never lock every user out of the
+    // application. Explicit, successfully evaluated deny rules still block
+    // above; evaluation failures are fail-open by policy.
+    return { allowed: true, ip: fallbackIp, country: "", layer: "error" as const };
   }
 }
 
