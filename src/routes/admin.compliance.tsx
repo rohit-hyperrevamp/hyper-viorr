@@ -138,6 +138,8 @@ function CompliancePage() {
     staleTime: 60_000,
   });
 
+  const now = new Date();
+  const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const [domain, setDomain] = useState<DomainKey | "all">("all");
   const [severity, setSeverity] = useState<Severity | "all">("all");
   const [q, setQ] = useState("");
