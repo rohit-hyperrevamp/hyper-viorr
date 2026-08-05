@@ -239,6 +239,25 @@ function PayrollUnitPage() {
   const sheetVersion = Math.max(1, Number(sheet?.current_version) || 1);
   const amendmentStatus = sheet?.amendment_status ?? "none";
 
+  // Which employees' attendance cells actually moved in this amendment.
+  // The money diff is restricted to these people — nobody untouched is ever
+  // adjusted, whatever the recomputation says.
+  const { data: amendedCandidateIds } = useQuery({
+    queryKey: ["attendance-amendment-diff", unitId, start, end, sheetVersion],
+    enabled: amendmentStatus === "approved" && sheetVersion > 1,
+    queryFn: async () => {
+      const versions = await fetchAttendanceVersions(unitId, start, end);
+      const prev = versions
+        .filter((v) => v.version < sheetVersion)
+        .sort((a, b) => b.version - a.version)[0];
+      if (!prev) return null;
+      const live = await fetchLiveSnapshot(unitId, start, end);
+      return new Set(diffAttendance(prev.snapshot ?? [], live).map((d) => d.candidateId));
+    },
+  });
+
+
+
 
   const queryClient = useQueryClient();
   const { can } = useCurrentPermissions();
