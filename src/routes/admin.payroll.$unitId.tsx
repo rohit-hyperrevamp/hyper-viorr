@@ -48,7 +48,7 @@ import {
   asError,
   type AmendmentDelta,
 } from "@/lib/payroll-process";
-import { setAmendmentStatus } from "@/lib/attendance-versions";
+import { setAmendmentStatus, fetchAttendanceVersions, fetchLiveSnapshot, diffAttendance } from "@/lib/attendance-versions";
 
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
