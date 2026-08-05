@@ -2601,6 +2601,7 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
             <thead>
               <tr className="text-muted-foreground">
                 <th className="px-2 py-1 text-left font-medium">Version</th>
+                <th className="px-2 py-1 text-left font-medium">Settlement</th>
                 <th className="px-2 py-1 text-right font-medium">Paid days</th>
                 <th className="px-2 py-1 text-right font-medium">Gross</th>
                 <th className="px-2 py-1 text-right font-medium">Deductions</th>
@@ -2622,6 +2623,22 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
                         </span>
                       )}
                     </td>
+                    <td className="px-2 py-1">
+                      {i === 0 ? (
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-800">
+                          Paid this period · wage slip issued
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 font-medium",
+                            delta >= 0 ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-800",
+                          )}
+                        >
+                          {delta >= 0 ? "Arrear" : "Recovery"} · applied in next payroll
+                        </span>
+                      )}
+                    </td>
                     <td className="px-2 py-1 text-right tabular-nums">{v.paid_days}</td>
                     <td className="px-2 py-1 text-right tabular-nums">{fmtINR(v.gross)}</td>
                     <td className="px-2 py-1 text-right tabular-nums">{fmtINR(v.total_deductions)}</td>
@@ -2634,8 +2651,14 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
               })}
             </tbody>
           </table>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-indigo-900/80">
+            The wage slip for this period stays frozen at <span className="font-semibold">v1</span> — the amount actually
+            paid. The v2 difference is carried as an open arrear/recovery and will appear on the next month&rsquo;s payroll
+            and wage slip, tagged &ldquo;previous period&rdquo;.
+          </p>
         </div>
       )}
+
 
 
       <div className="grid gap-3 lg:grid-cols-2">
