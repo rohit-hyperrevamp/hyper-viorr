@@ -110,7 +110,7 @@ export function hasFromMap(
 
 // ---------------- Runtime enforcement ----------------
 import { useQuery } from "@tanstack/react-query";
-import { useAuth, SUPER_ADMIN_PHONE } from "@/lib/auth";
+import { readStoredAuthUser, useAuth, SUPER_ADMIN_PHONE } from "@/lib/auth";
 import {
   isAdminConsoleRole,
   isFieldOfficerRole,
@@ -132,7 +132,11 @@ export function useCurrentPermissions(): {
   canSub: SubPermCheck;
 } {
   const { user } = useAuth();
-  const phone = user?.phone?.replace(/\D/g, "").slice(-10) ?? "";
+  // Separate useAuth consumers hydrate independently. Read the already-written
+  // login snapshot as a synchronous fallback so route guards cannot classify a
+  // signed-in administrator as frontline during that brief hand-off.
+  const effectiveUser = user ?? readStoredAuthUser();
+  const phone = effectiveUser?.phone?.replace(/\D/g, "").slice(-10) ?? "";
   // Phone allowlist retained as a bootstrap bypass: the three super-admin
   // phones don't exist as candidate rows so removing this would lock them
   // out. DB `is_admin_user()` mirrors the same allowlist.
@@ -140,7 +144,7 @@ export function useCurrentPermissions(): {
   // The authenticated app role is written synchronously by the successful
   // login flow. Honour it as well as the phone bootstrap so routing cannot
   // briefly demote a restored super-admin session while role data hydrates.
-  const isSuperAdminByAuthRole = user?.role === "super_admin";
+  const isSuperAdminByAuthRole = effectiveUser?.role === "super_admin";
 
   const roleQ = useQuery({
     queryKey: ["rbac", "current-role", phone],

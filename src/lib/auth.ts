@@ -27,7 +27,7 @@ export const SUPER_ADMIN_PHONE =
 
 export type AuthUser = { phone: string; role: "super_admin" | "user" };
 
-function read(): AuthUser | null {
+export function readStoredAuthUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -84,7 +84,7 @@ async function authUserFromSession(): Promise<AuthUser | null> {
     return null;
   }
 
-  const stored = read();
+  const stored = readStoredAuthUser();
   if (stored) return stored;
 
   const email = session.user.email ?? "";
@@ -156,7 +156,7 @@ export function useAuth() {
     let active = true;
     const syncStoredUser = () => {
       if (!active) return;
-      setUser(read());
+      setUser(readStoredAuthUser());
     };
 
     const syncFromSession = async () => {
@@ -191,7 +191,7 @@ export function useAuth() {
         return;
       }
 
-      const stored = read();
+      const stored = readStoredAuthUser();
       if (stored) {
         setUser(stored);
         setIsReady(true);
@@ -279,7 +279,7 @@ export function useAuth() {
   }, [restoreSession]);
 
   const logout = useCallback(() => {
-    const current = read();
+    const current = readStoredAuthUser();
     void logActivity({
       module: "Authentication",
       action: "logout",
