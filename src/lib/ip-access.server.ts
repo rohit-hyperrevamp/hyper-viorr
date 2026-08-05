@@ -74,9 +74,13 @@ export async function checkRequestAccess(rawIps: string | string[], rawHeaderCou
       }),
     );
     const decisions = ips.map((ip) => ({ ip, decision: evaluateIp(ip, rules) }));
-    const denied = decisions.find(({ decision }) => decision.reason === "denied");
     const whitelisted = decisions.find(({ decision }) => decision.reason === "whitelisted");
-    const selected = denied ?? whitelisted ?? decisions[0] ?? {
+    const denied = decisions.find(({ decision }) => decision.reason === "denied");
+    // A production proxy chain can contain both the real client address and
+    // intermediary infrastructure addresses. A positive allow-list match for
+    // any forwarded client address must win; otherwise an unrelated proxy hop
+    // can falsely deny a trusted office network.
+    const selected = whitelisted ?? denied ?? decisions[0] ?? {
       ip: fallbackIp,
       decision: evaluateIp(fallbackIp, rules),
     };
