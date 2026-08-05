@@ -2518,7 +2518,7 @@ function MusterRollPage() {
           {status === "submitted" && !canApprove && (
             <span className="text-xs text-muted-foreground">Awaiting approver action</span>
           )}
-          {status === "approved" && canApprove && !sentToPayroll && (
+          {status === "approved" && canApprove && !payrollProcessed && !amendmentActive && !sentToPayroll && (
             <>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Approved — payroll &amp; invoice updated
@@ -2528,7 +2528,7 @@ function MusterRollPage() {
               </Button>
             </>
           )}
-          {status === "approved" && canApprove && sentToPayroll && (
+          {status === "approved" && canApprove && !payrollProcessed && !amendmentActive && sentToPayroll && (
             <>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Approved — payroll &amp; invoice updated
@@ -2543,13 +2543,52 @@ function MusterRollPage() {
               </Button>
             </>
           )}
+
+          {/* Payroll already paid this period — amend instead of reopen. */}
+          {status === "approved" && payrollProcessed && !amendmentActive && canApprove && (
+            <Button size="sm" variant="outline" onClick={() => setAmendOpen(true)}>
+              <GitCompare className="mr-1.5 h-4 w-4" /> Amend attendance (v{currentVersion + 1})
+            </Button>
+          )}
+          {amendmentOpen && (
+            <Button
+              size="sm"
+              onClick={() => moveAmendment.mutate("submitted")}
+              disabled={moveAmendment.isPending || amendmentDiff.length === 0}
+            >
+              <Send className="mr-1.5 h-4 w-4" /> Submit v{currentVersion} for approval
+            </Button>
+          )}
+          {amendmentSubmitted && canApprove && (
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => moveAmendment.mutate("approved")}
+              disabled={moveAmendment.isPending}
+            >
+              <CheckCircle2 className="mr-1.5 h-4 w-4" /> Approve v{currentVersion}
+            </Button>
+          )}
+          {amendmentSubmitted && !canApprove && (
+            <span className="text-xs text-muted-foreground">Amendment awaiting approver action</span>
+          )}
+          {amendmentApproved && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Approved — process the payroll difference
+            </span>
+          )}
         </div>
       </div>
 
 
       {!editable && (
         <div className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800 print:hidden">
-          This attendance sheet is {status === "approved" ? "approved" : "submitted"} and locked for editing. {status === "submitted" ? "Reject it to allow further edits." : "Reopen it to make changes."}
+          This attendance sheet is {status === "approved" ? "approved" : "submitted"} and locked for editing.{" "}
+          {status === "submitted"
+            ? "Reject it to allow further edits."
+            : payrollProcessed
+              ? "Payroll for this period is processed — start an amendment to correct it; the paid sheet is kept as a version."
+              : "Reopen it to make changes."}
         </div>
       )}
       {status === "submitted" && canApprove && (
@@ -2557,6 +2596,108 @@ function MusterRollPage() {
           You can edit this attendance in place, or reject with a note so the submitter can fix it.
         </div>
       )}
+      {amendmentActive && (
+        <div className="rounded-md border border-indigo-300/60 bg-indigo-50 px-3 py-2 text-xs text-indigo-900 print:hidden">
+          <b>Amendment version {currentVersion}.</b>{" "}
+          {amendmentOpen
+            ? "Edit the muster roll below. Version " + (currentVersion - 1) + " stays archived exactly as it was paid. Submit once the corrections are in."
+            : amendmentSubmitted
+              ? "Submitted for approval. Approving it unlocks the payroll difference."
+              : "Approved. Open Payroll for this unit and process the difference — only affected employees get an arrears or recovery line."}
+          {previousVersion?.reason ? <> Reason: {previousVersion.reason}</> : null}
+        </div>
+      )}
+
+      {/* Version history + change log */}
+      {(versions.length > 0 || amendmentActive) && (
+        <div className="rounded-xl border border-border/60 bg-card p-3 print:hidden">
+          <div className="mb-2 flex items-center gap-2">
+            <HistoryIcon className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Muster roll versions
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {versions.map((v) => (
+              <span key={v.id} className="rounded-full border border-border/60 px-2.5 py-1">
+                v{v.version} · archived {new Date(v.created_at).toLocaleDateString()} · {v.snapshot?.length ?? 0} entries
+              </span>
+            ))}
+            <span className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 font-semibold text-primary">
+              v{currentVersion} · live
+            </span>
+          </div>
+
+          {previousVersion && (
+            <div className="mt-3">
+              <div className="mb-1.5 text-xs font-semibold text-foreground">
+                Changes in v{currentVersion} vs v{previousVersion.version}
+              </div>
+              {amendmentDiff.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No changes yet — edit a cell to record an amendment.</p>
+              ) : (
+                <div className="max-h-64 overflow-auto rounded-lg border border-border/60">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/60">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left font-semibold">Employee</th>
+                        <th className="px-2 py-1.5 text-left font-semibold">Date</th>
+                        <th className="px-2 py-1.5 text-left font-semibold">v{previousVersion.version}</th>
+                        <th className="px-2 py-1.5 text-left font-semibold">v{currentVersion}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {amendmentDiff.map((d) => {
+                        const row = musterRows.find((r) => r.candidateId === d.candidateId);
+                        const label = row ? `${row.emp.employee_code || "—"} · ${row.emp.full_name}` : d.candidateId.slice(0, 8);
+                        return (
+                          <tr key={`${d.candidateId}-${d.date}-${d.designationId ?? ""}`} className="border-t border-border/50">
+                            <td className="px-2 py-1.5">{label}</td>
+                            <td className="px-2 py-1.5">{d.date}</td>
+                            <td className="px-2 py-1.5 text-rose-700">
+                              {d.beforeCode || "—"}{d.beforeEd ? ` +${d.beforeEd} ED` : ""}
+                            </td>
+                            <td className="px-2 py-1.5 font-semibold text-emerald-700">
+                              {d.afterCode || "—"}{d.afterEd ? ` +${d.afterEd} ED` : ""}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <Dialog open={amendOpen} onOpenChange={(o) => { setAmendOpen(o); if (!o) setAmendReason(""); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Amend approved attendance</DialogTitle>
+            <DialogDescription>
+              Payroll for this period is already processed. The current muster roll will be archived as version {currentVersion}
+              {" "}and a new editable version {currentVersion + 1} will open. Nothing that was already paid is deleted — payroll
+              will later post only the difference for affected employees.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={amendReason}
+            onChange={(e) => setAmendReason(e.target.value)}
+            rows={3}
+            placeholder="Why is this being amended? (e.g. EMP-192 was paid for 26 days but was absent on 12 July)"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAmendOpen(false)}>Cancel</Button>
+            <Button onClick={() => startAmendment.mutate()} disabled={startAmendment.isPending}>
+              {startAmendment.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <GitCompare className="mr-1.5 h-4 w-4" />}
+              Start version {currentVersion + 1}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={rejectOpen} onOpenChange={(o) => { setRejectOpen(o); if (!o) { setRejectReason(""); setRejectProof(null); } }}>
         <DialogContent className="max-w-md">
