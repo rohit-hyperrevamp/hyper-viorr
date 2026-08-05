@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity, getClientIp } from "@/lib/activity-log";
+import { createHyperAuthSession } from "@/lib/phone-login.functions";
 
 const STORAGE_KEY = "radiant.auth";
 const AUTH_TIMEOUT_MS = 12_000;
@@ -38,18 +40,6 @@ function read(): AuthUser | null {
 const listeners = new Set<() => void>();
 function emit() {
   listeners.forEach((l) => l());
-}
-
-/**
- * Bridge phone-OTP login into a real Supabase Auth session so RLS works.
- * Each phone gets a deterministic synthetic email + password (pre-launch only).
- */
-function credsForPhone(phone: string) {
-  const digits = phone.replace(/\D/g, "").slice(-10);
-  return {
-    email: `phone-${digits}@radiantguard.local`,
-    password: `RG-${digits}-pre-launch!`,
-  };
 }
 
 function withTimeout<T>(promise: Promise<T>, message: string, ms = AUTH_TIMEOUT_MS) {
@@ -102,46 +92,8 @@ async function authUserFromSession(): Promise<AuthUser | null> {
   return user;
 }
 
-async function ensureSupabaseSession(phone: string) {
-  const digits = phone.replace(/\D/g, "").slice(-10);
-  const isSuperAdmin = digits === SUPER_ADMIN_PHONE;
-
-  // Preflight: only super-admins or active/approved & enabled employees may sign in.
-  if (!isSuperAdmin) {
-    const rpcRes = await withTimeout(
-      Promise.resolve(supabase.rpc("can_phone_login" as never, { _mobile: digits } as never)) as Promise<{ data: boolean | null; error: { message: string } | null }>,
-      "Verifying access is taking too long. Please try again.",
-    );
-    if (rpcRes.error) throw new Error(rpcRes.error.message);
-    if (!rpcRes.data) {
-      throw new Error(
-        "Access disabled. Your account is not active. Please contact your administrator.",
-      );
-    }
-  }
-
-  const { email, password } = credsForPhone(phone);
-  const signIn = await withTimeout(
-    supabase.auth.signInWithPassword({ email, password }),
-    "Login is taking too long. Please try again.",
-  );
-  if (!signIn.error) return;
-  // First-time login → sign up, then sign in.
-  const signUp = await withTimeout(
-    supabase.auth.signUp({ email, password }),
-    "Account setup is taking too long. Please try again.",
-  );
-  if (signUp.error && !/registered/i.test(signUp.error.message)) {
-    throw signUp.error;
-  }
-  const retry = await withTimeout(
-    supabase.auth.signInWithPassword({ email, password }),
-    "Login is taking too long. Please try again.",
-  );
-  if (retry.error) throw retry.error;
-}
-
 export function useAuth() {
+  const requestHyperAuthSession = useServerFn(createHyperAuthSession);
   const [user, setUser] = useState<AuthUser | null>(() => read());
   const [isReady, setIsReady] = useState(() => typeof window === "undefined");
 
@@ -222,7 +174,15 @@ export function useAuth() {
       digits === SUPER_ADMIN_PHONE ? "super_admin" : "user";
     const ipPromise = resolveClientIpQuickly();
     try {
-      await ensureSupabaseSession(phone);
+      const session = await withTimeout(
+        requestHyperAuthSession({ data: { phone: `+91${digits}` } }),
+        "Login is taking too long. Please try again.",
+      );
+      const applied = await supabase.auth.setSession({
+        access_token: session.accessToken,
+        refresh_token: session.refreshToken,
+      });
+      if (applied.error) throw applied.error;
     } catch (e) {
       void ipPromise.then((ip) =>
         logActivity({
@@ -237,6 +197,12 @@ export function useAuth() {
           errorMessage: e instanceof Error ? e.message : String(e),
         }),
       );
+      if (e instanceof Error && e.message.includes("HYPERAUTH_BLOCKED")) {
+        throw new Error("Sign-in isn’t available for this account right now. Please contact your administrator for assistance.");
+      }
+      if (e instanceof Error && e.message.includes("ACCOUNT_DISABLED")) {
+        throw new Error("Access disabled. Your account is not active. Please contact your administrator.");
+      }
       throw e;
     }
     const u: AuthUser = { phone, role };
@@ -269,7 +235,7 @@ export function useAuth() {
       }),
     );
     emit();
-  }, []);
+  }, [requestHyperAuthSession]);
 
   const logout = useCallback(() => {
     const current = read();

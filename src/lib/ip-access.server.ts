@@ -57,8 +57,13 @@ export async function checkRequestAccess(ip: string, rawHeaderCountry: string) {
       }),
     );
     return { allowed: evaluateIp(ip, rules).allowed, ip, country, layer: "ip" as const };
-  } catch {
-    return { allowed: true, ip, country, layer: "none" as const };
+  } catch (error) {
+    console.error("[HyperAuth] Access evaluation failed", {
+      ip,
+      country,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { allowed: false, ip, country, layer: "error" as const };
   }
 }
 
