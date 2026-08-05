@@ -1507,15 +1507,17 @@ function PayrollUnitPage() {
           <ChevronLeft className="h-4 w-4" /> Back to payroll units
         </Link>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={downloadAllSlips}
-            disabled={isLoading || rows.length === 0 || slipBusy !== null}
-          >
-            {slipBusy === "__all__" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileText className="mr-1.5 h-4 w-4" />}
-            Wage slips
-          </Button>
+          {isProcessed && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadAllSlips}
+              disabled={isLoading || rows.length === 0 || slipBusy !== null}
+            >
+              {slipBusy === "__all__" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileText className="mr-1.5 h-4 w-4" />}
+              Wage slips
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || rows.length === 0}>
             <Download className="mr-1.5 h-4 w-4" />
             {isLoading ? "Loading…" : "Export"}
