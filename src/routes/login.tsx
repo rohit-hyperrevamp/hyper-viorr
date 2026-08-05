@@ -15,8 +15,6 @@ import {
   signInWithBiometric,
 } from "@/lib/biometric";
 import { markNativeAppSessionUnlocked } from "@/lib/native-app-lock";
-import { checkIpAccess } from "@/lib/ip-access.functions";
-import { ACCESS_BLOCKED_MESSAGE } from "@/lib/ip-access";
 import logo from "@/assets/radiant-logo-v2.png";
 import loginBg from "@/assets/login-bg.jpg";
 
@@ -66,13 +64,6 @@ function LoginPage() {
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioEnabled, setBioEnabled] = useState(false);
   const [bioBusy, setBioBusy] = useState(false);
-  const [accessBlocked, setAccessBlocked] = useState(false);
-
-  useEffect(() => {
-    void checkIpAccess()
-      .then((r) => setAccessBlocked(!r.allowed))
-      .catch(() => setAccessBlocked(true));
-  }, []);
 
   useEffect(() => {
     if (user && !revealing) navigate({ to: "/", replace: true });
@@ -97,13 +88,6 @@ function LoginPage() {
     e?.preventDefault();
     if (!phoneValid) return;
     setSending(true);
-    const gate = await checkIpAccess().catch(() => ({ allowed: false }));
-    if (!gate.allowed) {
-      setSending(false);
-      setAccessBlocked(true);
-      setError(ACCESS_BLOCKED_MESSAGE);
-      return;
-    }
     await new Promise((r) => setTimeout(r, 500));
     setSending(false);
     setStep("otp");
@@ -164,12 +148,6 @@ function LoginPage() {
     setBioBusy(true);
     setError(null);
     try {
-      const gate = await checkIpAccess().catch(() => ({ allowed: false }));
-      if (!gate.allowed) {
-        setAccessBlocked(true);
-        setError(ACCESS_BLOCKED_MESSAGE);
-        return;
-      }
       const savedPhone = await signInWithBiometric();
       if (!savedPhone) {
         setBioBusy(false);
@@ -323,7 +301,7 @@ function LoginPage() {
                       <button
                         type="button"
                         onClick={handleBiometricLogin}
-                        disabled={bioBusy || accessBlocked}
+                        disabled={bioBusy}
                         className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border/70 bg-white/70 text-[14px] font-semibold text-foreground backdrop-blur transition hover:bg-white disabled:opacity-60"
                       >
                         {bioBusy ? (
@@ -373,7 +351,7 @@ function LoginPage() {
 
                     <Button
                       onClick={() => handleVerify()}
-                      disabled={otp.length !== 6 || verifying || accessBlocked}
+                      disabled={otp.length !== 6 || verifying}
                       className="h-14 w-full rounded-2xl bg-primary text-[16px] font-semibold text-primary-foreground shadow-[0_18px_40px_-12px_color-mix(in_oklab,var(--primary)_60%,transparent)] hover:bg-primary/90 disabled:bg-slate-700 disabled:text-white disabled:opacity-60"
                     >
                       {verifying ? (
