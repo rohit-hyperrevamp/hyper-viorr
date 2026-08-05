@@ -118,14 +118,6 @@ function LoginPage() {
     if (code.length !== 6 || verifyInFlightRef.current) return;
     verifyInFlightRef.current = true;
     setVerifying(true);
-    const gate = await checkIpAccess().catch(() => ({ allowed: false }));
-    if (!gate.allowed) {
-      verifyInFlightRef.current = false;
-      setVerifying(false);
-      setAccessBlocked(true);
-      setError(ACCESS_BLOCKED_MESSAGE);
-      return;
-    }
     if (!verifyOtp(code)) {
       verifyInFlightRef.current = false;
       setVerifying(false);
@@ -354,7 +346,6 @@ function LoginPage() {
                         onChange={(v) => {
                           setOtp(v);
                           setError(null);
-                          if (v.length === 6) handleVerify(v);
                         }}
                         containerClassName="justify-between gap-2"
                       >

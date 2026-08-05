@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity, getClientIp } from "@/lib/activity-log";
-import { createHyperAuthSession } from "@/lib/phone-login.functions";
 
 const STORAGE_KEY = "radiant.auth";
 const AUTH_TIMEOUT_MS = 12_000;
@@ -40,6 +38,18 @@ function read(): AuthUser | null {
 const listeners = new Set<() => void>();
 function emit() {
   listeners.forEach((l) => l());
+}
+
+/**
+ * Bridge the pre-launch phone OTP into the existing Auth session used by RLS.
+ * HyperAuth remains an independent network gate and must not create sessions.
+ */
+function credsForPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "").slice(-10);
+  return {
+    email: `phone-${digits}@radiantguard.local`,
+    password: `RG-${digits}-pre-launch!`,
+  };
 }
 
 function withTimeout<T>(promise: Promise<T>, message: string, ms = AUTH_TIMEOUT_MS) {
@@ -92,8 +102,30 @@ async function authUserFromSession(): Promise<AuthUser | null> {
   return user;
 }
 
+async function ensureSupabaseSession(phone: string) {
+  const { email, password } = credsForPhone(phone);
+  const signIn = await withTimeout(
+    supabase.auth.signInWithPassword({ email, password }),
+    "Login is taking too long. Please try again.",
+  );
+  if (!signIn.error) return;
+
+  const signUp = await withTimeout(
+    supabase.auth.signUp({ email, password }),
+    "Account setup is taking too long. Please try again.",
+  );
+  if (signUp.error && !/registered/i.test(signUp.error.message)) {
+    throw signUp.error;
+  }
+
+  const retry = await withTimeout(
+    supabase.auth.signInWithPassword({ email, password }),
+    "Login is taking too long. Please try again.",
+  );
+  if (retry.error) throw retry.error;
+}
+
 export function useAuth() {
-  const requestHyperAuthSession = useServerFn(createHyperAuthSession);
   const [user, setUser] = useState<AuthUser | null>(() => read());
   const [isReady, setIsReady] = useState(() => typeof window === "undefined");
 
@@ -174,15 +206,7 @@ export function useAuth() {
       digits === SUPER_ADMIN_PHONE ? "super_admin" : "user";
     const ipPromise = resolveClientIpQuickly();
     try {
-      const session = await withTimeout(
-        requestHyperAuthSession({ data: { phone: `+91${digits}` } }),
-        "Login is taking too long. Please try again.",
-      );
-      const applied = await supabase.auth.setSession({
-        access_token: session.accessToken,
-        refresh_token: session.refreshToken,
-      });
-      if (applied.error) throw applied.error;
+      await ensureSupabaseSession(phone);
     } catch (e) {
       void ipPromise.then((ip) =>
         logActivity({
@@ -197,9 +221,6 @@ export function useAuth() {
           errorMessage: e instanceof Error ? e.message : String(e),
         }),
       );
-      if (e instanceof Error && e.message.includes("HYPERAUTH_BLOCKED")) {
-        throw new Error("Sign-in isn’t available for this account right now. Please contact your administrator for assistance.");
-      }
       throw e;
     }
     const u: AuthUser = { phone, role };
@@ -232,7 +253,7 @@ export function useAuth() {
       }),
     );
     emit();
-  }, [requestHyperAuthSession]);
+  }, []);
 
   const logout = useCallback(() => {
     const current = read();
