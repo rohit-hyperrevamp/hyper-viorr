@@ -12,6 +12,7 @@ import {
   Files,
   Home,
   Boxes,
+  ReceiptText,
   RefreshCw,
   ShieldCheck,
   SlidersHorizontal,
@@ -192,6 +193,11 @@ function CompliancePage() {
         crumbs={[{ label: "Compliance" }]}
         actions={
           <div className="flex items-center gap-2">
+            <Button size="sm" asChild>
+              <Link to="/admin/compliance-pt">
+                <ReceiptText className="mr-1.5 h-3.5 w-3.5" /> PT
+              </Link>
+            </Button>
             <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
               <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isFetching && "animate-spin")} /> Refresh
             </Button>
