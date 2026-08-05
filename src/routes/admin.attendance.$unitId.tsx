@@ -508,6 +508,8 @@ function MusterRollPage() {
     rejection_reason: string;
     review_proof_url: string | null;
     submitted_by: string | null;
+    current_version: number | null;
+    amendment_status: AmendmentStatus | null;
   };
   const sheetQK = ["attendance-sheet", unitId, periodStart, periodEnd];
   const { data: sheet } = useQuery({
@@ -515,7 +517,7 @@ function MusterRollPage() {
     queryFn: async (): Promise<SheetRow | null> => {
       const { data, error } = await supabase
         .from("attendance_sheets" as never)
-        .select("id, status, rejection_reason, review_proof_url, submitted_by")
+        .select("id, status, rejection_reason, review_proof_url, submitted_by, current_version, amendment_status")
         .eq("unit_id", unitId)
         .eq("period_start", periodStart)
         .eq("period_end", periodEnd)
@@ -526,10 +528,17 @@ function MusterRollPage() {
     enabled: Boolean(unitId && periodStart && periodEnd),
   });
   const status: SheetStatus = sheet?.status ?? "draft";
+  const currentVersion = Math.max(1, Number(sheet?.current_version) || 1);
+  const amendment: AmendmentStatus = (sheet?.amendment_status ?? "none") as AmendmentStatus;
 
   // Payroll-run state for this period — used to decide whether the
   // "Send for Payroll & Invoice" handoff has happened.
-  type PayrollRunLite = { id: string; status: "draft" | "submitted" | "approved" | "rejected" };
+  type PayrollRunLite = {
+    id: string;
+    status: "draft" | "submitted" | "approved" | "rejected";
+    payroll_status: string | null;
+    invoice_status: string | null;
+  };
   const payrollRunQK = ["attendance-payroll-run", unitId, periodStart, periodEnd];
   const { data: payrollRun } = useQuery({
     queryKey: payrollRunQK,
@@ -537,7 +546,7 @@ function MusterRollPage() {
     queryFn: async (): Promise<PayrollRunLite | null> => {
       const { data, error } = await supabase
         .from("payroll_runs" as never)
-        .select("id, status")
+        .select("id, status, payroll_status, invoice_status")
         .eq("unit_id", unitId)
         .eq("period_start", periodStart)
         .eq("period_end", periodEnd)
@@ -547,10 +556,31 @@ function MusterRollPage() {
     },
   });
   const sentToPayroll = ["submitted", "approved"].includes(payrollRun?.status ?? "");
+  const payrollProcessed = payrollRun?.payroll_status === "processed";
+
+  // Frozen versions of this muster roll (v1 = the sheet that payroll paid).
+  const versionsQK = ["attendance-versions", unitId, periodStart, periodEnd];
+  const { data: versions = [] } = useQuery({
+    queryKey: versionsQK,
+    enabled: Boolean(unitId && periodStart && periodEnd),
+    queryFn: () => fetchAttendanceVersions(unitId, periodStart, periodEnd),
+  });
+
+  const amendmentOpen = amendment === "open";
+  const amendmentSubmitted = amendment === "submitted";
+  const amendmentApproved = amendment === "approved";
+  const amendmentActive = amendmentOpen || amendmentSubmitted || amendmentApproved;
 
   // FO/admin edit when draft or rejected. Approver may also edit inline while
   // the sheet is submitted (HR can fix in place instead of bouncing back).
-  const editable = status === "draft" || status === "rejected" || (status === "submitted" && canApprove);
+  // An open amendment (v2+) is editable again even though the sheet is approved.
+  const editable =
+    status === "draft" ||
+    status === "rejected" ||
+    (status === "submitted" && canApprove) ||
+    amendmentOpen ||
+    (amendmentSubmitted && canApprove);
+
 
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
