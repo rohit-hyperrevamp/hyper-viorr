@@ -2502,7 +2502,16 @@ function BreakdownSection({
   );
 }
 
-function PaySheetPanel({ r }: { r: PaySheetRow }) {
+type PaySheetVersion = {
+  version: number;
+  paid_days: number;
+  gross: number;
+  total_deductions: number;
+  net_pay: number;
+  posted_at: string;
+};
+
+function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PaySheetVersion[] }) {
   const w = r.wages;
   const contractComponents = [...(r.resource.components ?? []), ...(r.resource.benefits ?? [])];
   const contractGrossTotal = contractComponents.reduce((s, c) => s + (Number(c.amount) || 0), 0);
@@ -2531,6 +2540,52 @@ function PaySheetPanel({ r }: { r: PaySheetRow }) {
           </span>
         ))}
       </div>
+
+      {versions.length > 1 && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-2.5">
+          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-800">
+            Pay sheet versions
+          </div>
+          <table className="w-full text-[11px]">
+            <thead>
+              <tr className="text-muted-foreground">
+                <th className="px-2 py-1 text-left font-medium">Version</th>
+                <th className="px-2 py-1 text-right font-medium">Paid days</th>
+                <th className="px-2 py-1 text-right font-medium">Gross</th>
+                <th className="px-2 py-1 text-right font-medium">Deductions</th>
+                <th className="px-2 py-1 text-right font-medium">Net</th>
+                <th className="px-2 py-1 text-right font-medium">Posted</th>
+              </tr>
+            </thead>
+            <tbody>
+              {versions.map((v, i) => {
+                const prev = versions[i - 1];
+                const delta = prev ? Math.round((v.net_pay - prev.net_pay) * 100) / 100 : 0;
+                return (
+                  <tr key={v.version} className="border-t border-indigo-200/60">
+                    <td className="px-2 py-1 font-semibold">
+                      v{v.version}
+                      {delta !== 0 && (
+                        <span className={cn("ml-1.5 font-medium", delta > 0 ? "text-emerald-700" : "text-rose-700")}>
+                          {delta > 0 ? "+" : "−"}{fmtINR(Math.abs(delta))}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-2 py-1 text-right tabular-nums">{v.paid_days}</td>
+                    <td className="px-2 py-1 text-right tabular-nums">{fmtINR(v.gross)}</td>
+                    <td className="px-2 py-1 text-right tabular-nums">{fmtINR(v.total_deductions)}</td>
+                    <td className="px-2 py-1 text-right font-semibold tabular-nums">{fmtINR(v.net_pay)}</td>
+                    <td className="px-2 py-1 text-right text-muted-foreground">
+                      {v.posted_at ? new Date(v.posted_at).toLocaleDateString("en-IN") : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
 
       <div className="grid gap-3 lg:grid-cols-2">
         <BreakdownSection
