@@ -253,46 +253,174 @@ function useEmployees() {
   });
 }
 
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+type LineRow = {
+  key: string;
+  candidateId: string;
+  employee: string;
+  employeeCode: string;
+  unitName: string;
+  designation: string;
+  head: string;
+  source: "recorded" | "contract";
+  sourceLabel: string;
+  date: string;
+  amount: number;
+  status: string;
+  record?: Deduction;
+};
+
+/**
+ * One single deductions register. Every deduction — manually recorded, auto
+ * generated (uniform / GPAIP / unit fee) and the live contract + statutory
+ * heads (EE EPF, EE ESI, Professional Tax, LWF…) — is listed as its OWN line
+ * item so each head can be processed and reconciled separately.
+ */
 function DeductionList() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const types = useDeductionTypes();
   const emps = useEmployees();
 
-  const { data: items = [] } = useQuery({
-    queryKey: QK_DED,
+  const now = new Date();
+  const [monthIdx, setMonthIdx] = useState(now.getMonth());
+  const [year, setYear] = useState(now.getFullYear());
+  const [unitId, setUnitId] = useState<string>("");
+  const [q, setQ] = useState("");
+  const [headFilter, setHeadFilter] = useState<string>("all");
+
+  const unitsQ = useQuery({ queryKey: CHARTER_UNITS_QK, queryFn: fetchCharterUnits });
+  const units = unitsQ.data?.units ?? [];
+  const effectiveUnitId = unitId || units[0]?.id || "";
+  const unitName = units.find((u) => u.id === effectiveUnitId)?.name ?? "";
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const start = `${year}-${pad(monthIdx + 1)}-01`;
+  const lastDay = new Date(year, monthIdx + 1, 0).getDate();
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const monthEnd = `${year}-${pad(monthIdx + 1)}-${pad(lastDay)}`;
+  const end = monthEnd > todayIso && start <= todayIso ? todayIso : monthEnd;
+
+  // Recorded / auto-generated deduction rows for this period.
+  const recordedQ = useQuery({
+    queryKey: [...QK_DED, start, monthEnd],
     queryFn: async (): Promise<Deduction[]> => {
       const { data, error } = await supabase
         .from("deductions" as never)
         .select("id,candidate_id,deduction_type_id,deduction_date,deduction_name,calculation_type,amount,installments,description,status,min_duty,max_duty,source_kind,created_at")
-        .order("deduction_date", { ascending: false })
-        .order("created_at", { ascending: false });
+        .gte("deduction_date", start)
+        .lte("deduction_date", monthEnd)
+        .order("deduction_date", { ascending: false });
       if (error) throw error;
       return (data as unknown) as Deduction[];
     },
   });
 
+  // Which employees belong to the selected unit (primary posting or mapped).
+  const rosterQ = useQuery({
+    queryKey: ["deductions", "unit-roster", effectiveUnitId],
+    enabled: !!effectiveUnitId,
+    queryFn: async (): Promise<Set<string>> => {
+      const [{ data: primary }, { data: links }] = await Promise.all([
+        supabase.from("candidates").select("id").eq("unit_id", effectiveUnitId),
+        supabase.from("candidate_units").select("candidate_id").eq("unit_id", effectiveUnitId),
+      ]);
+      return new Set([
+        ...((primary ?? []).map((c) => c.id as string)),
+        ...((links ?? []).map((l) => l.candidate_id as string)),
+      ]);
+    },
+  });
+
+  // Live contract + statutory lines for the same unit & period.
+  const liveQ = useQuery({
+    queryKey: ["contract-deductions-live", effectiveUnitId, start, end],
+    enabled: !!effectiveUnitId,
+    queryFn: () => fetchLiveContractDeductions({ unitId: effectiveUnitId, unitName, start, end }),
+  });
+
   const typeMap = useMemo(() => new Map((types.data ?? []).map((t) => [t.id, t])), [types.data]);
   const empMap = useMemo(() => new Map((emps.data ?? []).map((e) => [e.id, e])), [emps.data]);
 
-  const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | Status>("active");
+  const rows: LineRow[] = useMemo(() => {
+    const out: LineRow[] = [];
+    const roster = rosterQ.data;
+
+    for (const r of liveQ.data?.rows ?? []) {
+      for (const l of r.lines) {
+        out.push({
+          key: `live:${r.candidateId}:${l.name}`,
+          candidateId: r.candidateId,
+          employee: r.name,
+          employeeCode: r.employeeCode,
+          unitName: r.unitName,
+          designation: r.designation,
+          head: l.name,
+          source: "contract",
+          sourceLabel: "Contract / statutory",
+          date: `${start} → ${end}`,
+          amount: l.amount,
+          status: "active",
+        });
+      }
+    }
+
+    for (const d of recordedQ.data ?? []) {
+      if (roster && roster.size > 0 && !roster.has(d.candidate_id)) continue;
+      const emp = empMap.get(d.candidate_id);
+      out.push({
+        key: `rec:${d.id}`,
+        candidateId: d.candidate_id,
+        employee: emp?.full_name ?? "—",
+        employeeCode: emp?.employee_code ?? "",
+        unitName,
+        designation: "—",
+        head: typeMap.get(d.deduction_type_id)?.name || d.deduction_name,
+        source: "recorded",
+        sourceLabel:
+          d.source_kind === "issuance" ? "Auto · Uniform issued"
+          : d.source_kind === "unit_fee" ? "Auto · Unit fee"
+          : "Recorded",
+        date: d.deduction_date,
+        amount: Number(d.amount) || 0,
+        status: d.status,
+        record: d,
+      });
+    }
+
+    return out.sort((a, b) => a.employee.localeCompare(b.employee) || a.head.localeCompare(b.head));
+  }, [liveQ.data, recordedQ.data, rosterQ.data, empMap, typeMap, unitName, start, end]);
+
+  const heads = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.head))).sort((a, b) => a.localeCompare(b)),
+    [rows],
+  );
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return items.filter((i) => {
-      if (statusFilter !== "all" && i.status !== statusFilter) return false;
+    return rows.filter((r) => {
+      if (headFilter !== "all" && r.head !== headFilter) return false;
       if (!s) return true;
-      const emp = empMap.get(i.candidate_id);
-      const type = typeMap.get(i.deduction_type_id);
       return (
-        i.deduction_name.toLowerCase().includes(s) ||
-        emp?.full_name.toLowerCase().includes(s) ||
-        emp?.employee_code.toLowerCase().includes(s) ||
-        type?.name.toLowerCase().includes(s)
+        r.employee.toLowerCase().includes(s) ||
+        r.employeeCode.toLowerCase().includes(s) ||
+        r.head.toLowerCase().includes(s) ||
+        r.designation.toLowerCase().includes(s)
       );
     });
-  }, [items, q, statusFilter, empMap, typeMap]);
+  }, [rows, q, headFilter]);
+
+  const byHead = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of filtered) m.set(r.head, (m.get(r.head) ?? 0) + r.amount);
+    return Array.from(m, ([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount);
+  }, [filtered]);
+
+  const total = useMemo(() => filtered.reduce((s, r) => s + r.amount, 0), [filtered]);
 
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
@@ -304,56 +432,56 @@ function DeductionList() {
   });
 
   const [deleting, setDeleting] = useState<Deduction | null>(null);
-  const [view, setView] = useState<"entries" | "contract">("entries");
 
   return (
     <div>
       <PayrollTabs />
       <PageHeader
         title="Deductions"
-        description="Recorded deductions plus the live contract & statutory deductions computed from each client contract."
+        description="Every deduction head — recorded, auto-generated and contract/statutory — as its own line item, per employee."
         crumbs={[{ label: "Payroll", to: "/admin/payroll" }, { label: "Deductions" }]}
       />
 
-      <div className="mb-4 inline-flex flex-wrap items-center gap-1 rounded-2xl border border-border/60 bg-card/60 p-1 backdrop-blur-xl">
-        {([
-          { key: "entries", label: "Recorded deductions" },
-          { key: "contract", label: "Contract & statutory (live)" },
-        ] as const).map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setView(t.key)}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all",
-              view === t.key
-                ? "bg-background text-foreground ring-1 ring-inset ring-accent/25 shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {view === "contract" ? <ContractDeductionsPanel /> : <>
-
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search employee, type, name…" className="h-10 rounded-lg pl-9" />
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-4 lg:max-w-4xl">
+          <div className="grid gap-1.5">
+            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Unit</Label>
+            <Select value={effectiveUnitId} onValueChange={setUnitId}>
+              <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Select unit" /></SelectTrigger>
+              <SelectContent className="max-h-[320px]">
+                {units.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name || u.code}{u.customer_name ? ` · ${u.customer_name}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-            <SelectTrigger className="h-10 w-40 rounded-lg"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="paused">Paused</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="grid gap-1.5">
+            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Month</Label>
+            <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
+              <SelectTrigger className="h-10 rounded-lg"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Year</Label>
+            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+              <SelectTrigger className="h-10 rounded-lg"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[year - 2, year - 1, year, year + 1].map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Resource</Label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search employee…" className="h-10 rounded-lg pl-9" />
+            </div>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => navigate({ to: "/admin/deductions", search: { mode: "create" } })} className="h-10 rounded-lg">
@@ -361,27 +489,27 @@ function DeductionList() {
           </Button>
           <Button variant="outline" disabled={filtered.length === 0} className="h-10 rounded-lg"
             onClick={() => downloadCsv(
-              "deductions",
-              filtered.map((i) => ({
-                employee: empMap.get(i.candidate_id)?.full_name ?? "",
-                employee_code: empMap.get(i.candidate_id)?.employee_code ?? "",
-                type: typeMap.get(i.deduction_type_id)?.name ?? "",
-                date: i.deduction_date,
-                name: i.deduction_name,
-                calc: i.calculation_type,
-                amount: i.amount,
-                installments: i.installments,
-                status: i.status,
+              `deductions-${start}-to-${end}`,
+              filtered.map((r) => ({
+                employee_code: r.employeeCode,
+                employee: r.employee,
+                unit: r.unitName,
+                designation: r.designation,
+                head: r.head,
+                source: r.sourceLabel,
+                date: r.date,
+                amount: r.amount,
+                status: r.status,
               })),
               [
-                { key: "employee", header: "Employee" },
                 { key: "employee_code", header: "Emp Code" },
-                { key: "type", header: "Type" },
-                { key: "date", header: "Date" },
-                { key: "name", header: "Deduction Name" },
-                { key: "calc", header: "Calc Type" },
+                { key: "employee", header: "Employee" },
+                { key: "unit", header: "Unit" },
+                { key: "designation", header: "Designation" },
+                { key: "head", header: "Deduction Head" },
+                { key: "source", header: "Source" },
+                { key: "date", header: "Date / Period" },
                 { key: "amount", header: "Amount" },
-                { key: "installments", header: "Installments" },
                 { key: "status", header: "Status" },
               ],
             )}
@@ -389,82 +517,112 @@ function DeductionList() {
         </div>
       </div>
 
+      {heads.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setHeadFilter("all")}
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+              headFilter === "all" ? "border-primary bg-primary text-primary-foreground" : "border-border/60 bg-background text-muted-foreground hover:bg-muted",
+            )}
+          >
+            All heads
+          </button>
+          {byHead.map((h) => (
+            <button
+              key={h.name}
+              type="button"
+              onClick={() => setHeadFilter(headFilter === h.name ? "all" : h.name)}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors",
+                headFilter === h.name ? "border-primary bg-primary text-primary-foreground" : "border-border/60 bg-background hover:bg-muted",
+              )}
+            >
+              <span className="font-medium uppercase tracking-[0.1em]">{h.name}</span>
+              <span className="font-semibold tabular-nums">{fmtINR(h.amount)}</span>
+            </button>
+          ))}
+          <span className="inline-flex items-center gap-2 rounded-full bg-foreground px-3 py-1.5 text-xs text-background">
+            <span className="font-medium uppercase tracking-[0.1em]">Total</span>
+            <span className="font-semibold tabular-nums">{fmtINR(total)}</span>
+          </span>
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="border-b border-border bg-accent/10 px-5 py-2.5 text-xs">
           <span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">{filtered.length}</span>
-          <span className="ml-2 uppercase tracking-[0.14em] text-muted-foreground">Total {filtered.length === 1 ? "row" : "rows"}</span>
+          <span className="ml-2 uppercase tracking-[0.14em] text-muted-foreground">
+            Line {filtered.length === 1 ? "item" : "items"} · {start} → {end}
+          </span>
         </div>
-        <div className="overflow-x-clip">
+        <div className="overflow-x-auto">
           <table className="ios-table w-full text-sm">
             <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <tr>
                 <th className="px-5 py-3">Employee</th>
-                <th className="px-5 py-3">Type</th>
-                <th className="px-5 py-3">Date</th>
-                <th className="px-5 py-3">Deduction Name</th>
+                <th className="px-5 py-3">Designation</th>
+                <th className="px-5 py-3">Deduction Head</th>
+                <th className="px-5 py-3">Source</th>
+                <th className="px-5 py-3">Date / Period</th>
                 <th className="px-5 py-3 text-right">Amount</th>
-                <th className="px-5 py-3 text-right">Inst.</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right" data-col="actions">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((i) => {
-                const emp = empMap.get(i.candidate_id);
-                const type = typeMap.get(i.deduction_type_id);
-                return (
-                  <tr key={i.id} className="hover:bg-secondary/30">
-                    <td className="px-5 py-3">
-                      <div className="font-medium">{emp?.full_name ?? "—"}</div>
-                      <div className="font-mono text-[11px] text-muted-foreground">{emp?.employee_code}</div>
-                    </td>
-                    <td className="px-5 py-3"><span className="inline-flex items-center gap-1.5"><Coins className="h-3.5 w-3.5 text-muted-foreground" />{type?.name ?? "—"}</span></td>
-                    <td className="px-5 py-3 text-muted-foreground">{i.deduction_date}</td>
-                    <td className="px-5 py-3">
-                      <span className="inline-flex items-center gap-1.5">
-                        {i.deduction_name}
-                        {i.source_kind === "issuance" && (
-                          <span
-                            title={i.description}
-                            className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
-                          >
-                            Auto · Issued
-                          </span>
-                        )}
-                        {i.source_kind === "unit_fee" && (
-                          <span
-                            title={i.description}
-                            className="rounded-md bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-800 dark:bg-sky-500/15 dark:text-sky-300"
-                          >
-                            Auto · Unit
-                          </span>
-                        )}
-
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right tabular-nums">{fmtINR(Number(i.amount))}</td>
-                    <td className="px-5 py-3 text-right tabular-nums">{i.installments}</td>
-                    <td className="px-5 py-3">
-                      <span className={
-                        i.status === "active" ? "rounded-md bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800"
-                        : i.status === "paused" ? "rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800"
-                        : i.status === "completed" ? "rounded-md bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800"
-                        : "rounded-md bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
-                      }>{i.status}</span>
-                    </td>
-                    <td className="px-5 py-3 text-right">
+              {filtered.map((r) => (
+                <tr key={r.key} className="hover:bg-secondary/30">
+                  <td className="px-5 py-3">
+                    <div className="font-medium">{r.employee}</div>
+                    <div className="font-mono text-[11px] text-muted-foreground">{r.employeeCode}</div>
+                  </td>
+                  <td className="px-5 py-3 text-muted-foreground">{r.designation}</td>
+                  <td className="px-5 py-3">
+                    <span className="inline-flex items-center gap-1.5 font-medium">
+                      <Coins className="h-3.5 w-3.5 text-muted-foreground" />
+                      {r.head}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className={cn(
+                      "rounded-md px-2 py-0.5 text-[11px] font-semibold",
+                      r.source === "contract"
+                        ? "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300"
+                        : "bg-secondary text-muted-foreground",
+                    )}>{r.sourceLabel}</span>
+                  </td>
+                  <td className="px-5 py-3 text-muted-foreground">{r.date}</td>
+                  <td className="px-5 py-3 text-right tabular-nums">{fmtINR(r.amount)}</td>
+                  <td className="px-5 py-3">
+                    <span className={
+                      r.status === "active" ? "rounded-md bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800"
+                      : r.status === "paused" ? "rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800"
+                      : r.status === "completed" ? "rounded-md bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800"
+                      : "rounded-md bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
+                    }>{r.status}</span>
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    {r.record ? (
                       <div className="inline-flex gap-1">
-                        <Link to="/admin/deductions" search={{ mode: "edit", id: i.id }}>
+                        <Link to="/admin/deductions" search={{ mode: "edit", id: r.record.id }}>
                           <Button size="sm" variant="ghost" className="h-8 w-8 p-0"><Edit2 className="h-4 w-4" /></Button>
                         </Link>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:text-destructive" onClick={() => setDeleting(i)}><Trash2 className="h-4 w-4" /></Button>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:text-destructive" onClick={() => setDeleting(r.record!)}><Trash2 className="h-4 w-4" /></Button>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">Auto</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={8} className="px-5 py-12 text-center text-sm text-muted-foreground">No deductions found.</td></tr>
+                <tr>
+                  <td colSpan={8} className="px-5 py-12 text-center text-sm text-muted-foreground">
+                    {liveQ.isLoading || recordedQ.isLoading ? "Computing deductions…" : "No deductions for this unit and period."}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -488,185 +646,10 @@ function DeductionList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      </>}
     </div>
   );
 }
 
-/**
- * Live view of the deductions that live on the client contract's resource rate
- * card — PF / ESI employee shares, Professional Tax, LWF and any bespoke
- * contract deduction line. These are recomputed from the contract + attendance
- * every time this renders (same engine as the payroll register), so they are
- * never stored as rows here; storing them would double-count in payroll.
- */
-function ContractDeductionsPanel() {
-  const now = new Date();
-  const [monthIdx, setMonthIdx] = useState(now.getMonth());
-  const [year, setYear] = useState(now.getFullYear());
-  const [unitId, setUnitId] = useState<string>("");
-
-  const unitsQ = useQuery({ queryKey: CHARTER_UNITS_QK, queryFn: fetchCharterUnits });
-  const units = unitsQ.data?.units ?? [];
-  const effectiveUnitId = unitId || units[0]?.id || "";
-  const unitName = units.find((u) => u.id === effectiveUnitId)?.name ?? "";
-
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const start = `${year}-${pad(monthIdx + 1)}-01`;
-  const lastDay = new Date(year, monthIdx + 1, 0).getDate();
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const monthEnd = `${year}-${pad(monthIdx + 1)}-${pad(lastDay)}`;
-  const end = monthEnd > todayIso && start <= todayIso ? todayIso : monthEnd;
-
-  const liveQ = useQuery({
-    queryKey: ["contract-deductions-live", effectiveUnitId, start, end],
-    enabled: !!effectiveUnitId,
-    queryFn: () => fetchLiveContractDeductions({ unitId: effectiveUnitId, unitName, start, end }),
-  });
-
-  const rows = liveQ.data?.rows ?? [];
-  const byLine = liveQ.data?.byLine ?? [];
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 lg:max-w-2xl">
-          <div className="grid gap-1.5">
-            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Unit</Label>
-            <Select value={effectiveUnitId} onValueChange={setUnitId}>
-              <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Select unit" /></SelectTrigger>
-              <SelectContent className="max-h-[320px]">
-                {units.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name || u.code}{u.customer_name ? ` · ${u.customer_name}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Month</Label>
-            <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
-              <SelectTrigger className="h-10 rounded-lg"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m, i) => (
-                  <SelectItem key={m} value={String(i)}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Year</Label>
-            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="h-10 rounded-lg"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {[year - 2, year - 1, year, year + 1].map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          className="h-10 rounded-lg"
-          disabled={rows.length === 0}
-          onClick={() => downloadCsv(
-            `contract-deductions-${start}-to-${end}`,
-            rows.flatMap((r) => r.lines.map((l) => ({
-              employee: r.name,
-              employee_code: r.employeeCode,
-              designation: r.designation,
-              unit: r.unitName,
-              contract: r.contractCode,
-              line: l.name,
-              amount: l.amount,
-              earned_gross: r.earnedGross,
-            }))),
-            [
-              { key: "employee", header: "Employee" },
-              { key: "employee_code", header: "Emp Code" },
-              { key: "designation", header: "Designation" },
-              { key: "unit", header: "Unit" },
-              { key: "contract", header: "Contract" },
-              { key: "line", header: "Deduction" },
-              { key: "amount", header: "Amount" },
-              { key: "earned_gross", header: "Earned Gross" },
-            ],
-          )}
-        >
-          <Download className="mr-1.5 h-4 w-4" /> Export
-        </Button>
-      </div>
-
-      <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
-        Computed live from the client contract rate card + this period&apos;s attendance ({start} → {end}) using the payroll
-        engine. These lines are not stored as deduction records — the payroll register applies them directly, so recording
-        them here as well would double-count.
-      </div>
-
-      {byLine.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {byLine.map((l) => (
-            <div key={l.name} className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 shadow-sm">
-              <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{l.name}</span>
-              <span className="text-sm font-semibold tabular-nums">{fmtINR(l.amount)}</span>
-            </div>
-          ))}
-          <div className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-1.5 text-primary-foreground shadow-sm">
-            <span className="text-[11px] font-medium uppercase tracking-[0.12em]">Total</span>
-            <span className="text-sm font-semibold tabular-nums">{fmtINR(liveQ.data?.total ?? 0)}</span>
-          </div>
-        </div>
-      )}
-
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="overflow-x-auto">
-          <table className="ios-table w-full text-sm">
-            <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              <tr>
-                <th className="px-5 py-3">Employee</th>
-                <th className="px-5 py-3">Designation</th>
-                <th className="px-5 py-3 text-right">Earned Gross</th>
-                <th className="px-5 py-3">Contract &amp; statutory deductions</th>
-                <th className="px-5 py-3 text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {rows.map((r) => (
-                <tr key={r.candidateId} className="hover:bg-secondary/30">
-                  <td className="px-5 py-3">
-                    <div className="font-medium">{r.name}</div>
-                    <div className="font-mono text-[11px] text-muted-foreground">{r.employeeCode}</div>
-                  </td>
-                  <td className="px-5 py-3 text-muted-foreground">{r.designation}</td>
-                  <td className="px-5 py-3 text-right tabular-nums">{fmtINR(r.earnedGross)}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex flex-wrap gap-1.5">
-                      {r.lines.map((l) => (
-                        <span key={l.name} className="rounded-md bg-secondary px-2 py-0.5 text-[11px] font-medium">
-                          {l.name} · <span className="tabular-nums">{fmtINR(l.amount)}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 text-right font-semibold tabular-nums">{fmtINR(r.total)}</td>
-                </tr>
-              ))}
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-sm text-muted-foreground">
-                    {liveQ.isLoading ? "Computing from the contract…" : "No contract deductions for this unit and period."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function DeductionForm() {
   const navigate = useNavigate();
