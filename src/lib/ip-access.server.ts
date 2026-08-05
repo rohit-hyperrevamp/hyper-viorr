@@ -1,30 +1,8 @@
-import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { evaluateCountry, type GeoAccessRule } from "@/lib/geo-access";
 import { evaluateIp, type IpAccessRule } from "@/lib/ip-access";
 
-function firstPublicIp(raw: string | null | undefined): string {
-  if (!raw) return "";
-  return (raw.split(",")[0] ?? "").trim();
-}
-
-function requestIp(): string {
-  return (
-    firstPublicIp(getRequestHeader("cf-connecting-ip")) ||
-    firstPublicIp(getRequestHeader("x-forwarded-for")) ||
-    getRequestIP({ xForwardedFor: true }) ||
-    ""
-  );
-}
-
-async function resolveCountry(ip: string): Promise<string> {
-  const headerCountry = (
-    getRequestHeader("cf-ipcountry") ??
-    getRequestHeader("x-vercel-ip-country") ??
-    getRequestHeader("x-country-code") ??
-    ""
-  )
-    .trim()
-    .toUpperCase();
+async function resolveCountry(ip: string, rawHeaderCountry: string): Promise<string> {
+  const headerCountry = rawHeaderCountry.trim().toUpperCase();
   if (/^[A-Z]{2}$/.test(headerCountry)) return headerCountry;
   if (!ip) return "";
 
@@ -42,9 +20,8 @@ async function resolveCountry(ip: string): Promise<string> {
   }
 }
 
-export async function checkRequestAccess() {
-  const ip = requestIp();
-  const country = await resolveCountry(ip);
+export async function checkRequestAccess(ip: string, rawHeaderCountry: string) {
+  const country = await resolveCountry(ip, rawHeaderCountry);
 
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -85,7 +62,6 @@ export async function checkRequestAccess() {
   }
 }
 
-export async function getRequestLocation() {
-  const ip = requestIp();
-  return { ip, country: await resolveCountry(ip) };
+export async function getRequestLocation(ip: string, rawHeaderCountry: string) {
+  return { ip, country: await resolveCountry(ip, rawHeaderCountry) };
 }
