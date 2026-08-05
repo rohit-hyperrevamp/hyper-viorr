@@ -29,6 +29,16 @@ import {
 } from "@/components/ui/select";
 import { classifyAttendanceEmployee, isNonBillableRoleKey, matchesAttendanceScope, type AttendanceScopeAssignment, type AttendanceUnitContext } from "@/lib/attendance";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
+import {
+  fetchAttendanceVersions,
+  startAttendanceAmendment,
+  setAmendmentStatus,
+  diffAttendance,
+  fetchLiveSnapshot,
+  type AmendmentStatus,
+  type AttendanceSnapshotEntry,
+} from "@/lib/attendance-versions";
+
 import { attendanceCodeForShift, fetchShiftHoursMap, overtimeDaysForShift, shiftHoursFor } from "@/lib/shift-hours";
 import { resolvePayrollDayCount, type PayrollDayBaseLike } from "@/lib/payroll-days";
 
