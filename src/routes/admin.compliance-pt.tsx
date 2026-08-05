@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Download, ReceiptText, Search } from "lucide-react";
+import { ArrowLeft, ChevronRight, Download, ReceiptText, Search } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,15 @@ export const Route = createFileRoute("/admin/compliance-pt")({
 const inr = (n: number) =>
   "₹" + Math.round(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
+type Slab = {
+  id: string;
+  state: string;
+  salary_min: number;
+  salary_max: number | null;
+  tax_per_month: number;
+  gender: string;
+};
+
 type PtRow = {
   id: string;
   candidateId: string;
@@ -49,6 +58,7 @@ type PtRow = {
   state: string;
   unit: string;
   amount: number;
+  slabId: string | null;
   band: string;
   bandOrder: number;
   date: string;
@@ -78,28 +88,35 @@ function usePtData(ym: string) {
   return useQuery({
     queryKey: ["pt-register", ym],
     staleTime: 60_000,
-    queryFn: async (): Promise<PtRow[]> => {
+    queryFn: async (): Promise<{ rows: PtRow[]; slabs: Slab[] }> => {
       const { from, to } = monthRange(ym);
-      const { data: deds, error } = await supabase
-        .from("deductions")
-        .select("id, candidate_id, amount, computed_amount, deduction_name, deduction_date, status")
-        .gte("deduction_date", from)
-        .lte("deduction_date", to)
-        .ilike("deduction_name", "%profession%");
-      if (error) throw error;
-      const rows = deds ?? [];
-      if (rows.length === 0) return [];
-
-      const ids = Array.from(new Set(rows.map((r) => r.candidate_id).filter(Boolean)));
-      const [{ data: cands }, { data: slabs }] = await Promise.all([
+      const [{ data: deds, error }, { data: slabData }] = await Promise.all([
         supabase
-          .from("candidates")
-          .select("id, full_name, employee_code, candidate_code, gender, permanent_state, unit_id")
-          .in("id", ids),
+          .from("deductions")
+          .select("id, candidate_id, amount, computed_amount, deduction_name, deduction_date, status")
+          .gte("deduction_date", from)
+          .lte("deduction_date", to)
+          .ilike("deduction_name", "%profession%"),
         supabase
           .from("professional_tax_slabs")
-          .select("state, salary_min, salary_max, tax_per_month, gender"),
+          .select("id, state, salary_min, salary_max, tax_per_month, gender")
+          .order("salary_min"),
       ]);
+      if (error) throw error;
+      const slabs = ((slabData ?? []) as Slab[]).map((s) => ({
+        ...s,
+        salary_min: Number(s.salary_min),
+        salary_max: s.salary_max === null ? null : Number(s.salary_max),
+        tax_per_month: Number(s.tax_per_month),
+      }));
+      const rows = deds ?? [];
+      if (rows.length === 0) return { rows: [], slabs };
+
+      const ids = Array.from(new Set(rows.map((r) => r.candidate_id).filter(Boolean)));
+      const { data: cands } = await supabase
+        .from("candidates")
+        .select("id, full_name, employee_code, candidate_code, gender, permanent_state, unit_id")
+        .in("id", ids);
 
       const unitIds = Array.from(
         new Set((cands ?? []).map((c) => c.unit_id).filter(Boolean) as string[]),
@@ -111,15 +128,14 @@ function usePtData(ym: string) {
       const unitMap = new Map((units ?? []).map((u) => [u.id, u]));
       const candMap = new Map((cands ?? []).map((c) => [c.id, c]));
 
-      return rows.map((r) => {
+      const mapped: PtRow[] = rows.map((r) => {
         const c = candMap.get(r.candidate_id);
         const u = c?.unit_id ? unitMap.get(c.unit_id) : undefined;
         const state =
           (u?.billing_state || u?.shipping_state || c?.permanent_state || "Unknown").trim();
         const gender = normGender(c?.gender);
         const amount = Number(r.computed_amount ?? r.amount ?? 0);
-        // Resolve the slab band by matching the deducted amount within the state schedule.
-        const stateSlabs = (slabs ?? []).filter(
+        const stateSlabs = slabs.filter(
           (s) => (s.state ?? "").trim().toLowerCase() === state.toLowerCase(),
         );
         const hit =
@@ -137,11 +153,13 @@ function usePtData(ym: string) {
           state: state || "Unknown",
           unit: u?.name ?? "—",
           amount,
-          band: hit ? bandLabel(Number(hit.salary_min), hit.salary_max ? Number(hit.salary_max) : null) : `${inr(amount)}/month slab`,
-          bandOrder: hit ? Number(hit.salary_min) : 9_999_999,
+          slabId: hit?.id ?? null,
+          band: hit ? bandLabel(hit.salary_min, hit.salary_max) : `${inr(amount)}/month slab`,
+          bandOrder: hit ? hit.salary_min : 9_999_999,
           date: r.deduction_date,
         };
       });
+      return { rows: mapped, slabs };
     },
   });
 }
@@ -164,9 +182,13 @@ function PtRegisterPage() {
   const [state, setState] = useState<string>("all");
   const [gender, setGender] = useState<string>("all");
   const [q, setQ] = useState("");
+  const [open, setOpen] = useState<Record<string, boolean>>({});
 
-  const { data: all = [], isLoading } = usePtData(ym);
+  const { data, isLoading } = usePtData(ym);
+  const all = data?.rows ?? [];
+  const slabs = data?.slabs ?? [];
 
+  // Only states that actually appear in this month's records.
   const states = useMemo(
     () => Array.from(new Set(all.map((r) => r.state))).sort(),
     [all],
@@ -184,38 +206,46 @@ function PtRegisterPage() {
 
   const total = rows.reduce((s, r) => s + r.amount, 0);
 
-  const byState = useMemo(() => {
-    const m = new Map<string, { total: number; count: number }>();
-    for (const r of rows) {
-      const b = m.get(r.state) ?? { total: 0, count: 0 };
-      b.total += r.amount;
-      b.count += 1;
-      m.set(r.state, b);
-    }
-    return Array.from(m.entries()).sort((a, b) => b[1].total - a[1].total);
-  }, [rows]);
-
-  const byBand = useMemo(() => {
-    const m = new Map<string, { total: number; count: number; order: number }>();
-    for (const r of rows) {
-      const b = m.get(r.band) ?? { total: 0, count: 0, order: r.bandOrder };
-      b.total += r.amount;
-      b.count += 1;
-      m.set(r.band, b);
-    }
-    return Array.from(m.entries()).sort((a, b) => a[1].order - b[1].order);
-  }, [rows]);
-
-  const byGender = useMemo(() => {
-    const m = new Map<string, { total: number; count: number }>();
-    for (const r of rows) {
-      const b = m.get(r.gender) ?? { total: 0, count: 0 };
-      b.total += r.amount;
-      b.count += 1;
-      m.set(r.gender, b);
-    }
-    return Array.from(m.entries()).sort((a, b) => b[1].total - a[1].total);
-  }, [rows]);
+  // State → every slab in the schedule for that state, with counts (zero shown).
+  const groups = useMemo(() => {
+    const activeStates = states.filter((s) => state === "all" || s === state);
+    return activeStates.map((st) => {
+      const stateSlabs = slabs
+        .filter((s) => s.state.trim().toLowerCase() === st.toLowerCase())
+        .filter((s) => gender === "all" || normGender(s.gender) === gender || normGender(s.gender) === "Unspecified")
+        .sort((a, b) => a.salary_min - b.salary_min);
+      const stateRows = rows.filter((r) => r.state === st);
+      const bands = stateSlabs.map((s) => {
+        const members = stateRows.filter((r) => r.slabId === s.id);
+        return {
+          key: s.id,
+          label: bandLabel(s.salary_min, s.salary_max),
+          gender: normGender(s.gender),
+          rate: s.tax_per_month,
+          members,
+          total: members.reduce((x, r) => x + r.amount, 0),
+        };
+      });
+      // Rows that couldn't be mapped to any slab in the schedule
+      const unmatched = stateRows.filter((r) => !r.slabId || !stateSlabs.some((s) => s.id === r.slabId));
+      if (unmatched.length) {
+        bands.push({
+          key: `${st}-unmatched`,
+          label: "Outside published schedule",
+          gender: "—",
+          rate: 0,
+          members: unmatched,
+          total: unmatched.reduce((x, r) => x + r.amount, 0),
+        });
+      }
+      return {
+        state: st,
+        bands,
+        total: stateRows.reduce((x, r) => x + r.amount, 0),
+        count: stateRows.length,
+      };
+    });
+  }, [states, slabs, rows, state, gender]);
 
   const monthLabel = new Date(ym + "-01T00:00:00").toLocaleDateString("en-IN", {
     month: "long",
@@ -228,7 +258,7 @@ function PtRegisterPage() {
         icon={ReceiptText}
         eyebrow="Governance"
         title="Professional Tax Register"
-        description="State-wise PT deducted, bifurcated by slab band and gender — drill down to an individual employee."
+        description="State-wise PT deducted, laid out against the full slab schedule — expand a slab to see the employees in it."
         crumbs={[{ label: "Compliance", to: "/admin/compliance" }, { label: "Professional Tax" }]}
         actions={
           <div className="flex items-center gap-2">
@@ -290,10 +320,10 @@ function PtRegisterPage() {
         </Select>
         <Select value={gender} onValueChange={setGender}>
           <SelectTrigger className="h-9 text-xs">
-            <SelectValue placeholder="Gender" />
+            <SelectValue placeholder="Employees" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All genders</SelectItem>
+            <SelectItem value="all">All employees</SelectItem>
             <SelectItem value="Male">Male</SelectItem>
             <SelectItem value="Female">Female</SelectItem>
             <SelectItem value="Unspecified">Unspecified</SelectItem>
@@ -313,13 +343,14 @@ function PtRegisterPage() {
       {/* Totals */}
       <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <StatCard label={`PT deducted · ${monthLabel}`} value={inr(total)} sub={`${rows.length} employees`} />
-        <StatCard label="States" value={String(byState.length)} />
-        <StatCard label="Slab bands" value={String(byBand.length)} />
+        <StatCard label="States" value={String(groups.length)} />
         <StatCard
-          label="Male / Female"
-          value={`${inr(byGender.find((g) => g[0] === "Male")?.[1].total ?? 0)} / ${inr(
-            byGender.find((g) => g[0] === "Female")?.[1].total ?? 0,
-          )}`}
+          label="Slabs in schedule"
+          value={String(groups.reduce((s, g) => s + g.bands.length, 0))}
+        />
+        <StatCard
+          label="Slabs with deductions"
+          value={String(groups.reduce((s, g) => s + g.bands.filter((b) => b.members.length).length, 0))}
         />
       </div>
 
@@ -327,131 +358,131 @@ function PtRegisterPage() {
         <div className="rounded-2xl border border-border/60 bg-card p-10 text-center text-xs text-muted-foreground">
           Loading professional tax deductions…
         </div>
-      ) : rows.length === 0 ? (
+      ) : groups.length === 0 ? (
         <div className="rounded-2xl border border-border/60 bg-card p-10 text-center text-xs text-muted-foreground">
           No professional tax deducted for {monthLabel} with the current filters.
         </div>
       ) : (
         <div className="space-y-3">
-          {/* Bifurcations */}
-          <div className="grid gap-3 lg:grid-cols-3">
-            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card/80 backdrop-blur">
-              <header className="border-b border-border/60 bg-background/40 px-3 py-2 text-[12px] font-semibold">
-                By state
+          {groups.map((g) => (
+            <section
+              key={g.state}
+              className="overflow-hidden rounded-2xl border border-border/60 bg-card/80 backdrop-blur"
+            >
+              <header className="flex items-center justify-between gap-2 border-b border-border/60 bg-background/40 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-[13px] font-semibold">{g.state}</h2>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                    {g.count} employees
+                  </span>
+                </div>
+                <span className="text-[13px] font-semibold tabular-nums">{inr(g.total)}</span>
               </header>
-              <ul className="divide-y divide-border/60">
-                {byState.map(([s, v]) => (
-                  <li key={s}>
-                    <button
-                      onClick={() => setState(state === s ? "all" : s)}
-                      className={cn(
-                        "flex w-full items-center justify-between px-3 py-2 text-left transition-colors hover:bg-muted/40",
-                        state === s && "bg-accent/10",
-                      )}
-                    >
-                      <span className="truncate text-[12px] font-medium">{s}</span>
-                      <span className="ml-2 shrink-0 text-[12px] font-semibold tabular-nums">
-                        {inr(v.total)}{" "}
-                        <span className="text-[10px] font-normal text-muted-foreground">({v.count})</span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
 
-            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card/80 backdrop-blur">
-              <header className="border-b border-border/60 bg-background/40 px-3 py-2 text-[12px] font-semibold">
-                By slab band
-              </header>
-              <ul className="divide-y divide-border/60">
-                {byBand.map(([b, v]) => (
-                  <li key={b} className="flex items-center justify-between px-3 py-2">
-                    <span className="truncate text-[12px] font-medium">{b}</span>
-                    <span className="ml-2 shrink-0 text-[12px] font-semibold tabular-nums">
-                      {inr(v.total)}{" "}
-                      <span className="text-[10px] font-normal text-muted-foreground">({v.count})</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section className="overflow-hidden rounded-2xl border border-border/60 bg-card/80 backdrop-blur">
-              <header className="border-b border-border/60 bg-background/40 px-3 py-2 text-[12px] font-semibold">
-                By gender
-              </header>
-              <ul className="divide-y divide-border/60">
-                {byGender.map(([g, v]) => (
-                  <li key={g}>
-                    <button
-                      onClick={() => setGender(gender === g ? "all" : g)}
-                      className={cn(
-                        "flex w-full items-center justify-between px-3 py-2 text-left transition-colors hover:bg-muted/40",
-                        gender === g && "bg-accent/10",
-                      )}
-                    >
-                      <span className="truncate text-[12px] font-medium">{g}</span>
-                      <span className="ml-2 shrink-0 text-[12px] font-semibold tabular-nums">
-                        {inr(v.total)}{" "}
-                        <span className="text-[10px] font-normal text-muted-foreground">({v.count})</span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </div>
-
-          {/* Employee level */}
-          <section className="overflow-hidden rounded-2xl border border-border/60 bg-card/80 backdrop-blur">
-            <header className="flex items-center gap-2 border-b border-border/60 bg-background/40 px-3 py-2">
-              <h2 className="text-[13px] font-semibold">Employee-wise PT</h2>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
-                {rows.length}
-              </span>
-            </header>
-            <div className="overflow-x-auto">
               <table className="w-full text-[12px]">
                 <thead>
                   <tr className="border-b border-border/60 text-[10px] uppercase tracking-wider text-muted-foreground">
-                    <th className="px-3 py-2 text-left font-semibold">Employee</th>
-                    <th className="px-3 py-2 text-left font-semibold">State</th>
-                    <th className="px-3 py-2 text-left font-semibold">Unit</th>
-                    <th className="px-3 py-2 text-left font-semibold">Gender</th>
                     <th className="px-3 py-2 text-left font-semibold">Slab band</th>
-                    <th className="px-3 py-2 text-right font-semibold">PT</th>
+                    <th className="px-3 py-2 text-left font-semibold">Applies to</th>
+                    <th className="px-3 py-2 text-right font-semibold">Rate / month</th>
+                    <th className="px-3 py-2 text-right font-semibold">Employees</th>
+                    <th className="px-3 py-2 text-right font-semibold">PT deducted</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {rows
-                    .slice()
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((r) => (
-                      <tr key={r.id} className="hover:bg-muted/30">
-                        <td className="px-3 py-2">
-                          <p className="font-medium">{r.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{r.code}</p>
-                        </td>
-                        <td className="px-3 py-2">{r.state}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{r.unit}</td>
-                        <td className="px-3 py-2">{r.gender}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{r.band}</td>
-                        <td className="px-3 py-2 text-right font-semibold tabular-nums">{inr(r.amount)}</td>
-                      </tr>
-                    ))}
+                  {g.bands.map((b) => {
+                    const key = `${g.state}:${b.key}`;
+                    const isOpen = !!open[key];
+                    const empty = b.members.length === 0;
+                    return (
+                      <>
+                        <tr
+                          key={key}
+                          onClick={() =>
+                            !empty && setOpen((s) => ({ ...s, [key]: !s[key] }))
+                          }
+                          className={cn(
+                            "transition-colors",
+                            empty ? "text-muted-foreground" : "cursor-pointer hover:bg-muted/30",
+                            isOpen && "bg-accent/5",
+                          )}
+                        >
+                          <td className="px-3 py-2">
+                            <span className="flex items-center gap-1.5 font-medium">
+                              {!empty ? (
+                                <ChevronRight
+                                  className={cn(
+                                    "h-3.5 w-3.5 shrink-0 transition-transform",
+                                    isOpen && "rotate-90",
+                                  )}
+                                />
+                              ) : (
+                                <span className="w-3.5" />
+                              )}
+                              {b.label}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">{b.gender}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                            {b.rate ? inr(b.rate) : "—"}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{b.members.length}</td>
+                          <td className="px-3 py-2 text-right font-semibold tabular-nums">
+                            {empty ? "—" : inr(b.total)}
+                          </td>
+                        </tr>
+                        {isOpen && !empty ? (
+                          <tr key={`${key}-detail`} className="bg-background/40">
+                            <td colSpan={5} className="px-3 py-2">
+                              <ul className="divide-y divide-border/50">
+                                {b.members
+                                  .slice()
+                                  .sort((a, c) => a.name.localeCompare(c.name))
+                                  .map((r) => (
+                                    <li
+                                      key={r.id}
+                                      className="flex items-center justify-between gap-3 py-1.5"
+                                    >
+                                      <span className="min-w-0">
+                                        <span className="block truncate text-[12px] font-medium">
+                                          {r.name}
+                                        </span>
+                                        <span className="block truncate text-[10px] text-muted-foreground">
+                                          {r.code} · {r.unit} · {r.gender}
+                                        </span>
+                                      </span>
+                                      <span className="shrink-0 text-[12px] font-semibold tabular-nums">
+                                        {inr(r.amount)}
+                                      </span>
+                                    </li>
+                                  ))}
+                              </ul>
+                            </td>
+                          </tr>
+                        ) : null}
+                      </>
+                    );
+                  })}
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-border/60 bg-background/40">
-                    <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" colSpan={5}>
-                      Total
+                    <td
+                      className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+                      colSpan={3}
+                    >
+                      {g.state} total
                     </td>
-                    <td className="px-3 py-2 text-right text-[13px] font-semibold tabular-nums">{inr(total)}</td>
+                    <td className="px-3 py-2 text-right text-[12px] font-semibold tabular-nums">
+                      {g.count}
+                    </td>
+                    <td className="px-3 py-2 text-right text-[13px] font-semibold tabular-nums">
+                      {inr(g.total)}
+                    </td>
                   </tr>
                 </tfoot>
               </table>
-            </div>
-          </section>
+            </section>
+          ))}
         </div>
       )}
     </div>
