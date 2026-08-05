@@ -1781,28 +1781,6 @@ function PayrollUnitPage() {
       </Dialog>
 
       <div className="rounded-3xl border border-border/70 bg-card shadow-sm">
-        <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-4 py-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Columns</span>
-          {[
-            { label: "Earnings", on: showEarnings, set: setShowEarnings, count: registerCols.earningNames.length },
-            { label: "Deductions", on: showDeductionCols, set: setShowDeductionCols, count: registerCols.deductionGroups.length },
-            { label: "Employer contribution", on: showEmployerCols, set: setShowEmployerCols, count: registerCols.employerGroups.length },
-          ].map((c) => (
-            <button
-              key={c.label}
-              type="button"
-              onClick={() => c.set(!c.on)}
-              className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                c.on
-                  ? "border-primary/40 bg-primary/10 text-primary"
-                  : "border-border/60 bg-background text-muted-foreground hover:bg-muted",
-              )}
-            >
-              {c.label}{c.count ? ` (${c.count})` : ""}
-            </button>
-          ))}
-        </div>
         <div className="overflow-x-auto overscroll-x-contain rounded-b-3xl [scrollbar-gutter:stable] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-muted/30">
           <table className="ios-table min-w-[1180px] table-auto text-sm whitespace-nowrap">
             <thead className="border-b border-border/60 bg-secondary/40">
