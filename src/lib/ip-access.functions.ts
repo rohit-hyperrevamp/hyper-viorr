@@ -6,34 +6,34 @@ import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
  * caller's network is permitted. Returns only a boolean + the caller's own IP.
  */
 export const checkIpAccess = createServerFn({ method: "GET" }).handler(async () => {
-  const firstIp = (raw: string | null | undefined) => (raw?.split(",")[0] ?? "").trim();
-  const ip =
-    firstIp(getRequestHeader("cf-connecting-ip")) ||
-    firstIp(getRequestHeader("x-forwarded-for")) ||
-    getRequestIP({ xForwardedFor: true }) ||
-    "";
+  const ips = [
+    getRequestHeader("cf-connecting-ip"),
+    getRequestHeader("x-forwarded-for"),
+    getRequestHeader("x-real-ip"),
+    getRequestIP({ xForwardedFor: true }),
+  ].filter((value): value is string => Boolean(value));
   const country =
     getRequestHeader("cf-ipcountry") ??
     getRequestHeader("x-vercel-ip-country") ??
     getRequestHeader("x-country-code") ??
     "";
   const { checkRequestAccess } = await import("@/lib/ip-access.server");
-  return checkRequestAccess(ip, country);
+  return checkRequestAccess(ips, country);
 });
 
 /** Returns the caller's public IP (used by the admin screen to add "this network"). */
 export const getMyIp = createServerFn({ method: "GET" }).handler(async () => {
-  const firstIp = (raw: string | null | undefined) => (raw?.split(",")[0] ?? "").trim();
-  const ip =
-    firstIp(getRequestHeader("cf-connecting-ip")) ||
-    firstIp(getRequestHeader("x-forwarded-for")) ||
-    getRequestIP({ xForwardedFor: true }) ||
-    "";
+  const ips = [
+    getRequestHeader("cf-connecting-ip"),
+    getRequestHeader("x-forwarded-for"),
+    getRequestHeader("x-real-ip"),
+    getRequestIP({ xForwardedFor: true }),
+  ].filter((value): value is string => Boolean(value));
   const country =
     getRequestHeader("cf-ipcountry") ??
     getRequestHeader("x-vercel-ip-country") ??
     getRequestHeader("x-country-code") ??
     "";
   const { getRequestLocation } = await import("@/lib/ip-access.server");
-  return getRequestLocation(ip, country);
+  return getRequestLocation(ips.flatMap((value) => value.split(","))[0]?.trim() ?? "", country);
 });
