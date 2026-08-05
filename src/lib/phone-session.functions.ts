@@ -21,7 +21,7 @@ export const restorePhoneSession = createServerFn({ method: "POST" })
       if (created.error) throw created.error;
       link = await supabaseAdmin.auth.admin.generateLink({ type: "magiclink", email });
     }
-    const tokenHash = link.data?.properties.hashed_token;
+    const tokenHash = link.data?.properties?.hashed_token;
     if (link.error || !tokenHash) throw link.error ?? new Error("Could not restore this account.");
 
     const signedIn = await supabaseAdmin.auth.verifyOtp({ type: "magiclink", token_hash: tokenHash });
