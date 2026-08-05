@@ -1620,14 +1620,102 @@ function PayrollUnitPage() {
               </Button>
             </>
           )}
-          {isProcessed && (
+          {isProcessed && !amendmentPending && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
               <CheckCircle2 className="h-3.5 w-3.5" /> Payroll processed
+              {lastSnapshotVersion > 1 ? ` · v${lastSnapshotVersion}` : ""}
               {run?.payroll_processed_at ? ` · ${new Date(run.payroll_processed_at).toLocaleDateString("en-IN")}` : ""}
             </span>
           )}
+          {amendmentPending && (
+            <Button
+              size="sm"
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={() => setAmendReviewOpen(true)}
+              disabled={processAmendment.isPending || rows.length === 0}
+            >
+              <Banknote className="mr-1.5 h-4 w-4" /> Review &amp; process amendment v{sheetVersion}
+            </Button>
+          )}
         </div>
       </div>
+
+      {amendmentPending && (
+        <div className="rounded-md border border-indigo-300/60 bg-indigo-50 px-3 py-2 text-xs text-indigo-900 print:hidden">
+          <b>Attendance amendment v{sheetVersion} approved.</b> Payroll v{lastSnapshotVersion} is already paid — processing
+          the amendment posts only the difference for the {amendmentDeltas.length} affected employee
+          {amendmentDeltas.length === 1 ? "" : "s"} as arrears or recovery. Nothing already paid is reversed.
+        </div>
+      )}
+      {amendmentStatus === "open" || amendmentStatus === "submitted" ? (
+        <div className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900 print:hidden">
+          An attendance amendment (v{sheetVersion}) is {amendmentStatus === "open" ? "being edited" : "awaiting approval"}.
+          Payroll figures below still reflect the paid version until it is approved.
+        </div>
+      ) : null}
+
+      <Dialog open={amendReviewOpen} onOpenChange={setAmendReviewOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Process payroll amendment v{sheetVersion}</DialogTitle>
+            <DialogDescription>
+              Only the employees below changed. Each gets a single arrears (increase) or recovery (decrease) line dated
+              {" "}{end}. Their earlier pay sheet stays intact as v{lastSnapshotVersion}.
+            </DialogDescription>
+          </DialogHeader>
+          {amendmentDeltas.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No money changed — nothing to post.</p>
+          ) : (
+            <div className="max-h-[50vh] overflow-auto rounded-xl border border-border/60">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/60">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold">Employee</th>
+                    <th className="px-3 py-2 text-right font-semibold">Paid days</th>
+                    <th className="px-3 py-2 text-right font-semibold">Net v{lastSnapshotVersion}</th>
+                    <th className="px-3 py-2 text-right font-semibold">Net v{sheetVersion}</th>
+                    <th className="px-3 py-2 text-right font-semibold">Impact</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {amendmentDeltas.map((d) => {
+                    const delta = Math.round((d.after.netPay - d.before.netPay) * 100) / 100;
+                    return (
+                      <tr key={d.candidateId} className="border-t border-border/50">
+                        <td className="px-3 py-2">
+                          <span className="font-medium">{d.name}</span>
+                          <span className="ml-1 text-muted-foreground">{d.employeeCode}</span>
+                        </td>
+                        <td className="px-3 py-2 text-right">{d.before.paidDays} → {d.after.paidDays}</td>
+                        <td className="px-3 py-2 text-right">{fmtINR(d.before.netPay)}</td>
+                        <td className="px-3 py-2 text-right">{fmtINR(d.after.netPay)}</td>
+                        <td className={cn("px-3 py-2 text-right font-semibold", delta >= 0 ? "text-emerald-700" : "text-rose-700")}>
+                          {delta >= 0 ? "+" : "−"}{fmtINR(Math.abs(delta))}
+                          <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {delta >= 0 ? "arrears" : "recovery"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAmendReviewOpen(false)}>Cancel</Button>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={() => processAmendment.mutate()}
+              disabled={processAmendment.isPending || amendmentDeltas.length === 0}
+            >
+              {processAmendment.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Post difference for {amendmentDeltas.length} employee{amendmentDeltas.length === 1 ? "" : "s"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={processOpen} onOpenChange={setProcessOpen}>
         <DialogContent className="max-w-md">
