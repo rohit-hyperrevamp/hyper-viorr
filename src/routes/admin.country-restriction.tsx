@@ -181,7 +181,7 @@ function CountryRestrictionPage() {
       title: "Allow India only?",
       description:
         "India will be whitelisted and every other country will be blocked from signing in. Existing country rules are replaced.",
-      confirmLabel: "Apply",
+      confirmText: "Apply",
     });
     if (!ok) return;
     try {

@@ -148,9 +148,10 @@ const tiles: Tile[] = [
     icon: Workflow,
   },
   {
-    to: "/admin/ip-restriction",
-    label: "IP Restriction",
-    description: "Whitelist office IPs/subnets or block networks from signing in.",
+    to: "/admin/hyperauth",
+    label: "HyperAuth",
+    description:
+      "Layered sign-in security — country (geo) restriction first, then IP / subnet restriction.",
     icon: Network,
   },
   {
