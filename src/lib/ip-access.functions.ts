@@ -6,12 +6,12 @@ import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
  * caller's network is permitted. Returns only a boolean + the caller's own IP.
  */
 export const checkIpAccess = createServerFn({ method: "GET" }).handler(async () => {
-  // X-Forwarded-For is populated by the hosting edge. Only its left-most
-  // address is the originating client; never scan later proxy hops for an
-  // allow-list match.
+  // The production edge supplies CF-Connecting-IP as the canonical visitor
+  // address. X-Forwarded-For can contain upstream/CDN hops, so it is only a
+  // fallback and we still use exactly one address—never scan the chain.
   const rawIp =
-    getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ??
     getRequestHeader("cf-connecting-ip") ??
+    getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ??
     getRequestHeader("x-real-ip") ??
     getRequestIP({ xForwardedFor: true }) ??
     "";
@@ -27,8 +27,8 @@ export const checkIpAccess = createServerFn({ method: "GET" }).handler(async () 
 /** Returns the caller's public IP (used by the admin screen to add "this network"). */
 export const getMyIp = createServerFn({ method: "GET" }).handler(async () => {
   const rawIp =
-    getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ??
     getRequestHeader("cf-connecting-ip") ??
+    getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ??
     getRequestHeader("x-real-ip") ??
     getRequestIP({ xForwardedFor: true }) ??
     "";
