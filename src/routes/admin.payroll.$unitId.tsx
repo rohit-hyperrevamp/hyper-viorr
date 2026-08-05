@@ -1183,9 +1183,9 @@ function PayrollUnitPage() {
     return { earningNames, deductionGroups, employerGroups };
   }, [rows]);
 
-  const [showEarnings, setShowEarnings] = useState(true);
-  const [showDeductionCols, setShowDeductionCols] = useState(true);
-  const [showEmployerCols, setShowEmployerCols] = useState(false);
+  const showEarnings = true;
+  const showDeductionCols = true;
+  const showEmployerCols = false;
 
   const earningCols = showEarnings ? registerCols.earningNames : [];
   const deductionCols = showDeductionCols ? registerCols.deductionGroups : [];
