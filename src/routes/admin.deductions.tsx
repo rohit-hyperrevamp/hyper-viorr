@@ -396,7 +396,10 @@ function DeductionList() {
         sourceLabel:
           d.source_kind === "issuance" ? "Auto · Uniform issued"
           : d.source_kind === "unit_fee" ? "Auto · Unit fee"
+          : d.source_kind === "payroll_run" ? "Payroll processed"
+          : d.source_kind === "payroll_amendment" ? "Payroll amendment"
           : "Recorded",
+
         date: d.deduction_date,
         amount: Number(d.amount) || 0,
         status: d.status,
