@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ChevronRight, Download, ReceiptText, Search } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -395,9 +395,8 @@ function PtRegisterPage() {
                     const isOpen = !!open[key];
                     const empty = b.members.length === 0;
                     return (
-                      <>
+                      <Fragment key={key}>
                         <tr
-                          key={key}
                           onClick={() =>
                             !empty && setOpen((s) => ({ ...s, [key]: !s[key] }))
                           }
@@ -432,7 +431,7 @@ function PtRegisterPage() {
                           </td>
                         </tr>
                         {isOpen && !empty ? (
-                          <tr key={`${key}-detail`} className="bg-background/40">
+                          <tr className="bg-background/40">
                             <td colSpan={5} className="px-3 py-2">
                               <ul className="divide-y divide-border/50">
                                 {b.members
@@ -460,7 +459,7 @@ function PtRegisterPage() {
                             </td>
                           </tr>
                         ) : null}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </tbody>
