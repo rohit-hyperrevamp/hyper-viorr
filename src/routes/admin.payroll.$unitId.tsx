@@ -1577,12 +1577,16 @@ function PayrollUnitPage() {
             "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
             runStatus === "draft" && "bg-slate-100 text-slate-700",
             runStatus === "submitted" && "bg-amber-100 text-amber-800",
-            runStatus === "approved" && "bg-emerald-100 text-emerald-800",
+            runStatus === "approved" && (isProcessed ? "bg-emerald-100 text-emerald-800" : "bg-sky-100 text-sky-800"),
             runStatus === "rejected" && "bg-rose-100 text-rose-800",
           )}>
             {runStatus === "draft" && "Draft"}
             {runStatus === "submitted" && "Submitted — awaiting approval"}
-            {runStatus === "approved" && <><CheckCircle2 className="h-3.5 w-3.5" /> Approved</>}
+            {runStatus === "approved" && (
+              isProcessed
+                ? <><CheckCircle2 className="h-3.5 w-3.5" /> Processed</>
+                : <><CheckCircle2 className="h-3.5 w-3.5" /> Approved — awaiting processing</>
+            )}
             {runStatus === "rejected" && <><XCircle className="h-3.5 w-3.5" /> Rejected</>}
           </span>
           {runStatus === "rejected" && run?.rejection_reason && (
