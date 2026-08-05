@@ -928,21 +928,35 @@ function PayrollUnitPage() {
   // ---- Form XVI wage slips -------------------------------------------------
   const [slipBusy, setSlipBusy] = useState<string | null>(null);
 
+  // The wage slip is the document handed to the employee for what was ACTUALLY
+  // paid in this period. Once a run is processed the paid figures are frozen in
+  // the v1 snapshot — a later attendance amendment is settled as an
+  // arrear/recovery in the NEXT payroll, so it must NOT rewrite this slip.
   const buildSlip = (r: (typeof rows)[number]): WageSlipData => {
-    const w = r.wages!;
-    const comps = (w.components ?? []) as NamedAmount[];
+    const paid = snapshots
+      .filter((s) => s.candidate_id === r.id)
+      .sort((a, b) => a.version - b.version)[0];
+
+    const comps = (paid ? paid.earnings : r.wages!.components ?? []) as NamedAmount[];
+    const deds = (paid ? paid.deductions : r.wages!.deductions ?? []) as NamedAmount[];
+    const grossWages = paid ? Number(paid.gross) || 0 : Number(r.wages!.earnedGross) || 0;
+    const total = paid
+      ? Number(paid.total_deductions) || 0
+      : Number(r.wages!.totalDeductions) || 0;
+    const netWages = paid ? Number(paid.net_pay) || 0 : Number(r.wages!.netPay) || 0;
+    const paidDays = paid ? Number(paid.paid_days) || 0 : r.totals.tDays;
+    const edDays = paid ? Number(paid.ed_days) || 0 : r.totals.otDays;
+
     const pick = (re: RegExp) =>
       comps.filter((c) => re.test(c.name)).reduce((s2, c) => s2 + (Number(c.amount) || 0), 0);
     const basic = pick(/\bbasic\b/i);
     const da = pick(/\bd\.?\s*a\.?\b|dearness/i);
     const ed = pick(EXTRA_DUTY_COMPONENT_RE);
-    const other = Math.max(0, (Number(w.earnedGross) || 0) - basic - da - ed);
-    const deds = (w.deductions ?? []) as NamedAmount[];
+    const other = Math.max(0, grossWages - basic - da - ed);
     const dedSum = (re: RegExp) =>
       deds.filter((d) => re.test(d.name)).reduce((s2, d) => s2 + (Number(d.amount) || 0), 0);
     const pf = dedSum(/\bepf\b|provident\s*fund|\bpf\b/i);
     const esi = dedSum(/\besi(c)?\b/i);
-    const total = Number(w.totalDeductions) || 0;
     return {
       employeeName: r.name,
       employeeCode: r.employeeCode,
@@ -955,16 +969,19 @@ function PayrollUnitPage() {
       rateBasic: basic,
       rateDa: da,
       rateOther: other,
-      totalAttendance: `${r.totals.tDays} paid day(s) (P ${r.totals.pDays} · PH ${r.totals.phDays} · ED ${r.totals.otDays})`,
+      totalAttendance: paid
+        ? `${paidDays} paid day(s) (incl. ED ${edDays})`
+        : `${r.totals.tDays} paid day(s) (P ${r.totals.pDays} · PH ${r.totals.phDays} · ED ${r.totals.otDays})`,
       extraDutyWages: ed,
-      grossWages: Number(w.earnedGross) || 0,
+      grossWages,
       dedPf: pf,
       dedEsi: esi,
       dedOthers: Math.max(0, total - pf - esi),
       totalDeductions: total,
-      netWages: Number(w.netPay) || 0,
+      netWages,
     };
   };
+
 
   const downloadSlip = async (r: (typeof rows)[number]) => {
     if (!r.wages) return;
