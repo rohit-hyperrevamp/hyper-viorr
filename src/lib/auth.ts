@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
 import { logActivity, getClientIp } from "@/lib/activity-log";
+import { restorePhoneSession } from "@/lib/phone-session.functions";
 
 const STORAGE_KEY = "radiant.auth";
+const AUTH_TIMEOUT_MS = 12_000;
 const IP_LOOKUP_TIMEOUT_MS = 1_500;
 /**
  * ⚠️ PRE-LAUNCH TESTING ONLY ⚠️
@@ -38,6 +42,57 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+function credsForPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "").slice(-10);
+  return {
+    email: `phone-${digits}@radiantguard.local`,
+    password: `RG-${digits}-pre-launch!`,
+  };
+}
+
+function withTimeout<T>(promise: Promise<T>, message: string) {
+  return Promise.race<T>([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), AUTH_TIMEOUT_MS);
+    }),
+  ]);
+}
+
+async function ensureDatabaseSession(
+  phone: string,
+  restore: (input: { data: { phone: string } }) => Promise<{ accessToken: string; refreshToken: string }>,
+) {
+  const digits = phone.replace(/\D/g, "").slice(-10);
+  const { email, password } = credsForPhone(phone);
+  const result = await withTimeout(
+    supabase.auth.signInWithPassword({ email, password }),
+    "Login is taking too long. Please try again.",
+  );
+  if (!result.error && result.data.session) return;
+
+  const tokens = await withTimeout(
+    restore({ data: { phone: digits } }),
+    "Account restoration is taking too long. Please try again.",
+  );
+  const restored = await supabase.auth.setSession({
+    access_token: tokens.accessToken,
+    refresh_token: tokens.refreshToken,
+  });
+  if (restored.error || !restored.data.session) {
+    throw restored.error ?? new Error("Could not establish a secure session.");
+  }
+}
+
+function userFromSessionEmail(email: string | undefined): AuthUser | null {
+  const match = (email ?? "").match(/^phone-(\d{10})@radiantguard\.local$/i);
+  if (!match) return null;
+  return {
+    phone: `+91${match[1]}`,
+    role: match[1] === SUPER_ADMIN_PHONE ? "super_admin" : "user",
+  };
+}
+
 function resolveClientIpQuickly() {
   return Promise.race<string>([
     getClientIp(),
@@ -48,6 +103,7 @@ function resolveClientIpQuickly() {
 }
 
 export function useAuth() {
+  const restoreSession = useServerFn(restorePhoneSession);
   // Keep the first server and browser render identical. Reading localStorage
   // during the browser's initial render caused the admin shell to hydrate with
   // a different role/navigation tree and briefly run data screens as the wrong
@@ -56,16 +112,46 @@ export function useAuth() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    let active = true;
     const syncStoredUser = () => {
+      if (!active) return;
       setUser(read());
-      setIsReady(true);
     };
-    syncStoredUser();
     listeners.add(syncStoredUser);
     window.addEventListener("storage", syncStoredUser);
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      const sessionUser = userFromSessionEmail(data.session?.user.email);
+      if (sessionUser) {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser));
+        setUser(sessionUser);
+      } else {
+        window.localStorage.removeItem(STORAGE_KEY);
+        setUser(null);
+      }
+      setIsReady(true);
+    }).catch(() => {
+      if (!active) return;
+      window.localStorage.removeItem(STORAGE_KEY);
+      setUser(null);
+      setIsReady(true);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      const sessionUser = userFromSessionEmail(session?.user.email);
+      if (sessionUser) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser));
+      else window.localStorage.removeItem(STORAGE_KEY);
+      setUser(sessionUser);
+      setIsReady(true);
+    });
+
     return () => {
+      active = false;
       listeners.delete(syncStoredUser);
       window.removeEventListener("storage", syncStoredUser);
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -74,6 +160,22 @@ export function useAuth() {
     const role: AuthUser["role"] =
       digits === SUPER_ADMIN_PHONE ? "super_admin" : "user";
     const ipPromise = resolveClientIpQuickly();
+    try {
+      await ensureDatabaseSession(phone, restoreSession);
+    } catch (error) {
+      void ipPromise.then((ip) => logActivity({
+        module: "Authentication",
+        action: "login",
+        entityType: "user",
+        entityLabel: phone,
+        userPhone: phone,
+        userRole: role,
+        ip,
+        status: "failure",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      }));
+      throw error;
+    }
     const u: AuthUser = { phone, role };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
     // If a different phone had biometric enabled on this device, wipe it so
@@ -104,7 +206,7 @@ export function useAuth() {
       }),
     );
     emit();
-  }, []);
+  }, [restoreSession]);
 
   const logout = useCallback(() => {
     const current = read();
@@ -117,6 +219,7 @@ export function useAuth() {
       userRole: current?.role ?? "",
     });
     window.localStorage.removeItem(STORAGE_KEY);
+    void supabase.auth.signOut();
     emit();
   }, []);
 
