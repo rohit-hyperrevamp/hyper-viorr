@@ -58,13 +58,39 @@ function withTimeout<T>(promise: Promise<T>, message: string) {
 }
 
 async function ensureDatabaseSession(phone: string) {
+  const digits = phone.replace(/\D/g, "").slice(-10);
   const { email, password } = credsForPhone(phone);
   const result = await withTimeout(
     supabase.auth.signInWithPassword({ email, password }),
     "Login is taking too long. Please try again.",
   );
-  if (result.error) throw result.error;
-  if (!result.data.session) throw new Error("Could not establish a secure session.");
+  if (!result.error && result.data.session) return;
+
+  // Recreate a missing auth identity only for phones already approved by the
+  // database. This repairs legacy/demo identities without opening sign-up to
+  // arbitrary phone numbers.
+  const eligibility = await withTimeout(
+    Promise.resolve(
+      supabase.rpc("can_phone_login" as never, { _mobile: digits } as never),
+    ) as Promise<{ data: boolean | null; error: { message: string } | null }>,
+    "Could not verify this account. Please try again.",
+  );
+  if (eligibility.error) throw new Error(eligibility.error.message);
+  if (eligibility.data !== true) throw result.error ?? new Error("This account is not enabled.");
+
+  const created = await withTimeout(
+    supabase.auth.signUp({ email, password }),
+    "Account restoration is taking too long. Please try again.",
+  );
+  if (created.error && !/registered/i.test(created.error.message)) throw created.error;
+  if (created.data.session) return;
+
+  const retry = await withTimeout(
+    supabase.auth.signInWithPassword({ email, password }),
+    "Login is taking too long. Please try again.",
+  );
+  if (retry.error) throw retry.error;
+  if (!retry.data.session) throw new Error("Could not establish a secure session.");
 }
 
 function userFromSessionEmail(email: string | undefined): AuthUser | null {
