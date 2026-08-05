@@ -8,7 +8,7 @@ import { FieldOfficerFieldSense } from "@/components/FieldOfficerFieldSense";
 
 export const Route = createFileRoute("/admin/field-sense/officer/$id")({
   component: () => (<FieldSenseAdminGuard sub="day_patrol"><OfficerViewPage /></FieldSenseAdminGuard>),
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { date?: string; from?: string } => ({
     date: (search.date as string | undefined) ?? undefined,
     from: (search.from as string | undefined) ?? undefined,
   }),
