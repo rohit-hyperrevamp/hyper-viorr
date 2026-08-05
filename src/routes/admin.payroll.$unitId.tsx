@@ -1052,6 +1052,8 @@ function PayrollUnitPage() {
     }
     const out: AmendmentDelta[] = [];
     for (const [candidateId, l] of live) {
+      if (amendedCandidateIds && !amendedCandidateIds.has(candidateId)) continue;
+
       const p = prev.get(candidateId);
       const before = {
         paidDays: Number(p?.paid_days) || 0,
