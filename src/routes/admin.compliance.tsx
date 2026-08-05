@@ -12,7 +12,6 @@ import {
   Files,
   Home,
   Boxes,
-  ReceiptText,
   RefreshCw,
   ShieldCheck,
   SlidersHorizontal,
