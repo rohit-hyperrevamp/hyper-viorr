@@ -7,19 +7,19 @@ import type { Database } from "@/integrations/supabase/types";
 export const createHyperAuthSession = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: z.string().regex(/^\+91\d{10}$/) }).parse(input))
   .handler(async ({ data }) => {
-    const firstIp = (raw: string | null | undefined) => (raw?.split(",")[0] ?? "").trim();
-    const ip =
-      firstIp(getRequestHeader("cf-connecting-ip")) ||
-      firstIp(getRequestHeader("x-forwarded-for")) ||
-      getRequestIP({ xForwardedFor: true }) ||
-      "";
+    const ips = [
+      getRequestHeader("cf-connecting-ip"),
+      getRequestHeader("x-forwarded-for"),
+      getRequestHeader("x-real-ip"),
+      getRequestIP({ xForwardedFor: true }),
+    ].filter((value): value is string => Boolean(value));
     const country =
       getRequestHeader("cf-ipcountry") ??
       getRequestHeader("x-vercel-ip-country") ??
       getRequestHeader("x-country-code") ??
       "";
     const { checkRequestAccess } = await import("@/lib/ip-access.server");
-    const access = await checkRequestAccess(ip, country);
+    const access = await checkRequestAccess(ips, country);
     if (!access.allowed) throw new Error("HYPERAUTH_BLOCKED");
 
     const digits = data.phone.slice(-10);

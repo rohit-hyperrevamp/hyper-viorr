@@ -36,8 +36,12 @@ async function resolveCountry(ip: string, rawHeaderCountry: string): Promise<str
   return "";
 }
 
-export async function checkRequestAccess(ip: string, rawHeaderCountry: string) {
-  const country = await resolveCountry(ip, rawHeaderCountry);
+export async function checkRequestAccess(rawIps: string | string[], rawHeaderCountry: string) {
+  const ips = (Array.isArray(rawIps) ? rawIps : [rawIps])
+    .flatMap((value) => value.split(","))
+    .map((value) => value.trim())
+    .filter((value, index, values) => value.length > 0 && values.indexOf(value) === index);
+  const fallbackIp = ips[0] ?? "";
 
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -69,14 +73,28 @@ export async function checkRequestAccess(ip: string, rawHeaderCountry: string) {
         notes: String(rule.notes ?? ""),
       }),
     );
-    const ipDecision = evaluateIp(ip, rules);
+    const decisions = ips.map((ip) => ({ ip, decision: evaluateIp(ip, rules) }));
+    const denied = decisions.find(({ decision }) => decision.reason === "denied");
+    const whitelisted = decisions.find(({ decision }) => decision.reason === "whitelisted");
+    const selected = denied ?? whitelisted ?? decisions[0] ?? {
+      ip: fallbackIp,
+      decision: evaluateIp(fallbackIp, rules),
+    };
+    const ip = selected.ip;
+    const ipDecision = selected.decision;
+    const country = await resolveCountry(ip, rawHeaderCountry);
     const geoDecision = evaluateCountry(country, geoRules);
 
-    // A positively identified disallowed country always wins. When an edge
-    // omits geo headers and both independent lookups are unavailable, only an
-    // explicitly matched allow-list subnet may pass. This prevents transient
-    // geo-provider failures from locking out a trusted office network while
-    // still rejecting every unlisted address.
+    // An explicit IP/subnet rule is authoritative. In production there can be
+    // multiple trusted proxies, so any forwarded client address matching the
+    // allow-list must pass regardless of a proxy's geo header. Explicit deny
+    // rules retain highest priority.
+    if (ipDecision.reason === "denied") {
+      return { allowed: false, ip, country, layer: "ip" as const };
+    }
+    if (ipDecision.reason === "whitelisted") {
+      return { allowed: true, ip, country, layer: "ip" as const };
+    }
     if (country && !geoDecision.allowed) {
       return { allowed: false, ip, country, layer: "geo" as const };
     }
@@ -86,11 +104,10 @@ export async function checkRequestAccess(ip: string, rawHeaderCountry: string) {
     return { allowed: ipDecision.allowed, ip, country, layer: "ip" as const };
   } catch (error) {
     console.error("[HyperAuth] Access evaluation failed", {
-      ip,
-      country,
+      ip: fallbackIp,
       error: error instanceof Error ? error.message : String(error),
     });
-    return { allowed: false, ip, country, layer: "error" as const };
+    return { allowed: false, ip: fallbackIp, country: "", layer: "error" as const };
   }
 }
 
