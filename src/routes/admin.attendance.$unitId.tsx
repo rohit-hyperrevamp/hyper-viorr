@@ -856,7 +856,9 @@ function MusterRollPage() {
     [versions, currentVersion],
   );
   const { data: amendmentDiff = [] } = useQuery({
-    queryKey: ["attendance-amendment-diff", unitId, periodStart, periodEnd, currentVersion, previousVersion?.id ?? "", entriesQueryTick],
+    // Prefixed with the entries key so every attendance save refreshes the diff.
+    queryKey: ["attendance-entries-v4", unitId, periodStart, periodEnd, "amendment-diff", currentVersion],
+
     enabled: Boolean(amendmentActive && previousVersion),
     queryFn: async () => {
       const live = await fetchLiveSnapshot(unitId, periodStart, periodEnd);
