@@ -7,7 +7,6 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ShieldCheck } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import favicon from "../assets/radiant-logo-v2.png";
