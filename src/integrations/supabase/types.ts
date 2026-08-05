@@ -2062,6 +2062,39 @@ export type Database = {
           },
         ]
       }
+      geo_access_rules: {
+        Row: {
+          country_code: string
+          country_name: string
+          created_at: string
+          id: string
+          is_active: boolean
+          mode: string
+          notes: string
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          country_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mode?: string
+          notes?: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          country_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mode?: string
+          notes?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       indian_states: {
         Row: {
           code: string
