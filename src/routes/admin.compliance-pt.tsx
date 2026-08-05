@@ -307,7 +307,7 @@ function PtRegisterPage() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <MonthYearPicker value={ym} onChange={setYm} className="h-9 py-0" />
         <Select value={state} onValueChange={setState}>
-          <SelectTrigger className="h-9 text-xs">
+          <SelectTrigger className="h-9 w-[180px] text-xs">
             <SelectValue placeholder="State" />
           </SelectTrigger>
           <SelectContent>
@@ -320,7 +320,7 @@ function PtRegisterPage() {
           </SelectContent>
         </Select>
         <Select value={gender} onValueChange={setGender}>
-          <SelectTrigger className="h-9 text-xs">
+          <SelectTrigger className="h-9 w-[160px] text-xs">
             <SelectValue placeholder="Employees" />
           </SelectTrigger>
           <SelectContent>
@@ -330,7 +330,7 @@ function PtRegisterPage() {
             <SelectItem value="Unspecified">Unspecified</SelectItem>
           </SelectContent>
         </Select>
-        <div className="relative">
+        <div className="relative min-w-[200px] flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
