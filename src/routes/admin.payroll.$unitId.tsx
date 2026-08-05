@@ -48,7 +48,7 @@ import {
   asError,
   type AmendmentDelta,
 } from "@/lib/payroll-process";
-import { setAmendmentStatus } from "@/lib/attendance-versions";
+import { setAmendmentStatus, fetchAttendanceVersions, fetchLiveSnapshot, diffAttendance } from "@/lib/attendance-versions";
 
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
@@ -238,6 +238,25 @@ function PayrollUnitPage() {
   });
   const sheetVersion = Math.max(1, Number(sheet?.current_version) || 1);
   const amendmentStatus = sheet?.amendment_status ?? "none";
+
+  // Which employees' attendance cells actually moved in this amendment.
+  // The money diff is restricted to these people — nobody untouched is ever
+  // adjusted, whatever the recomputation says.
+  const { data: amendedCandidateIds } = useQuery({
+    queryKey: ["attendance-amendment-diff", unitId, start, end, sheetVersion],
+    enabled: amendmentStatus === "approved" && sheetVersion > 1,
+    queryFn: async () => {
+      const versions = await fetchAttendanceVersions(unitId, start, end);
+      const prev = versions
+        .filter((v) => v.version < sheetVersion)
+        .sort((a, b) => b.version - a.version)[0];
+      if (!prev) return null;
+      const live = await fetchLiveSnapshot(unitId, start, end);
+      return new Set(diffAttendance(prev.snapshot ?? [], live).map((d) => d.candidateId));
+    },
+  });
+
+
 
 
   const queryClient = useQueryClient();
@@ -1003,15 +1022,39 @@ function PayrollUnitPage() {
       }));
 
   // Employees whose money moved between the last paid snapshot and now.
+  // An employee can hold several register rows (one per unit designation), so
+  // the live figures are aggregated per candidate first — comparing a single
+  // designation row against the whole paid snapshot would flag people whose
+  // attendance was never touched.
   const amendmentDeltas: AmendmentDelta[] = useMemo(() => {
     if (!amendmentPending || lastSnapshotVersion === 0) return [];
     const prev = new Map(
       snapshots.filter((s) => s.version === lastSnapshotVersion).map((s) => [s.candidate_id, s]),
     );
-    const out: AmendmentDelta[] = [];
+    const live = new Map<string, { code: string; name: string; after: AmendmentDelta["after"] }>();
     for (const r of rows) {
       if (!r.wages) continue;
-      const p = prev.get(r.id);
+      const cur = live.get(r.id)?.after ?? {
+        paidDays: 0, edDays: 0, gross: 0, totalDeductions: 0, totalEmployer: 0, netPay: 0,
+      };
+      live.set(r.id, {
+        code: r.employeeCode,
+        name: r.name,
+        after: {
+          paidDays: cur.paidDays + (Number(r.totals?.tDays) || 0),
+          edDays: cur.edDays + (Number(r.totals?.otDays) || 0),
+          gross: cur.gross + (Number(r.wages.earnedGross) || 0),
+          totalDeductions: cur.totalDeductions + (Number(r.wages.totalDeductions) || 0),
+          totalEmployer: cur.totalEmployer + (Number(r.wages.totalEmployerContributions) || 0),
+          netPay: cur.netPay + (Number(r.wages.netPay) || 0),
+        },
+      });
+    }
+    const out: AmendmentDelta[] = [];
+    for (const [candidateId, l] of live) {
+      if (amendedCandidateIds && !amendedCandidateIds.has(candidateId)) continue;
+
+      const p = prev.get(candidateId);
       const before = {
         paidDays: Number(p?.paid_days) || 0,
         edDays: Number(p?.ed_days) || 0,
@@ -1020,23 +1063,17 @@ function PayrollUnitPage() {
         totalEmployer: Number(p?.total_employer) || 0,
         netPay: Number(p?.net_pay) || 0,
       };
-      const after = {
-        paidDays: Number(r.totals?.tDays) || 0,
-        edDays: Number(r.totals?.otDays) || 0,
-        gross: Number(r.wages.earnedGross) || 0,
-        totalDeductions: Number(r.wages.totalDeductions) || 0,
-        totalEmployer: Number(r.wages.totalEmployerContributions) || 0,
-        netPay: Number(r.wages.netPay) || 0,
-      };
+      const after = l.after;
       if (
         Math.abs(before.netPay - after.netPay) < 0.005 &&
         Math.abs(before.totalEmployer - after.totalEmployer) < 0.005 &&
         Math.abs(before.paidDays - after.paidDays) < 0.005
       ) continue;
-      out.push({ candidateId: r.id, employeeCode: r.employeeCode, name: r.name, before, after });
+      out.push({ candidateId, employeeCode: l.code, name: l.name, before, after });
     }
     return out;
-  }, [amendmentPending, lastSnapshotVersion, snapshots, rows]);
+  }, [amendmentPending, lastSnapshotVersion, snapshots, rows, amendedCandidateIds]);
+
 
   const [amendReviewOpen, setAmendReviewOpen] = useState(false);
 
