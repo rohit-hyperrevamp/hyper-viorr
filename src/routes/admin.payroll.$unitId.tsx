@@ -603,7 +603,7 @@ function PayrollUnitPage() {
           const isDayAdj = isSystemComputedDayAdj(d.entry_mode, d.include_in_total_days, d.affects_days_for);
           if (!isDayAdj) {
             const arr = deductionsByCandidate.get(d.candidate_id) ?? [];
-            arr.push({ name: cleanLedgerName(d.deduction_name), amount: Math.round(amt * 100) / 100 });
+            arr.push({ name: carryLabel(cleanLedgerName(d.deduction_name), d.source_kind), amount: Math.round(amt * 100) / 100 });
             deductionsByCandidate.set(d.candidate_id, arr);
           }
           if (d.entry_mode === "days_x_per_day" && d.include_in_total_days) {
