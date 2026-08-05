@@ -36,10 +36,20 @@ export function isValidIpv4(ip: string): boolean {
   return parts.every((p) => /^\d{1,3}$/.test(p) && Number(p) >= 0 && Number(p) <= 255);
 }
 
+/** Converts common proxy forms such as ::ffff:192.0.2.10 and 192.0.2.10:443. */
+export function normalizeIpv4(value: string): string {
+  const raw = (value ?? "").trim().replace(/^\[|\]$/g, "");
+  const mapped = raw.toLowerCase().startsWith("::ffff:") ? raw.slice(7) : raw;
+  const withoutPort = /^\d{1,3}(?:\.\d{1,3}){3}:\d+$/.test(mapped)
+    ? mapped.slice(0, mapped.lastIndexOf(":"))
+    : mapped;
+  return withoutPort.trim();
+}
+
 function ipToLong(ip: string): number | null {
-  if (!isValidIpv4(ip)) return null;
-  return ip
-    .trim()
+  const normalized = normalizeIpv4(ip);
+  if (!isValidIpv4(normalized)) return null;
+  return normalized
     .split(".")
     .reduce((acc, p) => (acc << 8) + Number(p), 0) >>> 0;
 }

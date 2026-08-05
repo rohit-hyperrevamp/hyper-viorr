@@ -1,5 +1,5 @@
 import { evaluateCountry, type GeoAccessRule } from "@/lib/geo-access";
-import { evaluateIp, type IpAccessRule } from "@/lib/ip-access";
+import { evaluateIp, normalizeIpv4, type IpAccessRule } from "@/lib/ip-access";
 
 async function resolveCountry(ip: string, rawHeaderCountry: string): Promise<string> {
   const headerCountry = rawHeaderCountry.trim().toUpperCase();
@@ -39,7 +39,7 @@ async function resolveCountry(ip: string, rawHeaderCountry: string): Promise<str
 export async function checkRequestAccess(rawIps: string | string[], rawHeaderCountry: string) {
   const ips = (Array.isArray(rawIps) ? rawIps : [rawIps])
     .flatMap((value) => value.split(","))
-    .map((value) => value.trim())
+    .map(normalizeIpv4)
     .filter((value, index, values) => value.length > 0 && values.indexOf(value) === index);
   const fallbackIp = ips[0] ?? "";
 
