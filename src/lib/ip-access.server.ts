@@ -98,7 +98,7 @@ export async function checkRequestAccess(rawIps: string | string[], rawHeaderCou
     if (country && !geoDecision.allowed) {
       return { allowed: false, ip, country, layer: "geo" as const };
     }
-    if (!country && ipDecision.reason !== "whitelisted") {
+    if (!country) {
       return { allowed: false, ip, country, layer: "geo" as const };
     }
     return { allowed: ipDecision.allowed, ip, country, layer: "ip" as const };
