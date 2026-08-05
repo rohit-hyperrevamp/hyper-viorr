@@ -74,6 +74,48 @@ function frequencyOf(name: string): "monthly" | "annual" | "half_yearly" {
   return "monthly";
 }
 
+/** Persist the exact figures paid for a run version so amendments can diff against them. */
+async function writeSnapshots(args: {
+  runId: string;
+  unitId: string;
+  version: number;
+  rows: ProcessableRow[];
+  heldIds: Set<string>;
+  uid: string | null;
+}) {
+  await supabase
+    .from("payroll_run_snapshots" as never)
+    .delete()
+    .eq("payroll_run_id", args.runId)
+    .eq("version", args.version);
+
+  const payload = args.rows.map((r) => ({
+    payroll_run_id: args.runId,
+    unit_id: args.unitId,
+    candidate_id: r.candidateId,
+    version: args.version,
+    employee_code: r.employeeCode ?? "",
+    full_name: r.name ?? "",
+    paid_days: Number(r.paidDays) || 0,
+    ed_days: Number(r.edDays) || 0,
+    gross: Number(r.gross) || 0,
+    total_deductions: (r.deductions ?? []).reduce((s, d) => s + (Number(d.amount) || 0), 0),
+    total_employer: (r.employerContributions ?? []).reduce((s, d) => s + (Number(d.amount) || 0), 0),
+    net_pay: Number(r.netPay) || 0,
+    earnings: r.earnings ?? [],
+    deductions: r.deductions ?? [],
+    employer_contributions: r.employerContributions ?? [],
+    additions: r.additions ?? [],
+    on_hold: args.heldIds.has(r.candidateId),
+    posted_by: args.uid,
+  }));
+  if (!payload.length) return;
+  for (let i = 0; i < payload.length; i += 300) {
+    const { error } = await supabase.from("payroll_run_snapshots" as never).insert(payload.slice(i, i + 300) as never);
+    if (error) throw error;
+  }
+}
+
 export async function processPayrollRun(args: {
   runId: string;
   unitId: string;
@@ -83,7 +125,9 @@ export async function processPayrollRun(args: {
   rows: ProcessableRow[];
   heldCandidateIds: string[];
   holdReason?: string;
+  version?: number;
 }): Promise<ProcessResult> {
+
   const { runId, unitId, unitLabel, periodStart, periodEnd, rows } = args;
   const held = new Set(args.heldCandidateIds);
   const payable = rows.filter((r) => !held.has(r.candidateId));
