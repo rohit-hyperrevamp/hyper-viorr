@@ -137,6 +137,10 @@ export function useCurrentPermissions(): {
   // phones don't exist as candidate rows so removing this would lock them
   // out. DB `is_admin_user()` mirrors the same allowlist.
   const isSuperAdminByPhone = phone === SUPER_ADMIN_PHONE;
+  // The authenticated app role is written synchronously by the successful
+  // login flow. Honour it as well as the phone bootstrap so routing cannot
+  // briefly demote a restored super-admin session while role data hydrates.
+  const isSuperAdminByAuthRole = user?.role === "super_admin";
 
   const roleQ = useQuery({
     queryKey: ["rbac", "current-role", phone],
@@ -155,6 +159,7 @@ export function useCurrentPermissions(): {
   const roleKey = roleQ.data ?? null;
   const isSuperAdmin =
     isSuperAdminByPhone ||
+    isSuperAdminByAuthRole ||
     roleKey === ROLE_KEYS.SUPER_ADMIN ||
     roleKey === ROLE_KEYS.ADMIN;
 
