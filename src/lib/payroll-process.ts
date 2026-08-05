@@ -97,14 +97,31 @@ async function writeSnapshots(args: {
     .eq("payroll_run_id", args.runId)
     .eq("version", args.version);
 
-  // One snapshot per candidate — the table is unique on (run, candidate, version).
-  const seen = new Set<string>();
-  const payload = args.rows
-    .filter((r) => {
-      if (!r.candidateId || seen.has(r.candidateId)) return false;
-      seen.add(r.candidateId);
-      return true;
-    })
+  // An employee can appear on several register rows (one per unit designation).
+  // The snapshot is per candidate, so those rows are AGGREGATED — never dropped,
+  // otherwise the paid figure is understated and a later amendment diff invents
+  // a change for someone nobody touched.
+  const byCandidate = new Map<string, ProcessableRow>();
+  for (const r of args.rows) {
+    if (!r.candidateId) continue;
+    const prev = byCandidate.get(r.candidateId);
+    if (!prev) {
+      byCandidate.set(r.candidateId, { ...r });
+      continue;
+    }
+    byCandidate.set(r.candidateId, {
+      ...prev,
+      paidDays: (Number(prev.paidDays) || 0) + (Number(r.paidDays) || 0),
+      edDays: (Number(prev.edDays) || 0) + (Number(r.edDays) || 0),
+      gross: (Number(prev.gross) || 0) + (Number(r.gross) || 0),
+      netPay: (Number(prev.netPay) || 0) + (Number(r.netPay) || 0),
+      earnings: [...(prev.earnings ?? []), ...(r.earnings ?? [])],
+      deductions: [...(prev.deductions ?? []), ...(r.deductions ?? [])],
+      employerContributions: [...(prev.employerContributions ?? []), ...(r.employerContributions ?? [])],
+      additions: [...(prev.additions ?? []), ...(r.additions ?? [])],
+    });
+  }
+  const payload = [...byCandidate.values()]
     .map((r) => ({
       payroll_run_id: args.runId,
       unit_id: args.unitId,
@@ -125,6 +142,7 @@ async function writeSnapshots(args: {
       on_hold: args.heldIds.has(r.candidateId),
       posted_by: args.uid,
     }));
+
   if (!payload.length) return;
   for (let i = 0; i < payload.length; i += 300) {
     const { error } = await supabase.from("payroll_run_snapshots" as never).insert(payload.slice(i, i + 300) as never);
