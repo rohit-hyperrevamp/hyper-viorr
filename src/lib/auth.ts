@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity, getClientIp } from "@/lib/activity-log";
+import { restorePhoneSession } from "@/lib/phone-session.functions";
 
 const STORAGE_KEY = "radiant.auth";
 const AUTH_TIMEOUT_MS = 12_000;
@@ -57,7 +59,10 @@ function withTimeout<T>(promise: Promise<T>, message: string) {
   ]);
 }
 
-async function ensureDatabaseSession(phone: string) {
+async function ensureDatabaseSession(
+  phone: string,
+  restore: (input: { data: { phone: string } }) => Promise<{ accessToken: string; refreshToken: string }>,
+) {
   const digits = phone.replace(/\D/g, "").slice(-10);
   const { email, password } = credsForPhone(phone);
   const result = await withTimeout(
@@ -66,31 +71,17 @@ async function ensureDatabaseSession(phone: string) {
   );
   if (!result.error && result.data.session) return;
 
-  // Recreate a missing auth identity only for phones already approved by the
-  // database. This repairs legacy/demo identities without opening sign-up to
-  // arbitrary phone numbers.
-  const eligibility = await withTimeout(
-    Promise.resolve(
-      supabase.rpc("can_phone_login" as never, { _mobile: digits } as never),
-    ) as Promise<{ data: boolean | null; error: { message: string } | null }>,
-    "Could not verify this account. Please try again.",
-  );
-  if (eligibility.error) throw new Error(eligibility.error.message);
-  if (eligibility.data !== true) throw result.error ?? new Error("This account is not enabled.");
-
-  const created = await withTimeout(
-    supabase.auth.signUp({ email, password }),
+  const tokens = await withTimeout(
+    restore({ data: { phone: digits } }),
     "Account restoration is taking too long. Please try again.",
   );
-  if (created.error && !/registered/i.test(created.error.message)) throw created.error;
-  if (created.data.session) return;
-
-  const retry = await withTimeout(
-    supabase.auth.signInWithPassword({ email, password }),
-    "Login is taking too long. Please try again.",
-  );
-  if (retry.error) throw retry.error;
-  if (!retry.data.session) throw new Error("Could not establish a secure session.");
+  const restored = await supabase.auth.setSession({
+    access_token: tokens.accessToken,
+    refresh_token: tokens.refreshToken,
+  });
+  if (restored.error || !restored.data.session) {
+    throw restored.error ?? new Error("Could not establish a secure session.");
+  }
 }
 
 function userFromSessionEmail(email: string | undefined): AuthUser | null {
@@ -112,6 +103,7 @@ function resolveClientIpQuickly() {
 }
 
 export function useAuth() {
+  const restoreSession = useServerFn(restorePhoneSession);
   // Keep the first server and browser render identical. Reading localStorage
   // during the browser's initial render caused the admin shell to hydrate with
   // a different role/navigation tree and briefly run data screens as the wrong
@@ -169,7 +161,7 @@ export function useAuth() {
       digits === SUPER_ADMIN_PHONE ? "super_admin" : "user";
     const ipPromise = resolveClientIpQuickly();
     try {
-      await ensureDatabaseSession(phone);
+      await ensureDatabaseSession(phone, restoreSession);
     } catch (error) {
       void ipPromise.then((ip) => logActivity({
         module: "Authentication",
@@ -214,7 +206,7 @@ export function useAuth() {
       }),
     );
     emit();
-  }, []);
+  }, [restoreSession]);
 
   const logout = useCallback(() => {
     const current = read();
