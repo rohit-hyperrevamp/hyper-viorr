@@ -379,13 +379,28 @@ function AdminLayout() {
   // reflow and flicker while users were reading the register.
   const queryClient = useQueryClient();
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
-        queryClient.invalidateQueries();
+    // supabase-js re-emits SIGNED_IN on token refresh and when the tab regains
+    // focus. Invalidating everything on those events blanked the whole screen
+    // (payroll register included). Only wipe the cache when the signed-in
+    // identity actually changes.
+    let lastUserId: string | null = null;
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      const nextId = session?.user?.id ?? null;
+      if (event === "SIGNED_OUT") {
+        lastUserId = null;
+        queryClient.clear();
+        return;
       }
+      if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION") return;
+      if (!nextId || nextId === lastUserId) return;
+      const isFirstObservation = lastUserId === null;
+      lastUserId = nextId;
+      if (isFirstObservation) return;
+      queryClient.invalidateQueries();
     });
     return () => data.subscription.unsubscribe();
   }, [queryClient]);
+
 
   useEffect(() => {
     setMobileOpen(false);
