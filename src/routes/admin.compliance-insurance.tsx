@@ -273,6 +273,8 @@ function InsuranceRegisterPage() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [loc, setLoc] = useState<string>("all");
+  const [basisFilter, setBasisFilter] = useState<"all" | EsicBasis>("all");
+
 
   const { data, isLoading } = useInsuranceRegister(ym, head);
   const all = data?.rows ?? [];
