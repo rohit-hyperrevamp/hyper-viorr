@@ -428,7 +428,7 @@ function CostComponentManagerPage() {
                   name: i.name,
                   description: displayDescription(i),
                   calc_type: i.calc_type,
-                  percentage: i.percentage,
+                  percentage: displayPercent(i),
                   party: PARTY_LABEL[i.party],
                   state: i.state,
                   enabled: i.enabled ? "Yes" : "No",
@@ -479,7 +479,7 @@ function CostComponentManagerPage() {
                   </td>
                   <td className="px-5 py-3 text-foreground/80">{displayDescription(i)}</td>
                   <td className="px-5 py-3 text-foreground/90">
-                    {i.calc_type === "percentage" ? `${i.percentage}%` : "—"}
+                    {displayPercent(i)}
                   </td>
                   <td className="px-5 py-3">
                     <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
