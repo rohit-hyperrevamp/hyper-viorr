@@ -1306,7 +1306,33 @@ function UnitFormDialog({
                 />
               </div>
             </div>
+
+            <div className="mt-3 rounded-xl border border-border/60 bg-background p-3.5">
+              <Field label="ESIC branch (sub-code)">
+                <Select
+                  value={form.esicBranchId ?? "none"}
+                  onValueChange={(v) => set("esicBranchId", v === "none" ? null : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select ESIC branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not mapped</SelectItem>
+                    {esicBranches.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        <span className="font-mono text-xs">{b.esic_code}</span>
+                        <span className="ml-2">{b.location}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <p className="mt-1.5 text-[12px] leading-snug text-muted-foreground">
+                ESIC compliance is grouped by this branch. The sub-code is picked up automatically from the ESIC Branch Manager.
+              </p>
+            </div>
           </Section>
+
 
 
           {/* OTHER */}
