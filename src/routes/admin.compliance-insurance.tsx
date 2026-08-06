@@ -58,7 +58,12 @@ type Row = {
   amount: number;
   date: string;
   note: string;
+  side: "ee" | "er";
+  branchId: string | null;
+  location: string;
+  esicCode: string;
 };
+
 
 type Policy = {
   id: string;
