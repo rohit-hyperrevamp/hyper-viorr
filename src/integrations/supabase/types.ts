@@ -954,7 +954,6 @@ export type Database = {
           created_by: string | null
           description: string
           end_date: string | null
-          esic_branch_id: string | null
           expiry_date: string | null
           gst_option: string
           id: string
@@ -988,7 +987,6 @@ export type Database = {
           created_by?: string | null
           description?: string
           end_date?: string | null
-          esic_branch_id?: string | null
           expiry_date?: string | null
           gst_option?: string
           id?: string
@@ -1022,7 +1020,6 @@ export type Database = {
           created_by?: string | null
           description?: string
           end_date?: string | null
-          esic_branch_id?: string | null
           expiry_date?: string | null
           gst_option?: string
           id?: string
@@ -4742,6 +4739,7 @@ export type Database = {
           enable_lwf: boolean
           enable_pt: boolean
           epf_cap_enabled: boolean
+          esic_branch_id: string | null
           gpaip_amount: number
           gpaip_enabled: boolean
           gst_number: string
@@ -4804,6 +4802,7 @@ export type Database = {
           enable_lwf?: boolean
           enable_pt?: boolean
           epf_cap_enabled?: boolean
+          esic_branch_id?: string | null
           gpaip_amount?: number
           gpaip_enabled?: boolean
           gst_number?: string
@@ -4866,6 +4865,7 @@ export type Database = {
           enable_lwf?: boolean
           enable_pt?: boolean
           epf_cap_enabled?: boolean
+          esic_branch_id?: string | null
           gpaip_amount?: number
           gpaip_enabled?: boolean
           gst_number?: string
@@ -4914,6 +4914,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "units_esic_branch_id_fkey"
+            columns: ["esic_branch_id"]
+            isOneToOne: false
+            referencedRelation: "esic_branches"
             referencedColumns: ["id"]
           },
         ]
