@@ -283,10 +283,12 @@ function InsuranceRegisterPage() {
     const needle = q.trim().toLowerCase();
     return all.filter((r) => {
       if (head === "esic" && loc !== "all" && (r.branchId ?? "none") !== loc) return false;
+      if (head === "esic" && basisFilter !== "all" && r.basis !== basisFilter) return false;
       if (!needle) return true;
       return `${r.name} ${r.code} ${r.unit} ${r.location} ${r.esicCode}`.toLowerCase().includes(needle);
     });
-  }, [all, q, loc, head]);
+  }, [all, q, loc, basisFilter, head]);
+
 
   const total = rows.reduce((s, r) => s + r.amount, 0);
   const eeTotal = rows.filter((r) => r.side === "ee").reduce((s, r) => s + r.amount, 0);
