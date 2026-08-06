@@ -491,6 +491,20 @@ function PolicyFormDialog({
     setTtdEnabled(initial?.ttdEnabled ?? false);
   });
 
+  const hasChanges =
+    name !== (initial?.name ?? "") ||
+    provider !== (initial?.provider ?? "") ||
+    description !== (initial?.description ?? "") ||
+    policyNumber !== (initial?.policyNumber ?? "") ||
+    startDate !== (initial?.startDate ?? "") ||
+    endDate !== (initial?.endDate ?? "") ||
+    documentPath !== (initial?.documentPath ?? "") ||
+    documentName !== (initial?.documentName ?? "") ||
+    enabled !== (initial?.enabled ?? true) ||
+    sumAssured !== (initial?.sumAssured ?? null) ||
+    additionalCover !== (initial?.additionalCover ?? null) ||
+    ttdEnabled !== (initial?.ttdEnabled ?? false);
+
   const uploadFile = async (file: File) => {
     setUploading(true);
     try {
@@ -610,7 +624,7 @@ function PolicyFormDialog({
             Cancel
           </Button>
           <Button
-            disabled={saving || uploading}
+            disabled={saving || uploading || !hasChanges}
             onClick={async () => {
               setSaving(true);
               const err = await onSubmit({
