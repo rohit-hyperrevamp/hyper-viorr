@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -625,4 +626,56 @@ function useResetOnOpen(open: boolean, reset: () => void) {
     setLast(open);
     if (open) reset();
   }
+}
+
+function AmountLakhField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number | null;
+  onChange: (v: number | null) => void;
+}) {
+  const isPreset = value !== null && LAKH_OPTIONS.some((l) => l * 100000 === value);
+  const [custom, setCustom] = useState(value !== null && !isPreset);
+
+  return (
+    <div className="grid gap-2">
+      <Label>{label}</Label>
+      <Select
+        value={custom ? "custom" : value === null ? "none" : String(value)}
+        onValueChange={(v) => {
+          if (v === "custom") {
+            setCustom(true);
+            return;
+          }
+          setCustom(false);
+          onChange(v === "none" ? null : Number(v));
+        }}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Select amount" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">Not set</SelectItem>
+          {LAKH_OPTIONS.map((l) => (
+            <SelectItem key={l} value={String(l * 100000)}>
+              ₹{l} Lakh
+            </SelectItem>
+          ))}
+          <SelectItem value="custom">Custom amount…</SelectItem>
+        </SelectContent>
+      </Select>
+      {custom && (
+        <Input
+          type="number"
+          min={0}
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+          placeholder="Enter amount in ₹"
+        />
+      )}
+    </div>
+  );
 }
