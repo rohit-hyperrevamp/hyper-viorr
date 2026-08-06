@@ -2142,7 +2142,11 @@ function PayrollUnitPage() {
 
 function scrollToSection(id: string) {
   const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  // Payroll registers can span hundreds of rows. Smooth-scrolling across that
+  // distance shows several seconds of empty page between sections and looks
+  // like the register has unmounted. Jump directly and let scroll-margin keep
+  // the destination clear of the sticky admin header.
+  if (el) el.scrollIntoView({ behavior: "auto", block: "start" });
 }
 
 // --------------------------------------------------------------------------
