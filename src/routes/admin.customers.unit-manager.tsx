@@ -525,6 +525,18 @@ function UnitFormDialog({
   const { branches } = useBranches();
   const { customers } = useCustomers();
   const { states } = useStates();
+  const { data: esicBranches = [] } = useQuery({
+    queryKey: ["admin", "esic-branches", "enabled"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("esic_branches")
+        .select("id, location, esic_code, enabled")
+        .order("location");
+      if (error) throw error;
+      return (data ?? []).filter((b) => b.enabled !== false);
+    },
+  });
+
 
   const [form, setForm] = useState<Omit<Unit, "id">>(() => emptyUnit(nextUnitCode(units)));
   const [error, setError] = useState<string | null>(null);
