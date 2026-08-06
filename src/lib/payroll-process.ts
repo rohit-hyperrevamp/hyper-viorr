@@ -622,7 +622,10 @@ export async function processPayrollAmendment(args: {
 
   return {
     version,
-    affected: additionRows.length + deductionRows.length,
+    affected: new Set(
+      [...additionRows, ...deductionRows].map((r) => String((r as { candidate_id?: string }).candidate_id ?? "")),
+    ).size,
+
     arrears: Math.round(arrears * 100) / 100,
     recoveries: Math.round(recoveries * 100) / 100,
     netImpact: Math.round((arrears - recoveries) * 100) / 100,
