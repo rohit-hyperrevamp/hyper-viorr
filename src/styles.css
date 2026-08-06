@@ -867,7 +867,7 @@
      route animation creates competing compositor layers in Chromium/WebKit;
      body cells then intermittently fail to paint while the page scrolls.
      Keep this large register in one ordinary paint layer. */
-  table[data-payroll-register] thead th {
+  .bg-card table[data-payroll-register]:not(.ios-table) thead th {
     position: static;
     backdrop-filter: none;
   }
