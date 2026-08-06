@@ -2823,6 +2823,10 @@ function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PayShe
               })}
             </tbody>
           </table>
+          {versions.slice(1).map((v, i) => (
+            <VersionHeadDiff key={`diff-${v.version}`} prev={versions[i]} curr={v} />
+          ))}
+
           <p className="mt-1.5 text-[11px] leading-relaxed text-indigo-900/80">
             The wage slip for this period stays frozen at <span className="font-semibold">v1</span> — the amount actually
             paid. The v2 difference is carried as an open arrear/recovery and will appear on the next month&rsquo;s payroll
