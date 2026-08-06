@@ -46,6 +46,8 @@ import {
   processPayrollAmendment,
   fetchRunSnapshots,
   asError,
+  diffLines,
+
   type AmendmentDelta,
 } from "@/lib/payroll-process";
 import { setAmendmentStatus, fetchAttendanceVersions, fetchLiveSnapshot, diffAttendance } from "@/lib/attendance-versions";
@@ -1054,10 +1056,19 @@ function PayrollUnitPage() {
     const prev = new Map(
       snapshots.filter((s) => s.version === lastSnapshotVersion).map((s) => [s.candidate_id, s]),
     );
-    const live = new Map<string, { code: string; name: string; after: AmendmentDelta["after"] }>();
+    type LiveAgg = {
+      code: string;
+      name: string;
+      after: AmendmentDelta["after"];
+      earnings: { name: string; amount: number }[];
+      deductions: { name: string; amount: number }[];
+      employer: { name: string; amount: number }[];
+    };
+    const live = new Map<string, LiveAgg>();
     for (const r of rows) {
       if (!r.wages) continue;
-      const cur = live.get(r.id)?.after ?? {
+      const prevAgg = live.get(r.id);
+      const cur = prevAgg?.after ?? {
         paidDays: 0, edDays: 0, gross: 0, totalDeductions: 0, totalEmployer: 0, netPay: 0,
       };
       live.set(r.id, {
@@ -1071,6 +1082,18 @@ function PayrollUnitPage() {
           totalEmployer: cur.totalEmployer + (Number(r.wages.totalEmployerContributions) || 0),
           netPay: cur.netPay + (Number(r.wages.netPay) || 0),
         },
+        earnings: [
+          ...(prevAgg?.earnings ?? []),
+          ...(r.wages.components ?? []).map((c) => ({ name: c.name, amount: Number(c.amount) || 0 })),
+        ],
+        deductions: [
+          ...(prevAgg?.deductions ?? []),
+          ...(r.wages.deductions ?? []).map((x) => ({ name: cleanLedgerName(x.name) || x.name, amount: Number(x.amount) || 0 })),
+        ],
+        employer: [
+          ...(prevAgg?.employer ?? []),
+          ...(r.wages.employerContributions ?? []).map((x) => ({ name: x.name, amount: Number(x.amount) || 0 })),
+        ],
       });
     }
     const out: AmendmentDelta[] = [];
@@ -1092,10 +1115,23 @@ function PayrollUnitPage() {
         Math.abs(before.totalEmployer - after.totalEmployer) < 0.005 &&
         Math.abs(before.paidDays - after.paidDays) < 0.005
       ) continue;
-      out.push({ candidateId, employeeCode: l.code, name: l.name, before, after });
+      out.push({
+        candidateId,
+        employeeCode: l.code,
+        name: l.name,
+        before,
+        after,
+        earningsBefore: (p?.earnings ?? []) as { name: string; amount: number }[],
+        earningsAfter: l.earnings,
+        deductionsBefore: (p?.deductions ?? []) as { name: string; amount: number }[],
+        deductionsAfter: l.deductions,
+        employerBefore: (p?.employer_contributions ?? []) as { name: string; amount: number }[],
+        employerAfter: l.employer,
+      });
     }
     return out;
   }, [amendmentPending, lastSnapshotVersion, snapshots, rows, amendedCandidateIds]);
+
 
 
   const [amendReviewOpen, setAmendReviewOpen] = useState(false);
@@ -1730,49 +1766,85 @@ function PayrollUnitPage() {
           <DialogHeader>
             <DialogTitle>Process payroll amendment v{sheetVersion}</DialogTitle>
             <DialogDescription>
-              Only the employees below changed. Each gets a single arrears (increase) or recovery (decrease) line dated
-              {" "}{end}. Their earlier pay sheet stays intact as v{lastSnapshotVersion}.
+              Only the employees below changed. Every head is posted on its own line — wage components as arrears or
+              recovery, and each statutory head (ESI, EPF, PT, LWF) adjusted separately so the ESI, EPF and employer
+              contribution registers stay correct. Their earlier pay sheet stays intact as v{lastSnapshotVersion}.
             </DialogDescription>
           </DialogHeader>
           {amendmentDeltas.length === 0 ? (
             <p className="text-sm text-muted-foreground">No money changed — nothing to post.</p>
           ) : (
-            <div className="max-h-[50vh] overflow-auto rounded-xl border border-border/60">
-              <table className="w-full text-xs">
-                <thead className="bg-muted/60">
-                  <tr>
-                    <th className="px-3 py-2 text-left font-semibold">Employee</th>
-                    <th className="px-3 py-2 text-right font-semibold">Paid days</th>
-                    <th className="px-3 py-2 text-right font-semibold">Net v{lastSnapshotVersion}</th>
-                    <th className="px-3 py-2 text-right font-semibold">Net v{sheetVersion}</th>
-                    <th className="px-3 py-2 text-right font-semibold">Impact</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {amendmentDeltas.map((d) => {
-                    const delta = Math.round((d.after.netPay - d.before.netPay) * 100) / 100;
-                    return (
-                      <tr key={d.candidateId} className="border-t border-border/50">
-                        <td className="px-3 py-2">
-                          <span className="font-medium">{d.name}</span>
-                          <span className="ml-1 text-muted-foreground">{d.employeeCode}</span>
-                        </td>
-                        <td className="px-3 py-2 text-right">{d.before.paidDays} → {d.after.paidDays}</td>
-                        <td className="px-3 py-2 text-right">{fmtINR(d.before.netPay)}</td>
-                        <td className="px-3 py-2 text-right">{fmtINR(d.after.netPay)}</td>
-                        <td className={cn("px-3 py-2 text-right font-semibold", delta >= 0 ? "text-emerald-700" : "text-rose-700")}>
-                          {delta >= 0 ? "+" : "−"}{fmtINR(Math.abs(delta))}
-                          <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                            {delta >= 0 ? "arrears" : "recovery"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="max-h-[60vh] space-y-3 overflow-auto pr-1">
+              {amendmentDeltas.map((d) => {
+                const delta = Math.round((d.after.netPay - d.before.netPay) * 100) / 100;
+                const earn = diffLines(d.earningsBefore, d.earningsAfter);
+                const ded = diffLines(d.deductionsBefore, d.deductionsAfter);
+                const emp = diffLines(d.employerBefore, d.employerAfter);
+                const section = (
+                  title: string,
+                  lines: Array<{ name: string; before: number; after: number; delta: number }>,
+                  totals: { before: number; after: number },
+                  goodWhenUp: boolean,
+                ) => (
+                  <div className="rounded-xl border border-border/60">
+                    <div className="flex items-center justify-between bg-muted/50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide">
+                      <span>{title}</span>
+                      <span className="tabular-nums">
+                        {fmtINR(totals.before)} → {fmtINR(totals.after)}
+                      </span>
+                    </div>
+                    <table className="w-full text-xs">
+                      <tbody>
+                        {lines.length === 0 ? (
+                          <tr><td className="px-3 py-1.5 text-muted-foreground">No change</td></tr>
+                        ) : lines.map((l) => {
+                          const good = goodWhenUp ? l.delta >= 0 : l.delta <= 0;
+                          return (
+                            <tr key={l.name} className="border-t border-border/40">
+                              <td className="px-3 py-1.5">{l.name}</td>
+                              <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">{fmtINR(l.before)}</td>
+                              <td className="px-3 py-1.5 text-right tabular-nums">{fmtINR(l.after)}</td>
+                              <td className={cn(
+                                "px-3 py-1.5 text-right font-semibold tabular-nums",
+                                Math.abs(l.delta) < 0.005 ? "text-muted-foreground" : good ? "text-emerald-700" : "text-amber-700",
+                              )}>
+                                {l.delta >= 0 ? "+" : "−"}{fmtINR(Math.abs(l.delta))}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+                return (
+                  <div key={d.candidateId} className="rounded-2xl border border-border/60 bg-card/60 p-3">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm">
+                        <span className="font-semibold">{d.name}</span>
+                        <span className="ml-1.5 text-xs text-muted-foreground">{d.employeeCode}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          Paid days {d.before.paidDays} → {d.after.paidDays}
+                        </span>
+                      </div>
+                      <div className={cn("text-sm font-semibold", delta >= 0 ? "text-emerald-700" : "text-rose-700")}>
+                        Net {fmtINR(d.before.netPay)} → {fmtINR(d.after.netPay)}{" "}
+                        <span className="text-xs uppercase tracking-wide">
+                          ({delta >= 0 ? "+" : "−"}{fmtINR(Math.abs(delta))} {delta >= 0 ? "arrears" : "recovery"})
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {section("Earnings (gross)", earn, { before: d.before.gross, after: d.after.gross }, true)}
+                      {section("Employee deductions", ded, { before: d.before.totalDeductions, after: d.after.totalDeductions }, false)}
+                      {section("Employer contributions", emp, { before: d.before.totalEmployer, after: d.after.totalEmployer }, true)}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setAmendReviewOpen(false)}>Cancel</Button>
             <Button
