@@ -48,6 +48,14 @@ const inr = (n: number) =>
 const fmtDate = (d: string | null | undefined) =>
   d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
+type EsicBasis = "basic_da" | "gross" | "unknown";
+
+const BASIS_LABEL: Record<EsicBasis, string> = {
+  basic_da: "Basic + DA",
+  gross: "Gross − washing",
+  unknown: "Basis not set",
+};
+
 type Row = {
   id: string;
   candidateId: string;
@@ -63,6 +71,7 @@ type Row = {
   branchId: string | null;
   location: string;
   esicCode: string;
+  basis: EsicBasis;
 };
 
 
@@ -77,6 +86,34 @@ type Policy = {
 };
 
 type Branch = { id: string; location: string; esic_code: string; enabled: boolean };
+
+/** Derive whether a unit's ESIC is computed on Basic + DA or on Gross − washing. */
+function deriveUnitEsicBasis(
+  contracts: Array<{ id: string; unit_id: string | null }>,
+  resources: Array<{ contract_id: string; deductions: unknown; employer_contributions: unknown }>,
+): Map<string, EsicBasis> {
+  const contractUnit = new Map(contracts.map((c) => [c.id, c.unit_id]));
+  const out = new Map<string, EsicBasis>();
+  const isEsi = (n: string) => /\besi(c)?\b/i.test(n) || /esi/i.test(n.replace(/[^a-z]/gi, ""));
+  for (const r of resources) {
+    const unitId = contractUnit.get(r.contract_id);
+    if (!unitId) continue;
+    const lines = [
+      ...(Array.isArray(r.deductions) ? (r.deductions as Record<string, unknown>[]) : []),
+      ...(Array.isArray(r.employer_contributions) ? (r.employer_contributions as Record<string, unknown>[]) : []),
+    ];
+    for (const l of lines) {
+      const name = String(l.name ?? "");
+      if (!isEsi(name)) continue;
+      const blob = JSON.stringify(l.formulaExpression ?? "") + JSON.stringify(l.baseComponents ?? "") + name;
+      const basis: EsicBasis = /gross/i.test(blob) ? "gross" : /basic/i.test(blob) ? "basic_da" : "unknown";
+      if (basis !== "unknown") out.set(unitId, basis);
+      else if (!out.has(unitId)) out.set(unitId, "unknown");
+    }
+  }
+  return out;
+}
+
 
 function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
   return useQuery({
@@ -164,7 +201,17 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
         amount: Number((u as { gpaip_amount?: number }).gpaip_amount ?? 0),
       }));
 
+      const [{ data: ctrRows }, { data: resRows }] = await Promise.all([
+        supabase.from("client_contracts").select("id, unit_id"),
+        supabase.from("contract_resources").select("contract_id, deductions, employer_contributions"),
+      ]);
+      const basisMap = deriveUnitEsicBasis(
+        (ctrRows ?? []) as Array<{ id: string; unit_id: string | null }>,
+        (resRows ?? []) as Array<{ contract_id: string; deductions: unknown; employer_contributions: unknown }>,
+      );
+
       if (raw.length === 0) return { rows: [], policies, units, branches };
+
 
       const ids = Array.from(new Set(raw.map((r) => r.candidate_id)));
       const { data: cands } = await supabase
@@ -194,6 +241,8 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
           branchId: b?.id ?? null,
           location: b?.location ?? "Unmapped location",
           esicCode: b?.esic_code ?? "—",
+          basis: (c?.unit_id ? basisMap.get(c.unit_id) : undefined) ?? "unknown",
+
         };
       });
       rows.sort((a, b) => a.location.localeCompare(b.location) || a.unit.localeCompare(b.unit) || a.name.localeCompare(b.name));
@@ -224,6 +273,8 @@ function InsuranceRegisterPage() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [loc, setLoc] = useState<string>("all");
+  const [basisFilter, setBasisFilter] = useState<"all" | EsicBasis>("all");
+
 
   const { data, isLoading } = useInsuranceRegister(ym, head);
   const all = data?.rows ?? [];
@@ -232,10 +283,12 @@ function InsuranceRegisterPage() {
     const needle = q.trim().toLowerCase();
     return all.filter((r) => {
       if (head === "esic" && loc !== "all" && (r.branchId ?? "none") !== loc) return false;
+      if (head === "esic" && basisFilter !== "all" && r.basis !== basisFilter) return false;
       if (!needle) return true;
       return `${r.name} ${r.code} ${r.unit} ${r.location} ${r.esicCode}`.toLowerCase().includes(needle);
     });
-  }, [all, q, loc, head]);
+  }, [all, q, loc, basisFilter, head]);
+
 
   const total = rows.reduce((s, r) => s + r.amount, 0);
   const eeTotal = rows.filter((r) => r.side === "ee").reduce((s, r) => s + r.amount, 0);
@@ -261,7 +314,7 @@ function InsuranceRegisterPage() {
   // Location → unit → employee tree for the ESIC register
   const esicTree = useMemo(() => {
     type Emp = { candidateId: string; name: string; code: string; joining: string | null; ee: number; er: number };
-    type UnitNode = { unitId: string | null; unit: string; ee: number; er: number; emps: Emp[] };
+    type UnitNode = { unitId: string | null; unit: string; basis: EsicBasis; ee: number; er: number; emps: Emp[] };
     const locMap = new Map<
       string,
       { key: string; location: string; esicCode: string; ee: number; er: number; units: Map<string, UnitNode> }
@@ -275,8 +328,9 @@ function InsuranceRegisterPage() {
       }
       let unit = node.units.get(r.unit);
       if (!unit) {
-        unit = { unitId: r.unitId, unit: r.unit, ee: 0, er: 0, emps: [] };
+        unit = { unitId: r.unitId, unit: r.unit, basis: r.basis, ee: 0, er: 0, emps: [] };
         node.units.set(r.unit, unit);
+
       }
       let emp = unit.emps.find((e) => e.candidateId === r.candidateId);
       if (!emp) {
@@ -337,6 +391,8 @@ function InsuranceRegisterPage() {
                   rows.map((r) => ({
                     location: r.location,
                     esicCode: r.esicCode,
+                    basis: BASIS_LABEL[r.basis],
+
                     code: r.code,
                     name: r.name,
                     unit: r.unit,
@@ -351,6 +407,8 @@ function InsuranceRegisterPage() {
                       ? [
                           { key: "location", header: "ESIC location" },
                           { key: "esicCode", header: "ESIC code" },
+                          { key: "basis", header: "ESIC basis" },
+
                         ]
                       : []),
                     { key: "code", header: "Employee code" },
@@ -388,6 +446,20 @@ function InsuranceRegisterPage() {
               <SelectItem value="none">Unmapped location</SelectItem>
             </SelectContent>
           </Select>
+        ) : null}
+        {head === "esic" ? (
+          <Select value={basisFilter} onValueChange={(v) => setBasisFilter(v as "all" | EsicBasis)}>
+            <SelectTrigger className="h-9 w-full text-xs sm:w-[220px]">
+              <SelectValue placeholder="All ESIC bases" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All ESIC bases</SelectItem>
+              <SelectItem value="basic_da">ESIC on Basic + DA</SelectItem>
+              <SelectItem value="gross">ESIC on Gross − washing</SelectItem>
+              <SelectItem value="unknown">Basis not set</SelectItem>
+            </SelectContent>
+          </Select>
+
         ) : null}
         <div className="relative min-w-[200px] flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -498,6 +570,19 @@ function InsuranceRegisterPage() {
                             <div className="flex min-w-0 items-center gap-2">
                               <ChevronRight className={cn("h-3 w-3 transition-transform", uOpen && "rotate-90")} />
                               <span className="truncate text-[12px] font-medium">{u.unit}</span>
+                              <span
+                                className={cn(
+                                  "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                                  u.basis === "gross"
+                                    ? "bg-primary/10 text-primary"
+                                    : u.basis === "basic_da"
+                                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                      : "bg-muted text-muted-foreground",
+                                )}
+                              >
+                                {BASIS_LABEL[u.basis]}
+                              </span>
+
                               <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
                                 {u.emps.length}
                               </span>
