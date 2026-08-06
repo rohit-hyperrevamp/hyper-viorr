@@ -101,10 +101,11 @@ const rows = (res: { data: unknown }) => ((res.data ?? []) as Row[]);
 const str = (v: unknown) => (v == null ? "" : String(v));
 const num = (v: unknown) => (v == null ? 0 : Number(v) || 0);
 
-export async function fetchComplianceIssues(): Promise<ComplianceIssue[]> {
+export async function fetchComplianceIssues(ym?: string): Promise<ComplianceIssue[]> {
   const t = today();
   const todayIso = iso(t);
-  const monthStart = iso(new Date(t.getFullYear(), t.getMonth(), 1));
+  const [py, pm] = ym ? ym.split("-").map(Number) : [t.getFullYear(), t.getMonth() + 1];
+  const monthStart = iso(new Date(py, pm - 1, 1));
 
   const [
     unitsR,
