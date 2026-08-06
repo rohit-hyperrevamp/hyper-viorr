@@ -149,15 +149,25 @@ async function ensureSupabaseSession(
 
 export function useAuth() {
   const restoreSession = useServerFn(restorePhoneSession);
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUserState] = useState<AuthUser | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     let active = true;
+    // Supabase emits auth events on every token refresh and tab focus. Writing
+    // a freshly parsed (but identical) user object each time re-rendered the
+    // whole admin shell and made large screens like the payroll register
+    // flicker. Only change state when the identity actually changes.
+    const setUser = (next: AuthUser | null) => {
+      setUserState((prev) =>
+        JSON.stringify(prev ?? null) === JSON.stringify(next ?? null) ? prev : next,
+      );
+    };
     const syncStoredUser = () => {
       if (!active) return;
       setUser(readStoredAuthUser());
     };
+
 
     const syncFromSession = async () => {
       try {
