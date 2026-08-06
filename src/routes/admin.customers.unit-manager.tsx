@@ -136,6 +136,7 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     bonusEnabled: false,
     epfCapEnabled: true,
     bonusFrequency: null,
+    esicBranchId: null,
   };
 }
 
