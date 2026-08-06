@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatutoryHeadTiles } from "@/components/StatutoryHeadTiles";
+import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { downloadCsv } from "@/lib/csv-export";
@@ -132,17 +133,26 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 function CompliancePage() {
-  const { data: issues = [], isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["compliance-command-center"],
-    queryFn: fetchComplianceIssues,
-    staleTime: 60_000,
-  });
-
   const now = new Date();
   const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [ym, setYm] = useState(currentYm);
+  const [showExceptions, setShowExceptions] = useState(false);
   const [domain, setDomain] = useState<DomainKey | "all">("all");
   const [severity, setSeverity] = useState<Severity | "all">("all");
   const [q, setQ] = useState("");
+
+  const {
+    data: issues = [] as ComplianceIssue[],
+    isLoading,
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["compliance-command-center", ym],
+    queryFn: () => fetchComplianceIssues(ym),
+    staleTime: 60_000,
+    enabled: showExceptions,
+  });
+
 
   const score = useMemo(() => complianceScore(issues), [issues]);
 
@@ -194,10 +204,14 @@ function CompliancePage() {
         description="Every red flag across the operation — organizations, contracts, people, attendance, uniform, fleet, assets and money — in one ranked queue."
         crumbs={[{ label: "Compliance" }]}
         actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
-              <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isFetching && "animate-spin")} /> Refresh
-            </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <MonthYearPicker value={ym} onChange={setYm} />
+            {showExceptions && (
+              <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
+                <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isFetching && "animate-spin")} /> Refresh
+              </Button>
+            )}
+            {showExceptions && (
             <Button
               variant="outline"
               size="sm"
@@ -225,10 +239,33 @@ function CompliancePage() {
             >
               <Download className="mr-1.5 h-3.5 w-3.5" /> Export
             </Button>
+            )}
           </div>
         }
       />
 
+      {/* Statutory registers */}
+      <StatutoryHeadTiles ym={ym} />
+
+      {!showExceptions && (
+        <button
+          onClick={() => setShowExceptions(true)}
+          className="mb-4 flex w-full items-center gap-3 rounded-[26px] border border-border/60 bg-card/70 p-4 text-left backdrop-blur transition-all hover:border-border hover:shadow-sm"
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-amber-500/10 text-amber-600 ring-1 ring-inset ring-amber-500/20">
+            <AlertTriangle className="h-5 w-5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[13px] font-semibold">Run the exception sweep</span>
+            <span className="block text-[11px] text-muted-foreground">
+              Scans every module for open exceptions. Loaded on demand to keep this dashboard fast.
+            </span>
+          </span>
+          <ArrowUpRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
+        </button>
+      )}
+
+      {showExceptions && (<>
       {/* Hero: score + severity ladder */}
       <div className="mb-4 overflow-hidden rounded-[26px] border border-border/60 bg-gradient-to-br from-card/90 via-card/70 to-card/40 p-4 shadow-sm backdrop-blur-xl sm:p-5">
         <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
@@ -275,9 +312,6 @@ function CompliancePage() {
           </div>
         </div>
       </div>
-
-      {/* Statutory registers */}
-      <StatutoryHeadTiles ym={currentYm} />
 
       {/* Domain grid */}
 
@@ -445,6 +479,7 @@ function CompliancePage() {
           a low-severity item.
         </p>
       )}
+      </>)}
     </div>
   );
 }
