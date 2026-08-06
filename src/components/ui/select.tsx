@@ -5,9 +5,21 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { useDialogPortalContainer } from "@/components/ui/dialog";
+import { useDialogDirty, useDialogPortalContainer } from "@/components/ui/dialog";
 
-const Select = SelectPrimitive.Root;
+const Select = ({ onValueChange, ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) => {
+  const { markDirty } = useDialogDirty();
+
+  return (
+    <SelectPrimitive.Root
+      {...props}
+      onValueChange={(value) => {
+        markDirty();
+        onValueChange?.(value);
+      }}
+    />
+  );
+};
 
 const SelectGroup = SelectPrimitive.Group;
 
