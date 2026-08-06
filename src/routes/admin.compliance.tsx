@@ -479,6 +479,7 @@ function CompliancePage() {
           a low-severity item.
         </p>
       )}
+      </>)}
     </div>
   );
 }
