@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatutoryHeadTiles } from "@/components/StatutoryHeadTiles";
+import { InsuranceHeadTiles } from "@/components/InsuranceHeadTiles";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -246,6 +247,9 @@ function CompliancePage() {
 
       {/* Statutory registers */}
       <StatutoryHeadTiles ym={ym} />
+
+      {/* Insurance registers */}
+      <InsuranceHeadTiles ym={ym} />
 
       {!showExceptions && (
         <button
