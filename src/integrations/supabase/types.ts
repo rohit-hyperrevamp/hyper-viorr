@@ -3992,6 +3992,51 @@ export type Database = {
         }
         Relationships: []
       }
+      policies: {
+        Row: {
+          created_at: string
+          description: string
+          document_name: string | null
+          document_path: string | null
+          enabled: boolean
+          end_date: string | null
+          id: string
+          name: string
+          policy_number: string
+          provider: string
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          document_name?: string | null
+          document_path?: string | null
+          enabled?: boolean
+          end_date?: string | null
+          id?: string
+          name: string
+          policy_number?: string
+          provider?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          document_name?: string | null
+          document_path?: string | null
+          enabled?: boolean
+          end_date?: string | null
+          id?: string
+          name?: string
+          policy_number?: string
+          provider?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       professional_tax_slabs: {
         Row: {
           created_at: string
