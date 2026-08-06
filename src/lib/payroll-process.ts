@@ -459,60 +459,141 @@ export async function processPayrollAmendment(args: {
       + `Paid days ${d.before.paidDays} → ${d.after.paidDays}, net ₹${d.before.netPay} → ₹${d.after.netPay}. `
       + `Registered on ${fmtDate(registeredOn)}; to be applied in the next payroll starting ${fmtDate(applyDate)}.`;
 
-    if (netDelta > 0.004) {
-      arrears += netDelta;
-      additionRows.push({
-        candidate_id: d.candidateId,
-        addition_type_id: pickAdditionTypeId("arrears", additionTypes),
-        addition_name: `Payroll arrears (v${version}) — ${periodStart.slice(0, 7)}`,
-        addition_date: applyDate,
-        amount: netDelta,
-        calculation_type: "lumpsum",
-        entry_mode: "lumpsum",
-        installments: 1,
-        description: note,
-        status: "active",
-        source_kind: "payroll_amendment",
-        source_ref: ref,
-      });
-    } else if (netDelta < -0.004) {
-      recoveries += Math.abs(netDelta);
-      deductionRows.push({
-        candidate_id: d.candidateId,
-        deduction_type_id: pickDeductionTypeId("general", deductionTypes),
-        deduction_name: `Payroll recovery (v${version}) — ${periodStart.slice(0, 7)}`,
-        deduction_date: applyDate,
-        amount: Math.abs(netDelta),
-        calculation_type: "lumpsum",
-        entry_mode: "lumpsum",
-        installments: 1,
-        description: note,
-        status: "active",
-        source_kind: "payroll_amendment",
-        source_ref: ref,
-      });
+    const period = periodStart.slice(0, 7);
+
+    // ---- 1. Wage side -----------------------------------------------------
+    // Post the EARNINGS movement head by head (Basic, DA, HRA, washing…) so the
+    // amendment reconciles against the same gross the register shows, instead
+    // of a single opaque number.
+    const earningDiffs = diffLines(d.earningsBefore, d.earningsAfter).filter((l) => Math.abs(l.delta) > 0.004);
+    const deductionDiffs = diffLines(d.deductionsBefore, d.deductionsAfter).filter((l) => Math.abs(l.delta) > 0.004);
+    const employerDiffs = diffLines(d.employerBefore, d.employerAfter).filter((l) => Math.abs(l.delta) > 0.004);
+
+    const earningDeltaTotal = Math.round(earningDiffs.reduce((s, l) => s + l.delta, 0) * 100) / 100;
+    const deductionDeltaTotal = Math.round(deductionDiffs.reduce((s, l) => s + l.delta, 0) * 100) / 100;
+
+    // Fall back to the totals-only path when the caller could not supply lines
+    // (older snapshots have no component jsonb).
+    const wageLines: Array<{ name: string; delta: number }> = earningDiffs.length
+      ? earningDiffs.map((l) => ({ name: l.name, delta: l.delta }))
+      : (() => {
+          const w = Math.round((netDelta + deductionDeltaTotal) * 100) / 100;
+          return Math.abs(w) > 0.004 ? [{ name: "Wages", delta: w }] : [];
+        })();
+
+    for (const l of wageLines) {
+      const detail =
+        `${note} Head: ${l.name} — wage component ${l.delta >= 0 ? "credited" : "recovered"} ₹${Math.abs(l.delta).toFixed(2)}.`;
+      if (l.delta > 0) {
+        arrears += l.delta;
+        additionRows.push({
+          candidate_id: d.candidateId,
+          addition_type_id: pickAdditionTypeId(l.name, additionTypes),
+          addition_name: `${l.name} arrears (v${version}) — ${period}`,
+          addition_date: applyDate,
+          amount: Math.round(l.delta * 100) / 100,
+          calculation_type: "lumpsum",
+          entry_mode: "lumpsum",
+          installments: 1,
+          description: detail,
+          status: "active",
+          source_kind: "payroll_amendment",
+          source_ref: ref,
+        });
+      } else {
+        recoveries += Math.abs(l.delta);
+        deductionRows.push({
+          candidate_id: d.candidateId,
+          deduction_type_id: pickDeductionTypeId("general", deductionTypes),
+          deduction_name: `${l.name} recovery (v${version}) — ${period}`,
+          deduction_date: applyDate,
+          amount: Math.round(Math.abs(l.delta) * 100) / 100,
+          calculation_type: "lumpsum",
+          entry_mode: "lumpsum",
+          installments: 1,
+          description: detail,
+          status: "active",
+          source_kind: "payroll_amendment",
+          source_ref: ref,
+        });
+      }
     }
 
+    // ---- 2. Employee deduction heads --------------------------------------
+    // A lower gross means less ESI / EPF / PT was actually due. Each head moves
+    // on its own row and carries the right deduction type, so the ESI, EPF, PT
+    // and LWF registers all pick the correction up.
+    for (const l of deductionDiffs) {
+      const typeId = pickDeductionTypeId(l.name, deductionTypes);
+      const detail =
+        `${note} Head: ${l.name} — ₹${l.before.toFixed(2)} → ₹${l.after.toFixed(2)} `
+        + `(${l.delta >= 0 ? "additional recovery" : "excess deducted, refunded"} ₹${Math.abs(l.delta).toFixed(2)}).`;
+      if (l.delta > 0) {
+        recoveries += l.delta;
+        deductionRows.push({
+          candidate_id: d.candidateId,
+          deduction_type_id: typeId,
+          deduction_name: `${l.name} — amendment v${version} (${period})`,
+          deduction_date: applyDate,
+          amount: Math.round(l.delta * 100) / 100,
+          calculation_type: "lumpsum",
+          entry_mode: "lumpsum",
+          installments: 1,
+          description: detail,
+          status: "active",
+          source_kind: "payroll_amendment",
+          source_ref: ref,
+        });
+      } else {
+        arrears += Math.abs(l.delta);
+        additionRows.push({
+          candidate_id: d.candidateId,
+          addition_type_id: pickAdditionTypeId(l.name, additionTypes),
+          addition_name: `${l.name} refund — amendment v${version} (${period})`,
+          addition_date: applyDate,
+          amount: Math.round(Math.abs(l.delta) * 100) / 100,
+          calculation_type: "lumpsum",
+          entry_mode: "lumpsum",
+          installments: 1,
+          description: detail,
+          status: "active",
+          source_kind: "payroll_amendment",
+          source_ref: ref,
+        });
+      }
+    }
 
-    if (Math.abs(empDelta) > 0.004) {
-      employerImpact += empDelta;
+    // ---- 3. Employer contribution heads -----------------------------------
+    // Employer EPF / ESI / EDLI / admin charges move with the wage too — post
+    // each head separately (amount may be negative) so the contribution
+    // register nets off correctly instead of showing one blended adjustment.
+    const empLines = employerDiffs.length
+      ? employerDiffs
+      : Math.abs(empDelta) > 0.004
+        ? [{ name: "Employer cost", before: d.before.totalEmployer || 0, after: d.after.totalEmployer || 0, delta: empDelta }]
+        : [];
+    for (const l of empLines) {
+      employerImpact += l.delta;
       employerRows.push({
         candidate_id: d.candidateId,
         unit_id: unitId,
         payroll_run_id: runId,
-        contribution_name: `Employer cost adjustment (v${version})`,
-        amount: empDelta,
-        frequency: "monthly",
+        contribution_name: `${l.name} — amendment v${version}`,
+        amount: Math.round(l.delta * 100) / 100,
+        frequency: frequencyOf(l.name),
         period_start: periodStart,
         period_end: periodEnd,
         contribution_date: periodEnd,
         status: "processed",
-        notes: note,
+        notes:
+          `${note} Head: ${l.name} — ₹${l.before.toFixed(2)} → ₹${l.after.toFixed(2)} `
+          + `(${l.delta >= 0 ? "increase" : "reversal"} ₹${Math.abs(l.delta).toFixed(2)}).`,
         source_kind: "payroll_amendment",
         source_ref: ref,
       });
     }
   }
+
 
   if (additionRows.length) {
     const { error } = await supabase.from("additions" as never).insert(additionRows as never);
