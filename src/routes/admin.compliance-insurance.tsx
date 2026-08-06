@@ -103,7 +103,7 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
             .lte("contribution_date", to),
           supabase.from("policies").select("*"),
           supabase.from("esic_branches").select("id, location, esic_code, enabled").order("location"),
-          supabase.from("client_contracts").select("unit_id, esic_branch_id, start_date"),
+          supabase.from("units").select("id, esic_branch_id"),
         ]);
       if (error) throw error;
 
@@ -111,10 +111,11 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
       const branchMap = new Map(branches.map((b) => [b.id, b]));
       const unitBranch = new Map<string, string>();
       for (const c of contractRows ?? []) {
-        const uid = (c as { unit_id?: string | null }).unit_id;
+        const uid = (c as { id?: string | null }).id;
         const bid = (c as { esic_branch_id?: string | null }).esic_branch_id;
-        if (uid && bid && !unitBranch.has(uid)) unitBranch.set(uid, bid);
+        if (uid && bid) unitBranch.set(uid, bid);
       }
+
 
       const raw: Array<{
         id: string;
