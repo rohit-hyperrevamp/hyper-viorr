@@ -511,7 +511,11 @@ export async function processPayrollAmendment(args: {
           deduction_type_id: pickDeductionTypeId("general", deductionTypes),
           deduction_name: `Gross deduction — amendment v${version} (${period})`,
           deduction_date: applyDate,
-          amount: Math.round(Math.abs(l.delta) * 100) / 100,
+          // Ledger adjustments use signed net-impact values. A gross recovery
+          // is negative because it reduces the employee's next net payroll;
+          // payroll consumption recognises this head and applies its magnitude
+          // as a deduction.
+          amount: Math.round(l.delta * 100) / 100,
           calculation_type: "lumpsum",
           entry_mode: "lumpsum",
           installments: 1,
