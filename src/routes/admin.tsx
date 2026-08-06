@@ -927,7 +927,10 @@ function AdminLayout() {
         )}
 
         <div className="mx-auto max-w-[1500px]">
-          <div key={pathname} className="page-enter">
+          <div
+            key={pathname}
+            className={cn(!pathname.startsWith("/admin/payroll/") && "page-enter")}
+          >
             {isReady && user && !permsLoading ? (
               <RoutePermissionGuard>
                 <Outlet />

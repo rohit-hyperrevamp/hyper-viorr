@@ -1932,7 +1932,10 @@ function PayrollUnitPage() {
 
       <div className="rounded-3xl border border-border/70 bg-card shadow-sm">
         <div className="overflow-x-auto overscroll-x-contain rounded-b-3xl [scrollbar-gutter:stable] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-muted/30">
-          <table className="min-w-[1180px] table-auto text-sm whitespace-nowrap">
+          <table
+            data-payroll-register
+            className="w-max min-w-full table-auto text-sm whitespace-nowrap"
+          >
             <thead className="border-b border-border/60 bg-secondary/40">
               <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
                 {showHoldColumn && (
