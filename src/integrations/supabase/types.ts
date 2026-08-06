@@ -3994,6 +3994,7 @@ export type Database = {
       }
       policies: {
         Row: {
+          additional_cover: number | null
           created_at: string
           description: string
           document_name: string | null
@@ -4005,9 +4006,12 @@ export type Database = {
           policy_number: string
           provider: string
           start_date: string | null
+          sum_assured: number | null
+          ttd_enabled: boolean
           updated_at: string
         }
         Insert: {
+          additional_cover?: number | null
           created_at?: string
           description?: string
           document_name?: string | null
@@ -4019,9 +4023,12 @@ export type Database = {
           policy_number?: string
           provider?: string
           start_date?: string | null
+          sum_assured?: number | null
+          ttd_enabled?: boolean
           updated_at?: string
         }
         Update: {
+          additional_cover?: number | null
           created_at?: string
           description?: string
           document_name?: string | null
@@ -4033,6 +4040,8 @@ export type Database = {
           policy_number?: string
           provider?: string
           start_date?: string | null
+          sum_assured?: number | null
+          ttd_enabled?: boolean
           updated_at?: string
         }
         Relationships: []
