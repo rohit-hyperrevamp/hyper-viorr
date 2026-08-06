@@ -1054,10 +1054,19 @@ function PayrollUnitPage() {
     const prev = new Map(
       snapshots.filter((s) => s.version === lastSnapshotVersion).map((s) => [s.candidate_id, s]),
     );
-    const live = new Map<string, { code: string; name: string; after: AmendmentDelta["after"] }>();
+    type LiveAgg = {
+      code: string;
+      name: string;
+      after: AmendmentDelta["after"];
+      earnings: { name: string; amount: number }[];
+      deductions: { name: string; amount: number }[];
+      employer: { name: string; amount: number }[];
+    };
+    const live = new Map<string, LiveAgg>();
     for (const r of rows) {
       if (!r.wages) continue;
-      const cur = live.get(r.id)?.after ?? {
+      const prevAgg = live.get(r.id);
+      const cur = prevAgg?.after ?? {
         paidDays: 0, edDays: 0, gross: 0, totalDeductions: 0, totalEmployer: 0, netPay: 0,
       };
       live.set(r.id, {
@@ -1071,6 +1080,18 @@ function PayrollUnitPage() {
           totalEmployer: cur.totalEmployer + (Number(r.wages.totalEmployerContributions) || 0),
           netPay: cur.netPay + (Number(r.wages.netPay) || 0),
         },
+        earnings: [
+          ...(prevAgg?.earnings ?? []),
+          ...(r.wages.components ?? []).map((c) => ({ name: c.name, amount: Number(c.amount) || 0 })),
+        ],
+        deductions: [
+          ...(prevAgg?.deductions ?? []),
+          ...(r.wages.deductions ?? []).map((x) => ({ name: cleanLedgerName(x.name) || x.name, amount: Number(x.amount) || 0 })),
+        ],
+        employer: [
+          ...(prevAgg?.employer ?? []),
+          ...(r.wages.employerContributions ?? []).map((x) => ({ name: x.name, amount: Number(x.amount) || 0 })),
+        ],
       });
     }
     const out: AmendmentDelta[] = [];
@@ -1092,10 +1113,23 @@ function PayrollUnitPage() {
         Math.abs(before.totalEmployer - after.totalEmployer) < 0.005 &&
         Math.abs(before.paidDays - after.paidDays) < 0.005
       ) continue;
-      out.push({ candidateId, employeeCode: l.code, name: l.name, before, after });
+      out.push({
+        candidateId,
+        employeeCode: l.code,
+        name: l.name,
+        before,
+        after,
+        earningsBefore: (p?.earnings ?? []) as { name: string; amount: number }[],
+        earningsAfter: l.earnings,
+        deductionsBefore: (p?.deductions ?? []) as { name: string; amount: number }[],
+        deductionsAfter: l.deductions,
+        employerBefore: (p?.employer_contributions ?? []) as { name: string; amount: number }[],
+        employerAfter: l.employer,
+      });
     }
     return out;
   }, [amendmentPending, lastSnapshotVersion, snapshots, rows, amendedCandidateIds]);
+
 
 
   const [amendReviewOpen, setAmendReviewOpen] = useState(false);
