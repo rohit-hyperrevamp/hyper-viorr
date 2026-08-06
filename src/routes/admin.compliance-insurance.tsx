@@ -241,6 +241,8 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
           branchId: b?.id ?? null,
           location: b?.location ?? "Unmapped location",
           esicCode: b?.esic_code ?? "—",
+          basis: (c?.unit_id ? basisMap.get(c.unit_id) : undefined) ?? "unknown",
+
         };
       });
       rows.sort((a, b) => a.location.localeCompare(b.location) || a.unit.localeCompare(b.unit) || a.name.localeCompare(b.name));
