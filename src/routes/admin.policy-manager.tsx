@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, Edit2, FileText, Plus, Search, ShieldCheck, Trash2, Upload } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -475,8 +475,10 @@ function PolicyFormDialog({
   const [ttdEnabled, setTtdEnabled] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
-  useResetOnOpen(open, () => {
+  useEffect(() => {
+    if (!open) return;
     setName(initial?.name ?? "");
     setProvider(initial?.provider ?? "");
     setDescription(initial?.description ?? "");
@@ -489,21 +491,13 @@ function PolicyFormDialog({
     setSumAssured(initial?.sumAssured ?? null);
     setAdditionalCover(initial?.additionalCover ?? null);
     setTtdEnabled(initial?.ttdEnabled ?? false);
-  });
+    setIsDirty(false);
+  }, [initial, open]);
 
-  const hasChanges =
-    name !== (initial?.name ?? "") ||
-    provider !== (initial?.provider ?? "") ||
-    description !== (initial?.description ?? "") ||
-    policyNumber !== (initial?.policyNumber ?? "") ||
-    startDate !== (initial?.startDate ?? "") ||
-    endDate !== (initial?.endDate ?? "") ||
-    documentPath !== (initial?.documentPath ?? "") ||
-    documentName !== (initial?.documentName ?? "") ||
-    enabled !== (initial?.enabled ?? true) ||
-    sumAssured !== (initial?.sumAssured ?? null) ||
-    additionalCover !== (initial?.additionalCover ?? null) ||
-    ttdEnabled !== (initial?.ttdEnabled ?? false);
+  const change = <T,>(setter: (value: T) => void) => (value: T) => {
+    setter(value);
+    setIsDirty(true);
+  };
 
   const uploadFile = async (file: File) => {
     setUploading(true);
@@ -514,6 +508,7 @@ function PolicyFormDialog({
       if (error) throw error;
       setDocumentPath(path);
       setDocumentName(file.name);
+      setIsDirty(true);
       toast.success("Master policy uploaded");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
@@ -532,33 +527,33 @@ function PolicyFormDialog({
         <div className="grid max-h-[65vh] gap-4 overflow-y-auto py-2 pr-1">
           <div className="grid gap-2">
             <Label>Policy name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Policy Staff" />
+            <Input value={name} onChange={(e) => change(setName)(e.target.value)} placeholder="e.g. Policy Staff" />
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label>Provider</Label>
-              <Input value={provider} onChange={(e) => setProvider(e.target.value)} placeholder="e.g. The New India Assurance" />
+              <Input value={provider} onChange={(e) => change(setProvider)(e.target.value)} placeholder="e.g. The New India Assurance" />
             </div>
             <div className="grid gap-2">
               <Label>Policy number</Label>
-              <Input value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)} placeholder="215037/51/26/000084" />
+              <Input value={policyNumber} onChange={(e) => change(setPolicyNumber)(e.target.value)} placeholder="215037/51/26/000084" />
             </div>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label>Start date</Label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <Input type="date" value={startDate} onChange={(e) => change(setStartDate)(e.target.value)} />
             </div>
             <div className="grid gap-2">
               <Label>End date</Label>
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <Input type="date" value={endDate} onChange={(e) => change(setEndDate)(e.target.value)} />
             </div>
           </div>
           <div className="grid gap-2">
             <Label>Description</Label>
             <Textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => change(setDescription)(e.target.value)}
               placeholder="e.g. Addition / Deletion in existing Policy"
               rows={3}
             />
@@ -601,22 +596,22 @@ function PolicyFormDialog({
             </div>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
-            <AmountLakhField label="Sum assured" value={sumAssured} onChange={setSumAssured} />
-            <AmountLakhField label="Additional cover" value={additionalCover} onChange={setAdditionalCover} />
+            <AmountLakhField label="Sum assured" value={sumAssured} onChange={change(setSumAssured)} />
+            <AmountLakhField label="Additional cover" value={additionalCover} onChange={change(setAdditionalCover)} />
           </div>
           <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
             <div>
               <div className="text-sm font-medium">TTD enabled</div>
               <div className="text-xs text-muted-foreground">Temporary Total Disablement cover</div>
             </div>
-            <Switch checked={ttdEnabled} onCheckedChange={setTtdEnabled} />
+            <Switch checked={ttdEnabled} onCheckedChange={change(setTtdEnabled)} />
           </div>
           <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
             <div>
               <div className="text-sm font-medium">Enabled</div>
               <div className="text-xs text-muted-foreground">Active policy</div>
             </div>
-            <Switch checked={enabled} onCheckedChange={setEnabled} />
+            <Switch checked={enabled} onCheckedChange={change(setEnabled)} />
           </div>
         </div>
         <DialogFooter>
@@ -624,7 +619,7 @@ function PolicyFormDialog({
             Cancel
           </Button>
           <Button
-            disabled={saving || uploading || !hasChanges}
+            disabled={saving || uploading || !isDirty}
             onClick={async () => {
               setSaving(true);
               const err = await onSubmit({
@@ -652,14 +647,6 @@ function PolicyFormDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function useResetOnOpen(open: boolean, reset: () => void) {
-  const [last, setLast] = useState(false);
-  if (open !== last) {
-    setLast(open);
-    if (open) reset();
-  }
 }
 
 function AmountLakhField({
