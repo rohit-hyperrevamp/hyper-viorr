@@ -1,0 +1,2 @@
+ALTER TABLE public.deductions DROP CONSTRAINT IF EXISTS deductions_amount_check;
+ALTER TABLE public.deductions ADD CONSTRAINT deductions_amount_check CHECK (amount >= 0 OR source_kind = 'payroll_amendment');
