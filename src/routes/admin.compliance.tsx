@@ -132,17 +132,26 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 function CompliancePage() {
-  const { data: issues = [], isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["compliance-command-center"],
-    queryFn: fetchComplianceIssues,
-    staleTime: 60_000,
-  });
-
   const now = new Date();
   const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [ym, setYm] = useState(currentYm);
+  const [showExceptions, setShowExceptions] = useState(false);
   const [domain, setDomain] = useState<DomainKey | "all">("all");
   const [severity, setSeverity] = useState<Severity | "all">("all");
   const [q, setQ] = useState("");
+
+  const {
+    data: issues = [] as ComplianceIssue[],
+    isLoading,
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["compliance-command-center", ym],
+    queryFn: () => fetchComplianceIssues(ym),
+    staleTime: 60_000,
+    enabled: showExceptions,
+  });
+
 
   const score = useMemo(() => complianceScore(issues), [issues]);
 
