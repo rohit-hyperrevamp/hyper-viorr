@@ -46,6 +46,8 @@ import {
   processPayrollAmendment,
   fetchRunSnapshots,
   asError,
+  diffLines,
+
   type AmendmentDelta,
 } from "@/lib/payroll-process";
 import { setAmendmentStatus, fetchAttendanceVersions, fetchLiveSnapshot, diffAttendance } from "@/lib/attendance-versions";
