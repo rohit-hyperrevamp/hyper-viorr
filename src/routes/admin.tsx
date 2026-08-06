@@ -388,6 +388,7 @@ function AdminLayout() {
       const nextId = session?.user?.id ?? null;
       if (event === "SIGNED_OUT") {
         lastUserId = null;
+        queryClient.clear();
         return;
       }
       if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION") return;
