@@ -2072,7 +2072,8 @@ function PayrollUnitPage() {
                     </td>
                   </tr>
                 )}
-                </>
+                </Fragment>
+
                 );
               })}
             </tbody>
