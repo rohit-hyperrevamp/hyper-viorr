@@ -48,12 +48,11 @@ const inr = (n: number) =>
 const fmtDate = (d: string | null | undefined) =>
   d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
-type EsicBasis = "basic_da" | "gross" | "unknown";
+type EsicBasis = "basic_da" | "gross";
 
 const BASIS_LABEL: Record<EsicBasis, string> = {
   basic_da: "Basic + DA",
   gross: "Gross − washing",
-  unknown: "Basis not set",
 };
 
 type Row = {
@@ -106,9 +105,8 @@ function deriveUnitEsicBasis(
       const name = String(l.name ?? "");
       if (!isEsi(name)) continue;
       const blob = JSON.stringify(l.formulaExpression ?? "") + JSON.stringify(l.baseComponents ?? "") + name;
-      const basis: EsicBasis = /gross/i.test(blob) ? "gross" : /basic/i.test(blob) ? "basic_da" : "unknown";
-      if (basis !== "unknown") out.set(unitId, basis);
-      else if (!out.has(unitId)) out.set(unitId, "unknown");
+      const basis: EsicBasis = /basic/i.test(blob) && !/gross/i.test(blob) ? "basic_da" : "gross";
+      out.set(unitId, basis);
     }
   }
   return out;
@@ -241,7 +239,7 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
           branchId: b?.id ?? null,
           location: b?.location ?? "Unmapped location",
           esicCode: b?.esic_code ?? "—",
-          basis: (c?.unit_id ? basisMap.get(c.unit_id) : undefined) ?? "unknown",
+          basis: (c?.unit_id ? basisMap.get(c.unit_id) : undefined) ?? "gross",
 
         };
       });
@@ -456,7 +454,6 @@ function InsuranceRegisterPage() {
               <SelectItem value="all">All ESIC bases</SelectItem>
               <SelectItem value="basic_da">ESIC on Basic + DA</SelectItem>
               <SelectItem value="gross">ESIC on Gross − washing</SelectItem>
-              <SelectItem value="unknown">Basis not set</SelectItem>
             </SelectContent>
           </Select>
 
@@ -573,11 +570,9 @@ function InsuranceRegisterPage() {
                               <span
                                 className={cn(
                                   "rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                                  u.basis === "gross"
-                                    ? "bg-primary/10 text-primary"
-                                    : u.basis === "basic_da"
-                                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                      : "bg-muted text-muted-foreground",
+                                  u.basis === "basic_da"
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                    : "bg-primary/10 text-primary",
                                 )}
                               >
                                 {BASIS_LABEL[u.basis]}
