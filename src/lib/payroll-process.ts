@@ -509,7 +509,7 @@ export async function processPayrollAmendment(args: {
         deductionRows.push({
           candidate_id: d.candidateId,
           deduction_type_id: pickDeductionTypeId("general", deductionTypes),
-          deduction_name: `${l.name} recovery (v${version}) — ${period}`,
+          deduction_name: `Gross deduction — amendment v${version} (${period})`,
           deduction_date: applyDate,
           amount: Math.round(Math.abs(l.delta) * 100) / 100,
           calculation_type: "lumpsum",
