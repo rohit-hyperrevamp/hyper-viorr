@@ -493,7 +493,7 @@ export async function processPayrollAmendment(args: {
         additionRows.push({
           candidate_id: d.candidateId,
           addition_type_id: pickAdditionTypeId(l.name, additionTypes),
-          addition_name: `${l.name} arrears (v${version}) — ${period}`,
+          addition_name: `Gross arrears — amendment v${version} (${period})`,
           addition_date: applyDate,
           amount: Math.round(l.delta * 100) / 100,
           calculation_type: "lumpsum",
