@@ -75,28 +75,54 @@ type Policy = {
   is_active: boolean | null;
 };
 
+type Branch = { id: string; location: string; esic_code: string; enabled: boolean };
+
 function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
   return useQuery({
     queryKey: ["insurance-register", ym, head],
     staleTime: 60_000,
-    queryFn: async (): Promise<{ rows: Row[]; policies: Policy[]; units: Array<{ id: string; name: string; enabled: boolean; amount: number }> }> => {
+    queryFn: async (): Promise<{
+      rows: Row[];
+      policies: Policy[];
+      units: Array<{ id: string; name: string; enabled: boolean; amount: number }>;
+      branches: Branch[];
+    }> => {
       const { from, to } = monthRange(ym);
-      const [{ data: deds, error }, { data: contribs }, { data: pol }] = await Promise.all([
-        supabase
-          .from("deductions")
-          .select("id, candidate_id, amount, computed_amount, deduction_name, deduction_date, status")
-          .gte("deduction_date", from)
-          .lte("deduction_date", to),
-        supabase
-          .from("employer_contributions")
-          .select("id, candidate_id, amount, contribution_name, contribution_date")
-          .gte("contribution_date", from)
-          .lte("contribution_date", to),
-        supabase.from("policies").select("*"),
-      ]);
+      const [{ data: deds, error }, { data: contribs }, { data: pol }, { data: branchRows }, { data: contractRows }] =
+        await Promise.all([
+          supabase
+            .from("deductions")
+            .select("id, candidate_id, amount, computed_amount, deduction_name, deduction_date, status")
+            .gte("deduction_date", from)
+            .lte("deduction_date", to),
+          supabase
+            .from("employer_contributions")
+            .select("id, candidate_id, amount, contribution_name, contribution_date")
+            .gte("contribution_date", from)
+            .lte("contribution_date", to),
+          supabase.from("policies").select("*"),
+          supabase.from("esic_branches").select("id, location, esic_code, enabled").order("location"),
+          supabase.from("client_contracts").select("unit_id, esic_branch_id, start_date"),
+        ]);
       if (error) throw error;
 
-      const raw: Array<{ id: string; candidate_id: string; amount: number; date: string; note: string }> = [];
+      const branches = ((branchRows ?? []) as Branch[]).slice();
+      const branchMap = new Map(branches.map((b) => [b.id, b]));
+      const unitBranch = new Map<string, string>();
+      for (const c of contractRows ?? []) {
+        const uid = (c as { unit_id?: string | null }).unit_id;
+        const bid = (c as { esic_branch_id?: string | null }).esic_branch_id;
+        if (uid && bid && !unitBranch.has(uid)) unitBranch.set(uid, bid);
+      }
+
+      const raw: Array<{
+        id: string;
+        candidate_id: string;
+        amount: number;
+        date: string;
+        note: string;
+        side: "ee" | "er";
+      }> = [];
       for (const d of deds ?? []) {
         if (!matchesHead(d.deduction_name, head) || !d.candidate_id) continue;
         if ((d.status ?? "active") === "cancelled") continue;
@@ -106,6 +132,7 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
           amount: Number(d.computed_amount ?? d.amount ?? 0),
           date: d.deduction_date,
           note: d.deduction_name ?? "",
+          side: "ee",
         });
       }
       for (const c of contribs ?? []) {
@@ -116,6 +143,7 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
           amount: Number(c.amount ?? 0),
           date: c.contribution_date,
           note: c.contribution_name ?? "",
+          side: "er",
         });
       }
 
@@ -134,12 +162,12 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
         amount: Number((u as { gpaip_amount?: number }).gpaip_amount ?? 0),
       }));
 
-      if (raw.length === 0) return { rows: [], policies, units };
+      if (raw.length === 0) return { rows: [], policies, units, branches };
 
       const ids = Array.from(new Set(raw.map((r) => r.candidate_id)));
       const { data: cands } = await supabase
         .from("candidates")
-        .select("id, full_name, employee_code, candidate_code, unit_id, preferred_joining_date")
+        .select("id, full_name, employee_code, candidate_code, unit_id, preferred_joining_date, esic_branch_id")
         .in("id", ids);
       const candMap = new Map((cands ?? []).map((c) => [c.id, c]));
       const unitMap = new Map(units.map((u) => [u.id, u]));
@@ -147,6 +175,10 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
       const rows: Row[] = raw.map((r) => {
         const c = candMap.get(r.candidate_id);
         const u = c?.unit_id ? unitMap.get(c.unit_id) : undefined;
+        const bid =
+          (c?.unit_id ? unitBranch.get(c.unit_id) : undefined) ??
+          ((c as { esic_branch_id?: string | null } | undefined)?.esic_branch_id ?? null);
+        const b = bid ? branchMap.get(bid) : undefined;
         return {
           id: r.id,
           candidateId: r.candidate_id,
@@ -158,11 +190,16 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
           amount: r.amount,
           date: r.date,
           note: r.note,
+          side: r.side,
+          branchId: b?.id ?? null,
+          location: b?.location ?? "Unmapped location",
+          esicCode: b?.esic_code ?? "—",
         };
       });
-      rows.sort((a, b) => a.unit.localeCompare(b.unit) || a.name.localeCompare(b.name));
-      return { rows, policies, units };
+      rows.sort((a, b) => a.location.localeCompare(b.location) || a.unit.localeCompare(b.unit) || a.name.localeCompare(b.name));
+      return { rows, policies, units, branches };
     },
+
   });
 }
 
