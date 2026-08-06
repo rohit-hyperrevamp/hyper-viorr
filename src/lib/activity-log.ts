@@ -23,6 +23,7 @@ const MODULE_LINKS: Record<string, string> = {
   "LWF Manager": "/admin/lwf-manager",
   "Offboarding Reason Manager": "/admin/offboarding-reason-manager",
   "Offboarding Reasons": "/admin/offboarding-reason-manager",
+  "Policy Manager": "/admin/policy-manager",
   "Payroll Manager": "/admin/payroll-manager",
   "Payroll Days Manager": "/admin/payroll-days-manager",
   "Professional Tax Manager": "/admin/professional-tax-manager",

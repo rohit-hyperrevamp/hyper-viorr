@@ -29,6 +29,7 @@ const EXTRA_PATH_TO_MODULE: Record<string, string> = {
   "/admin/system-logs": "control_center",
   "/admin/org-settings": "control_center",
   "/admin/company-documents": "control_center",
+  "/admin/policy-manager": "control_center",
   "/admin/attendance-code-manager": "control_center",
   "/admin/duty-manager": "control_center",
   "/admin/service-type-manager": "control_center",

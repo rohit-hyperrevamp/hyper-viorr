@@ -267,6 +267,7 @@ function AdminLayout() {
     { prefix: "/admin/offboarding-reason-manager", module: "control_center" },
     { prefix: "/admin/language-manager", module: "control_center" },
     { prefix: "/admin/company-documents", module: "control_center" },
+    { prefix: "/admin/policy-manager", module: "control_center" },
     { prefix: "/admin/system-logs", module: "control_center" },
     { prefix: "/admin/asset-manager", module: "control_center" },
     { prefix: "/admin/attendance-code-manager", module: "control_center" },

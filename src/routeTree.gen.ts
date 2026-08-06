@@ -21,6 +21,7 @@ import { Route as AdminRolesManagerRouteImport } from './routes/admin.roles-mana
 import { Route as AdminRbacRouteImport } from './routes/admin.rbac'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminProfessionalTaxManagerRouteImport } from './routes/admin.professional-tax-manager'
+import { Route as AdminPolicyManagerRouteImport } from './routes/admin.policy-manager'
 import { Route as AdminPayrollManagerRouteImport } from './routes/admin.payroll-manager'
 import { Route as AdminPayrollDaysManagerRouteImport } from './routes/admin.payroll-days-manager'
 import { Route as AdminPayrollRouteImport } from './routes/admin.payroll'
@@ -167,6 +168,11 @@ const AdminProfessionalTaxManagerRoute =
     path: '/professional-tax-manager',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminPolicyManagerRoute = AdminPolicyManagerRouteImport.update({
+  id: '/policy-manager',
+  path: '/policy-manager',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPayrollManagerRoute = AdminPayrollManagerRouteImport.update({
   id: '/payroll-manager',
   path: '/payroll-manager',
@@ -653,6 +659,7 @@ export interface FileRoutesByFullPath {
   '/admin/payroll': typeof AdminPayrollRouteWithChildren
   '/admin/payroll-days-manager': typeof AdminPayrollDaysManagerRoute
   '/admin/payroll-manager': typeof AdminPayrollManagerRoute
+  '/admin/policy-manager': typeof AdminPolicyManagerRoute
   '/admin/professional-tax-manager': typeof AdminProfessionalTaxManagerRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rbac': typeof AdminRbacRoute
@@ -748,6 +755,7 @@ export interface FileRoutesByTo {
   '/admin/org-settings': typeof AdminOrgSettingsRoute
   '/admin/payroll-days-manager': typeof AdminPayrollDaysManagerRoute
   '/admin/payroll-manager': typeof AdminPayrollManagerRoute
+  '/admin/policy-manager': typeof AdminPolicyManagerRoute
   '/admin/professional-tax-manager': typeof AdminProfessionalTaxManagerRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rbac': typeof AdminRbacRoute
@@ -847,6 +855,7 @@ export interface FileRoutesById {
   '/admin/payroll': typeof AdminPayrollRouteWithChildren
   '/admin/payroll-days-manager': typeof AdminPayrollDaysManagerRoute
   '/admin/payroll-manager': typeof AdminPayrollManagerRoute
+  '/admin/policy-manager': typeof AdminPolicyManagerRoute
   '/admin/professional-tax-manager': typeof AdminProfessionalTaxManagerRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/rbac': typeof AdminRbacRoute
@@ -947,6 +956,7 @@ export interface FileRouteTypes {
     | '/admin/payroll'
     | '/admin/payroll-days-manager'
     | '/admin/payroll-manager'
+    | '/admin/policy-manager'
     | '/admin/professional-tax-manager'
     | '/admin/profile'
     | '/admin/rbac'
@@ -1042,6 +1052,7 @@ export interface FileRouteTypes {
     | '/admin/org-settings'
     | '/admin/payroll-days-manager'
     | '/admin/payroll-manager'
+    | '/admin/policy-manager'
     | '/admin/professional-tax-manager'
     | '/admin/profile'
     | '/admin/rbac'
@@ -1140,6 +1151,7 @@ export interface FileRouteTypes {
     | '/admin/payroll'
     | '/admin/payroll-days-manager'
     | '/admin/payroll-manager'
+    | '/admin/policy-manager'
     | '/admin/professional-tax-manager'
     | '/admin/profile'
     | '/admin/rbac'
@@ -1289,6 +1301,13 @@ declare module '@tanstack/react-router' {
       path: '/professional-tax-manager'
       fullPath: '/admin/professional-tax-manager'
       preLoaderRoute: typeof AdminProfessionalTaxManagerRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/policy-manager': {
+      id: '/admin/policy-manager'
+      path: '/policy-manager'
+      fullPath: '/admin/policy-manager'
+      preLoaderRoute: typeof AdminPolicyManagerRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/payroll-manager': {
@@ -2063,6 +2082,7 @@ interface AdminRouteChildren {
   AdminPayrollRoute: typeof AdminPayrollRouteWithChildren
   AdminPayrollDaysManagerRoute: typeof AdminPayrollDaysManagerRoute
   AdminPayrollManagerRoute: typeof AdminPayrollManagerRoute
+  AdminPolicyManagerRoute: typeof AdminPolicyManagerRoute
   AdminProfessionalTaxManagerRoute: typeof AdminProfessionalTaxManagerRoute
   AdminProfileRoute: typeof AdminProfileRoute
   AdminRbacRoute: typeof AdminRbacRoute
@@ -2120,6 +2140,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPayrollRoute: AdminPayrollRouteWithChildren,
   AdminPayrollDaysManagerRoute: AdminPayrollDaysManagerRoute,
   AdminPayrollManagerRoute: AdminPayrollManagerRoute,
+  AdminPolicyManagerRoute: AdminPolicyManagerRoute,
   AdminProfessionalTaxManagerRoute: AdminProfessionalTaxManagerRoute,
   AdminProfileRoute: AdminProfileRoute,
   AdminRbacRoute: AdminRbacRoute,
