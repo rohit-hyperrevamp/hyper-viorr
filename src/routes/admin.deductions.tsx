@@ -102,6 +102,12 @@ function fmtINR(n: number) {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
 }
 
+function amendmentHead(name: string): string {
+  return name
+    .replace(/\s+—\s+amendment\s+v\d+\s*\([^)]*\)\s*$/i, "")
+    .replace(/\s+recovery\s*\(v\d+\)\s+—\s+\d{4}-\d{2}\s*$/i, "");
+}
+
 function EmployeeCombobox({
   employees,
   value,
@@ -391,7 +397,9 @@ function DeductionList() {
         employeeCode: emp?.employee_code ?? "",
         unitName,
         designation: "—",
-        head: typeMap.get(d.deduction_type_id)?.name || d.deduction_name,
+        head: d.source_kind === "payroll_amendment"
+          ? amendmentHead(d.deduction_name)
+          : typeMap.get(d.deduction_type_id)?.name || d.deduction_name,
         source: "recorded",
         sourceLabel:
           d.source_kind === "issuance" ? "Auto · Uniform issued"
@@ -609,7 +617,9 @@ function DeductionList() {
                     )}>{r.sourceLabel}</span>
                   </td>
                   <td className="px-5 py-3 text-muted-foreground">{r.date}</td>
-                  <td className="px-5 py-3 text-right tabular-nums">{fmtINR(r.amount)}</td>
+                  <td className={cn("px-5 py-3 text-right tabular-nums", r.amount < 0 && "font-semibold text-destructive")}>
+                    {fmtINR(r.amount)}
+                  </td>
                   <td className="px-5 py-3">
                     <span className={
                       r.status === "active" ? "rounded-md bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800"

@@ -38,6 +38,7 @@ type Row = {
   contribution_date: string;
   status: string;
   notes: string;
+  source_kind?: string | null;
 };
 
 const fmtINR = (n: number) =>
@@ -60,7 +61,7 @@ function EmployerContributionsPage() {
       const { data, error } = await supabase
         .from("employer_contributions" as never)
         .select(
-          "id, candidate_id, unit_id, contribution_name, amount, frequency, period_start, period_end, contribution_date, status, notes",
+          "id, candidate_id, unit_id, contribution_name, amount, frequency, period_start, period_end, contribution_date, status, notes, source_kind",
         )
         .order("contribution_date", { ascending: false })
         .limit(5000);
@@ -245,7 +246,9 @@ function EmployerContributionsPage() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {r.period_start && r.period_end ? `${r.period_start} → ${r.period_end}` : "—"}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold tabular-nums">{fmtINR(Number(r.amount) || 0)}</td>
+                    <td className={cn("px-4 py-3 text-right font-semibold tabular-nums", Number(r.amount) < 0 && "text-destructive")}>
+                      {fmtINR(Number(r.amount) || 0)}
+                    </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex rounded-full bg-violet-500/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">
                         {r.status}
