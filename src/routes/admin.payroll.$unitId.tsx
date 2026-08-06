@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Download, CheckCircle2, XCircle, Send, ChevronDown, ChevronUp, Banknote, PauseCircle, PlayCircle, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -1972,10 +1972,10 @@ function PayrollUnitPage() {
                 const isHighlighted = highlightCandidate === r.id;
                 const isExpanded = expandedRows.has(r.rowKey);
                 return (
-                <>
+                <Fragment key={r.rowKey}>
                 <tr
-                  key={r.rowKey}
                   id={isHighlighted ? `payroll-row-${r.id}` : `payroll-row-${r.rowKey}`}
+
                   className={`hover:bg-muted/40 ${isHighlighted ? "bg-emerald-50 ring-2 ring-emerald-400 dark:bg-emerald-950/40" : ""}`}
                 >
                   {showHoldColumn && (
@@ -2072,7 +2072,8 @@ function PayrollUnitPage() {
                     </td>
                   </tr>
                 )}
-                </>
+                </Fragment>
+
                 );
               })}
             </tbody>
