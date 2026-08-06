@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Download, CheckCircle2, XCircle, Send, ChevronDown, ChevronUp, Banknote, PauseCircle, PlayCircle, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -160,6 +160,7 @@ function buildDates(start: string, end: string): string[] {
 function PayrollUnitPage() {
   const { unitId } = Route.useParams();
   const { start, end, candidate: highlightCandidate } = Route.useSearch();
+  const lastScrolledCandidateRef = useRef<string | null>(null);
 
   const periodDates = useMemo(() => buildDates(start, end), [start, end]);
 
@@ -1232,9 +1233,13 @@ function PayrollUnitPage() {
 
   useEffect(() => {
     if (!highlightCandidate || rows.length === 0) return;
+    const scrollKey = `${unitId}:${start}:${end}:${highlightCandidate}`;
+    if (lastScrolledCandidateRef.current === scrollKey) return;
     const el = document.getElementById(`payroll-row-${highlightCandidate}`);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [highlightCandidate, rows.length]);
+    if (!el) return;
+    lastScrolledCandidateRef.current = scrollKey;
+    el.scrollIntoView({ behavior: "auto", block: "center" });
+  }, [highlightCandidate, rows.length, unitId, start, end]);
 
 
 
