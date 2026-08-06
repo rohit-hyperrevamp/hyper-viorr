@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ChevronRight, Download, ReceiptText, Search } from "lucide-react";
@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
+import { MonthYearPicker } from "@/components/MonthYearPicker";
 
 export const Route = createFileRoute("/admin/compliance-pt")({
   component: PtRegisterPage,
@@ -181,6 +182,8 @@ function PtRegisterPage() {
   const now = new Date();
   const { ym: ymParam } = Route.useSearch();
   const ym = ymParam ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const navigate = useNavigate({ from: "/admin/compliance-pt" });
+  const setYm = (next: string) => navigate({ search: { ym: next } });
   const [state, setState] = useState<string>("all");
   const [gender, setGender] = useState<string>("all");
   const [q, setQ] = useState("");
@@ -263,7 +266,8 @@ function PtRegisterPage() {
         description="State-wise PT deducted, laid out against the full slab schedule — expand a slab to see the employees in it."
         crumbs={[{ label: "Compliance", to: "/admin/compliance" }, { label: "Professional Tax" }]}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <MonthYearPicker value={ym} onChange={setYm} />
             <Button variant="outline" size="sm" asChild>
               <Link to="/admin/compliance">
                 <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Compliance
