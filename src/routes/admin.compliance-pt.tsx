@@ -3,7 +3,6 @@ import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ChevronRight, Download, ReceiptText, Search } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
-import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,6 +18,9 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/compliance-pt")({
   component: PtRegisterPage,
+  validateSearch: (search: Record<string, unknown>): { ym?: string } => ({
+    ym: typeof search.ym === "string" ? search.ym : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Professional Tax Register — Radiant Guard" },
@@ -177,9 +179,8 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 
 function PtRegisterPage() {
   const now = new Date();
-  const [ym, setYm] = useState(
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
-  );
+  const { ym: ymParam } = Route.useSearch();
+  const ym = ymParam ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const [state, setState] = useState<string>("all");
   const [gender, setGender] = useState<string>("all");
   const [q, setQ] = useState("");
@@ -305,7 +306,6 @@ function PtRegisterPage() {
 
       {/* Filters */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <MonthYearPicker value={ym} onChange={setYm} className="h-9 py-0" />
         <Select value={state} onValueChange={setState}>
           <SelectTrigger className="h-9 w-[180px] text-xs">
             <SelectValue placeholder="State" />
