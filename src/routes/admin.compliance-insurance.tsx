@@ -28,12 +28,12 @@ export const Route = createFileRoute("/admin/compliance-insurance")({
       {
         name: "description",
         content:
-          "GPAIP and Workmen's Compensation recovered this month, employee by employee, grouped by the unit that carries the cover.",
+          "GPAIP, ESIC and Workmen's Compensation recovered this month, employee by employee, grouped by the unit that carries the cover.",
       },
       { property: "og:title", content: "Insurance Register" },
       {
         property: "og:description",
-        content: "Month-wise GPAIP and WC recoveries with the employees covered.",
+        content: "Month-wise insurance register recoveries with the employees covered.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -175,7 +175,8 @@ function InsuranceRegisterPage() {
   const now = new Date();
   const { ym: ymParam, head: headParam } = Route.useSearch();
   const ym = ymParam ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const head: InsuranceHeadKey = headParam === "wc" ? "wc" : "gpaip";
+  const head: InsuranceHeadKey =
+    headParam === "wc" ? "wc" : headParam === "esic" ? "esic" : "gpaip";
   const meta = INSURANCE_HEADS.find((h) => h.key === head)!;
   const navigate = useNavigate({ from: "/admin/compliance-insurance" });
   const [q, setQ] = useState("");
@@ -265,22 +266,8 @@ function InsuranceRegisterPage() {
         }
       />
 
-      {/* Head switch */}
+      {/* Search */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {INSURANCE_HEADS.map((h) => (
-          <button
-            key={h.key}
-            onClick={() => navigate({ search: { ym, head: h.key } })}
-            className={cn(
-              "rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors",
-              h.key === head
-                ? "border-primary/40 bg-primary/10 text-primary"
-                : "border-border/60 bg-card/70 text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {h.label}
-          </button>
-        ))}
         <div className="relative min-w-[200px] flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input

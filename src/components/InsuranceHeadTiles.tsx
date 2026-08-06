@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, HeartHandshake, ShieldPlus, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, HeartHandshake, HeartPulse, ShieldPlus, type LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ACCENT_CHIP, ACCENT_TILE_BG, type Accent } from "@/components/tile-theme";
@@ -8,7 +8,7 @@ import { ACCENT_CHIP, ACCENT_TILE_BG, type Accent } from "@/components/tile-them
 const inr = (n: number) =>
   "₹" + Math.round(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
-export type InsuranceHeadKey = "gpaip" | "wc";
+export type InsuranceHeadKey = "gpaip" | "esic" | "wc";
 
 export const INSURANCE_HEADS: Array<{
   key: InsuranceHeadKey;
@@ -29,6 +29,15 @@ export const INSURANCE_HEADS: Array<{
     icon: ShieldPlus,
     match: ["gpaip", "personal accident"],
     policyMatch: ["gpaip", "personal accident"],
+  },
+  {
+    key: "esic",
+    label: "ESIC",
+    full: "Employees' State Insurance",
+    accent: "emerald",
+    icon: HeartPulse,
+    match: ["esic", "esi "],
+    policyMatch: ["esic", "state insurance"],
   },
   {
     key: "wc",
@@ -73,6 +82,7 @@ function useInsuranceTotals(ym: string) {
 
       const out: Record<InsuranceHeadKey, { amount: number; people: Set<string> }> = {
         gpaip: { amount: 0, people: new Set() },
+        esic: { amount: 0, people: new Set() },
         wc: { amount: 0, people: new Set() },
       };
 
@@ -93,6 +103,7 @@ function useInsuranceTotals(ym: string) {
 
       return {
         gpaip: { amount: out.gpaip.amount, people: out.gpaip.people.size },
+        esic: { amount: out.esic.amount, people: out.esic.people.size },
         wc: { amount: out.wc.amount, people: out.wc.people.size },
       } as Record<InsuranceHeadKey, { amount: number; people: number }>;
     },
