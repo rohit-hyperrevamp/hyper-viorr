@@ -407,6 +407,8 @@ function InsuranceRegisterPage() {
                       ? [
                           { key: "location", header: "ESIC location" },
                           { key: "esicCode", header: "ESIC code" },
+                          { key: "basis", header: "ESIC basis" },
+
                         ]
                       : []),
                     { key: "code", header: "Employee code" },
