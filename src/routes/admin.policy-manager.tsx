@@ -48,11 +48,29 @@ type Policy = {
   documentPath: string;
   documentName: string;
   enabled: boolean;
+  sumAssured: number | null;
+  additionalCover: number | null;
+  ttdEnabled: boolean;
 };
 
 type Payload = Omit<Policy, "id">;
 
 const QK = ["admin", "policies"] as const;
+
+const LAKH_OPTIONS = [1, 2, 3, 5, 10, 15, 20, 25, 50, 100];
+
+function toNum(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function fmtAmount(v: number | null) {
+  if (v === null) return "—";
+  const lakhs = v / 100000;
+  const label = Number.isInteger(lakhs) ? `${lakhs}L` : `${lakhs.toFixed(2)}L`;
+  return `₹${v.toLocaleString("en-IN")} (${label})`;
+}
 
 function rowToPolicy(r: Record<string, unknown>): Policy {
   return {
@@ -66,6 +84,9 @@ function rowToPolicy(r: Record<string, unknown>): Policy {
     documentPath: r.document_path ? String(r.document_path) : "",
     documentName: r.document_name ? String(r.document_name) : "",
     enabled: Boolean(r.enabled ?? true),
+    sumAssured: toNum(r.sum_assured),
+    additionalCover: toNum(r.additional_cover),
+    ttdEnabled: Boolean(r.ttd_enabled ?? false),
   };
 }
 
@@ -80,6 +101,9 @@ function toRow(p: Payload) {
     document_path: p.documentPath || null,
     document_name: p.documentName || null,
     enabled: p.enabled,
+    sum_assured: p.sumAssured,
+    additional_cover: p.additionalCover,
+    ttd_enabled: p.ttdEnabled,
   };
 }
 
@@ -96,7 +120,9 @@ function usePolicies() {
     queryFn: async (): Promise<Policy[]> => {
       const { data, error } = await supabase
         .from("policies" as never)
-        .select("id,name,provider,description,policy_number,start_date,end_date,document_path,document_name,enabled")
+        .select(
+          "id,name,provider,description,policy_number,start_date,end_date,document_path,document_name,enabled,sum_assured,additional_cover,ttd_enabled",
+        )
         .order("name", { ascending: true });
       if (error) throw error;
       return ((data as unknown) as Record<string, unknown>[]).map(rowToPolicy);
