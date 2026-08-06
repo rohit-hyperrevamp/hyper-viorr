@@ -377,7 +377,7 @@ function PayrollUnitPage() {
   const epfCapEnabled =
     (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isPending, error } = useQuery({
     queryKey: ["payroll-register-compute", unitId, start, end, unitState, unitPincode, epfCapEnabled, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     // `unit` feeds PT state / pincode / EPF-cap policy — computing before it
     // lands produces a wrong (often zero) first render that only self-corrects
@@ -925,7 +925,12 @@ function PayrollUnitPage() {
 
 
 
+  // Keep the last successful register mounted while reference data or a manual
+  // recalculation refreshes in the background. Replacing this large table with
+  // an empty/loading state tears down every row and is perceived as a full-page
+  // flicker, especially when an expanded pay sheet changes the table height.
   const rows = data ?? [];
+  const isLoading = isPending && data === undefined;
 
   // ---- Form XVI wage slips -------------------------------------------------
   const [slipBusy, setSlipBusy] = useState<string | null>(null);
@@ -1921,7 +1926,7 @@ function PayrollUnitPage() {
 
       <div className="rounded-3xl border border-border/70 bg-card shadow-sm">
         <div className="overflow-x-auto overscroll-x-contain rounded-b-3xl [scrollbar-gutter:stable] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-muted/30">
-          <table className="ios-table min-w-[1180px] table-auto text-sm whitespace-nowrap">
+          <table className="min-w-[1180px] table-auto text-sm whitespace-nowrap">
             <thead className="border-b border-border/60 bg-secondary/40">
               <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
                 {showHoldColumn && (
