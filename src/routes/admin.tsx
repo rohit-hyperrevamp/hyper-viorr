@@ -371,12 +371,15 @@ function AdminLayout() {
     return () => { alive = false; clearInterval(t); };
   }, [isReady, user, isSuperAdmin, logout]);
 
-  // When the Supabase session finishes restoring (or the user signs in), drop
-  // any cached empty results from queries that fired before auth was ready.
+  // A fresh sign-in may leave anonymous query results in cache. Clear those
+  // once after sign-in, but never invalidate the entire application on token
+  // refresh/initial-session events: that refetched the very large payroll
+  // computation and every supporting query together, causing screen-wide
+  // reflow and flicker while users were reading the register.
   const queryClient = useQueryClient();
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+      if (event === "SIGNED_IN") {
         queryClient.invalidateQueries();
       }
     });
