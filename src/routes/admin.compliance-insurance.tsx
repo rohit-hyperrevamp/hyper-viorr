@@ -221,17 +221,23 @@ function InsuranceRegisterPage() {
   const navigate = useNavigate({ from: "/admin/compliance-insurance" });
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [loc, setLoc] = useState<string>("all");
 
   const { data, isLoading } = useInsuranceRegister(ym, head);
   const all = data?.rows ?? [];
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    if (!needle) return all;
-    return all.filter((r) => `${r.name} ${r.code} ${r.unit}`.toLowerCase().includes(needle));
-  }, [all, q]);
+    return all.filter((r) => {
+      if (head === "esic" && loc !== "all" && (r.branchId ?? "none") !== loc) return false;
+      if (!needle) return true;
+      return `${r.name} ${r.code} ${r.unit} ${r.location} ${r.esicCode}`.toLowerCase().includes(needle);
+    });
+  }, [all, q, loc, head]);
 
   const total = rows.reduce((s, r) => s + r.amount, 0);
+  const eeTotal = rows.filter((r) => r.side === "ee").reduce((s, r) => s + r.amount, 0);
+  const erTotal = rows.filter((r) => r.side === "er").reduce((s, r) => s + r.amount, 0);
   const people = new Set(rows.map((r) => r.candidateId)).size;
 
   const groups = useMemo(() => {
@@ -249,6 +255,46 @@ function InsuranceRegisterPage() {
       }))
       .sort((a, b) => b.total - a.total);
   }, [rows]);
+
+  // Location → unit → employee tree for the ESIC register
+  const esicTree = useMemo(() => {
+    type Emp = { candidateId: string; name: string; code: string; joining: string | null; ee: number; er: number };
+    type UnitNode = { unitId: string | null; unit: string; ee: number; er: number; emps: Emp[] };
+    const locMap = new Map<
+      string,
+      { key: string; location: string; esicCode: string; ee: number; er: number; units: Map<string, UnitNode> }
+    >();
+    for (const r of rows) {
+      const key = r.branchId ?? "none";
+      let node = locMap.get(key);
+      if (!node) {
+        node = { key, location: r.location, esicCode: r.esicCode, ee: 0, er: 0, units: new Map() };
+        locMap.set(key, node);
+      }
+      let unit = node.units.get(r.unit);
+      if (!unit) {
+        unit = { unitId: r.unitId, unit: r.unit, ee: 0, er: 0, emps: [] };
+        node.units.set(r.unit, unit);
+      }
+      let emp = unit.emps.find((e) => e.candidateId === r.candidateId);
+      if (!emp) {
+        emp = { candidateId: r.candidateId, name: r.name, code: r.code, joining: r.joining, ee: 0, er: 0 };
+        unit.emps.push(emp);
+      }
+      emp[r.side] += r.amount;
+      unit[r.side] += r.amount;
+      node[r.side] += r.amount;
+    }
+    return Array.from(locMap.values())
+      .map((n) => ({
+        ...n,
+        unitList: Array.from(n.units.values())
+          .map((u) => ({ ...u, emps: u.emps.sort((a, b) => a.name.localeCompare(b.name)) }))
+          .sort((a, b) => b.ee + b.er - (a.ee + a.er)),
+      }))
+      .sort((a, b) => b.ee + b.er - (a.ee + a.er));
+  }, [rows]);
+
 
   const monthLabel = new Date(ym + "-01T00:00:00").toLocaleDateString("en-IN", {
     month: "long",
