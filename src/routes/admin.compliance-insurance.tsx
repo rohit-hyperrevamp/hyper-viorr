@@ -333,19 +333,29 @@ function InsuranceRegisterPage() {
                 downloadCsv(
                   `${head}-register-${ym}`,
                   rows.map((r) => ({
+                    location: r.location,
+                    esicCode: r.esicCode,
                     code: r.code,
                     name: r.name,
                     unit: r.unit,
                     joining: r.joining ?? "",
+                    side: r.side === "ee" ? "Employee" : "Employer",
                     amount: r.amount,
                     date: r.date,
                     note: r.note,
                   })),
                   [
+                    ...(head === "esic"
+                      ? [
+                          { key: "location", header: "ESIC location" },
+                          { key: "esicCode", header: "ESIC code" },
+                        ]
+                      : []),
                     { key: "code", header: "Employee code" },
                     { key: "name", header: "Name" },
                     { key: "unit", header: "Unit" },
                     { key: "joining", header: "Date of joining" },
+                    ...(head === "esic" ? [{ key: "side", header: "Contribution" }] : []),
                     { key: "amount", header: `${meta.label} amount` },
                     { key: "date", header: "Recovered on" },
                     { key: "note", header: "Line" },
@@ -361,12 +371,28 @@ function InsuranceRegisterPage() {
 
       {/* Search */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
+        {head === "esic" ? (
+          <Select value={loc} onValueChange={setLoc}>
+            <SelectTrigger className="h-9 w-full text-xs sm:w-[260px]">
+              <SelectValue placeholder="All locations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All locations</SelectItem>
+              {(data?.branches ?? []).map((b) => (
+                <SelectItem key={b.id} value={b.id}>
+                  {b.location} · {b.esic_code}
+                </SelectItem>
+              ))}
+              <SelectItem value="none">Unmapped location</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : null}
         <div className="relative min-w-[200px] flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search employee or unit…"
+            placeholder={head === "esic" ? "Search employee, unit or ESIC code…" : "Search employee or unit…"}
             className="h-9 pl-8 text-xs"
           />
         </div>
@@ -375,17 +401,25 @@ function InsuranceRegisterPage() {
       {/* Totals */}
       <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <StatCard label={`${meta.label} recovered · ${monthLabel}`} value={inr(total)} sub={`${people} employees`} />
-        <StatCard label="Units covered" value={String(groups.length)} />
-        <StatCard
-          label="Units with cover on"
-          value={head === "gpaip" ? String(enabledUnits.length) : "—"}
-          sub={head === "gpaip" ? "Unit-level GPAIP toggle" : "Employer-borne cover"}
-        />
-        <StatCard
-          label="Average per employee"
-          value={people ? inr(total / people) : "—"}
-        />
+        {head === "esic" ? (
+          <>
+            <StatCard label="Employee contribution" value={inr(eeTotal)} sub="0.75% of gross" />
+            <StatCard label="Employer contribution" value={inr(erTotal)} sub="3.25% of gross" />
+            <StatCard label="ESIC locations" value={String(esicTree.length)} sub={`${groups.length} units`} />
+          </>
+        ) : (
+          <>
+            <StatCard label="Units covered" value={String(groups.length)} />
+            <StatCard
+              label="Units with cover on"
+              value={head === "gpaip" ? String(enabledUnits.length) : "—"}
+              sub={head === "gpaip" ? "Unit-level GPAIP toggle" : "Employer-borne cover"}
+            />
+            <StatCard label="Average per employee" value={people ? inr(total / people) : "—"} />
+          </>
+        )}
       </div>
+
 
       {/* Policies backing this head */}
       {data?.policies?.length ? (
