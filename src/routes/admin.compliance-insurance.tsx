@@ -314,7 +314,7 @@ function InsuranceRegisterPage() {
   // Location → unit → employee tree for the ESIC register
   const esicTree = useMemo(() => {
     type Emp = { candidateId: string; name: string; code: string; joining: string | null; ee: number; er: number };
-    type UnitNode = { unitId: string | null; unit: string; ee: number; er: number; emps: Emp[] };
+    type UnitNode = { unitId: string | null; unit: string; basis: EsicBasis; ee: number; er: number; emps: Emp[] };
     const locMap = new Map<
       string,
       { key: string; location: string; esicCode: string; ee: number; er: number; units: Map<string, UnitNode> }
@@ -328,8 +328,9 @@ function InsuranceRegisterPage() {
       }
       let unit = node.units.get(r.unit);
       if (!unit) {
-        unit = { unitId: r.unitId, unit: r.unit, ee: 0, er: 0, emps: [] };
+        unit = { unitId: r.unitId, unit: r.unit, basis: r.basis, ee: 0, er: 0, emps: [] };
         node.units.set(r.unit, unit);
+
       }
       let emp = unit.emps.find((e) => e.candidateId === r.candidateId);
       if (!emp) {
