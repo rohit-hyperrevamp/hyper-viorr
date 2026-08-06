@@ -150,6 +150,7 @@ export function StatutoryHeadTiles({ ym }: { ym: string }) {
             <Link
               key={h.key}
               to={h.to}
+              search={h.key === "pt" ? { ym } : undefined}
               className={cn(
                 "group relative flex flex-col overflow-hidden rounded-[22px] border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:p-4",
                 ACCENT_TILE_BG[h.accent],
