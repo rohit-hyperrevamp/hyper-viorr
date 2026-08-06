@@ -520,47 +520,31 @@ export async function processPayrollAmendment(args: {
     }
 
     // ---- 2. Employee deduction heads --------------------------------------
-    // A lower gross means less ESI / EPF / PT was actually due. Each head moves
-    // on its own row and carries the right deduction type, so the ESI, EPF, PT
-    // and LWF registers all pick the correction up.
+    // A lower gross means less ESI / EPF / PT was actually due. Keep both
+    // increases and reductions in the deduction ledger under their own head.
+    // Reductions are signed negative rows: moving them to Additions would hide
+    // the correction from the statutory deduction register.
     for (const l of deductionDiffs) {
       const typeId = pickDeductionTypeId(l.name, deductionTypes);
       const detail =
         `${note} Head: ${l.name} — ₹${l.before.toFixed(2)} → ₹${l.after.toFixed(2)} `
         + `(${l.delta >= 0 ? "additional recovery" : "excess deducted, refunded"} ₹${Math.abs(l.delta).toFixed(2)}).`;
-      if (l.delta > 0) {
-        recoveries += l.delta;
-        deductionRows.push({
-          candidate_id: d.candidateId,
-          deduction_type_id: typeId,
-          deduction_name: `${l.name} — amendment v${version} (${period})`,
-          deduction_date: applyDate,
-          amount: Math.round(l.delta * 100) / 100,
-          calculation_type: "lumpsum",
-          entry_mode: "lumpsum",
-          installments: 1,
-          description: detail,
-          status: "active",
-          source_kind: "payroll_amendment",
-          source_ref: ref,
-        });
-      } else {
-        arrears += Math.abs(l.delta);
-        additionRows.push({
-          candidate_id: d.candidateId,
-          addition_type_id: pickAdditionTypeId(l.name, additionTypes),
-          addition_name: `${l.name} refund — amendment v${version} (${period})`,
-          addition_date: applyDate,
-          amount: Math.round(Math.abs(l.delta) * 100) / 100,
-          calculation_type: "lumpsum",
-          entry_mode: "lumpsum",
-          installments: 1,
-          description: detail,
-          status: "active",
-          source_kind: "payroll_amendment",
-          source_ref: ref,
-        });
-      }
+      if (l.delta > 0) recoveries += l.delta;
+      else arrears += Math.abs(l.delta);
+      deductionRows.push({
+        candidate_id: d.candidateId,
+        deduction_type_id: typeId,
+        deduction_name: `${l.name} — amendment v${version} (${period})`,
+        deduction_date: applyDate,
+        amount: Math.round(l.delta * 100) / 100,
+        calculation_type: "lumpsum",
+        entry_mode: "lumpsum",
+        installments: 1,
+        description: detail,
+        status: "active",
+        source_kind: "payroll_amendment",
+        source_ref: ref,
+      });
     }
 
     // ---- 3. Employer contribution heads -----------------------------------
@@ -583,8 +567,8 @@ export async function processPayrollAmendment(args: {
         frequency: frequencyOf(l.name),
         period_start: periodStart,
         period_end: periodEnd,
-        contribution_date: periodEnd,
-        status: "processed",
+        contribution_date: applyDate,
+        status: "active",
         notes:
           `${note} Head: ${l.name} — ₹${l.before.toFixed(2)} → ₹${l.after.toFixed(2)} `
           + `(${l.delta >= 0 ? "increase" : "reversal"} ₹${Math.abs(l.delta).toFixed(2)}).`,
