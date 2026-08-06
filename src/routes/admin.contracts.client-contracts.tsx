@@ -169,7 +169,7 @@ type ClientContract = {
   serviceTypeId: string | null;
   payrollWindowId: string | null;
   billingTypeId: string | null;
-  esicBranchId: string | null;
+  
   gstOption: GstOption;
   status: ContractStatus;
   approvalStatus: ApprovalStatus;
@@ -380,7 +380,7 @@ function rowToContract(r: Record<string, unknown>): ClientContract {
     serviceTypeId: r.service_type_id ? String(r.service_type_id) : null,
     payrollWindowId: r.payroll_window_id ? String(r.payroll_window_id) : null,
     billingTypeId: r.billing_type_id ? String(r.billing_type_id) : null,
-    esicBranchId: r.esic_branch_id ? String(r.esic_branch_id) : null,
+    
     gstOption: (r.gst_option as GstOption) ?? "csgst",
     status: (r.status as ContractStatus) ?? "inactive",
     approvalStatus: (r.approval_status as ApprovalStatus) ?? "pending",
@@ -1448,7 +1448,7 @@ const CONTRACT_FIELDS = [
   "service_type_id",
   "payroll_window_id",
   "billing_type_id",
-  "esic_branch_id",
+  
   "gst_option",
   "status",
 ] as const;
@@ -1512,7 +1512,7 @@ async function exportContractToXlsx(contract: ClientContract): Promise<void> {
   summaryRows.push(["Service Type", svcMap.get(contract.serviceTypeId ?? "") ?? ""]);
   summaryRows.push(["Payroll Window", pwMap.get(contract.payrollWindowId ?? "") ?? ""]);
   summaryRows.push(["Billing Type", btMap.get(contract.billingTypeId ?? "") ?? ""]);
-  summaryRows.push(["ESIC Subcode", esicMap.get(contract.esicBranchId ?? "") ?? ""]);
+  
   summaryRows.push(["GST Option", contract.gstOption]);
 
   let totalHeadcount = 0;
@@ -1652,7 +1652,7 @@ async function exportContractToXlsx(contract: ClientContract): Promise<void> {
     service_type_id: contract.serviceTypeId ?? "",
     payroll_window_id: contract.payrollWindowId ?? "",
     billing_type_id: contract.billingTypeId ?? "",
-    esic_branch_id: contract.esicBranchId ?? "",
+    
     gst_option: contract.gstOption,
     status: contract.status,
   };
@@ -1838,7 +1838,7 @@ async function importContractFromXlsx(buf: ArrayBuffer): Promise<{
     service_type_id: contractRow.service_type_id ? String(contractRow.service_type_id) : null,
     payroll_window_id: contractRow.payroll_window_id ? String(contractRow.payroll_window_id) : null,
     billing_type_id: contractRow.billing_type_id ? String(contractRow.billing_type_id) : null,
-    esic_branch_id: contractRow.esic_branch_id ? String(contractRow.esic_branch_id) : null,
+    
     gst_option: normalizeGstOption(contractRow.gst_option),
     status: normalizeStatus(contractRow.status),
     // Imported client contracts must land in the Clients tab, not as prospects
@@ -2713,7 +2713,6 @@ function ContractViewDialog({
   const serviceTypes = useServiceTypes();
   const payrollWindows = usePayrollWindows();
   const billingTypes = useBillingTypes();
-  const esicBranches = useEsicBranches();
 
   const designationName = (id: string) =>
     designations.find((d) => d.id === id)?.name ?? "—";
@@ -2756,14 +2755,6 @@ function ContractViewDialog({
           <ViewRow
             label="Billing type"
             value={billingTypes.find((b) => b.id === contract.billingTypeId)?.name ?? "—"}
-          />
-          <ViewRow
-            label="ESIC branch"
-            value={
-              esicBranches.find((e) => e.id === contract.esicBranchId)
-                ? `${esicBranches.find((e) => e.id === contract.esicBranchId)!.esicCode} — ${esicBranches.find((e) => e.id === contract.esicBranchId)!.location}`
-                : "—"
-            }
           />
         </div>
 
@@ -2890,7 +2881,7 @@ function ContractFormDialog({
   const serviceTypes = useServiceTypes();
   const payrollWindows = usePayrollWindows();
   const billingTypes = useBillingTypes();
-  const esicBranches = useEsicBranches();
+  
 
   const customerById = useMemo(
     () => new Map(customers.map((c) => [c.id, c])),
@@ -2910,7 +2901,7 @@ function ContractFormDialog({
   const [serviceTypeId, setServiceTypeId] = useState<string>("");
   const [payrollWindowId, setPayrollWindowId] = useState<string>("");
   const [billingTypeId, setBillingTypeId] = useState<string>("");
-  const [esicBranchId, setEsicBranchId] = useState<string>("");
+  
   const [gstOption, setGstOption] = useState<GstOption>("csgst");
   const [approvalValue, setApprovalValue] = useState<ApprovalPickerValue>(null);
   const [unitPickerOpen, setUnitPickerOpen] = useState(false);
@@ -2978,7 +2969,7 @@ function ContractFormDialog({
       setServiceTypeId(editing.serviceTypeId ?? "");
       setPayrollWindowId(editing.payrollWindowId ?? "");
       setBillingTypeId(editing.billingTypeId ?? "");
-      setEsicBranchId(editing.esicBranchId ?? "");
+      
       setGstOption(editing.gstOption);
       setApprovalValue(getApprovalPickerValue(editing));
     } else {
@@ -3396,27 +3387,6 @@ function ContractFormDialog({
                   </Select>
                 </Field>
               </div>
-              <div className="sm:col-span-3">
-                <Field label="ESIC Subcode">
-                  <Select
-                    value={esicBranchId || "none"}
-                    onValueChange={(v) => setEsicBranchId(v === "none" ? "" : v)}
-                  >
-                    <SelectTrigger className="h-10 rounded-lg">
-                      <SelectValue placeholder="Select ESIC subcode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">— None —</SelectItem>
-                      {esicBranches.map((b) => (
-                        <SelectItem key={b.id} value={b.id}>
-                          <span className="font-mono text-xs">{b.esicCode}</span>
-                          {b.location ? ` — ${b.location}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
             </div>
           </Section>
 
@@ -3533,7 +3503,7 @@ function ContractFormDialog({
                 serviceTypeId: serviceTypeId || null,
                 payrollWindowId: payrollWindowId || null,
                 billingTypeId: billingTypeId || null,
-                esicBranchId: esicBranchId || null,
+                
                 gstOption,
                 status: editing?.status ?? "inactive",
                 approvalStatus: editing?.approvalStatus ?? "pending",
