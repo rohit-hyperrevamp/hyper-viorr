@@ -2003,32 +2003,41 @@ function PayrollUnitPage() {
                     </td>
                   )}
                   <td className="px-4 py-3">
-                    <button
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      aria-label={isExpanded ? `Collapse pay sheet for ${r.name}` : `Expand pay sheet for ${r.name}`}
                       onClick={() => {
-                        const next = new Set(expandedRows);
-                        if (next.has(r.rowKey)) next.delete(r.rowKey);
-                        else next.add(r.rowKey);
-                        setExpandedRows(next);
+                        setExpandedRows((current) => {
+                          const next = new Set(current);
+                          if (next.has(r.rowKey)) next.delete(r.rowKey);
+                          else next.add(r.rowKey);
+                          return next;
+                        });
                       }}
-                      className="inline-flex items-center justify-center rounded-lg border border-border/60 bg-background p-1 hover:bg-muted transition-colors"
+                      className="h-7 w-7"
                     >
                       {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                    </button>
+                    </Button>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{r.employeeCode || "—"}</td>
                   <td className="px-4 py-3 font-medium">
                     <div className="flex items-center gap-2">
                       <span>{r.name}</span>
                       {r.wages && isProcessed && (
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="icon"
                           title="Download Form XVI wage slip"
+                          aria-label={`Download wage slip for ${r.name}`}
                           onClick={() => downloadSlip(r)}
                           disabled={slipBusy !== null}
-                          className="inline-flex items-center justify-center rounded-lg border border-border/60 bg-background p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                          className="h-7 w-7 text-muted-foreground"
                         >
                           {slipBusy === r.rowKey ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </td>
