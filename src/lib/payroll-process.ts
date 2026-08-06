@@ -462,9 +462,9 @@ export async function processPayrollAmendment(args: {
     const period = periodStart.slice(0, 7);
 
     // ---- 1. Wage side -----------------------------------------------------
-    // Post the EARNINGS movement head by head (Basic, DA, HRA, washing…) so the
-    // amendment reconciles against the same gross the register shows, instead
-    // of a single opaque number.
+    // The earnings movement (Basic, DA, HRA, Conv, WA…) is consolidated into a
+    // SINGLE "Gross" line so the next payroll recovers/credits the whole wage
+    // difference in one ledger row. The individual heads stay in the note.
     const earningDiffs = diffLines(d.earningsBefore, d.earningsAfter).filter((l) => Math.abs(l.delta) > 0.004);
     const deductionDiffs = diffLines(d.deductionsBefore, d.deductionsAfter).filter((l) => Math.abs(l.delta) > 0.004);
     const employerDiffs = diffLines(d.employerBefore, d.employerAfter).filter((l) => Math.abs(l.delta) > 0.004);
@@ -474,16 +474,20 @@ export async function processPayrollAmendment(args: {
 
     // Fall back to the totals-only path when the caller could not supply lines
     // (older snapshots have no component jsonb).
-    const wageLines: Array<{ name: string; delta: number }> = earningDiffs.length
-      ? earningDiffs.map((l) => ({ name: l.name, delta: l.delta }))
-      : (() => {
-          const w = Math.round((netDelta + deductionDeltaTotal) * 100) / 100;
-          return Math.abs(w) > 0.004 ? [{ name: "Wages", delta: w }] : [];
-        })();
+    const grossDelta = earningDiffs.length
+      ? earningDeltaTotal
+      : Math.round((netDelta + deductionDeltaTotal) * 100) / 100;
+    const headBreakup = earningDiffs
+      .map((l) => `${l.name} ₹${l.before.toFixed(2)} → ₹${l.after.toFixed(2)}`)
+      .join(", ");
+    const wageLines: Array<{ name: string; delta: number }> =
+      Math.abs(grossDelta) > 0.004 ? [{ name: "Gross", delta: grossDelta }] : [];
 
     for (const l of wageLines) {
       const detail =
-        `${note} Head: ${l.name} — wage component ${l.delta >= 0 ? "credited" : "recovered"} ₹${Math.abs(l.delta).toFixed(2)}.`;
+        `${note} Gross ₹${(d.before.gross ?? 0).toFixed(2)} → ₹${(d.after.gross ?? 0).toFixed(2)} — `
+        + `${l.delta >= 0 ? "credited" : "recovered"} ₹${Math.abs(l.delta).toFixed(2)}.`
+        + (headBreakup ? ` Heads: ${headBreakup}.` : "");
       if (l.delta > 0) {
         arrears += l.delta;
         additionRows.push({
