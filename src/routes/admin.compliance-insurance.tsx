@@ -48,6 +48,14 @@ const inr = (n: number) =>
 const fmtDate = (d: string | null | undefined) =>
   d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
+type EsicBasis = "basic_da" | "gross" | "unknown";
+
+const BASIS_LABEL: Record<EsicBasis, string> = {
+  basic_da: "Basic + DA",
+  gross: "Gross − washing",
+  unknown: "Basis not set",
+};
+
 type Row = {
   id: string;
   candidateId: string;
@@ -63,6 +71,7 @@ type Row = {
   branchId: string | null;
   location: string;
   esicCode: string;
+  basis: EsicBasis;
 };
 
 
@@ -77,6 +86,34 @@ type Policy = {
 };
 
 type Branch = { id: string; location: string; esic_code: string; enabled: boolean };
+
+/** Derive whether a unit's ESIC is computed on Basic + DA or on Gross − washing. */
+function deriveUnitEsicBasis(
+  contracts: Array<{ id: string; unit_id: string | null }>,
+  resources: Array<{ contract_id: string; deductions: unknown; employer_contributions: unknown }>,
+): Map<string, EsicBasis> {
+  const contractUnit = new Map(contracts.map((c) => [c.id, c.unit_id]));
+  const out = new Map<string, EsicBasis>();
+  const isEsi = (n: string) => /\besi(c)?\b/i.test(n) || /esi/i.test(n.replace(/[^a-z]/gi, ""));
+  for (const r of resources) {
+    const unitId = contractUnit.get(r.contract_id);
+    if (!unitId) continue;
+    const lines = [
+      ...(Array.isArray(r.deductions) ? (r.deductions as Record<string, unknown>[]) : []),
+      ...(Array.isArray(r.employer_contributions) ? (r.employer_contributions as Record<string, unknown>[]) : []),
+    ];
+    for (const l of lines) {
+      const name = String(l.name ?? "");
+      if (!isEsi(name)) continue;
+      const blob = JSON.stringify(l.formulaExpression ?? "") + JSON.stringify(l.baseComponents ?? "") + name;
+      const basis: EsicBasis = /gross/i.test(blob) ? "gross" : /basic/i.test(blob) ? "basic_da" : "unknown";
+      if (basis !== "unknown") out.set(unitId, basis);
+      else if (!out.has(unitId)) out.set(unitId, "unknown");
+    }
+  }
+  return out;
+}
+
 
 function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
   return useQuery({
