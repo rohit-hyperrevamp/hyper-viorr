@@ -2658,9 +2658,81 @@ type PaySheetVersion = {
   paid_days: number;
   gross: number;
   total_deductions: number;
+  total_employer?: number;
   net_pay: number;
   posted_at: string;
+  earnings?: { name: string; amount: number }[];
+  deductions?: { name: string; amount: number }[];
+  employer_contributions?: { name: string; amount: number }[];
 };
+
+/** Head-by-head Before → After (Δ) for one amendment version, per register. */
+function VersionHeadDiff({ prev, curr }: { prev: PaySheetVersion; curr: PaySheetVersion }) {
+  const groups = [
+    { title: "Earnings", tone: "text-emerald-700", before: prev.earnings, after: curr.earnings },
+    { title: "Deductions", tone: "text-rose-700", before: prev.deductions, after: curr.deductions },
+    {
+      title: "Employer contributions",
+      tone: "text-violet-700",
+      before: prev.employer_contributions,
+      after: curr.employer_contributions,
+    },
+  ]
+    .map((g) => ({ ...g, lines: diffLines(g.before, g.after).filter((l) => Math.abs(l.delta) > 0.004) }))
+    .filter((g) => g.lines.length > 0);
+
+  if (groups.length === 0) return null;
+
+  return (
+    <div className="mt-2 space-y-2 rounded-lg border border-indigo-200/70 bg-background/70 p-2">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-800">
+        v{curr.version} adjustment breakup — applied head by head in the next payroll
+      </div>
+      {groups.map((g) => (
+        <div key={g.title} className="overflow-hidden rounded-md border border-border/60">
+          <div className={cn("flex items-center justify-between bg-muted/50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]", g.tone)}>
+            <span>{g.title}</span>
+            <span className="flex gap-4 tracking-normal">
+              <span className="w-20 text-right normal-case">Before</span>
+              <span className="w-20 text-right normal-case">After</span>
+              <span className="w-20 text-right normal-case">Δ</span>
+            </span>
+          </div>
+          <div className="divide-y divide-border/40">
+            {g.lines.map((l) => (
+              <div key={l.name} className="flex items-center justify-between gap-3 px-2 py-1 text-[11px]">
+                <span className="min-w-0 flex-1 truncate">{l.name}</span>
+                <span className="w-20 shrink-0 text-right tabular-nums text-muted-foreground">{l.before.toFixed(2)}</span>
+                <span className="w-20 shrink-0 text-right tabular-nums">{l.after.toFixed(2)}</span>
+                <span
+                  className={cn(
+                    "w-20 shrink-0 text-right font-semibold tabular-nums",
+                    l.delta > 0 ? "text-emerald-700" : "text-rose-700",
+                  )}
+                >
+                  {l.delta > 0 ? "+" : "−"}
+                  {Math.abs(l.delta).toFixed(2)}
+                </span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between gap-3 bg-muted/30 px-2 py-1 text-[11px] font-semibold">
+              <span className="min-w-0 flex-1 truncate uppercase tracking-wide">Net {g.title.toLowerCase()} change</span>
+              <span className="w-20 shrink-0" />
+              <span className="w-20 shrink-0" />
+              <span className="w-20 shrink-0 text-right tabular-nums">
+                {(() => {
+                  const t = Math.round(g.lines.reduce((s, l) => s + l.delta, 0) * 100) / 100;
+                  return `${t >= 0 ? "+" : "−"}${Math.abs(t).toFixed(2)}`;
+                })()}
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 function PaySheetPanel({ r, versions = [] }: { r: PaySheetRow; versions?: PaySheetVersion[] }) {
   const w = r.wages;
