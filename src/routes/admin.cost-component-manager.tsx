@@ -234,6 +234,22 @@ function displayDescription(c: CostComponent): string {
   return c.description?.trim() ? c.description.trim() : buildDescription(c);
 }
 
+/**
+ * Percent shown in the register. Legacy rows store it in `percentage`; rows saved
+ * with the formula builder store 0 there and keep the real rate inside the preset
+ * formula, so derive it from the formula when available.
+ */
+function displayPercent(c: CostComponent): string {
+  if (c.calc_type !== "percentage") return "—";
+  const cfg = parseFormulaConfig(c.formula_mode, c.formula_expression);
+  if (cfg?.mode === "preset" && cfg.preset.operator === "percent") {
+    const p = Number(cfg.preset.percent) || 0;
+    if (p) return `${p}%`;
+  }
+  if (cfg?.mode === "advanced" && !c.percentage) return "Formula";
+  return `${c.percentage}%`;
+}
+
 function useCostComponents() {
   const qc = useQueryClient();
   const { data: items = [] } = useQuery({
@@ -412,7 +428,7 @@ function CostComponentManagerPage() {
                   name: i.name,
                   description: displayDescription(i),
                   calc_type: i.calc_type,
-                  percentage: i.percentage,
+                  percentage: displayPercent(i),
                   party: PARTY_LABEL[i.party],
                   state: i.state,
                   enabled: i.enabled ? "Yes" : "No",
@@ -463,7 +479,7 @@ function CostComponentManagerPage() {
                   </td>
                   <td className="px-5 py-3 text-foreground/80">{displayDescription(i)}</td>
                   <td className="px-5 py-3 text-foreground/90">
-                    {i.calc_type === "percentage" ? `${i.percentage}%` : "—"}
+                    {displayPercent(i)}
                   </td>
                   <td className="px-5 py-3">
                     <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
