@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Download, CheckCircle2, XCircle, Send, ChevronDown, ChevronUp, Banknote, PauseCircle, PlayCircle, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -383,6 +383,7 @@ function PayrollUnitPage() {
     // lands produces a wrong (often zero) first render that only self-corrects
     // on a hard refresh.
     enabled: unit !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       await supabaseSessionReady();
       // 1. Roster: candidates mapped to this unit (primary + secondary).
@@ -1648,7 +1649,7 @@ function PayrollUnitPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ["admin", "payroll", "unit"] });
+                queryClient.invalidateQueries({ queryKey: ["payroll-register-compute", unitId, start, end] });
                 queryClient.invalidateQueries({ queryKey: ["admin", "additions"] });
                 queryClient.invalidateQueries({ queryKey: ["admin", "deductions"] });
                 queryClient.invalidateQueries({ queryKey: ["admin", "allowance-types"] });
