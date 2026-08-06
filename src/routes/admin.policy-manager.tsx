@@ -570,6 +570,9 @@ function PolicyFormDialog({
                 documentPath,
                 documentName,
                 enabled,
+                sumAssured,
+                additionalCover,
+                ttdEnabled,
               });
               setSaving(false);
               if (err) toast.error(err);
