@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -48,11 +49,29 @@ type Policy = {
   documentPath: string;
   documentName: string;
   enabled: boolean;
+  sumAssured: number | null;
+  additionalCover: number | null;
+  ttdEnabled: boolean;
 };
 
 type Payload = Omit<Policy, "id">;
 
 const QK = ["admin", "policies"] as const;
+
+const LAKH_OPTIONS = [1, 2, 3, 5, 10, 15, 20, 25, 50, 100];
+
+function toNum(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function fmtAmount(v: number | null) {
+  if (v === null) return "—";
+  const lakhs = v / 100000;
+  const label = Number.isInteger(lakhs) ? `${lakhs}L` : `${lakhs.toFixed(2)}L`;
+  return `₹${v.toLocaleString("en-IN")} (${label})`;
+}
 
 function rowToPolicy(r: Record<string, unknown>): Policy {
   return {
@@ -66,6 +85,9 @@ function rowToPolicy(r: Record<string, unknown>): Policy {
     documentPath: r.document_path ? String(r.document_path) : "",
     documentName: r.document_name ? String(r.document_name) : "",
     enabled: Boolean(r.enabled ?? true),
+    sumAssured: toNum(r.sum_assured),
+    additionalCover: toNum(r.additional_cover),
+    ttdEnabled: Boolean(r.ttd_enabled ?? false),
   };
 }
 
@@ -80,6 +102,9 @@ function toRow(p: Payload) {
     document_path: p.documentPath || null,
     document_name: p.documentName || null,
     enabled: p.enabled,
+    sum_assured: p.sumAssured,
+    additional_cover: p.additionalCover,
+    ttd_enabled: p.ttdEnabled,
   };
 }
 
@@ -96,7 +121,9 @@ function usePolicies() {
     queryFn: async (): Promise<Policy[]> => {
       const { data, error } = await supabase
         .from("policies" as never)
-        .select("id,name,provider,description,policy_number,start_date,end_date,document_path,document_name,enabled")
+        .select(
+          "id,name,provider,description,policy_number,start_date,end_date,document_path,document_name,enabled,sum_assured,additional_cover,ttd_enabled",
+        )
         .order("name", { ascending: true });
       if (error) throw error;
       return ((data as unknown) as Record<string, unknown>[]).map(rowToPolicy);
@@ -203,6 +230,9 @@ function PolicyManagerPage() {
                   provider: i.provider,
                   policyNumber: i.policyNumber,
                   description: i.description,
+                  sumAssured: i.sumAssured ?? "",
+                  additionalCover: i.additionalCover ?? "",
+                  ttd: i.ttdEnabled ? "Yes" : "No",
                   startDate: i.startDate,
                   endDate: i.endDate,
                   enabled: i.enabled ? "Yes" : "No",
@@ -212,6 +242,9 @@ function PolicyManagerPage() {
                   { key: "provider", header: "Provider" },
                   { key: "policyNumber", header: "Policy Number" },
                   { key: "description", header: "Description" },
+                  { key: "sumAssured", header: "Sum Assured" },
+                  { key: "additionalCover", header: "Additional Cover" },
+                  { key: "ttd", header: "TTD Enabled" },
                   { key: "startDate", header: "Start Date" },
                   { key: "endDate", header: "End Date" },
                   { key: "enabled", header: "Enabled" },
@@ -247,6 +280,9 @@ function PolicyManagerPage() {
                 <th className="px-5 py-3">Policy</th>
                 <th className="px-5 py-3">Provider</th>
                 <th className="px-5 py-3">Policy Number</th>
+                <th className="px-5 py-3">Sum Assured</th>
+                <th className="px-5 py-3">Additional Cover</th>
+                <th className="px-5 py-3">TTD</th>
                 <th className="px-5 py-3">Start</th>
                 <th className="px-5 py-3">End</th>
                 <th className="px-5 py-3">Master Policy</th>
@@ -270,6 +306,17 @@ function PolicyManagerPage() {
                   </td>
                   <td className="px-5 py-3 text-foreground/90">{i.provider || "—"}</td>
                   <td className="px-5 py-3 font-mono text-xs text-foreground/90">{i.policyNumber || "—"}</td>
+                  <td className="px-5 py-3 text-foreground/90">{fmtAmount(i.sumAssured)}</td>
+                  <td className="px-5 py-3 text-foreground/90">{fmtAmount(i.additionalCover)}</td>
+                  <td className="px-5 py-3">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                        i.ttdEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {i.ttdEnabled ? "TTD On" : "TTD Off"}
+                    </span>
+                  </td>
                   <td className="px-5 py-3 text-foreground/90">{fmtDate(i.startDate)}</td>
                   <td className="px-5 py-3 text-foreground/90">{fmtDate(i.endDate)}</td>
                   <td className="px-5 py-3">
@@ -423,6 +470,9 @@ function PolicyFormDialog({
   const [documentPath, setDocumentPath] = useState("");
   const [documentName, setDocumentName] = useState("");
   const [enabled, setEnabled] = useState(true);
+  const [sumAssured, setSumAssured] = useState<number | null>(null);
+  const [additionalCover, setAdditionalCover] = useState<number | null>(null);
+  const [ttdEnabled, setTtdEnabled] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -436,6 +486,9 @@ function PolicyFormDialog({
     setDocumentPath(initial?.documentPath ?? "");
     setDocumentName(initial?.documentName ?? "");
     setEnabled(initial?.enabled ?? true);
+    setSumAssured(initial?.sumAssured ?? null);
+    setAdditionalCover(initial?.additionalCover ?? null);
+    setTtdEnabled(initial?.ttdEnabled ?? false);
   });
 
   const uploadFile = async (file: File) => {
@@ -533,6 +586,17 @@ function PolicyFormDialog({
               )}
             </div>
           </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <AmountLakhField label="Sum assured" value={sumAssured} onChange={setSumAssured} />
+            <AmountLakhField label="Additional cover" value={additionalCover} onChange={setAdditionalCover} />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+            <div>
+              <div className="text-sm font-medium">TTD enabled</div>
+              <div className="text-xs text-muted-foreground">Temporary Total Disablement cover</div>
+            </div>
+            <Switch checked={ttdEnabled} onCheckedChange={setTtdEnabled} />
+          </div>
           <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
             <div>
               <div className="text-sm font-medium">Enabled</div>
@@ -559,6 +623,9 @@ function PolicyFormDialog({
                 documentPath,
                 documentName,
                 enabled,
+                sumAssured,
+                additionalCover,
+                ttdEnabled,
               });
               setSaving(false);
               if (err) toast.error(err);
@@ -579,4 +646,56 @@ function useResetOnOpen(open: boolean, reset: () => void) {
     setLast(open);
     if (open) reset();
   }
+}
+
+function AmountLakhField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number | null;
+  onChange: (v: number | null) => void;
+}) {
+  const isPreset = value !== null && LAKH_OPTIONS.some((l) => l * 100000 === value);
+  const [custom, setCustom] = useState(value !== null && !isPreset);
+
+  return (
+    <div className="grid gap-2">
+      <Label>{label}</Label>
+      <Select
+        value={custom ? "custom" : value === null ? "none" : String(value)}
+        onValueChange={(v) => {
+          if (v === "custom") {
+            setCustom(true);
+            return;
+          }
+          setCustom(false);
+          onChange(v === "none" ? null : Number(v));
+        }}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Select amount" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">Not set</SelectItem>
+          {LAKH_OPTIONS.map((l) => (
+            <SelectItem key={l} value={String(l * 100000)}>
+              ₹{l} Lakh
+            </SelectItem>
+          ))}
+          <SelectItem value="custom">Custom amount…</SelectItem>
+        </SelectContent>
+      </Select>
+      {custom && (
+        <Input
+          type="number"
+          min={0}
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+          placeholder="Enter amount in ₹"
+        />
+      )}
+    </div>
+  );
 }
