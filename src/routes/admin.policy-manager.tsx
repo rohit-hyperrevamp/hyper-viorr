@@ -274,6 +274,9 @@ function PolicyManagerPage() {
                 <th className="px-5 py-3">Policy</th>
                 <th className="px-5 py-3">Provider</th>
                 <th className="px-5 py-3">Policy Number</th>
+                <th className="px-5 py-3">Sum Assured</th>
+                <th className="px-5 py-3">Additional Cover</th>
+                <th className="px-5 py-3">TTD</th>
                 <th className="px-5 py-3">Start</th>
                 <th className="px-5 py-3">End</th>
                 <th className="px-5 py-3">Master Policy</th>
