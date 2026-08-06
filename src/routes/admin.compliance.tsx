@@ -203,10 +203,13 @@ function CompliancePage() {
         description="Every red flag across the operation — organizations, contracts, people, attendance, uniform, fleet, assets and money — in one ranked queue."
         crumbs={[{ label: "Compliance" }]}
         actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
-              <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isFetching && "animate-spin")} /> Refresh
-            </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <MonthYearPicker value={ym} onChange={setYm} />
+            {showExceptions && (
+              <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
+                <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isFetching && "animate-spin")} /> Refresh
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
