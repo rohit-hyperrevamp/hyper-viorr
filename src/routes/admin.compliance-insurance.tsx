@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ChevronRight, Download, Search, ShieldPlus } from "lucide-react";
+import { ArrowLeft, ChevronRight, Download, Search } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -219,7 +219,7 @@ function InsuranceRegisterPage() {
   return (
     <div className="page-shell">
       <PageHeader
-        icon={meta.icon ?? ShieldPlus}
+        icon={meta.icon}
         eyebrow="Governance"
         title={`${meta.label} Register`}
         description={`${meta.full} recovered in the month, employee by employee, grouped by the unit that carries the cover.`}

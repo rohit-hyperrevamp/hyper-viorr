@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, HeartHandshake, ShieldPlus } from "lucide-react";
+import { ArrowUpRight, HeartHandshake, ShieldPlus, type LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ACCENT_CHIP, ACCENT_TILE_BG, type Accent } from "@/components/tile-theme";
@@ -15,7 +15,7 @@ export const INSURANCE_HEADS: Array<{
   label: string;
   full: string;
   accent: Accent;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   /** substrings matched against deduction / contribution names */
   match: string[];
   /** substrings matched against policy names in the policy register */
