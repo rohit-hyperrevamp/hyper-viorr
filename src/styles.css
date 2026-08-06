@@ -916,13 +916,6 @@
 }
 
 
-/* Dialog dirty-guard: disable save-intent buttons until the user edits something. */
-[data-pristine="true"] button[data-save-intent="true"]:not([data-force-enabled="true"]) {
-  opacity: 0.5;
-  pointer-events: none;
-  filter: grayscale(0.2);
-}
-
 /* =========================================================
    Mobile / small-screen safety net.
    Applies globally so every page — regardless of author —
