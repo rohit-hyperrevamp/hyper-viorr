@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronRight, Download, Search } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
