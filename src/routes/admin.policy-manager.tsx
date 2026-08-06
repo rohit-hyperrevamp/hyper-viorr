@@ -297,6 +297,17 @@ function PolicyManagerPage() {
                   </td>
                   <td className="px-5 py-3 text-foreground/90">{i.provider || "—"}</td>
                   <td className="px-5 py-3 font-mono text-xs text-foreground/90">{i.policyNumber || "—"}</td>
+                  <td className="px-5 py-3 text-foreground/90">{fmtAmount(i.sumAssured)}</td>
+                  <td className="px-5 py-3 text-foreground/90">{fmtAmount(i.additionalCover)}</td>
+                  <td className="px-5 py-3">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                        i.ttdEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {i.ttdEnabled ? "TTD On" : "TTD Off"}
+                    </span>
+                  </td>
                   <td className="px-5 py-3 text-foreground/90">{fmtDate(i.startDate)}</td>
                   <td className="px-5 py-3 text-foreground/90">{fmtDate(i.endDate)}</td>
                   <td className="px-5 py-3">
