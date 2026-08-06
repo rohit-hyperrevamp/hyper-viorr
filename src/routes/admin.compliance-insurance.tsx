@@ -552,6 +552,19 @@ function InsuranceRegisterPage() {
                             <div className="flex min-w-0 items-center gap-2">
                               <ChevronRight className={cn("h-3 w-3 transition-transform", uOpen && "rotate-90")} />
                               <span className="truncate text-[12px] font-medium">{u.unit}</span>
+                              <span
+                                className={cn(
+                                  "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                                  u.basis === "gross"
+                                    ? "bg-primary/10 text-primary"
+                                    : u.basis === "basic_da"
+                                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                      : "bg-muted text-muted-foreground",
+                                )}
+                              >
+                                {BASIS_LABEL[u.basis]}
+                              </span>
+
                               <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
                                 {u.emps.length}
                               </span>
