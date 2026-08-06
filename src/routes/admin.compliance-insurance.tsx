@@ -167,7 +167,7 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
       const ids = Array.from(new Set(raw.map((r) => r.candidate_id)));
       const { data: cands } = await supabase
         .from("candidates")
-        .select("id, full_name, employee_code, candidate_code, unit_id, preferred_joining_date, esic_branch_id")
+        .select("id, full_name, employee_code, candidate_code, unit_id, preferred_joining_date")
         .in("id", ids);
       const candMap = new Map((cands ?? []).map((c) => [c.id, c]));
       const unitMap = new Map(units.map((u) => [u.id, u]));
@@ -175,9 +175,7 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
       const rows: Row[] = raw.map((r) => {
         const c = candMap.get(r.candidate_id);
         const u = c?.unit_id ? unitMap.get(c.unit_id) : undefined;
-        const bid =
-          (c?.unit_id ? unitBranch.get(c.unit_id) : undefined) ??
-          ((c as { esic_branch_id?: string | null } | undefined)?.esic_branch_id ?? null);
+        const bid = (c?.unit_id ? unitBranch.get(c.unit_id) : undefined) ?? null;
         const b = bid ? branchMap.get(bid) : undefined;
         return {
           id: r.id,
