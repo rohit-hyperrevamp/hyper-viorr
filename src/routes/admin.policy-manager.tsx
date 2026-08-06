@@ -423,6 +423,9 @@ function PolicyFormDialog({
   const [documentPath, setDocumentPath] = useState("");
   const [documentName, setDocumentName] = useState("");
   const [enabled, setEnabled] = useState(true);
+  const [sumAssured, setSumAssured] = useState<number | null>(null);
+  const [additionalCover, setAdditionalCover] = useState<number | null>(null);
+  const [ttdEnabled, setTtdEnabled] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -436,6 +439,9 @@ function PolicyFormDialog({
     setDocumentPath(initial?.documentPath ?? "");
     setDocumentName(initial?.documentName ?? "");
     setEnabled(initial?.enabled ?? true);
+    setSumAssured(initial?.sumAssured ?? null);
+    setAdditionalCover(initial?.additionalCover ?? null);
+    setTtdEnabled(initial?.ttdEnabled ?? false);
   });
 
   const uploadFile = async (file: File) => {
