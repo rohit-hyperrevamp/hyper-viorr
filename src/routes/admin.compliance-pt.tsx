@@ -182,6 +182,8 @@ function PtRegisterPage() {
   const now = new Date();
   const { ym: ymParam } = Route.useSearch();
   const ym = ymParam ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const navigate = useNavigate({ from: "/admin/compliance-pt" });
+  const setYm = (next: string) => navigate({ search: { ym: next } });
   const [state, setState] = useState<string>("all");
   const [gender, setGender] = useState<string>("all");
   const [q, setQ] = useState("");
