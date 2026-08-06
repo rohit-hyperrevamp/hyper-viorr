@@ -391,6 +391,8 @@ function InsuranceRegisterPage() {
                   rows.map((r) => ({
                     location: r.location,
                     esicCode: r.esicCode,
+                    basis: BASIS_LABEL[r.basis],
+
                     code: r.code,
                     name: r.name,
                     unit: r.unit,
