@@ -603,7 +603,14 @@ function PayrollUnitPage() {
           if (!isInPeriod && !isFirstWindowJoiningFee) continue;
 
           const inst = Math.max(1, Number(d.installments) || 1);
-          const amt = (Number(d.amount) || 0) / inst;
+          const rawAmt = (Number(d.amount) || 0) / inst;
+          // Gross amendment recoveries are stored as a negative employee net
+          // impact in the ledger. In payroll they must still increase the
+          // deduction bucket, unlike negative statutory rows (which are
+          // genuine refunds and must reduce that bucket).
+          const isGrossAmendmentRecovery = d.source_kind === "payroll_amendment"
+            && /^gross deduction\b/i.test(cleanLedgerName(d.deduction_name));
+          const amt = isGrossAmendmentRecovery ? Math.abs(rawAmt) : rawAmt;
           const isDayAdj = isSystemComputedDayAdj(d.entry_mode, d.include_in_total_days, d.affects_days_for);
           if (!isDayAdj) {
             const arr = deductionsByCandidate.get(d.candidate_id) ?? [];
