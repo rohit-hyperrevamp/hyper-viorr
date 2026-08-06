@@ -266,7 +266,8 @@ function PtRegisterPage() {
         description="State-wise PT deducted, laid out against the full slab schedule — expand a slab to see the employees in it."
         crumbs={[{ label: "Compliance", to: "/admin/compliance" }, { label: "Professional Tax" }]}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <MonthYearPicker value={ym} onChange={setYm} />
             <Button variant="outline" size="sm" asChild>
               <Link to="/admin/compliance">
                 <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Compliance
