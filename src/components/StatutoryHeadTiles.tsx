@@ -44,7 +44,7 @@ const HEADS: Array<{
     full: "Labour Welfare Fund",
     accent: "sky",
     icon: Landmark,
-    to: "/admin/deductions",
+    to: "/admin/compliance-lwf",
     match: ["labour welfare", "lwf"],
   },
   {
