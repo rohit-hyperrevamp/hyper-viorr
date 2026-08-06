@@ -85,7 +85,6 @@ function useStatutoryTotals(ym: string) {
 
       const totals: Record<HeadKey, { employee: number; employer: number; people: Set<string> }> = {
         pt: { employee: 0, employer: 0, people: new Set() },
-        esic: { employee: 0, employer: 0, people: new Set() },
         epf: { employee: 0, employer: 0, people: new Set() },
         lwf: { employee: 0, employer: 0, people: new Set() },
         levy: { employee: 0, employer: 0, people: new Set() },
