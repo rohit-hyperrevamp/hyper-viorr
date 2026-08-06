@@ -641,6 +641,22 @@ function PolicyFormDialog({
   );
 }
 
+const AMOUNT_UNITS = [
+  { key: "rupee", label: "₹", factor: 1 },
+  { key: "thousand", label: "Thousand", factor: 1000 },
+  { key: "lakh", label: "Lakh", factor: 100000 },
+  { key: "crore", label: "Crore", factor: 10000000 },
+] as const;
+
+type AmountUnitKey = (typeof AMOUNT_UNITS)[number]["key"];
+
+function bestUnit(value: number): AmountUnitKey {
+  for (const u of [...AMOUNT_UNITS].reverse()) {
+    if (value >= u.factor && value % u.factor === 0) return u.key;
+  }
+  return "rupee";
+}
+
 function AmountLakhField({
   label,
   value,
@@ -650,45 +666,52 @@ function AmountLakhField({
   value: number | null;
   onChange: (v: number | null) => void;
 }) {
-  const isPreset = value !== null && LAKH_OPTIONS.some((l) => l * 100000 === value);
-  const [custom, setCustom] = useState(value !== null && !isPreset);
+  const [unit, setUnit] = useState<AmountUnitKey>(() => (value ? bestUnit(value) : "lakh"));
+  const factor = AMOUNT_UNITS.find((u) => u.key === unit)!.factor;
+  const display = value === null ? "" : String(value / factor);
 
   return (
     <div className="grid gap-2">
       <Label>{label}</Label>
-      <Select
-        value={custom ? "custom" : value === null ? "none" : String(value)}
-        onValueChange={(v) => {
-          if (v === "custom") {
-            setCustom(true);
-            return;
-          }
-          setCustom(false);
-          onChange(v === "none" ? null : Number(v));
-        }}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Select amount" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">Not set</SelectItem>
-          {LAKH_OPTIONS.map((l) => (
-            <SelectItem key={l} value={String(l * 100000)}>
-              ₹{l} Lakh
-            </SelectItem>
-          ))}
-          <SelectItem value="custom">Custom amount…</SelectItem>
-        </SelectContent>
-      </Select>
-      {custom && (
+      <div className="flex gap-2">
         <Input
           type="number"
           min={0}
-          value={value ?? ""}
-          onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
-          placeholder="Enter amount in ₹"
+          step="any"
+          className="flex-1"
+          value={display}
+          onChange={(e) => {
+            const raw = e.target.value;
+            onChange(raw === "" ? null : Math.round(Number(raw) * factor));
+          }}
+          placeholder="Amount"
         />
-      )}
+        <Select
+          value={unit}
+          onValueChange={(v) => {
+            const next = v as AmountUnitKey;
+            const nextFactor = AMOUNT_UNITS.find((u) => u.key === next)!.factor;
+            // keep the typed number, re-scale to the new unit
+            if (value !== null) onChange(Math.round((value / factor) * nextFactor));
+            setUnit(next);
+          }}
+        >
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {AMOUNT_UNITS.map((u) => (
+              <SelectItem key={u.key} value={u.key}>
+                {u.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {value === null ? "Not set" : `₹${value.toLocaleString("en-IN")}`}
+      </p>
     </div>
   );
 }
+
