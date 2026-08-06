@@ -341,7 +341,43 @@ export type AmendmentDelta = {
   name: string;
   before: SnapshotTotals;
   after: SnapshotTotals;
+  /** Component-level figures so each register (ESI, EPF, PT, LWF…) can be adjusted head by head. */
+  earningsBefore?: ProcessLine[];
+  earningsAfter?: ProcessLine[];
+  deductionsBefore?: ProcessLine[];
+  deductionsAfter?: ProcessLine[];
+  employerBefore?: ProcessLine[];
+  employerAfter?: ProcessLine[];
 };
+
+/** name → amount, canonical-cased, summing duplicate heads. */
+export function linesToMap(lines: ProcessLine[] | undefined | null): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const l of lines ?? []) {
+    const key = (l?.name || "").trim();
+    if (!key) continue;
+    m.set(key, Math.round(((m.get(key) ?? 0) + (Number(l.amount) || 0)) * 100) / 100);
+  }
+  return m;
+}
+
+/** Per-head before/after/delta for two line sets (union of names, zero-filled). */
+export function diffLines(
+  before: ProcessLine[] | undefined | null,
+  after: ProcessLine[] | undefined | null,
+): Array<{ name: string; before: number; after: number; delta: number }> {
+  const b = linesToMap(before);
+  const a = linesToMap(after);
+  const names = Array.from(new Set([...b.keys(), ...a.keys()]));
+  return names
+    .map((name) => {
+      const bv = b.get(name) ?? 0;
+      const av = a.get(name) ?? 0;
+      return { name, before: bv, after: av, delta: Math.round((av - bv) * 100) / 100 };
+    })
+    .sort((x, y) => x.name.localeCompare(y.name));
+}
+
 
 export type AmendmentResult = {
   version: number;
