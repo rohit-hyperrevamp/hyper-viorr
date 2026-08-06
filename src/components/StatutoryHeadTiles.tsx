@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, HeartPulse, Landmark, PiggyBank, ReceiptText, ShieldHalf } from "lucide-react";
+import { ArrowUpRight, Landmark, PiggyBank, ReceiptText, ShieldHalf } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ACCENT_CHIP, ACCENT_TILE_BG, type Accent } from "@/components/tile-theme";
@@ -8,7 +8,7 @@ import { ACCENT_CHIP, ACCENT_TILE_BG, type Accent } from "@/components/tile-them
 const inr = (n: number) =>
   "₹" + Math.round(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
-type HeadKey = "pt" | "esic" | "epf" | "lwf" | "levy";
+type HeadKey = "pt" | "epf" | "lwf" | "levy";
 
 const HEADS: Array<{
   key: HeadKey;
@@ -28,15 +28,6 @@ const HEADS: Array<{
     icon: ReceiptText,
     to: "/admin/compliance-pt",
     match: ["profession"],
-  },
-  {
-    key: "esic",
-    label: "ESIC",
-    full: "Employees' State Insurance",
-    accent: "rose",
-    icon: HeartPulse,
-    to: "/admin/deductions",
-    match: ["esi"],
   },
   {
     key: "epf",
