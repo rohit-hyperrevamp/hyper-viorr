@@ -443,6 +443,20 @@ function InsuranceRegisterPage() {
             </SelectContent>
           </Select>
         ) : null}
+        {head === "esic" ? (
+          <Select value={basisFilter} onValueChange={(v) => setBasisFilter(v as "all" | EsicBasis)}>
+            <SelectTrigger className="h-9 w-full text-xs sm:w-[220px]">
+              <SelectValue placeholder="All ESIC bases" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All ESIC bases</SelectItem>
+              <SelectItem value="basic_da">ESIC on Basic + DA</SelectItem>
+              <SelectItem value="gross">ESIC on Gross − washing</SelectItem>
+              <SelectItem value="unknown">Basis not set</SelectItem>
+            </SelectContent>
+          </Select>
+
+        ) : null}
         <div className="relative min-w-[200px] flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
