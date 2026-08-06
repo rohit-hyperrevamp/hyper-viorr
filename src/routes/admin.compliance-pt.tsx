@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
+import { MonthYearPicker } from "@/components/MonthYearPicker";
 
 export const Route = createFileRoute("/admin/compliance-pt")({
   component: PtRegisterPage,
