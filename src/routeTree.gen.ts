@@ -51,6 +51,7 @@ import { Route as AdminCostComponentManagerRouteImport } from './routes/admin.co
 import { Route as AdminControlCenterRouteImport } from './routes/admin.control-center'
 import { Route as AdminCompliancePtRouteImport } from './routes/admin.compliance-pt'
 import { Route as AdminComplianceInsuranceRouteImport } from './routes/admin.compliance-insurance'
+import { Route as AdminComplianceGpaipRegisterRouteImport } from './routes/admin.compliance-gpaip-register'
 import { Route as AdminComplianceRouteImport } from './routes/admin.compliance'
 import { Route as AdminCompanyDocumentsRouteImport } from './routes/admin.company-documents'
 import { Route as AdminBillingTypeManagerRouteImport } from './routes/admin.billing-type-manager'
@@ -322,6 +323,12 @@ const AdminComplianceInsuranceRoute =
   AdminComplianceInsuranceRouteImport.update({
     id: '/compliance-insurance',
     path: '/compliance-insurance',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminComplianceGpaipRegisterRoute =
+  AdminComplianceGpaipRegisterRouteImport.update({
+    id: '/compliance-gpaip-register',
+    path: '/compliance-gpaip-register',
     getParentRoute: () => AdminRoute,
   } as any)
 const AdminComplianceRoute = AdminComplianceRouteImport.update({
@@ -638,6 +645,7 @@ export interface FileRoutesByFullPath {
   '/admin/billing-type-manager': typeof AdminBillingTypeManagerRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
   '/admin/compliance': typeof AdminComplianceRoute
+  '/admin/compliance-gpaip-register': typeof AdminComplianceGpaipRegisterRoute
   '/admin/compliance-insurance': typeof AdminComplianceInsuranceRoute
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/control-center': typeof AdminControlCenterRoute
@@ -737,6 +745,7 @@ export interface FileRoutesByTo {
   '/admin/billing-type-manager': typeof AdminBillingTypeManagerRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
   '/admin/compliance': typeof AdminComplianceRoute
+  '/admin/compliance-gpaip-register': typeof AdminComplianceGpaipRegisterRoute
   '/admin/compliance-insurance': typeof AdminComplianceInsuranceRoute
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/control-center': typeof AdminControlCenterRoute
@@ -836,6 +845,7 @@ export interface FileRoutesById {
   '/admin/billing-type-manager': typeof AdminBillingTypeManagerRoute
   '/admin/company-documents': typeof AdminCompanyDocumentsRoute
   '/admin/compliance': typeof AdminComplianceRoute
+  '/admin/compliance-gpaip-register': typeof AdminComplianceGpaipRegisterRoute
   '/admin/compliance-insurance': typeof AdminComplianceInsuranceRoute
   '/admin/compliance-pt': typeof AdminCompliancePtRoute
   '/admin/control-center': typeof AdminControlCenterRoute
@@ -938,6 +948,7 @@ export interface FileRouteTypes {
     | '/admin/billing-type-manager'
     | '/admin/company-documents'
     | '/admin/compliance'
+    | '/admin/compliance-gpaip-register'
     | '/admin/compliance-insurance'
     | '/admin/compliance-pt'
     | '/admin/control-center'
@@ -1037,6 +1048,7 @@ export interface FileRouteTypes {
     | '/admin/billing-type-manager'
     | '/admin/company-documents'
     | '/admin/compliance'
+    | '/admin/compliance-gpaip-register'
     | '/admin/compliance-insurance'
     | '/admin/compliance-pt'
     | '/admin/control-center'
@@ -1135,6 +1147,7 @@ export interface FileRouteTypes {
     | '/admin/billing-type-manager'
     | '/admin/company-documents'
     | '/admin/compliance'
+    | '/admin/compliance-gpaip-register'
     | '/admin/compliance-insurance'
     | '/admin/compliance-pt'
     | '/admin/control-center'
@@ -1524,6 +1537,13 @@ declare module '@tanstack/react-router' {
       path: '/compliance-insurance'
       fullPath: '/admin/compliance-insurance'
       preLoaderRoute: typeof AdminComplianceInsuranceRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/compliance-gpaip-register': {
+      id: '/admin/compliance-gpaip-register'
+      path: '/compliance-gpaip-register'
+      fullPath: '/admin/compliance-gpaip-register'
+      preLoaderRoute: typeof AdminComplianceGpaipRegisterRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/compliance': {
@@ -2074,6 +2094,7 @@ interface AdminRouteChildren {
   AdminBillingTypeManagerRoute: typeof AdminBillingTypeManagerRoute
   AdminCompanyDocumentsRoute: typeof AdminCompanyDocumentsRoute
   AdminComplianceRoute: typeof AdminComplianceRoute
+  AdminComplianceGpaipRegisterRoute: typeof AdminComplianceGpaipRegisterRoute
   AdminComplianceInsuranceRoute: typeof AdminComplianceInsuranceRoute
   AdminCompliancePtRoute: typeof AdminCompliancePtRoute
   AdminControlCenterRoute: typeof AdminControlCenterRoute
@@ -2133,6 +2154,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBillingTypeManagerRoute: AdminBillingTypeManagerRoute,
   AdminCompanyDocumentsRoute: AdminCompanyDocumentsRoute,
   AdminComplianceRoute: AdminComplianceRoute,
+  AdminComplianceGpaipRegisterRoute: AdminComplianceGpaipRegisterRoute,
   AdminComplianceInsuranceRoute: AdminComplianceInsuranceRoute,
   AdminCompliancePtRoute: AdminCompliancePtRoute,
   AdminControlCenterRoute: AdminControlCenterRoute,
