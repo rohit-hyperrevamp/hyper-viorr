@@ -228,6 +228,13 @@ function InsuranceRegisterPage() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <MonthYearPicker value={ym} onChange={(next) => navigate({ search: { ym: next, head } })} />
+            {head === "gpaip" ? (
+              <Button size="sm" asChild>
+                <Link to="/admin/compliance-gpaip-register" search={{ ym, view: "staff" }}>
+                  View register
+                </Link>
+              </Button>
+            ) : null}
             <Button variant="outline" size="sm" asChild>
               <Link to="/admin/compliance">
                 <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Compliance
