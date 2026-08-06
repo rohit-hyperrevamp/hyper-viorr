@@ -470,8 +470,13 @@ function InsuranceRegisterPage() {
       </div>
 
       {/* Totals */}
-      <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-5">
         <StatCard label={`${meta.label} recovered · ${monthLabel}`} value={inr(total)} sub={`${people} employees`} />
+        <StatCard
+          label="Employees covered"
+          value={String(people)}
+          sub={people ? `avg ${inr(total / people)} each` : "No records"}
+        />
         {head === "esic" ? (
           <>
             <StatCard label="Employee contribution" value={inr(eeTotal)} sub="0.75% of gross" />
@@ -486,10 +491,10 @@ function InsuranceRegisterPage() {
               value={head === "gpaip" ? String(enabledUnits.length) : "—"}
               sub={head === "gpaip" ? "Unit-level GPAIP toggle" : "Employer-borne cover"}
             />
-            <StatCard label="Average per employee" value={people ? inr(total / people) : "—"} />
           </>
         )}
       </div>
+
 
 
       {/* Policies backing this head */}
