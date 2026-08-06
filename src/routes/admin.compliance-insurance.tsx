@@ -201,7 +201,17 @@ function useInsuranceRegister(ym: string, head: InsuranceHeadKey) {
         amount: Number((u as { gpaip_amount?: number }).gpaip_amount ?? 0),
       }));
 
+      const [{ data: ctrRows }, { data: resRows }] = await Promise.all([
+        supabase.from("client_contracts").select("id, unit_id"),
+        supabase.from("contract_resources").select("contract_id, deductions, employer_contributions"),
+      ]);
+      const basisMap = deriveUnitEsicBasis(
+        (ctrRows ?? []) as Array<{ id: string; unit_id: string | null }>,
+        (resRows ?? []) as Array<{ contract_id: string; deductions: unknown; employer_contributions: unknown }>,
+      );
+
       if (raw.length === 0) return { rows: [], policies, units, branches };
+
 
       const ids = Array.from(new Set(raw.map((r) => r.candidate_id)));
       const { data: cands } = await supabase
