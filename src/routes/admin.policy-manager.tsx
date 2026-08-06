@@ -58,7 +58,6 @@ type Payload = Omit<Policy, "id">;
 
 const QK = ["admin", "policies"] as const;
 
-const LAKH_OPTIONS = [1, 2, 3, 5, 10, 15, 20, 25, 50, 100];
 
 function toNum(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
