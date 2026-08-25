@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { RANGE_PRESETS, resolveRange, type RangePreset } from "@/lib/field-visits";
 import { FieldSenseRangeFilter } from "@/components/FieldSenseRangeFilter";
-import radiantLogo from "@/assets/radiant-logo-v2.png";
+import radiantLogo from "@/assets/hv-logo.png";
 
 export const Route = createFileRoute("/admin/field-sense/reports")({
   component: () => (<FieldSenseAdminGuard sub="reports"><ReportsPage /></FieldSenseAdminGuard>),

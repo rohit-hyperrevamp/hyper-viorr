@@ -1,7 +1,7 @@
 // Purchase Order PDF generator — mirrors the standard Radiant Guard PO format.
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import logoUrl from "@/assets/radiant-logo-v2.png";
+import logoUrl from "@/assets/hv-logo.png";
 
 export type POPdfVendor = {
   vendor_code: string;

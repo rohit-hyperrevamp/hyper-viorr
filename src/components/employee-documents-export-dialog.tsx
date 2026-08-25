@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
-import radiantLogo from "@/assets/radiant-logo-v2.png";
+import radiantLogo from "@/assets/hv-logo.png";
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
