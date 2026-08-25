@@ -62,9 +62,9 @@ export const Route = createFileRoute("/admin/company-documents")({
   component: CompanyDocumentsPage,
   head: () => ({
     meta: [
-      { title: "Company Documents | Radiant Guard Services" },
+      { title: "Company Documents | Hyper Vior" },
       { name: "description", content: "Configure company documents and employee communication templates." },
-      { property: "og:title", content: "Company Documents | Radiant Guard Services" },
+      { property: "og:title", content: "Company Documents | Hyper Vior" },
       { property: "og:description", content: "Configure company documents and employee communication templates." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

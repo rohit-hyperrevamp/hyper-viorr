@@ -40,7 +40,7 @@ export const Route = createFileRoute("/admin/compliance")({
   component: CompliancePage,
   head: () => ({
     meta: [
-      { title: "Compliance Command Center — Radiant Guard" },
+      { title: "Compliance Command Center — Hyper Vior" },
       {
         name: "description",
         content:

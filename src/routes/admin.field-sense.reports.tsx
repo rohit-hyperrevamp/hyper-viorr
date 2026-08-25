@@ -13,7 +13,7 @@ export const Route = createFileRoute("/admin/field-sense/reports")({
   component: () => (<FieldSenseAdminGuard sub="reports"><ReportsPage /></FieldSenseAdminGuard>),
   head: () => ({
     meta: [
-      { title: "Radar Reports — Radiant Guard" },
+      { title: "Radar Reports — Hyper Vior" },
       { name: "description", content: "Branded, downloadable visit reports for any organization or unit across any date range." },
       { property: "og:title", content: "Radar Reports" },
       { property: "og:description", content: "Branded, downloadable visit reports for any organization or unit across any date range." },

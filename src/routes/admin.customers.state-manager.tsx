@@ -64,7 +64,7 @@ function StateManagerPage() {
         title="State Manager"
         eyebrow="Organizations"
         icon={MapPin}
-        description="All states served by Radiant Guard. Source of truth for branch mappings."
+        description="All states served. Source of truth for branch mappings."
         crumbs={[
           { label: "Organizations", to: "/admin/customers" },
           { label: "State Manager" },
