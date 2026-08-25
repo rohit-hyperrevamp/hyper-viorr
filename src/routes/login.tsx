@@ -171,6 +171,18 @@ function LoginPage() {
 
   return (
     <div className="login-screen relative flex min-h-dvh w-full overflow-hidden">
+      {/* ================= Background imagery ================= */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <img
+          src={opsImage}
+          alt=""
+          width={1280}
+          height={1600}
+          className="login-photo h-full w-full object-cover object-center"
+        />
+        <div className="login-photo-scrim absolute inset-0" />
+      </div>
+
       {/* ================= Left: brand canvas ================= */}
       <div className="relative z-10 hidden flex-1 flex-col justify-center px-16 lg:flex xl:px-24">
         <div aria-hidden className="login-brand-glow pointer-events-none absolute inset-0" />
@@ -190,13 +202,28 @@ function LoginPage() {
           <div className="login-headline max-w-xl text-white">
             Workforce operations
             <br />
-            <span className="text-zinc-500">redefined for scale.</span>
+            <span className="login-headline-accent">redefined for scale.</span>
           </div>
 
           <p className="mt-6 max-w-md text-lg leading-relaxed text-zinc-400">
             Guards, units, payroll and compliance — one command center built
             for modern enterprises.
           </p>
+
+          <div className="mt-10 flex items-center gap-4">
+            <img
+              src={guardImage}
+              alt="Security officer on duty at a corporate lobby"
+              loading="lazy"
+              width={912}
+              height={1200}
+              className="login-thumb h-32 w-24 rounded-2xl object-cover"
+            />
+            <div className="max-w-[220px] text-sm leading-relaxed text-zinc-400">
+              <span className="login-accent font-semibold">Live field visibility</span> — attendance,
+              patrols and escalations, the moment they happen.
+            </div>
+          </div>
         </div>
 
         {/* Bottom stats */}
@@ -215,6 +242,7 @@ function LoginPage() {
           </div>
         </div>
       </div>
+
 
       {/* ================= Right: glass sign-in panel ================= */}
       <div
