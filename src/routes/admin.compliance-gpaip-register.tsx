@@ -36,7 +36,7 @@ export const Route = createFileRoute("/admin/compliance-gpaip-register")({
   }),
   head: () => ({
     meta: [
-      { title: "GPAIP Register — Radiant Guard" },
+      { title: "GPAIP Register — Hyper Vior" },
       {
         name: "description",
         content:

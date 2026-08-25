@@ -50,7 +50,7 @@ import {
   Radio,
 } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
-import brandLogo from "@/assets/radiant-logo-v2.png";
+import brandLogo from "@/assets/hv-logo.png";
 import { MobileBottomNav, type BottomNavItem } from "@/components/MobileBottomNav";
 import { useT } from "@/lib/i18n";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -751,7 +751,7 @@ function AdminLayout() {
       )}>
         <Link to={dashboardHref} className="flex min-w-0 flex-1 items-center gap-2.5">
           <div className="relative shrink-0">
-            <img src={brandLogo} alt="Radiant" className="h-9 w-9 object-contain" />
+            <img src={brandLogo} alt="Hyper Vior" className="h-9 w-9 object-contain" />
             <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
           </div>
           <div className="min-w-0 leading-tight">

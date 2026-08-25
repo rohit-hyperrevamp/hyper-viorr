@@ -135,7 +135,7 @@ export function AppleNativeSetupCard({
         setPushStatus(registration.message);
         await refreshPushStatus();
       }
-      const result = await sendNativeTestPush("Hello from Radiant Guard!");
+      const result = await sendNativeTestPush("Hello from Hyper Vior!");
       await refreshPushStatus();
       if (result.sent > 0) {
         toast.success(`Test push sent to ${result.sent} device${result.sent === 1 ? "" : "s"}.`);

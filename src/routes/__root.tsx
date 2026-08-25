@@ -9,7 +9,7 @@ import {
 import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
-import favicon from "../assets/radiant-logo-v2.png";
+import favicon from "../assets/hv-logo.png";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmProvider } from "@/components/ConfirmProvider";
@@ -101,11 +101,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "format-detection", content: "telephone=no" },
       { name: "theme-color", content: "#ffffff" },
-      { title: "Radiant Guard Services" },
-      { name: "description", content: "Secure portal for Radiant Guard Services Pvt. Ltd." },
-      { name: "author", content: "Radiant Guard Services" },
-      { property: "og:title", content: "Radiant Guard Services" },
-      { property: "og:description", content: "Secure portal for Radiant Guard Services Pvt. Ltd." },
+      { title: "Hyper Vior" },
+      { name: "description", content: "Hyper Vior — the workforce operations platform by Vior × Hyper Revamp." },
+      { name: "author", content: "Vior × Hyper Revamp" },
+      { property: "og:title", content: "Hyper Vior" },
+      { property: "og:description", content: "Hyper Vior — the workforce operations platform by Vior × Hyper Revamp." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@HyperRevamp" },

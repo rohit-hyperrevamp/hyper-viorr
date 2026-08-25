@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
-import radiantLogo from "@/assets/radiant-logo-v2.png";
+import radiantLogo from "@/assets/hv-logo.png";
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -294,7 +294,7 @@ export function EmployeeDocumentsExportDialog({
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         doc.setTextColor(...muted);
-        doc.text("Radiant Guard Services · Confidential — internal HR record.", M, fy);
+        doc.text("Hyper Vior · Confidential — internal HR record.", M, fy);
         doc.text(`Page ${doc.getNumberOfPages()}`, pw - M, fy, { align: "right" });
         doc.setTextColor(0, 0, 0);
       };
