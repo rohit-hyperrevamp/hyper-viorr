@@ -401,8 +401,22 @@
 
   /* ============ Login screen (forced-dark brand surface) ============ */
   .login-screen { background: #050505; color: #fafafa; }
+  .login-photo {
+    filter: grayscale(35%) contrast(108%) brightness(78%);
+  }
+  .login-photo-scrim {
+    background:
+      linear-gradient(90deg, rgba(5,5,5,0.94) 0%, rgba(5,5,5,0.72) 45%, rgba(5,5,5,0.9) 100%),
+      linear-gradient(0deg, rgba(5,5,5,0.96) 0%, rgba(5,5,5,0.2) 60%);
+  }
   .login-brand-glow {
-    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+    background:
+      radial-gradient(circle at 22% 28%, rgba(59, 130, 246, 0.22) 0%, transparent 55%),
+      radial-gradient(circle at 70% 75%, rgba(255, 255, 255, 0.06) 0%, transparent 55%);
+  }
+  .login-thumb {
+    border: 1px solid rgb(255 255 255 / 0.12);
+    box-shadow: 0 18px 40px -18px rgba(0,0,0,0.9), 0 0 0 1px rgb(59 130 246 / 0.12);
   }
   .login-panel {
     background: rgb(24 24 27 / 0.5);
@@ -415,9 +429,9 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   }
   .login-field:focus-within {
-    border-color: rgb(255 255 255 / 0.35);
-    background: rgb(255 255 255 / 0.07);
-    box-shadow: 0 0 0 3px rgb(255 255 255 / 0.08);
+    border-color: rgb(59 130 246 / 0.65);
+    background: rgb(59 130 246 / 0.08);
+    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.18);
   }
   .login-otp-slot {
     background: rgb(255 255 255 / 0.05) !important;
@@ -425,19 +439,20 @@
     color: #fafafa !important;
   }
   .login-otp-slot[data-active="true"] {
-    border-color: rgb(255 255 255 / 0.4) !important;
-    box-shadow: 0 0 0 3px rgb(255 255 255 / 0.08);
-    background: rgb(255 255 255 / 0.07) !important;
+    border-color: rgb(59 130 246 / 0.7) !important;
+    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.2);
+    background: rgb(59 130 246 / 0.1) !important;
   }
   .login-btn {
-    background: #fafafa;
-    color: #0a0a0a;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-    transition: background 0.2s ease, transform 0.1s ease;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #ffffff;
+    box-shadow: 0 12px 30px -10px rgba(59, 130, 246, 0.6);
+    transition: filter 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
   }
-  .login-btn:hover:not(:disabled) { background: #e4e4e7; }
+  .login-btn:hover:not(:disabled) { filter: brightness(1.1); box-shadow: 0 16px 36px -10px rgba(59,130,246,0.7); }
   .login-btn:active:not(:disabled) { transform: scale(0.99); }
-  .login-btn:disabled { background: #3f3f46; color: #a1a1aa; }
+  .login-btn:disabled { background: #27272a; color: #71717a; box-shadow: none; }
+  .login-accent { color: #60a5fa; }
   .login-headline {
     font-family: var(--font-display);
     font-size: clamp(2.5rem, 4.2vw, 3.75rem);
@@ -445,6 +460,13 @@
     letter-spacing: -0.02em;
     font-weight: 500;
   }
+  .login-headline-accent {
+    background: linear-gradient(100deg, #60a5fa 0%, #3b82f6 55%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
 
   @keyframes aurora-float {
     0%, 100% { transform: translate(0, 0) scale(1); }
