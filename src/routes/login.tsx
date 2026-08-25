@@ -15,31 +15,31 @@ import {
   signInWithBiometric,
 } from "@/lib/biometric";
 import { markNativeAppSessionUnlocked } from "@/lib/native-app-lock";
-import logo from "@/assets/radiant-logo-v2.png";
+import logo from "@/assets/hv-logo.png";
 import loginBg from "@/assets/login-bg.jpg";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Sign in — Radiant Guard Services" },
+      { title: "Sign in — Hyper Vior" },
       {
         name: "description",
         content:
-          "Sign in to Radiant Guard Services with your phone number and OTP.",
+          "Sign in to Hyper Vior with your phone number and OTP.",
       },
-      { property: "og:title", content: "Sign in — Radiant Guard Services" },
+      { property: "og:title", content: "Sign in — Hyper Vior" },
       {
         property: "og:description",
         content:
-          "Sign in to Radiant Guard Services with your phone number and OTP.",
+          "Sign in to Hyper Vior with your phone number and OTP.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Sign in — Radiant Guard Services" },
+      { name: "twitter:title", content: "Sign in — Hyper Vior" },
       {
         name: "twitter:description",
         content:
-          "Sign in to Radiant Guard Services with your phone number and OTP.",
+          "Sign in to Hyper Vior with your phone number and OTP.",
       },
     ],
   }),
@@ -194,20 +194,20 @@ function LoginPage() {
           {/* Brand */}
           <div className="mb-5 flex flex-col items-center gap-3 text-center sm:mb-7 sm:gap-4">
             <div className="grid h-16 w-16 place-items-center rounded-full bg-white shadow-[0_22px_54px_-16px_rgba(15,23,42,0.45)] ring-1 ring-white/50 sm:h-20 sm:w-20">
-              <img src={logo} alt="Radiant" className="h-11 w-11 object-contain sm:h-14 sm:w-14" />
+              <img src={logo} alt="Hyper Vior" className="h-11 w-11 object-contain sm:h-14 sm:w-14" />
             </div>
             <div>
               <div
                 className="font-display text-[17px] font-semibold tracking-tight text-white sm:text-[18px]"
                 style={{ textShadow: "0 2px 12px rgba(15,23,42,0.55)" }}
               >
-                Radiant Guard
+                Hyper Vior
               </div>
               <div
                 className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90 sm:text-[11px]"
                 style={{ textShadow: "0 1px 8px rgba(15,23,42,0.55)" }}
               >
-                Services Pvt. Ltd.
+                Vior × Hyper Revamp
               </div>
             </div>
           </div>
@@ -393,12 +393,13 @@ function LoginPage() {
             className="mx-auto mt-7 flex w-fit max-w-full flex-wrap items-center justify-center gap-x-7 gap-y-2 rounded-full border border-white/25 bg-slate-950/28 px-5 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_14px_34px_-18px_rgba(15,23,42,0.8)] backdrop-blur-md"
             style={{ textShadow: "0 1px 8px rgba(15,23,42,0.75)" }}
           >
-            <span>Radiant Ops Portal</span>
+            <span>Hyper Vior Ops Portal</span>
             <span className="inline-flex items-center gap-1.5">
-              Powered by
+              A
               <span className="rounded-md border border-white/35 bg-white/20 px-1.5 py-0.5 text-white backdrop-blur">
-                HyperRevamp
+                Vior × Hyper Revamp
               </span>
+              product
             </span>
           </div>
         </div>
