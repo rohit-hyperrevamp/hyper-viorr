@@ -1,0 +1,1 @@
+ALTER TABLE public.cost_components DROP CONSTRAINT IF EXISTS cost_components_fixed_duty_divisor_check;

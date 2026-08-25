@@ -1,0 +1,2 @@
+ALTER TABLE public.contract_resources ADD COLUMN IF NOT EXISTS shift_hours integer NOT NULL DEFAULT 8;
+ALTER TABLE public.contract_resources ADD CONSTRAINT contract_resources_shift_hours_chk CHECK (shift_hours IN (8, 12));

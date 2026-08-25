@@ -1,0 +1,1 @@
+UPDATE public.inv_transfers SET status = 'completed' WHERE status = 'acknowledged';

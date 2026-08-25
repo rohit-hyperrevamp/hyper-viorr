@@ -1,0 +1,1 @@
+UPDATE public.inv_purchase_orders SET status = 'open' WHERE status = 'approved';

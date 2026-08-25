@@ -1,0 +1,1 @@
+ALTER TABLE public.inv_items ADD COLUMN IF NOT EXISTS standard_issue_price numeric NOT NULL DEFAULT 0;

@@ -1,0 +1,1 @@
+UPDATE public.inv_items SET standard_issue_price = ROUND((standard_cost * 1.05)::numeric, 2) WHERE standard_cost > 0;
