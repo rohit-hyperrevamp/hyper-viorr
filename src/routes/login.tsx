@@ -15,6 +15,8 @@ import {
 } from "@/lib/biometric";
 import { markNativeAppSessionUnlocked } from "@/lib/native-app-lock";
 import logo from "@/assets/hv-logo.png";
+import opsImage from "@/assets/login-ops.jpg";
+import guardImage from "@/assets/login-guard.jpg";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -271,11 +273,11 @@ function LoginPage() {
           <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
             {step === "phone" ? (
               <>
-                <Sparkles className="h-3.5 w-3.5 text-white" /> Welcome back
+                <Sparkles className="h-3.5 w-3.5 login-accent" /> Welcome back
               </>
             ) : (
               <>
-                <ShieldCheck className="h-3.5 w-3.5 text-white" /> Almost there
+                <ShieldCheck className="h-3.5 w-3.5 login-accent" /> Almost there
               </>
             )}
           </div>
@@ -337,13 +339,13 @@ function LoginPage() {
                     type="button"
                     onClick={handleBiometricLogin}
                     disabled={bioBusy}
-                    className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 text-[14px] font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-blue-400/25 bg-blue-500/10 text-[14px] font-semibold text-white transition hover:bg-blue-500/20 disabled:opacity-60"
                   >
                     {bioBusy ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <>
-                        <Fingerprint className="h-4 w-4 text-white" />
+                        <Fingerprint className="h-4 w-4 login-accent" />
                         Sign in with Face ID
                       </>
                     )}
@@ -424,7 +426,7 @@ function LoginPage() {
 
           {/* Trust row */}
           <div className="mt-9 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[12px] font-medium text-zinc-400">
-            <ShieldCheck className="h-4 w-4 text-white" />
+            <ShieldCheck className="h-4 w-4 login-accent" />
             <span>Encrypted end-to-end · Secure OTP verification</span>
           </div>
         </div>
