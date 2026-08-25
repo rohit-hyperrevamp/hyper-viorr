@@ -8,10 +8,10 @@ import { useAuth } from "@/lib/auth";
 export const Route = createFileRoute("/welcome")({
   head: () => ({
     meta: [
-      { title: "Welcome — Hyper Vior" },
+      { title: "Welcome — Hyper Viorr" },
       {
         name: "description",
-        content: "Your Hyper Vior command center.",
+        content: "Your Hyper Viorr command center.",
       },
     ],
   }),
@@ -55,7 +55,7 @@ function WelcomePage() {
           </span>
 
           <h1 className="mt-5 font-display text-2xl font-bold tracking-tight text-foreground sm:text-2xl">
-            Welcome to <span className="text-gradient-accent">Hyper Vior</span>
+            Welcome to <span className="text-gradient-accent">Hyper Viorr</span>
           </h1>
 
           <p className="mt-4 text-base text-muted-foreground sm:text-lg">
@@ -79,7 +79,7 @@ function WelcomePage() {
         </div>
 
         <p className="mt-6 text-center text-xs uppercase tracking-[0.25em] text-muted-foreground">
-          Hyper Vior · A Vior × Hyper Revamp product
+          Hyper Viorr · A Viorr × HyperRevamp product
         </p>
       </div>
     </div>

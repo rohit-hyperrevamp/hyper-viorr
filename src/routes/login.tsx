@@ -21,25 +21,25 @@ import loginBg from "@/assets/login-bg.jpg";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Sign in — Hyper Vior" },
+      { title: "Sign in — Hyper Viorr" },
       {
         name: "description",
         content:
-          "Sign in to Hyper Vior with your phone number and OTP.",
+          "Sign in to Hyper Viorr with your phone number and OTP.",
       },
-      { property: "og:title", content: "Sign in — Hyper Vior" },
+      { property: "og:title", content: "Sign in — Hyper Viorr" },
       {
         property: "og:description",
         content:
-          "Sign in to Hyper Vior with your phone number and OTP.",
+          "Sign in to Hyper Viorr with your phone number and OTP.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Sign in — Hyper Vior" },
+      { name: "twitter:title", content: "Sign in — Hyper Viorr" },
       {
         name: "twitter:description",
         content:
-          "Sign in to Hyper Vior with your phone number and OTP.",
+          "Sign in to Hyper Viorr with your phone number and OTP.",
       },
     ],
   }),
@@ -194,20 +194,20 @@ function LoginPage() {
           {/* Brand */}
           <div className="mb-5 flex flex-col items-center gap-3 text-center sm:mb-7 sm:gap-4">
             <div className="grid h-16 w-16 place-items-center rounded-full bg-white shadow-[0_22px_54px_-16px_rgba(15,23,42,0.45)] ring-1 ring-white/50 sm:h-20 sm:w-20">
-              <img src={logo} alt="Hyper Vior" className="h-11 w-11 object-contain sm:h-14 sm:w-14" />
+              <img src={logo} alt="Hyper Viorr" className="h-11 w-11 object-contain sm:h-14 sm:w-14" />
             </div>
             <div>
               <div
                 className="font-display text-[17px] font-semibold tracking-tight text-white sm:text-[18px]"
                 style={{ textShadow: "0 2px 12px rgba(15,23,42,0.55)" }}
               >
-                Hyper Vior
+                Hyper Viorr
               </div>
               <div
                 className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90 sm:text-[11px]"
                 style={{ textShadow: "0 1px 8px rgba(15,23,42,0.55)" }}
               >
-                Vior × Hyper Revamp
+                Viorr × HyperRevamp
               </div>
             </div>
           </div>
@@ -393,11 +393,11 @@ function LoginPage() {
             className="mx-auto mt-7 flex w-fit max-w-full flex-wrap items-center justify-center gap-x-7 gap-y-2 rounded-full border border-white/25 bg-slate-950/28 px-5 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_14px_34px_-18px_rgba(15,23,42,0.8)] backdrop-blur-md"
             style={{ textShadow: "0 1px 8px rgba(15,23,42,0.75)" }}
           >
-            <span>Hyper Vior Ops Portal</span>
+            <span>Hyper Viorr Ops Portal</span>
             <span className="inline-flex items-center gap-1.5">
               A
               <span className="rounded-md border border-white/35 bg-white/20 px-1.5 py-0.5 text-white backdrop-blur">
-                Vior × Hyper Revamp
+                Viorr × HyperRevamp
               </span>
               product
             </span>
