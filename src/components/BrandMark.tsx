@@ -1,4 +1,4 @@
-import logo from "@/assets/radiant-logo-v2.png";
+import logo from "@/assets/hv-logo.png";
 
 type BrandMarkProps = {
   className?: string;
@@ -22,18 +22,18 @@ export function BrandMark({
     <div className={`flex items-center gap-3 ${className}`}>
       <img
         src={logo}
-        alt="Radiant Guard Services Pvt. Ltd."
+        alt="Hyper Vior"
         className="h-10 w-10 shrink-0 object-contain"
       />
       {!compact && (
         <div className="leading-tight">
           <div className={`font-display text-base font-bold tracking-tight ${titleClass}`}>
-            Radiant Guard
+            Hyper Vior
           </div>
           <div
             className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${subtitleClass}`}
           >
-            Services Pvt. Ltd.
+            Vior × Hyper Revamp
           </div>
         </div>
       )}
