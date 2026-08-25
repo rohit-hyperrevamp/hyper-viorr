@@ -24,7 +24,7 @@ export const Route = createFileRoute("/admin/compliance-pt")({
   }),
   head: () => ({
     meta: [
-      { title: "Professional Tax Register — Hyper Vior" },
+      { title: "Professional Tax Register — Hyper Viorr" },
       {
         name: "description",
         content:

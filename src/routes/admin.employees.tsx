@@ -1917,7 +1917,7 @@ function EmployeesPage() {
           } catch { /* ignore */ }
 
           const firstName = (c.full_name || "").split(" ")[0] || "there";
-          const welcomeTitle = `Welcome to Hyper Vior${empCode ? ` — ${empCode}` : ""}`;
+          const welcomeTitle = `Welcome to Hyper Viorr${empCode ? ` — ${empCode}` : ""}`;
           const welcomeLines = [
             `Hi ${firstName}, we're thrilled to have you on board!`,
             "",

@@ -62,9 +62,9 @@ export const Route = createFileRoute("/admin/company-documents")({
   component: CompanyDocumentsPage,
   head: () => ({
     meta: [
-      { title: "Company Documents | Hyper Vior" },
+      { title: "Company Documents | Hyper Viorr" },
       { name: "description", content: "Configure company documents and employee communication templates." },
-      { property: "og:title", content: "Company Documents | Hyper Vior" },
+      { property: "og:title", content: "Company Documents | Hyper Viorr" },
       { property: "og:description", content: "Configure company documents and employee communication templates." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

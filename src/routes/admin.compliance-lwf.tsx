@@ -25,7 +25,7 @@ export const Route = createFileRoute("/admin/compliance-lwf")({
   }),
   head: () => ({
     meta: [
-      { title: "Labour Welfare Fund Register — Hyper Vior" },
+      { title: "Labour Welfare Fund Register — Hyper Viorr" },
       {
         name: "description",
         content:
