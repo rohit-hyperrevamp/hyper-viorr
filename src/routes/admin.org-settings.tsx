@@ -90,7 +90,7 @@ function OrgSettingsPage() {
         <div className="grid gap-4">
           <div>
             <Label>Company Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Radiant Guard Services" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Hyper Vior" />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>

@@ -1917,7 +1917,7 @@ function EmployeesPage() {
           } catch { /* ignore */ }
 
           const firstName = (c.full_name || "").split(" ")[0] || "there";
-          const welcomeTitle = `Welcome to Radiant Guard Services${empCode ? ` — ${empCode}` : ""}`;
+          const welcomeTitle = `Welcome to Hyper Vior${empCode ? ` — ${empCode}` : ""}`;
           const welcomeLines = [
             `Hi ${firstName}, we're thrilled to have you on board!`,
             "",
@@ -3143,7 +3143,7 @@ function EmployeesPage() {
                         <UserPlus className="h-4 w-4" />
                         <div className="flex flex-col">
                           <span className="text-sm font-medium">Non-billable</span>
-                          <span className="text-[11px] text-muted-foreground">Internal Radiant employee</span>
+                          <span className="text-[11px] text-muted-foreground">Internal employee</span>
                         </div>
                       </DropdownMenuItem>
                     )}
