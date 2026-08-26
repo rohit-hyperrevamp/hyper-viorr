@@ -411,29 +411,32 @@
     mask-image: radial-gradient(ellipse 70% 60% at 30% 30%, #000 0%, transparent 75%);
   }
   .login-photo {
-    filter: grayscale(60%) contrast(105%) brightness(108%);
+    filter: grayscale(35%) contrast(108%) brightness(72%);
   }
   .login-photo-scrim {
     background:
-      linear-gradient(90deg, rgba(251,251,252,0.98) 0%, rgba(251,251,252,0.86) 42%, rgba(251,251,252,0.96) 100%),
-      linear-gradient(0deg, rgba(251,251,252,0.97) 0%, rgba(251,251,252,0.2) 62%);
+      linear-gradient(180deg, rgba(8,8,10,0.55) 0%, rgba(8,8,10,0.35) 40%, rgba(8,8,10,0.9) 100%);
   }
   .login-brand-glow {
     background:
-      radial-gradient(circle at 20% 26%, rgba(47, 107, 255, 0.16) 0%, transparent 58%),
-      radial-gradient(circle at 74% 78%, rgba(47, 107, 255, 0.07) 0%, transparent 58%);
+      radial-gradient(circle at 22% 22%, rgba(47, 107, 255, 0.28) 0%, transparent 60%),
+      radial-gradient(circle at 80% 84%, rgba(47, 107, 255, 0.14) 0%, transparent 58%);
   }
-  .login-thumb {
-    border: 1px solid rgb(13 13 13 / 0.07);
-    border-radius: 18px;
-    box-shadow: 0 24px 50px -26px rgba(13,13,13,0.3), 0 0 0 1px rgb(47 107 255 / 0.1);
+  .login-visual {
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 50px 100px -50px rgba(13, 13, 13, 0.55);
+  }
+  .login-stat {
+    border: 1px solid rgb(255 255 255 / 0.14);
+    background: rgb(255 255 255 / 0.08);
+    backdrop-filter: blur(14px);
+    border-radius: 16px;
   }
   .login-panel {
-    background: rgb(255 255 255 / 0.78);
-    backdrop-filter: blur(44px) saturate(150%);
-    border-left: 1px solid rgb(13 13 13 / 0.07);
-    box-shadow: -40px 0 90px -60px rgba(13,13,13,0.28);
+    background: #fbfbfc;
   }
+
   .login-field {
     background: #ffffff;
     border: 1px solid rgb(13 13 13 / 0.1);
