@@ -543,17 +543,17 @@
      looking like flat white paper. Kept low-opacity for professionalism. */
   .app-canvas {
     background:
-      radial-gradient(ellipse 55% 40% at 6% -6%, color-mix(in oklab, var(--accent) 12%, transparent) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 38% at 100% 8%, color-mix(in oklab, oklch(0.7 0.14 30) 10%, transparent) 0%, transparent 58%),
-      radial-gradient(ellipse 60% 40% at 50% 105%, color-mix(in oklab, oklch(0.7 0.14 160) 7%, transparent) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 45% at 4% -8%, color-mix(in oklab, var(--accent) 9%, transparent) 0%, transparent 58%),
+      radial-gradient(ellipse 52% 38% at 100% 4%, color-mix(in oklab, var(--accent) 5%, transparent) 0%, transparent 60%),
       var(--background);
   }
   .dark .app-canvas {
     background:
-      radial-gradient(ellipse 55% 40% at 6% -6%, color-mix(in oklab, var(--accent) 20%, transparent) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 38% at 100% 8%, color-mix(in oklab, oklch(0.55 0.18 30) 14%, transparent) 0%, transparent 58%),
+      radial-gradient(ellipse 60% 45% at 4% -8%, color-mix(in oklab, var(--accent) 16%, transparent) 0%, transparent 58%),
+      radial-gradient(ellipse 52% 38% at 100% 4%, color-mix(in oklab, var(--accent) 9%, transparent) 0%, transparent 60%),
       var(--background);
   }
+
 
 
 
