@@ -22,18 +22,18 @@ export function BrandMark({
     <div className={`flex items-center gap-3 ${className}`}>
       <img
         src={logo}
-        alt="Hyper Viorr"
+        alt="Hyper Vioarr"
         className="h-10 w-10 shrink-0 object-contain"
       />
       {!compact && (
         <div className="leading-tight">
           <div className={`font-display text-base font-bold tracking-tight ${titleClass}`}>
-            Hyper Viorr
+            Hyper Vioarr
           </div>
           <div
             className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${subtitleClass}`}
           >
-            Viorr × HyperRevamp
+            Vioarr × HyperRevamp
           </div>
         </div>
       )}

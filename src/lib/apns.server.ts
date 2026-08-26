@@ -95,7 +95,7 @@ export async function sendApnsPush(
 
   const aps: Record<string, unknown> = {
     alert: {
-      title: payload.title || "Hyper Viorr",
+      title: payload.title || "Hyper Vioarr",
       body: payload.body || "You have a new notification",
     },
     // Use the system default sound. A custom sound only works when the exact

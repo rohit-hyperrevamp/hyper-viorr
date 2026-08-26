@@ -178,7 +178,7 @@ async function preparePushNotificationsOnce(): Promise<void> {
         } catch {
           /* noop */
         }
-        const title = notif.title || "Hyper Viorr";
+        const title = notif.title || "Hyper Vioarr";
         const body = notif.body || "";
         const link = (notif.data as { link?: string } | undefined)?.link;
         toast(title, {
@@ -242,7 +242,7 @@ export async function registerPushForCurrentUser(): Promise<PushRegisterResult> 
       tokenPromise = waitForToken(9000, true);
       await PushNotifications.register();
     } else {
-      lastError = `Push permission is ${lastPermission}. Enable notifications for Hyper Viorr in iOS Settings.`;
+      lastError = `Push permission is ${lastPermission}. Enable notifications for Hyper Vioarr in iOS Settings.`;
     }
   } catch (err) {
     lastError = err instanceof Error ? err.message : String(err);

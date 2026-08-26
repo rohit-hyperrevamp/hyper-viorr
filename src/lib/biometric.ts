@@ -182,7 +182,7 @@ export async function enableBiometric(phone: string): Promise<void> {
   }
 
   const auth = await plugin.authenticate({
-    reason: "Enable Face ID for Hyper Viorr",
+    reason: "Enable Face ID for Hyper Vioarr",
   });
   logNativeEvent("biometric", "enable auth", auth);
   if (!auth?.success) {
@@ -212,7 +212,7 @@ export async function signInWithBiometric(): Promise<string | null> {
   if (!existing.phone) return null;
 
   const auth = await plugin.authenticate({
-    reason: "Sign in to Hyper Viorr",
+    reason: "Sign in to Hyper Vioarr",
   });
   if (!auth?.success) return null;
 

@@ -423,7 +423,7 @@ function StockLedgerPage() {
       byType.set(r.holder_type, cur);
     }
     const summary: (string | number)[][] = [
-      ["Hyper Viorr — Stock Ledger (Debit / Credit Reconciliation)"],
+      ["Hyper Vioarr — Stock Ledger (Debit / Credit Reconciliation)"],
       [`Period: ${fromDate}  →  ${toDate}`],
       [scopeLine],
       [`Generated: ${stamp}`],

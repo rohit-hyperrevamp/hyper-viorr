@@ -270,7 +270,7 @@ export function EmployeeDocumentsExportDialog({
         doc.setTextColor(255, 255, 255);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(15);
-        doc.text("HYPER VIORR", M + 56, 32);
+        doc.text("HYPER VIOARR", M + 56, 32);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(220, 220, 220);
@@ -294,7 +294,7 @@ export function EmployeeDocumentsExportDialog({
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         doc.setTextColor(...muted);
-        doc.text("Hyper Viorr · Confidential — internal HR record.", M, fy);
+        doc.text("Hyper Vioarr · Confidential — internal HR record.", M, fy);
         doc.text(`Page ${doc.getNumberOfPages()}`, pw - M, fy, { align: "right" });
         doc.setTextColor(0, 0, 0);
       };
@@ -460,8 +460,8 @@ export function EmployeeDocumentsExportDialog({
       const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
       const name =
         ordered.length === 1
-          ? `hyperviorr-documents-${(ordered[0].employee_code || ordered[0].full_name || "employee").toString().replace(/\s+/g, "-")}-${stamp}.pdf`
-          : `hyperviorr-employee-documents-${ordered.length}-${stamp}.pdf`;
+          ? `hypervioarr-documents-${(ordered[0].employee_code || ordered[0].full_name || "employee").toString().replace(/\s+/g, "-")}-${stamp}.pdf`
+          : `hypervioarr-employee-documents-${ordered.length}-${stamp}.pdf`;
       doc.save(name);
 
       toast.success(`Exported ${totalDocs} document(s) for ${ordered.length} employee(s)`);
