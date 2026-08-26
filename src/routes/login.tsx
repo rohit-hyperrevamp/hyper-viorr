@@ -404,20 +404,10 @@ function LoginPage() {
               for modern enterprises.
             </p>
 
-            <div className="mt-8 flex items-center gap-4">
-              <img
-                src={guardImage}
-                alt="Security officer on duty at a corporate lobby"
-                loading="lazy"
-                width={912}
-                height={1200}
-                className="login-thumb h-24 w-20 object-cover"
-              />
-              <p className="max-w-[240px] text-[13.5px] leading-relaxed text-white/70">
-                <span className="font-semibold text-white">Live field visibility</span> —
-                attendance, patrols and escalations, the moment they happen.
-              </p>
-            </div>
+            <p className="mt-5 max-w-sm text-[13.5px] leading-relaxed text-white/80">
+              <span className="font-semibold text-white">Live field visibility</span> —
+              attendance, patrols and escalations, the moment they happen.
+            </p>
           </div>
 
           <div className="relative grid grid-cols-3 gap-3">
