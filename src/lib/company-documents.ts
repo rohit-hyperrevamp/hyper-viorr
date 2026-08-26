@@ -53,7 +53,7 @@ export const COMPANY_STAMP_URL =
 
 /** CDN URL of the company logo used on the ID card (replaceable in the template). */
 export const COMPANY_LOGO_URL =
-  "/__l5e/assets-v1/7409af85-d343-499a-b62f-553ac358a3ab/hv-logo.png";
+  "/__l5e/assets-v1/78666948-0be9-4fe9-b37e-849045589546/hv-logo.png";
 
 
 
