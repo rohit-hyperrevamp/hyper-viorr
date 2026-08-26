@@ -270,7 +270,7 @@ export function EmployeeDocumentsExportDialog({
         doc.setTextColor(255, 255, 255);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(15);
-        doc.text("RADIANT GUARD SERVICES", M + 56, 32);
+        doc.text("HYPER VIORR", M + 56, 32);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(220, 220, 220);
@@ -460,8 +460,8 @@ export function EmployeeDocumentsExportDialog({
       const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
       const name =
         ordered.length === 1
-          ? `radiant-documents-${(ordered[0].employee_code || ordered[0].full_name || "employee").toString().replace(/\s+/g, "-")}-${stamp}.pdf`
-          : `radiant-employee-documents-${ordered.length}-${stamp}.pdf`;
+          ? `hyperviorr-documents-${(ordered[0].employee_code || ordered[0].full_name || "employee").toString().replace(/\s+/g, "-")}-${stamp}.pdf`
+          : `hyperviorr-employee-documents-${ordered.length}-${stamp}.pdf`;
       doc.save(name);
 
       toast.success(`Exported ${totalDocs} document(s) for ${ordered.length} employee(s)`);
