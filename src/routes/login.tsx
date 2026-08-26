@@ -361,14 +361,82 @@ function LoginPage() {
             <span>Encrypted end-to-end · Secure OTP verification</span>
           </div>
         </div>
+        </div>
 
         {/* Footer credit */}
-        <div className="absolute inset-x-0 bottom-6 flex items-center justify-center gap-1.5 px-4 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
           <span>Hyper Viorr Ops Portal</span>
           <span aria-hidden>·</span>
           <span>A Viorr × HyperRevamp product</span>
         </div>
       </div>
+
+      {/* ================= Right: visual story panel ================= */}
+      <div className="relative z-10 hidden lg:block lg:w-[46%] lg:shrink-0 lg:p-5">
+        <div
+          className={`login-visual relative flex h-full flex-col justify-between p-12 ${
+            revealing ? "" : "animate-slide-in-right"
+          }`}
+        >
+          <img
+            src={opsImage}
+            alt="Security operations command center"
+            width={1280}
+            height={1600}
+            className="login-photo absolute inset-0 h-full w-full object-cover"
+          />
+          <div aria-hidden className="login-photo-scrim absolute inset-0" />
+          <div aria-hidden className="login-brand-glow pointer-events-none absolute inset-0" />
+
+          <div className="relative inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.2em] text-white/85 backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#5b8bff]" />
+            Enterprise workforce OS
+          </div>
+
+          <div className="relative">
+            <h1 className="login-headline max-w-xl text-white">
+              Workforce operations
+              <br />
+              <span className="login-headline-accent">redefined for scale.</span>
+            </h1>
+            <p className="mt-5 max-w-md text-[16px] leading-relaxed text-white/70">
+              Guards, units, payroll and compliance — one command center built
+              for modern enterprises.
+            </p>
+
+            <div className="mt-8 flex items-center gap-4">
+              <img
+                src={guardImage}
+                alt="Security officer on duty at a corporate lobby"
+                loading="lazy"
+                width={912}
+                height={1200}
+                className="login-thumb h-24 w-20 object-cover"
+              />
+              <p className="max-w-[240px] text-[13.5px] leading-relaxed text-white/70">
+                <span className="font-semibold text-white">Live field visibility</span> —
+                attendance, patrols and escalations, the moment they happen.
+              </p>
+            </div>
+          </div>
+
+          <div className="relative grid grid-cols-3 gap-3">
+            {[
+              { v: "24×7", l: "Ops coverage" },
+              { v: "99.9%", l: "Uptime SLA" },
+              { v: "Pan-India", l: "Deployment ready" },
+            ].map((s) => (
+              <div key={s.l} className="login-stat px-4 py-3">
+                <div className="font-display text-[16px] font-semibold tracking-tight text-white">
+                  {s.v}
+                </div>
+                <div className="mt-0.5 text-[11px] font-medium text-white/60">{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
