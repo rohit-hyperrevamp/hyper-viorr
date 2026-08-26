@@ -245,7 +245,7 @@ function LoginPage() {
                       onChange={(e) =>
                         setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
                       }
-                      className="h-full flex-1 bg-transparent pr-5 text-[16px] font-medium tracking-wide text-zinc-900 placeholder:text-zinc-600 focus:outline-none"
+                      className="h-full flex-1 bg-transparent pr-5 text-[16px] font-medium tracking-wide text-zinc-900 placeholder:font-normal placeholder:text-zinc-400 focus:outline-none"
                     />
                   </div>
                 </label>
