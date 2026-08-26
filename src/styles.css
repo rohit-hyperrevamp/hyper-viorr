@@ -58,64 +58,65 @@
 }
 
 :root {
-  --radius: 1.25rem;
-  /* surfaces — pure monochrome: crisp white/soft gray, never tinted */
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.15 0 0);
+  --radius: 1rem;
+  /* surfaces — paper & ink: crisp white paper, near-black ink */
+  --background: oklch(0.98 0 0);
+  --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0 0);
+  --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0 0);
-  /* near-black ink primary (#0a0a0a) */
-  --primary: oklch(0.15 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.95 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  /* near-black ink primary (#0d0d0d) */
+  --primary: oklch(0.145 0 0);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.962 0 0);
   --secondary-foreground: oklch(0.2 0 0);
-  --muted: oklch(0.95 0 0);
-  --muted-foreground: oklch(0.42 0 0);
-  /* graphite accent — strictly monochrome */
-  --accent: oklch(0.25 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --accent-secondary: oklch(0.45 0 0);
+  --muted: oklch(0.962 0 0);
+  --muted-foreground: oklch(0.46 0 0);
+  /* signal blue accent (#2f6bff) — the one colour in the system */
+  --accent: oklch(0.575 0.222 264);
+  --accent-foreground: oklch(0.99 0 0);
+  --accent-secondary: oklch(0.68 0.16 258);
   --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.9 0 0);
+  --border: oklch(0.915 0 0);
+  --input: oklch(0.915 0 0);
 
-  --ring: oklch(0.4 0 0);
-  --chart-1: oklch(0.25 0 0);
-  --chart-2: oklch(0.45 0 0);
-  --chart-3: oklch(0.6 0 0);
-  --chart-4: oklch(0.75 0 0);
-  --chart-5: oklch(0.88 0 0);
+  --ring: oklch(0.575 0.222 264);
+  --chart-1: oklch(0.575 0.222 264);
+  --chart-2: oklch(0.68 0.16 258);
+  --chart-3: oklch(0.145 0 0);
+  --chart-4: oklch(0.55 0 0);
+  --chart-5: oklch(0.82 0.06 260);
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.15 0 0);
-  --sidebar-primary: oklch(0.15 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.96 0 0);
-  --sidebar-accent-foreground: oklch(0.15 0 0);
-  --sidebar-border: oklch(0.92 0 0);
-  --sidebar-ring: oklch(0.4 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.575 0.222 264);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.965 0.012 264);
+  --sidebar-accent-foreground: oklch(0.145 0 0);
+  --sidebar-border: oklch(0.925 0 0);
+  --sidebar-ring: oklch(0.575 0.222 264);
 
   /* Theme-aware surfaces used by .glass, .tile, admin shell, etc. */
   --surface: 255 255 255;                 /* rgb triplet for translucent backgrounds */
   --surface-strong: 255 255 255;
   --surface-hairline: 255 255 255;        /* highlight edge */
-  --surface-shadow: 10 10 10;             /* rgb for shadow ink */
-  --surface-glass-alpha: 0.62;
-  --surface-glass-strong-alpha: 0.78;
-  --surface-border-alpha: 0.55;
+  --surface-shadow: 13 13 13;             /* rgb for shadow ink */
+  --surface-glass-alpha: 0.7;
+  --surface-glass-strong-alpha: 0.84;
+  --surface-border-alpha: 0.6;
 
-  /* Soft tint palette — neutral gray washes on cards/tiles (monochrome). */
-  --tint-blue:    244 244 245;
-  --tint-indigo:  244 244 245;
-  --tint-emerald: 244 244 245;
-  --tint-amber:   244 244 245;
-  --tint-rose:    244 244 245;
-  --tint-violet:  244 244 245;
-  --tint-sky:     244 244 245;
-  --tint-slate:   244 244 245;
+  /* Soft tint palette — paper washes with a single blue signal. */
+  --tint-blue:    236 242 255;
+  --tint-indigo:  238 241 255;
+  --tint-emerald: 243 245 248;
+  --tint-amber:   246 245 242;
+  --tint-rose:    247 244 245;
+  --tint-violet:  241 242 250;
+  --tint-sky:     237 244 254;
+  --tint-slate:   244 245 247;
 }
+
 
 
 
