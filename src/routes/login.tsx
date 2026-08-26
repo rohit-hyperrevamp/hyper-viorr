@@ -172,116 +172,34 @@ function LoginPage() {
   }
 
   return (
-    <div className="login-screen relative flex min-h-dvh w-full overflow-hidden">
-      {/* ================= Background imagery ================= */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <img
-          src={opsImage}
-          alt=""
-          width={1280}
-          height={1600}
-          className="login-photo h-full w-full object-cover object-center"
-        />
-        <div className="login-photo-scrim absolute inset-0" />
-        <div className="login-grid absolute inset-0" />
-      </div>
+    <div className="login-screen relative flex min-h-dvh w-full flex-col overflow-hidden lg:flex-row">
+      <div aria-hidden className="login-grid pointer-events-none absolute inset-0" />
 
-      {/* ================= Left: brand canvas ================= */}
-      <div className="relative z-10 hidden flex-1 flex-col justify-center px-16 lg:flex xl:px-24">
-        <div aria-hidden className="login-brand-glow pointer-events-none absolute inset-0" />
-
-        <div className="reveal relative">
-          <div className="mb-10 flex items-center gap-3">
-            <img
-              src={logo}
-              alt="Hyper Viorr"
-              className="h-11 w-11 rounded-xl object-contain"
-            />
-            <div className="leading-tight">
-              <div className="font-display text-[21px] font-semibold tracking-tight text-zinc-900">
-                Hyper Viorr
-              </div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">
-                Viorr × HyperRevamp
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-white/70 px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.2em] text-zinc-600 backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#2f6bff]" />
-            Enterprise workforce OS
-          </div>
-
-          <h1 className="login-headline max-w-xl text-zinc-900">
-            Workforce operations
-            <br />
-            <span className="login-headline-accent">redefined for scale.</span>
-          </h1>
-
-          <p className="mt-6 max-w-md text-[17px] leading-relaxed text-zinc-600">
-            Guards, units, payroll and compliance — one command center built
-            for modern enterprises.
-          </p>
-
-          <div className="mt-10 flex items-center gap-5">
-            <img
-              src={guardImage}
-              alt="Security officer on duty at a corporate lobby"
-              loading="lazy"
-              width={912}
-              height={1200}
-              className="login-thumb h-32 w-24 object-cover"
-            />
-            <div className="max-w-[230px] text-[14px] leading-relaxed text-zinc-600">
-              <span className="login-accent font-semibold">Live field visibility</span> — attendance,
-              patrols and escalations, the moment they happen.
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom stats */}
-        <div className="absolute bottom-12 left-16 flex divide-x divide-black/[0.08] overflow-hidden rounded-2xl border border-black/[0.08] bg-white/65 backdrop-blur xl:left-24">
-          {[
-            { v: "24×7", l: "Ops coverage" },
-            { v: "99.9%", l: "Uptime SLA" },
-            { v: "Pan-India", l: "Deployment ready" },
-          ].map((s) => (
-            <div key={s.l} className="flex flex-col px-6 py-4">
-              <span className="font-display text-[17px] font-semibold tracking-tight text-zinc-900">
-                {s.v}
-              </span>
-              <span className="text-[12px] font-medium text-zinc-500">{s.l}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-
-
-      {/* ================= Right: glass sign-in panel ================= */}
+      {/* ================= Left: sign-in ================= */}
       <div
-        className={`login-panel relative z-20 flex min-h-dvh w-full flex-col justify-center px-6 py-10 sm:px-14 lg:w-[520px] lg:shrink-0 ${
-          revealing ? "animate-slide-out-up" : "animate-slide-in-right"
+        className={`login-panel relative z-20 flex min-h-dvh flex-1 flex-col px-6 py-8 sm:px-12 lg:px-16 ${
+          revealing ? "animate-slide-out-up" : ""
         }`}
       >
-        {/* Mobile brand header */}
-        <div className="mb-10 flex items-center gap-3 lg:hidden">
+        {/* Brand header */}
+        <div className="flex items-center gap-3">
           <img
             src={logo}
             alt="Hyper Viorr"
-            className="h-9 w-9 rounded-lg object-contain"
+            className="h-10 w-10 rounded-xl object-contain"
           />
           <div className="leading-tight">
-            <div className="font-display text-lg font-semibold tracking-tight text-zinc-900">
+            <div className="font-display text-[17px] font-semibold tracking-tight text-zinc-900">
               Hyper Viorr
             </div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.22em] text-zinc-500">
               Viorr × HyperRevamp
             </div>
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-sm lg:mx-0 lg:px-6">
+        <div className="flex flex-1 items-center py-10">
+        <div className="mx-auto w-full max-w-[400px]">
           <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-black/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
             {step === "phone" ? (
               <>
@@ -294,14 +212,15 @@ function LoginPage() {
             )}
           </div>
 
-          <div className="font-display text-3xl font-medium tracking-tight text-zinc-900">
+          <div className="font-display text-[34px] font-semibold leading-[1.08] tracking-tight text-zinc-900">
             {step === "phone" ? "Sign in to continue" : "Verify your number"}
           </div>
-          <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">
+          <p className="mt-2 text-[15px] leading-relaxed text-zinc-500">
             {step === "phone"
               ? "Enter your mobile number to receive a one-time code."
               : `We sent a 6-digit code to +91 ••• ••• ${phone.slice(-4)}.`}
           </p>
+
 
           <div className="mt-9">
             {step === "phone" ? (
@@ -326,7 +245,7 @@ function LoginPage() {
                       onChange={(e) =>
                         setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
                       }
-                      className="h-full flex-1 bg-transparent pr-5 text-[16px] font-medium tracking-wide text-zinc-900 placeholder:text-zinc-600 focus:outline-none"
+                      className="h-full flex-1 bg-transparent pr-5 text-[16px] font-medium tracking-wide text-zinc-900 placeholder:font-normal placeholder:text-zinc-400 focus:outline-none"
                     />
                   </div>
                 </label>
@@ -442,14 +361,82 @@ function LoginPage() {
             <span>Encrypted end-to-end · Secure OTP verification</span>
           </div>
         </div>
+        </div>
 
         {/* Footer credit */}
-        <div className="absolute inset-x-0 bottom-6 flex items-center justify-center gap-1.5 px-4 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
           <span>Hyper Viorr Ops Portal</span>
           <span aria-hidden>·</span>
           <span>A Viorr × HyperRevamp product</span>
         </div>
       </div>
+
+      {/* ================= Right: visual story panel ================= */}
+      <div className="relative z-10 hidden lg:block lg:w-[46%] lg:shrink-0 lg:p-5">
+        <div
+          className={`login-visual relative flex h-full flex-col justify-between p-12 ${
+            revealing ? "" : "animate-slide-in-right"
+          }`}
+        >
+          <img
+            src={opsImage}
+            alt="Security operations command center"
+            width={1280}
+            height={1600}
+            className="login-photo absolute inset-0 h-full w-full object-cover"
+          />
+          <div aria-hidden className="login-photo-scrim absolute inset-0" />
+          <div aria-hidden className="login-brand-glow pointer-events-none absolute inset-0" />
+
+          <div className="relative inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.2em] text-white/85 backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#5b8bff]" />
+            Enterprise workforce OS
+          </div>
+
+          <div className="relative">
+            <h1 className="login-headline max-w-xl text-white">
+              Workforce operations
+              <br />
+              <span className="login-headline-accent">redefined for scale.</span>
+            </h1>
+            <p className="mt-5 max-w-md text-[16px] leading-relaxed text-white/70">
+              Guards, units, payroll and compliance — one command center built
+              for modern enterprises.
+            </p>
+
+            <div className="mt-8 flex items-center gap-4">
+              <img
+                src={guardImage}
+                alt="Security officer on duty at a corporate lobby"
+                loading="lazy"
+                width={912}
+                height={1200}
+                className="login-thumb h-24 w-20 object-cover"
+              />
+              <p className="max-w-[240px] text-[13.5px] leading-relaxed text-white/70">
+                <span className="font-semibold text-white">Live field visibility</span> —
+                attendance, patrols and escalations, the moment they happen.
+              </p>
+            </div>
+          </div>
+
+          <div className="relative grid grid-cols-3 gap-3">
+            {[
+              { v: "24×7", l: "Ops coverage" },
+              { v: "99.9%", l: "Uptime SLA" },
+              { v: "Pan-India", l: "Deployment ready" },
+            ].map((s) => (
+              <div key={s.l} className="login-stat px-4 py-3">
+                <div className="font-display text-[16px] font-semibold tracking-tight text-white">
+                  {s.v}
+                </div>
+                <div className="mt-0.5 text-[11px] font-medium text-white/60">{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
