@@ -196,18 +196,18 @@ function LoginPage() {
               alt="Hyper Viorr"
               className="h-11 w-11 rounded-xl object-contain"
             />
-            <span className="font-display text-2xl font-semibold tracking-tight text-white">
+            <span className="font-display text-2xl font-semibold tracking-tight text-zinc-900">
               Hyper Viorr
             </span>
           </div>
 
-          <div className="login-headline max-w-xl text-white">
+          <div className="login-headline max-w-xl text-zinc-900">
             Workforce operations
             <br />
             <span className="login-headline-accent">redefined for scale.</span>
           </div>
 
-          <p className="mt-6 max-w-md text-lg leading-relaxed text-zinc-400">
+          <p className="mt-6 max-w-md text-lg leading-relaxed text-zinc-600">
             Guards, units, payroll and compliance — one command center built
             for modern enterprises.
           </p>
@@ -221,7 +221,7 @@ function LoginPage() {
               height={1200}
               className="login-thumb h-32 w-24 rounded-2xl object-cover"
             />
-            <div className="max-w-[220px] text-sm leading-relaxed text-zinc-400">
+            <div className="max-w-[220px] text-sm leading-relaxed text-zinc-600">
               <span className="login-accent font-semibold">Live field visibility</span> — attendance,
               patrols and escalations, the moment they happen.
             </div>
@@ -231,15 +231,15 @@ function LoginPage() {
         {/* Bottom stats */}
         <div className="absolute bottom-12 left-16 flex gap-12 xl:left-24">
           <div className="flex flex-col">
-            <span className="font-display text-lg font-medium text-white">24×7</span>
+            <span className="font-display text-lg font-medium text-zinc-900">24×7</span>
             <span className="text-sm text-zinc-500">Ops coverage</span>
           </div>
           <div className="flex flex-col">
-            <span className="font-display text-lg font-medium text-white">99.9%</span>
+            <span className="font-display text-lg font-medium text-zinc-900">99.9%</span>
             <span className="text-sm text-zinc-500">Uptime SLA</span>
           </div>
           <div className="flex flex-col">
-            <span className="font-display text-lg font-medium text-white">Pan-India</span>
+            <span className="font-display text-lg font-medium text-zinc-900">Pan-India</span>
             <span className="text-sm text-zinc-500">Deployment ready</span>
           </div>
         </div>
@@ -260,7 +260,7 @@ function LoginPage() {
             className="h-9 w-9 rounded-lg object-contain"
           />
           <div className="leading-tight">
-            <div className="font-display text-lg font-semibold tracking-tight text-white">
+            <div className="font-display text-lg font-semibold tracking-tight text-zinc-900">
               Hyper Viorr
             </div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
@@ -270,7 +270,7 @@ function LoginPage() {
         </div>
 
         <div className="mx-auto w-full max-w-sm lg:mx-0 lg:px-6">
-          <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+          <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-black/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
             {step === "phone" ? (
               <>
                 <Sparkles className="h-3.5 w-3.5 login-accent" /> Welcome back
@@ -282,10 +282,10 @@ function LoginPage() {
             )}
           </div>
 
-          <div className="font-display text-3xl font-medium tracking-tight text-white">
+          <div className="font-display text-3xl font-medium tracking-tight text-zinc-900">
             {step === "phone" ? "Sign in to continue" : "Verify your number"}
           </div>
-          <p className="mt-2 text-[15px] leading-relaxed text-zinc-400">
+          <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">
             {step === "phone"
               ? "Enter your mobile number to receive a one-time code."
               : `We sent a 6-digit code to +91 ••• ••• ${phone.slice(-4)}.`}
@@ -300,10 +300,10 @@ function LoginPage() {
                   </span>
                   <div className="login-field flex h-14 w-full items-center overflow-hidden rounded-xl">
                     <div className="flex items-center gap-3 pl-5 pr-3">
-                      <span className="whitespace-nowrap text-[15px] font-semibold text-white">
+                      <span className="whitespace-nowrap text-[15px] font-semibold text-zinc-900">
                         +91
                       </span>
-                      <span className="h-6 w-px bg-white/15" />
+                      <span className="h-6 w-px bg-black/15" />
                     </div>
                     <input
                       type="tel"
@@ -314,7 +314,7 @@ function LoginPage() {
                       onChange={(e) =>
                         setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
                       }
-                      className="h-full flex-1 bg-transparent pr-5 text-[16px] font-medium tracking-wide text-white placeholder:text-zinc-600 focus:outline-none"
+                      className="h-full flex-1 bg-transparent pr-5 text-[16px] font-medium tracking-wide text-zinc-900 placeholder:text-zinc-600 focus:outline-none"
                     />
                   </div>
                 </label>
@@ -339,7 +339,7 @@ function LoginPage() {
                     type="button"
                     onClick={handleBiometricLogin}
                     disabled={bioBusy}
-                    className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-blue-400/25 bg-blue-500/10 text-[14px] font-semibold text-white transition hover:bg-blue-500/20 disabled:opacity-60"
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-blue-400/25 bg-blue-500/10 text-[14px] font-semibold text-blue-700 transition hover:bg-blue-500/20 disabled:opacity-60"
                   >
                     {bioBusy ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -377,7 +377,7 @@ function LoginPage() {
                   </InputOTP>
 
                   {error ? (
-                    <p className="mt-3 text-center text-sm font-medium text-red-400">
+                    <p className="mt-3 text-center text-sm font-medium text-red-500">
                       {error}
                     </p>
                   ) : (
@@ -407,7 +407,7 @@ function LoginPage() {
                       setOtp("");
                       setError(null);
                     }}
-                    className="font-medium text-zinc-500 transition hover:text-white"
+                    className="font-medium text-zinc-500 transition hover:text-zinc-900"
                   >
                     ← Change number
                   </button>
@@ -415,7 +415,7 @@ function LoginPage() {
                     type="button"
                     disabled={resendIn > 0 || sending}
                     onClick={() => sendOtp()}
-                    className="font-semibold text-white transition hover:opacity-80 disabled:cursor-not-allowed disabled:text-zinc-600"
+                    className="font-semibold text-zinc-900 transition hover:opacity-80 disabled:cursor-not-allowed disabled:text-zinc-500"
                   >
                     {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend OTP"}
                   </button>
@@ -425,14 +425,14 @@ function LoginPage() {
           </div>
 
           {/* Trust row */}
-          <div className="mt-9 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[12px] font-medium text-zinc-400">
+          <div className="mt-9 flex items-center justify-center gap-2 rounded-xl border border-black/10 bg-black/[0.04] px-3 py-2.5 text-[12px] font-medium text-zinc-600">
             <ShieldCheck className="h-4 w-4 login-accent" />
             <span>Encrypted end-to-end · Secure OTP verification</span>
           </div>
         </div>
 
         {/* Footer credit */}
-        <div className="absolute inset-x-0 bottom-6 flex items-center justify-center gap-1.5 px-4 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">
+        <div className="absolute inset-x-0 bottom-6 flex items-center justify-center gap-1.5 px-4 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
           <span>Hyper Viorr Ops Portal</span>
           <span aria-hidden>·</span>
           <span>A Viorr × HyperRevamp product</span>
