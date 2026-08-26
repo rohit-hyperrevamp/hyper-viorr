@@ -94,7 +94,7 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.text("RADIANT GUARD SERVICES", margin + 62, 36);
+  doc.text("HYPER VIORR", margin + 62, 36);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
   doc.setTextColor(220, 220, 220);
@@ -231,5 +231,5 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
 
   const safeCust = input.customerName.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   const stamp = input.rangeStart === input.rangeEnd ? input.rangeStart : `${input.rangeStart}_to_${input.rangeEnd}`;
-  doc.save(`radiant-field-report_${safeCust}_${stamp}.pdf`);
+  doc.save(`hyperviorr-field-report_${safeCust}_${stamp}.pdf`);
 }
