@@ -16,7 +16,7 @@ import {
 import { markNativeAppSessionUnlocked } from "@/lib/native-app-lock";
 import logo from "@/assets/hv-logo.png";
 import opsImage from "@/assets/login-ops.jpg";
-import guardImage from "@/assets/login-guard.jpg";
+
 
 export const Route = createFileRoute("/login")({
   head: () => ({
