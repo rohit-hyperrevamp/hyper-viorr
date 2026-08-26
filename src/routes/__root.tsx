@@ -9,7 +9,8 @@ import {
 import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
-import favicon from "../assets/hv-logo.png";
+import favicon from "../assets/favicon.png";
+import appleIcon from "../assets/icons/icon-256.webp";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmProvider } from "@/components/ConfirmProvider";
@@ -111,7 +112,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@HyperRevamp" },
     ],
     links: [
-      { rel: "icon", type: "image/png", href: favicon },
+      { rel: "icon", type: "image/png", sizes: "512x512", href: favicon },
+      { rel: "shortcut icon", type: "image/png", href: favicon },
+      { rel: "apple-touch-icon", sizes: "256x256", href: appleIcon },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
