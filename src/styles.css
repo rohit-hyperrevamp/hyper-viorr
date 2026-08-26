@@ -411,11 +411,19 @@
     mask-image: radial-gradient(ellipse 70% 60% at 30% 30%, #000 0%, transparent 75%);
   }
   .login-photo {
-    filter: saturate(1.08) contrast(1.05) brightness(1.02);
+    filter: saturate(1.05) contrast(1.04) brightness(0.94);
   }
   .login-photo-scrim {
     background:
-      linear-gradient(180deg, rgba(8,12,24,0.25) 0%, rgba(8,12,24,0.05) 30%, rgba(8,12,24,0.78) 88%);
+      linear-gradient(180deg, rgba(8,12,24,0.3) 0%, rgba(8,12,24,0.12) 20%, rgba(8,12,24,0.62) 50%, rgba(8,12,24,0.92) 85%);
+  }
+  .login-copy {
+    background: linear-gradient(180deg, rgb(8 12 24 / 0.55), rgb(8 12 24 / 0.35));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 24px 60px -30px rgba(8, 12, 24, 0.8);
   }
   .login-brand-glow {
     background:
