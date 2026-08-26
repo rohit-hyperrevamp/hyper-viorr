@@ -380,9 +380,9 @@ function LoginPage() {
         >
           <img
             src={opsImage}
-            alt="Security operations command center"
-            width={1280}
-            height={1600}
+            alt="CCTV security control room monitor wall"
+            width={1920}
+            height={1193}
             className="login-photo absolute inset-0 h-full w-full object-cover"
           />
           <div aria-hidden className="login-photo-scrim absolute inset-0" />
