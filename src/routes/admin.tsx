@@ -561,10 +561,11 @@ function AdminLayout() {
         {/* Brand */}
         <div className={cn("flex items-center px-4 pt-5 pb-4", collapsed && "justify-center px-2")}>
           {collapsed ? (
-            <Link to={dashboardHref} className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground text-[13px] font-bold">
-              R
+            <Link to={dashboardHref} className="grid h-9 w-9 place-items-center rounded-xl bg-foreground/[0.04] ring-1 ring-inset ring-border/60">
+              <img src={brandLogo} alt="Hyper Viorr" className="h-7 w-7 object-contain" />
             </Link>
           ) : (
+
             <Link to={dashboardHref} className="flex min-w-0 items-center">
               <BrandMark />
             </Link>
