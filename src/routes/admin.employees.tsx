@@ -1917,7 +1917,7 @@ function EmployeesPage() {
           } catch { /* ignore */ }
 
           const firstName = (c.full_name || "").split(" ")[0] || "there";
-          const welcomeTitle = `Welcome to Hyper Viorr${empCode ? ` — ${empCode}` : ""}`;
+          const welcomeTitle = `Welcome to Hyper Vioarr${empCode ? ` — ${empCode}` : ""}`;
           const welcomeLines = [
             `Hi ${firstName}, we're thrilled to have you on board!`,
             "",
@@ -4945,14 +4945,14 @@ function CandidateWizard({
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
             {isEmployeeMode
-              ? "Non-billable internal hire. Billing unit is auto-set to Hyper Viorr; salary follows the internal contract for the chosen designation. Client unit mapping is optional."
+              ? "Non-billable internal hire. Billing unit is auto-set to Hyper Vioarr; salary follows the internal contract for the chosen designation. Client unit mapping is optional."
               : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
           </DialogDescription>
           {isEmployeeMode && (
             <div className="mt-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
-                <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Hyper Viorr - Pune Office</Badge>
+                <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Hyper Vioarr - Pune Office</Badge>
               </div>
               <div className="grid gap-1.5">
                 <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Branch</label>

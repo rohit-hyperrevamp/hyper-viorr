@@ -36,7 +36,7 @@ export const sendTestPushToMe = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const result = await sendNativePushToCurrentUserServer(context.supabase, {
-      title: "Hyper Viorr",
+      title: "Hyper Vioarr",
       body: data.message || "Test push notification",
     });
     const firstFailure = result.failures[0]?.error;

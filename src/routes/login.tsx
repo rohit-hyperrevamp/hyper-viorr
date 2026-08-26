@@ -21,25 +21,25 @@ import opsImage from "@/assets/login-ops.jpg";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Sign in — Hyper Viorr" },
+      { title: "Sign in — Hyper Vioarr" },
       {
         name: "description",
         content:
-          "Sign in to Hyper Viorr with your phone number and OTP.",
+          "Sign in to Hyper Vioarr with your phone number and OTP.",
       },
-      { property: "og:title", content: "Sign in — Hyper Viorr" },
+      { property: "og:title", content: "Sign in — Hyper Vioarr" },
       {
         property: "og:description",
         content:
-          "Sign in to Hyper Viorr with your phone number and OTP.",
+          "Sign in to Hyper Vioarr with your phone number and OTP.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Sign in — Hyper Viorr" },
+      { name: "twitter:title", content: "Sign in — Hyper Vioarr" },
       {
         name: "twitter:description",
         content:
-          "Sign in to Hyper Viorr with your phone number and OTP.",
+          "Sign in to Hyper Vioarr with your phone number and OTP.",
       },
     ],
   }),
@@ -185,15 +185,15 @@ function LoginPage() {
         <div className="flex items-center gap-3">
           <img
             src={logo}
-            alt="Hyper Viorr"
+            alt="Hyper Vioarr"
             className="h-10 w-10 rounded-xl object-contain"
           />
           <div className="leading-tight">
             <div className="font-display text-[17px] font-semibold tracking-tight text-zinc-900">
-              Hyper Viorr
+              Hyper Vioarr
             </div>
             <div className="text-[9.5px] font-bold uppercase tracking-[0.22em] text-zinc-500">
-              Viorr × HyperRevamp
+              Vioarr × HyperRevamp
             </div>
           </div>
         </div>
@@ -365,9 +365,9 @@ function LoginPage() {
 
         {/* Footer credit */}
         <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
-          <span>Hyper Viorr Ops Portal</span>
+          <span>Hyper Vioarr Ops Portal</span>
           <span aria-hidden>·</span>
-          <span>A Viorr × HyperRevamp product</span>
+          <span>A Vioarr × HyperRevamp product</span>
         </div>
       </div>
 

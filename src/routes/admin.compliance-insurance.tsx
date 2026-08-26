@@ -25,7 +25,7 @@ export const Route = createFileRoute("/admin/compliance-insurance")({
   }),
   head: () => ({
     meta: [
-      { title: "Insurance Register — Hyper Viorr" },
+      { title: "Insurance Register — Hyper Vioarr" },
       {
         name: "description",
         content:

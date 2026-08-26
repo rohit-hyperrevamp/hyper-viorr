@@ -1,1 +1,1 @@
-UPDATE public.units SET name = 'Hyper Viorr - Pune Office' WHERE id = '92541381-14d3-4be6-ae8c-078b79c2e0f1';
+UPDATE public.units SET name = 'Hyper Vioarr - Pune Office' WHERE id = '92541381-14d3-4be6-ae8c-078b79c2e0f1';

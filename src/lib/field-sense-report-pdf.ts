@@ -94,7 +94,7 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.text("HYPER VIORR", margin + 62, 36);
+  doc.text("HYPER VIOARR", margin + 62, 36);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
   doc.setTextColor(220, 220, 220);
@@ -223,7 +223,7 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(...muted);
-      doc.text("Hyper Viorr · Confidential — for client use only.", margin, y);
+      doc.text("Hyper Vioarr · Confidential — for client use only.", margin, y);
       const pageNum = doc.getNumberOfPages();
       doc.text(`Page ${pageNum}`, pageW - margin, y, { align: "right" });
     },
@@ -231,5 +231,5 @@ export async function generateReportPdf(input: ReportInput): Promise<void> {
 
   const safeCust = input.customerName.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   const stamp = input.rangeStart === input.rangeEnd ? input.rangeStart : `${input.rangeStart}_to_${input.rangeEnd}`;
-  doc.save(`hyperviorr-field-report_${safeCust}_${stamp}.pdf`);
+  doc.save(`hypervioarr-field-report_${safeCust}_${stamp}.pdf`);
 }

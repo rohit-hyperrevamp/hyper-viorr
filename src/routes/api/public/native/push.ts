@@ -172,7 +172,7 @@ export const Route = createFileRoute("/api/public/native/push")({
 
           if (input.action === "test") {
             const result = await sendNativePushToCurrentUserServer(supabase, {
-              title: "Hyper Viorr",
+              title: "Hyper Vioarr",
               body: input.message || "Test push notification",
             });
             const firstFailure = result.failures[0]?.error;
