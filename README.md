@@ -1,4 +1,4 @@
-# Hyper Viorr Portal
+# Radiant Portal
 
 @project:0d084c05-821a-4764-841f-d97fd247bcbc:"Radiant_New" using the design and color scheme, design the login page with phone and OTP and for now we shall be using dummy OTP of 111111...post login lets just put a welcome message and a logout button
 

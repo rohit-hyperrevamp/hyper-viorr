@@ -1,4 +1,4 @@
-# Hyper Viorr Workforce Platform — Detailed Scope & Feature List
+# Radiant Workforce Platform — Detailed Scope & Feature List
 
 Prepared for proposal documentation.
 Platform: unified Web application + native iOS & Android apps (single codebase, shared backend).
