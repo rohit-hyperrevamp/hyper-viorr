@@ -1023,14 +1023,15 @@ function SidebarGroup({
   }, [groupActive]);
 
   const itemBase =
-    "group relative flex w-full items-center gap-2.5 rounded-2xl px-2.5 py-2 text-[13px] font-medium transition-all";
-  const itemIdle = "text-foreground/70 hover:bg-foreground/[0.05] hover:text-foreground";
+    "group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all";
+  const itemIdle = "text-foreground/70 hover:bg-foreground/[0.045] hover:text-foreground";
   const itemActive =
-    "bg-foreground text-background shadow-[0_10px_28px_-14px_rgba(15,23,42,0.55)]";
+    "bg-accent text-accent-foreground shadow-[0_10px_26px_-14px_color-mix(in_oklab,var(--accent)_70%,transparent)]";
 
-  const iconSpanBase = "grid h-7 w-7 shrink-0 place-items-center rounded-xl transition-colors";
-  const iconSpanActive = "bg-card/15 text-background";
-  const iconSpanIdle = "text-foreground/60 group-hover:text-foreground";
+  const iconSpanBase = "grid h-7 w-7 shrink-0 place-items-center rounded-lg transition-colors";
+  const iconSpanActive = "bg-white/18 text-accent-foreground";
+  const iconSpanIdle = "text-foreground/55 group-hover:text-foreground";
+
 
   if (!group.children || group.children.length === 0) {
     const link = (
