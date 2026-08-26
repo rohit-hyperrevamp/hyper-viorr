@@ -393,7 +393,7 @@ function LoginPage() {
             Enterprise workforce OS
           </div>
 
-          <div className="relative">
+          <div className="login-copy relative">
             <h1 className="login-headline max-w-xl text-white">
               Workforce operations
               <br />

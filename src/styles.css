@@ -415,7 +415,15 @@
   }
   .login-photo-scrim {
     background:
-      linear-gradient(180deg, rgba(8,12,24,0.35) 0%, rgba(8,12,24,0.18) 22%, rgba(8,12,24,0.55) 55%, rgba(8,12,24,0.88) 88%);
+      linear-gradient(180deg, rgba(8,12,24,0.3) 0%, rgba(8,12,24,0.12) 20%, rgba(8,12,24,0.62) 50%, rgba(8,12,24,0.92) 85%);
+  }
+  .login-copy {
+    background: linear-gradient(180deg, rgb(8 12 24 / 0.55), rgb(8 12 24 / 0.35));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 24px 60px -30px rgba(8, 12, 24, 0.8);
   }
   .login-brand-glow {
     background:
