@@ -183,6 +183,7 @@ function LoginPage() {
           className="login-photo h-full w-full object-cover object-center"
         />
         <div className="login-photo-scrim absolute inset-0" />
+        <div className="login-grid absolute inset-0" />
       </div>
 
       {/* ================= Left: brand canvas ================= */}
@@ -190,38 +191,48 @@ function LoginPage() {
         <div aria-hidden className="login-brand-glow pointer-events-none absolute inset-0" />
 
         <div className="reveal relative">
-          <div className="mb-8 flex items-center gap-3">
+          <div className="mb-10 flex items-center gap-3">
             <img
               src={logo}
               alt="Hyper Viorr"
               className="h-11 w-11 rounded-xl object-contain"
             />
-            <span className="font-display text-2xl font-semibold tracking-tight text-zinc-900">
-              Hyper Viorr
-            </span>
+            <div className="leading-tight">
+              <div className="font-display text-[21px] font-semibold tracking-tight text-zinc-900">
+                Hyper Viorr
+              </div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">
+                Viorr × HyperRevamp
+              </div>
+            </div>
           </div>
 
-          <div className="login-headline max-w-xl text-zinc-900">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-white/70 px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.2em] text-zinc-600 backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#2f6bff]" />
+            Enterprise workforce OS
+          </div>
+
+          <h1 className="login-headline max-w-xl text-zinc-900">
             Workforce operations
             <br />
             <span className="login-headline-accent">redefined for scale.</span>
-          </div>
+          </h1>
 
-          <p className="mt-6 max-w-md text-lg leading-relaxed text-zinc-600">
+          <p className="mt-6 max-w-md text-[17px] leading-relaxed text-zinc-600">
             Guards, units, payroll and compliance — one command center built
             for modern enterprises.
           </p>
 
-          <div className="mt-10 flex items-center gap-4">
+          <div className="mt-10 flex items-center gap-5">
             <img
               src={guardImage}
               alt="Security officer on duty at a corporate lobby"
               loading="lazy"
               width={912}
               height={1200}
-              className="login-thumb h-32 w-24 rounded-2xl object-cover"
+              className="login-thumb h-32 w-24 object-cover"
             />
-            <div className="max-w-[220px] text-sm leading-relaxed text-zinc-600">
+            <div className="max-w-[230px] text-[14px] leading-relaxed text-zinc-600">
               <span className="login-accent font-semibold">Live field visibility</span> — attendance,
               patrols and escalations, the moment they happen.
             </div>
@@ -229,21 +240,22 @@ function LoginPage() {
         </div>
 
         {/* Bottom stats */}
-        <div className="absolute bottom-12 left-16 flex gap-12 xl:left-24">
-          <div className="flex flex-col">
-            <span className="font-display text-lg font-medium text-zinc-900">24×7</span>
-            <span className="text-sm text-zinc-500">Ops coverage</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="font-display text-lg font-medium text-zinc-900">99.9%</span>
-            <span className="text-sm text-zinc-500">Uptime SLA</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="font-display text-lg font-medium text-zinc-900">Pan-India</span>
-            <span className="text-sm text-zinc-500">Deployment ready</span>
-          </div>
+        <div className="absolute bottom-12 left-16 flex divide-x divide-black/[0.08] overflow-hidden rounded-2xl border border-black/[0.08] bg-white/65 backdrop-blur xl:left-24">
+          {[
+            { v: "24×7", l: "Ops coverage" },
+            { v: "99.9%", l: "Uptime SLA" },
+            { v: "Pan-India", l: "Deployment ready" },
+          ].map((s) => (
+            <div key={s.l} className="flex flex-col px-6 py-4">
+              <span className="font-display text-[17px] font-semibold tracking-tight text-zinc-900">
+                {s.v}
+              </span>
+              <span className="text-[12px] font-medium text-zinc-500">{s.l}</span>
+            </div>
+          ))}
         </div>
       </div>
+
 
 
       {/* ================= Right: glass sign-in panel ================= */}
