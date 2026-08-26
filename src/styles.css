@@ -408,7 +408,7 @@
       linear-gradient(to right, rgb(13 13 13 / 0.045) 1px, transparent 1px),
       linear-gradient(to bottom, rgb(13 13 13 / 0.045) 1px, transparent 1px);
     background-size: 64px 64px;
-    mask-image: radial-gradient(ellipse 70% 60% at 30% 30%, #000 0%, transparent 75%);
+    mask-image: radial-gradient(ellipse 120% 100% at 40% 30%, #000 0%, rgb(0 0 0 / 0.55) 55%, transparent 100%);
   }
   .login-photo {
     filter: saturate(1.05) contrast(1.04) brightness(0.94);
@@ -442,7 +442,7 @@
     border-radius: 16px;
   }
   .login-panel {
-    background: #fbfbfc;
+    background: transparent;
   }
 
   .login-field {
