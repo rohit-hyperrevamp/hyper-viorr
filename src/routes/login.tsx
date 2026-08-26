@@ -382,7 +382,7 @@ function LoginPage() {
             src={opsImage}
             alt="CCTV security control room monitor wall"
             width={1280}
-            height={2066}
+            height={2065}
             className="login-photo absolute inset-0 h-full w-full object-cover"
           />
           <div aria-hidden className="login-photo-scrim absolute inset-0" />
