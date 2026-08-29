@@ -1324,7 +1324,6 @@ function EmployeesPage() {
         .update({ role_key: roleKey } as unknown as never)
         .eq("id", candidate.id);
       if (error) throw error;
-      if (enabled) await provisionLogin({ data: { candidateId: candidate.id } });
       await logActivity({
         module: "Employees",
         action: "assign_role",
@@ -1358,6 +1357,7 @@ function EmployeesPage() {
         .update(patch as unknown as never)
         .eq("id", candidate.id);
       if (error) throw error;
+      if (enabled) await provisionLogin({ data: { candidateId: candidate.id } });
       await logActivity({
         module: "Employees",
         action: enabled ? "enable" : "disable",

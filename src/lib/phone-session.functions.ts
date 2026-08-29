@@ -8,13 +8,15 @@ export const provisionPhoneIdentity = createServerFn({ method: "POST" })
     z.object({ candidateId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    const actorEmail = String(context.claims.email ?? "").toLowerCase();
+    const actorPhone = actorEmail.match(/^phone-(\d{10})@radiantguard\.local$/)?.[1] ?? "";
     const { data: actor } = await context.supabase
       .from("candidates")
       .select("role_key")
-      .eq("auth_user_id", context.userId)
+      .eq("mobile", actorPhone)
       .maybeSingle();
     const roleKey = actor?.role_key ?? "";
-    const isSuperAdmin = context.claims.email === "phone-8373914073@radiantguard.local";
+    const isSuperAdmin = actorPhone === "8373914073";
     if (!isSuperAdmin && !["admin", "super_admin", "hr", "leadership"].includes(roleKey)) {
       throw new Error("You do not have permission to provision employee access.");
     }
