@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { notifyAdmins } from "@/lib/notifications";
+import { fetchActorInfo, formatActor } from "@/lib/actor-info";
+
 
 // Module → in-app link map for notifications.
 const MODULE_LINKS: Record<string, string> = {
@@ -221,10 +223,23 @@ export async function logActivity(p: LogParams): Promise<void> {
       const link = MODULE_LINKS[p.module] ?? ENTITY_LINKS[p.entityType ?? ""] ?? "";
       const label = p.entityLabel || p.entityType || "record";
       const actionTitle = titleCase(p.action);
+      const actor = await fetchActorInfo(auth?.user?.id).catch(() => null);
+      const actorText =
+        formatActor(actor) ||
+        [role ? titleCase(role) : "", phone].filter(Boolean).join(" · ") ||
+        "";
+      const when = new Date().toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
       await notifyAdmins({
         type: `${p.module}:${p.action}`.toLowerCase().replace(/\s+/g, "_"),
         title: `${p.module} — ${actionTitle}`,
-        message: `${actionTitle} ${label}${phone ? ` by ${phone}` : ""}`,
+        message: `${actionTitle} ${label}${actorText ? ` by ${actorText}` : ""} on ${when}`,
+
         link,
         entityType: p.entityType ?? "",
         entityId: p.entityId ?? "",

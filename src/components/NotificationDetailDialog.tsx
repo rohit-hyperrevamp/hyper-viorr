@@ -1,5 +1,6 @@
 import { formatDistanceToNow, format } from "date-fns";
-import { Bell, ExternalLink } from "lucide-react";
+import { Bell, ExternalLink, User } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { fetchActorInfo } from "@/lib/actor-info";
 import type { Notification } from "@/lib/notifications";
 
 type Props = {
@@ -17,6 +19,7 @@ type Props = {
   onOpenLink?: (link: string) => void;
 };
 
+
 export function NotificationDetailDialog({
   notification,
   open,
@@ -24,6 +27,13 @@ export function NotificationDetailDialog({
   onOpenLink,
 }: Props) {
   const n = notification;
+  const { data: actor } = useQuery({
+    queryKey: ["notification-actor", n?.actorId],
+    enabled: open && !!n?.actorId,
+    staleTime: 5 * 60 * 1000,
+    queryFn: () => fetchActorInfo(n?.actorId),
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -52,6 +62,34 @@ export function NotificationDetailDialog({
             {n.message}
           </div>
         )}
+
+        {n?.actorId && (
+          <div className="rounded-lg border border-border bg-card p-3">
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Performed by
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+                <User className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 text-sm">
+                <div className="font-semibold text-foreground">
+                  {actor?.fullName ?? "Loading…"}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {[actor?.designation, actor?.mobile].filter(Boolean).join(" · ") || "—"}
+                </div>
+                {n.createdAt && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {format(new Date(n.createdAt), "EEE, d MMM yyyy 'at' h:mm a")}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+
 
         {(n?.entityType || n?.type) && (
           <dl className="grid grid-cols-3 gap-2 text-xs">
