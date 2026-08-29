@@ -1,5 +1,6 @@
 import { formatDistanceToNow, format } from "date-fns";
-import { Bell, ExternalLink } from "lucide-react";
+import { Bell, ExternalLink, User } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { fetchActorInfo } from "@/lib/actor-info";
 import type { Notification } from "@/lib/notifications";
 
 type Props = {
@@ -16,6 +18,7 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   onOpenLink?: (link: string) => void;
 };
+
 
 export function NotificationDetailDialog({
   notification,
