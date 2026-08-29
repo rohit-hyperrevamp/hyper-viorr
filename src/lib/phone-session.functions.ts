@@ -1,5 +1,41 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+export const provisionPhoneIdentity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ candidateId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: actor } = await context.supabase
+      .from("candidates")
+      .select("role_key")
+      .eq("auth_user_id", context.userId)
+      .maybeSingle();
+    const roleKey = actor?.role_key ?? "";
+    const isSuperAdmin = context.claims.email === "phone-8373914073@radiantguard.local";
+    if (!isSuperAdmin && !["admin", "super_admin", "hr", "leadership"].includes(roleKey)) {
+      throw new Error("You do not have permission to provision employee access.");
+    }
+
+    const { data: candidate, error } = await context.supabase
+      .from("candidates")
+      .select("mobile,status,is_enabled,is_disabled")
+      .eq("id", data.candidateId)
+      .single();
+    if (error) throw error;
+    const phone = (candidate.mobile ?? "").replace(/\D/g, "").slice(-10);
+    if (!/^\d{10}$/.test(phone)) throw new Error("Employee has no valid login phone number.");
+    if (!["active", "approved"].includes(candidate.status) || !candidate.is_enabled || candidate.is_disabled) {
+      throw new Error("Employee must be active and enabled before login access is created.");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { ensurePhoneIdentity } = await import("@/lib/phone-session.server");
+    await ensurePhoneIdentity(supabaseAdmin, phone);
+    return { ok: true };
+  });
 
 export const restorePhoneSession = createServerFn({ method: "POST" })
   .inputValidator((input) =>
@@ -15,32 +51,8 @@ export const restorePhoneSession = createServerFn({ method: "POST" })
       throw new Error("This account is not enabled.");
     }
 
-    const email = `phone-${data.phone}@radiantguard.local`;
-    const password = `RG-${data.phone}-pre-launch!`;
-
-    // Find (or create) the identity, then re-align its password with the
-    // deterministic credential so subsequent logins take the fast path.
-    const existing = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-    const found = existing.data?.users?.find(
-      (u) => (u.email ?? "").toLowerCase() === email,
-    );
-
-    if (found) {
-      await supabaseAdmin.auth.admin.updateUserById(found.id, {
-        password,
-        email_confirm: true,
-      });
-    } else {
-      const created = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-      });
-      if (created.error) throw created.error;
-    }
+    const { ensurePhoneIdentity } = await import("@/lib/phone-session.server");
+    const { email } = await ensurePhoneIdentity(supabaseAdmin, data.phone);
 
     const link = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",

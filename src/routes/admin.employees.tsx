@@ -132,6 +132,7 @@ import {
 import { useInternalUnit } from "@/lib/internal-unit";
 import { useBranches, useCustomers, useStates } from "@/lib/admin-data";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
+import { provisionPhoneIdentity } from "@/lib/phone-session.functions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmployeeDocumentsExportDialog } from "@/components/employee-documents-export-dialog";
 
@@ -715,6 +716,7 @@ function EmployeesPage() {
   const isLoading = candidatesQuery.isLoading;
   const candidatesError = candidatesQuery.error;
   const qc = useQueryClient();
+  const provisionLogin = useServerFn(provisionPhoneIdentity);
 
   const { roleKey, isSuperAdmin, can, canSub } = useCurrentPermissions();
   const isFieldOfficer = roleKey === "field_officer" && !isSuperAdmin;
@@ -1322,6 +1324,7 @@ function EmployeesPage() {
         .update({ role_key: roleKey } as unknown as never)
         .eq("id", candidate.id);
       if (error) throw error;
+      if (enabled) await provisionLogin({ data: { candidateId: candidate.id } });
       await logActivity({
         module: "Employees",
         action: "assign_role",
@@ -1891,6 +1894,7 @@ function EmployeesPage() {
         .select("id,employee_code,full_name")
         .single();
       if (error) throw error;
+      await provisionLogin({ data: { candidateId: c.id } });
       const empCode = (data as { employee_code?: string })?.employee_code ?? "";
       const label = c.full_name || c.aadhaar_number || "Candidate";
       // Auto-attach Form VII (nomination form) to the newly approved employee.
