@@ -129,6 +129,7 @@ import {
   type ScopeType,
 } from "@/lib/deployment";
 
+import { useInternalUnit } from "@/lib/internal-unit";
 import { useBranches, useCustomers, useStates } from "@/lib/admin-data";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -4251,6 +4252,19 @@ function CandidateWizard({
       setHomeBranchId(DEFAULT_HOME_BRANCH_ID);
     }
   }, [open, editing, isEmployeeMode]);
+
+  // Non-billable employees are always billed to the unit flagged as Internal.
+  // Auto-assign it as the primary unit (and adopt its branch as home branch).
+  useEffect(() => {
+    if (!open || !isEmployeeMode || !internalUnit?.id) return;
+    const iid = internalUnit.id;
+    setForm((f) => {
+      if (f.unit_ids[0] === iid) return f;
+      const rest = f.unit_ids.filter((u) => u !== iid);
+      return { ...f, unit_ids: [iid, ...rest], unit_id: iid };
+    });
+    if (internalUnit.branch_id) setHomeBranchId((b) => b || internalUnit.branch_id!);
+  }, [open, isEmployeeMode, internalUnit?.id, internalUnit?.branch_id]);
 
   // Load existing Home Branch (employee_scope_assignments · scope_type='branch') for edit mode.
   useEffect(() => {
