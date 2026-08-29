@@ -970,7 +970,7 @@ export function previewPlaceholderMap(html: boolean): Record<string, string> {
       aadhaar_number: "0000 0000 0000",
       date_of_birth: "1995-01-01",
       designation_name: "Security Guard",
-      unit_name: "Hyper Vioarr - Pune Office",
+      unit_name: "SAMPLE UNIT NAME",
       unit_city: "Pune",
       unit_id: null,
       designation_id: null,

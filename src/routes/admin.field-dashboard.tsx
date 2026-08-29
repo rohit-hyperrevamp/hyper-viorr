@@ -38,7 +38,6 @@ import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { MyLiveStatusCard } from "@/components/MyLiveStatusCard";
 import { cn } from "@/lib/utils";
 import { ListSkeleton } from "@/components/Skeletons";
-import { RADIANT_BILLING_UNIT_ID } from "@/lib/business-constants";
 import { UserCog, UserCheck } from "lucide-react";
 import { RehirePipelineCard, useRehirePipeline, rehireHolderLabel } from "@/components/RehirePipelineCard";
 import { UnitDesignationSelect } from "@/components/UnitDesignationSelect";
@@ -142,24 +141,25 @@ function FieldOfficerDashboard() {
       const [scopeRes, cuRes, allUnitsRes] = await Promise.all([
         supabase.from("employee_scope_assignments").select("scope_id,scope_type").eq("candidate_id", meId),
         supabase.from("candidate_units").select("unit_id,is_primary").eq("candidate_id", meId),
-        supabase.from("units").select("id,code,name,customer_id,branch_id"),
+        supabase.from("units").select("id,code,name,customer_id,branch_id,is_internal"),
       ]);
       const scopeRows = ((scopeRes.data ?? []) as Array<{ scope_id: string; scope_type: string }>);
       const scopeUnitIds = scopeRows.filter((r) => r.scope_type === "unit").map((r) => r.scope_id);
       const legacyUnits = ((cuRes.data ?? []) as Array<{ unit_id: string; is_primary: boolean }>);
       const primaryMap = new Map(legacyUnits.map((r) => [r.unit_id, r.is_primary]));
-      const allUnitsRaw = ((allUnitsRes.data ?? []) as Array<{ id: string; code: string; name: string; customer_id: string | null; branch_id: string | null }>);
+      const allUnitsRaw = ((allUnitsRes.data ?? []) as Array<{ id: string; code: string; name: string; customer_id: string | null; branch_id: string | null; is_internal?: boolean }>);
       // "My units" = units actually ASSIGNED to me: candidates.unit_id (home) +
       // candidate_units + unit-level scope assignments. Branch/customer scope rows
       // are visibility scopes (RLS), NOT assignments — expanding them here dumped
       // every unit of the branch into the FO's dashboard and inflated team size.
-      // Radiant Pune home unit is excluded (payroll marker, not a client site).
+      // The internal non-billable unit is excluded (payroll marker, not a client site).
       const unitIdSet = new Set<string>();
       const meUnitId = (me as { unit_id?: string | null } | null)?.unit_id ?? null;
       if (meUnitId) unitIdSet.add(meUnitId);
       for (const r of legacyUnits) unitIdSet.add(r.unit_id);
       for (const id of scopeUnitIds) unitIdSet.add(id);
-      unitIdSet.delete(RADIANT_BILLING_UNIT_ID);
+      // The internal (non-billable) unit is a payroll marker, not a client site.
+      for (const u of allUnitsRaw) if (u.is_internal) unitIdSet.delete(u.id);
       const unitIds = Array.from(unitIdSet);
 
 

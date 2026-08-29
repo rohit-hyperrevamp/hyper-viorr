@@ -125,6 +125,7 @@ function emptyUnit(code: string): Omit<Unit, "id"> {
     securityServiceMobile: "",
     latitude: null,
     longitude: null,
+    isInternal: false,
     enablePt: false,
     enableLwf: false,
     uniformIncluded: true,
@@ -887,6 +888,17 @@ function UnitFormDialog({
               </Field>
               <Field label="Unit location">
                 <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
+              </Field>
+              <Field label="Internal / non-billable unit">
+                <div className="flex h-9 items-center justify-between rounded-md border border-input bg-background px-3">
+                  <span className="text-sm font-medium text-foreground">
+                    {form.isInternal ? "Yes" : "No"}
+                  </span>
+                  <Switch
+                    checked={Boolean(form.isInternal)}
+                    onCheckedChange={(v) => set("isInternal", v)}
+                  />
+                </div>
               </Field>
               <Field label="Status">
                 <div className="flex h-9 items-center justify-between rounded-md border border-input bg-background px-3">

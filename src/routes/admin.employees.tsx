@@ -129,6 +129,7 @@ import {
   type ScopeType,
 } from "@/lib/deployment";
 
+import { useInternalUnit } from "@/lib/internal-unit";
 import { useBranches, useCustomers, useStates } from "@/lib/admin-data";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -4097,7 +4098,6 @@ function emptyForm(): CandidateForm {
   };
 }
 
-const RADIANT_BILLING_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
 const DEFAULT_HOME_BRANCH_ID = "8897587c-e532-47ad-af01-353409cc6b23"; // PUNE — Radiant HQ branch
 
 function CandidateWizard({
@@ -4147,6 +4147,9 @@ function CandidateWizard({
   const qc = useQueryClient();
   const extractFn = useServerFn(extractAadhaar);
   const { branches } = useBranches();
+  // Internal / non-billable billing unit — resolved from data (units.is_internal),
+  // never hardcoded.
+  const { data: internalUnit } = useInternalUnit();
   const [form, setForm] = useState<CandidateForm>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -4250,6 +4253,19 @@ function CandidateWizard({
     }
   }, [open, editing, isEmployeeMode]);
 
+  // Non-billable employees are always billed to the unit flagged as Internal.
+  // Auto-assign it as the primary unit (and adopt its branch as home branch).
+  useEffect(() => {
+    if (!open || !isEmployeeMode || !internalUnit?.id) return;
+    const iid = internalUnit.id;
+    setForm((f) => {
+      if (f.unit_ids[0] === iid) return f;
+      const rest = f.unit_ids.filter((u) => u !== iid);
+      return { ...f, unit_ids: [iid, ...rest], unit_id: iid };
+    });
+    if (internalUnit.branch_id) setHomeBranchId((b) => b || internalUnit.branch_id!);
+  }, [open, isEmployeeMode, internalUnit?.id, internalUnit?.branch_id]);
+
   // Load existing Home Branch (employee_scope_assignments · scope_type='branch') for edit mode.
   useEffect(() => {
     if (!open || !editing) return;
@@ -4282,9 +4298,9 @@ function CandidateWizard({
   // define the valid designations for that unit.
   const desigLookupUnitIds = useMemo(() => {
     const ids = new Set(form.unit_ids);
-    if (isEmployeeMode) ids.add(RADIANT_BILLING_UNIT_ID);
+    if (isEmployeeMode && internalUnit?.id) ids.add(internalUnit.id);
     return Array.from(ids);
-  }, [form.unit_ids, isEmployeeMode]);
+  }, [form.unit_ids, isEmployeeMode, internalUnit?.id]);
   const selectedUnitIdsKey = desigLookupUnitIds.slice().sort().join(",");
   const contractDesigQuery = useQuery({
     queryKey: ["wizard-contract-designations", selectedUnitIdsKey],
@@ -4945,14 +4961,16 @@ function CandidateWizard({
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
             {isEmployeeMode
-              ? "Non-billable internal hire. Billing unit is auto-set to Hyper Vioarr; salary follows the internal contract for the chosen designation. Client unit mapping is optional."
+              ? `Non-billable internal hire. Billing unit is auto-set to ${internalUnit?.name ?? "the unit marked as Internal"}; salary follows the internal contract for the chosen designation. Client unit mapping is optional.`
               : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
           </DialogDescription>
           {isEmployeeMode && (
             <div className="mt-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
-                <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Hyper Vioarr - Pune Office</Badge>
+                <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">
+                  {internalUnit ? `Billing Unit · ${internalUnit.name}` : "No internal unit configured"}
+                </Badge>
               </div>
               <div className="grid gap-1.5">
                 <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Branch</label>

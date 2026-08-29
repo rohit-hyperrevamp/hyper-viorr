@@ -4746,6 +4746,7 @@ export type Database = {
           gst_payable: boolean
           gst_type: string | null
           id: string
+          is_internal: boolean
           latitude: number | null
           location: string
           longitude: number | null
@@ -4809,6 +4810,7 @@ export type Database = {
           gst_payable?: boolean
           gst_type?: string | null
           id?: string
+          is_internal?: boolean
           latitude?: number | null
           location?: string
           longitude?: number | null
@@ -4872,6 +4874,7 @@ export type Database = {
           gst_payable?: boolean
           gst_type?: string | null
           id?: string
+          is_internal?: boolean
           latitude?: number | null
           location?: string
           longitude?: number | null
