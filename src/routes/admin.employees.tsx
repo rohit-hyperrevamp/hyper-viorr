@@ -132,6 +132,7 @@ import {
 import { useInternalUnit } from "@/lib/internal-unit";
 import { useBranches, useCustomers, useStates } from "@/lib/admin-data";
 import { postMovements, type LocationType } from "@/lib/inv-helpers";
+import { provisionPhoneIdentity } from "@/lib/phone-session.functions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmployeeDocumentsExportDialog } from "@/components/employee-documents-export-dialog";
 
@@ -715,6 +716,7 @@ function EmployeesPage() {
   const isLoading = candidatesQuery.isLoading;
   const candidatesError = candidatesQuery.error;
   const qc = useQueryClient();
+  const provisionLogin = useServerFn(provisionPhoneIdentity);
 
   const { roleKey, isSuperAdmin, can, canSub } = useCurrentPermissions();
   const isFieldOfficer = roleKey === "field_officer" && !isSuperAdmin;
@@ -1355,6 +1357,7 @@ function EmployeesPage() {
         .update(patch as unknown as never)
         .eq("id", candidate.id);
       if (error) throw error;
+      if (enabled) await provisionLogin({ data: { candidateId: candidate.id } });
       await logActivity({
         module: "Employees",
         action: enabled ? "enable" : "disable",
@@ -1448,6 +1451,7 @@ function EmployeesPage() {
           .single();
         if (updateErr) throw new Error(getMutationErrorMessage(updateErr, "Reactivation failed"));
         const rec = updated as unknown as ReactivationResult;
+        if (canDirectActivate) await provisionLogin({ data: { candidateId: rec.id } });
         await logActivity({
           module: "Employees",
           action: "reactivate",
@@ -1518,6 +1522,7 @@ function EmployeesPage() {
         if (unitsErr) throw new Error(getMutationErrorMessage(unitsErr, "Reactivation created the employee record but failed to copy unit assignments."));
       }
 
+      if (canDirectActivate) await provisionLogin({ data: { candidateId: newRec.id } });
       await logActivity({
         module: "Employees",
         action: "reactivate",
@@ -1891,6 +1896,7 @@ function EmployeesPage() {
         .select("id,employee_code,full_name")
         .single();
       if (error) throw error;
+      await provisionLogin({ data: { candidateId: c.id } });
       const empCode = (data as { employee_code?: string })?.employee_code ?? "";
       const label = c.full_name || c.aadhaar_number || "Candidate";
       // Auto-attach Form VII (nomination form) to the newly approved employee.
