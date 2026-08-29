@@ -4146,6 +4146,9 @@ function CandidateWizard({
   const qc = useQueryClient();
   const extractFn = useServerFn(extractAadhaar);
   const { branches } = useBranches();
+  // Internal / non-billable billing unit — resolved from data (units.is_internal),
+  // never hardcoded.
+  const { data: internalUnit } = useInternalUnit();
   const [form, setForm] = useState<CandidateForm>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
