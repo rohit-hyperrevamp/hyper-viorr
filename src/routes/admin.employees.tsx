@@ -4097,7 +4097,6 @@ function emptyForm(): CandidateForm {
   };
 }
 
-const RADIANT_BILLING_UNIT_ID = "92541381-14d3-4be6-ae8c-078b79c2e0f1";
 const DEFAULT_HOME_BRANCH_ID = "8897587c-e532-47ad-af01-353409cc6b23"; // PUNE — Radiant HQ branch
 
 function CandidateWizard({
@@ -4282,9 +4281,9 @@ function CandidateWizard({
   // define the valid designations for that unit.
   const desigLookupUnitIds = useMemo(() => {
     const ids = new Set(form.unit_ids);
-    if (isEmployeeMode) ids.add(RADIANT_BILLING_UNIT_ID);
+    if (isEmployeeMode && internalUnit?.id) ids.add(internalUnit.id);
     return Array.from(ids);
-  }, [form.unit_ids, isEmployeeMode]);
+  }, [form.unit_ids, isEmployeeMode, internalUnit?.id]);
   const selectedUnitIdsKey = desigLookupUnitIds.slice().sort().join(",");
   const contractDesigQuery = useQuery({
     queryKey: ["wizard-contract-designations", selectedUnitIdsKey],
@@ -4945,14 +4944,16 @@ function CandidateWizard({
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
             {isEmployeeMode
-              ? "Non-billable internal hire. Billing unit is auto-set to Hyper Vioarr; salary follows the internal contract for the chosen designation. Client unit mapping is optional."
+              ? `Non-billable internal hire. Billing unit is auto-set to ${internalUnit?.name ?? "the unit marked as Internal"}; salary follows the internal contract for the chosen designation. Client unit mapping is optional.`
               : "Complete the candidate profile. Save a draft any time; only submit when 100% complete."}
           </DialogDescription>
           {isEmployeeMode && (
             <div className="mt-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-0 bg-amber-500/15 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Non-billable</Badge>
-                <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">Billing Unit · Hyper Vioarr - Pune Office</Badge>
+                <Badge variant="outline" className="border-border/70 bg-card text-[11px] font-medium">
+                  {internalUnit ? `Billing Unit · ${internalUnit.name}` : "No internal unit configured"}
+                </Badge>
               </div>
               <div className="grid gap-1.5">
                 <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Home Branch</label>
