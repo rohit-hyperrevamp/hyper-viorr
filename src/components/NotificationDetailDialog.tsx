@@ -27,6 +27,13 @@ export function NotificationDetailDialog({
   onOpenLink,
 }: Props) {
   const n = notification;
+  const { data: actor } = useQuery({
+    queryKey: ["notification-actor", n?.actorId],
+    enabled: open && !!n?.actorId,
+    staleTime: 5 * 60 * 1000,
+    queryFn: () => fetchActorInfo(n?.actorId),
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
