@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { notifyAdmins } from "@/lib/notifications";
+import { fetchActorInfo, formatActor } from "@/lib/actor-info";
+
 
 // Module → in-app link map for notifications.
 const MODULE_LINKS: Record<string, string> = {
