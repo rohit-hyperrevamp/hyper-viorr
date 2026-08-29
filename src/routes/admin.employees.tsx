@@ -1451,6 +1451,7 @@ function EmployeesPage() {
           .single();
         if (updateErr) throw new Error(getMutationErrorMessage(updateErr, "Reactivation failed"));
         const rec = updated as unknown as ReactivationResult;
+        if (canDirectActivate) await provisionLogin({ data: { candidateId: rec.id } });
         await logActivity({
           module: "Employees",
           action: "reactivate",
@@ -1521,6 +1522,7 @@ function EmployeesPage() {
         if (unitsErr) throw new Error(getMutationErrorMessage(unitsErr, "Reactivation created the employee record but failed to copy unit assignments."));
       }
 
+      if (canDirectActivate) await provisionLogin({ data: { candidateId: newRec.id } });
       await logActivity({
         module: "Employees",
         action: "reactivate",
