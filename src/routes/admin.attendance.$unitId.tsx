@@ -214,7 +214,7 @@ function MusterRollPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("units")
-        .select("id, code, name, location, epf_cap_enabled, branch_id, customer_id, billing_state, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode")
+        .select("id, code, name, location, is_internal, epf_cap_enabled, branch_id, customer_id, billing_state, reporting_officers, shipping_address1, shipping_address2, shipping_city, shipping_district, shipping_state, shipping_pincode, billing_address1, billing_address2, billing_city, billing_district, billing_pincode")
         .eq("id", unitId)
         .maybeSingle();
       if (error) throw error;
@@ -231,6 +231,14 @@ function MusterRollPage() {
   const { data: employees, isLoading, error: rosterError } = useQuery({
     queryKey: ["attendance-roster-v5", unitId],
     queryFn: async () => {
+      // Non-billable staff only appear on the internal unit's muster (data-driven flag).
+      const { data: unitFlagRow } = await supabase
+        .from("units")
+        .select("is_internal")
+        .eq("id", unitId)
+        .maybeSingle();
+      const isInternalUnit = (unitFlagRow as { is_internal?: boolean } | null)?.is_internal === true;
+
       const rosterSelect = "id, employee_code, full_name, designation_id, preferred_joining_date, date_of_birth, is_enabled, status, role_key, non_billable";
 
       const { data: prim, error: primError } = await supabase
@@ -355,7 +363,7 @@ function MusterRollPage() {
 
         // Muster rolls are billable-only for client units. Non-billable staff
         // (field officers, branch managers, HR, etc.) only appear on the
-        // Radiant home-unit muster (UN-RGS-PUNE), where their payroll lives.
+        // internal unit's muster, where their payroll lives.
         .filter((c) => !c.is_non_billable || isInternalUnit)
         .sort((a, b) => (a.employee_code || a.full_name).localeCompare(b.employee_code || b.full_name));
 
