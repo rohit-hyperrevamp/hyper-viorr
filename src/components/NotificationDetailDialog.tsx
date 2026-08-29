@@ -63,6 +63,34 @@ export function NotificationDetailDialog({
           </div>
         )}
 
+        {n?.actorId && (
+          <div className="rounded-lg border border-border bg-card p-3">
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Performed by
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+                <User className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 text-sm">
+                <div className="font-semibold text-foreground">
+                  {actor?.fullName ?? "Loading…"}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {[actor?.designation, actor?.mobile].filter(Boolean).join(" · ") || "—"}
+                </div>
+                {n.createdAt && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {format(new Date(n.createdAt), "EEE, d MMM yyyy 'at' h:mm a")}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+
+
         {(n?.entityType || n?.type) && (
           <dl className="grid grid-cols-3 gap-2 text-xs">
             {n?.type && (
