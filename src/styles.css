@@ -1788,8 +1788,13 @@ nav[data-bottom-nav] li > * > div > span:last-child {
 
 /* ---- 4. Filter grids: one consistent full-width column on phones ---- */
 @media (max-width: 767px) {
-  .grid:not([class*="grid-cols-2"]):has(> [data-slot="select-trigger"]),
-  .grid:not([class*="grid-cols-2"]):has(> * > [data-slot="select-trigger"]) {
-    grid-template-columns: minmax(0, 1fr);
+  .grid:not([class*="grid-cols-1 "]):has(> [data-slot="select-trigger"]),
+  .grid:not([class*="grid-cols-1 "]):has(> * > [data-slot="select-trigger"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* the free-text search field always keeps a full row */
+  .grid:has(> [data-slot="select-trigger"]) > .relative:has(input),
+  .grid:has(> * > [data-slot="select-trigger"]) > .relative:has(input) {
+    grid-column: 1 / -1;
   }
 }
