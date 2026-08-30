@@ -18,9 +18,10 @@ const config: CapacitorConfig = {
     // Default to the stable Lovable deployment URL so a published update is
     // picked up immediately; override with CAP_SERVER_URL before `mobile:sync`
     // when pointing the shell at a self-hosted domain.
+    // NOTE: the `project--<id>.lovable.app` URL returns "Forbidden" until the
+    // project is published, which showed up as a black screen in the shell.
     url:
-      process.env['CAP_SERVER_URL'] ??
-      "https://project--5038cac8-beed-4c68-a128-c0a70bdf1819.lovable.app",
+      process.env['CAP_SERVER_URL'] ?? "https://radiant.hyperrevamp.com",
     cleartext: false,
     androidScheme: "https",
     iosScheme: "https",
