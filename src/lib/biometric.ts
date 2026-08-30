@@ -166,33 +166,36 @@ export async function getBiometricStatus(): Promise<{
     window.localStorage.setItem(ENABLED_KEY, "1");
   }
 
+  const label = info.label || fallbackLabel;
+
   return {
     supported: true,
     available: !!info.available,
     enabled,
     saved,
+    label,
     message: info.available
       ? saved
-        ? `${info.label || "Face ID"} is saved on this device.`
-        : `${info.label || "Face ID"} is available. Sign in with OTP once to enable it.`
-      : info.reason || "Face ID is not available on this device.",
+        ? `${label} is saved on this device.`
+        : `${label} is available. Sign in with OTP once to enable it.`
+      : info.reason || `${label} is not available on this device.`,
   };
 }
 
-/** Prompt Face ID, then save the phone in the iOS Keychain. */
+/** Prompt Face ID / Touch ID / fingerprint, then save the phone securely on-device. */
 export async function enableBiometric(phone: string): Promise<void> {
   const plugin = biometrics();
   const s = store();
   if (!plugin || !s) {
     throw new Error(
-      "Face ID is only available in the installed iOS app. Reinstall after the latest build.",
+      "Biometric sign-in is only available in the installed app. Reinstall after the latest build.",
     );
   }
 
   const info = await plugin.check();
   logNativeEvent("biometric", "enable check", info);
   if (!info.available) {
-    throw new Error(info.reason || "Face ID is not available on this iPhone.");
+    throw new Error(info.reason || `${defaultBiometricLabel()} is not available on this device.`);
   }
 
   const auth = await plugin.authenticate({
