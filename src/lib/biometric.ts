@@ -108,20 +108,33 @@ export async function getStoredBiometricPhone(): Promise<string | null> {
   }
 }
 
+/** Default label for the current platform's biometric modality. */
+export function defaultBiometricLabel(): string {
+  try {
+    return Capacitor.getPlatform() === "android" ? "Biometric unlock" : "Face ID";
+  } catch {
+    return "Biometric unlock";
+  }
+}
+
 export async function getBiometricStatus(): Promise<{
   supported: boolean;
   available: boolean;
   enabled: boolean;
   saved: boolean;
+  label: string;
   message: string;
 }> {
+  const fallbackLabel = defaultBiometricLabel();
+
   if (!isNativePlatform()) {
     return {
       supported: false,
       available: false,
       enabled: false,
       saved: false,
-      message: "Open the installed iOS app to use Face ID.",
+      label: fallbackLabel,
+      message: `Open the installed Hyper Vioarr app to use ${fallbackLabel}.`,
     };
   }
 
@@ -132,7 +145,8 @@ export async function getBiometricStatus(): Promise<{
       available: false,
       enabled: false,
       saved: false,
-      message: `Face ID plugin not loaded (platform: ${Capacitor.getPlatform()}). Reinstall the app after the latest build.`,
+      label: fallbackLabel,
+      message: `${fallbackLabel} plugin not loaded (platform: ${Capacitor.getPlatform()}). Reinstall the app after the latest build.`,
     };
   }
 
