@@ -252,25 +252,48 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
   const punchQ = useQuery({
     queryKey: ["fo-fs-punch", candidateId, effectiveDate],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("self_attendance_punches" as never)
-        .select("id, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng")
-        .eq("candidate_id", candidateId)
-        .eq("punch_date", effectiveDate)
-        .maybeSingle();
-      if (error && error.code !== "PGRST116") throw error;
-      return (data as {
+      type PunchRow = {
         id: string;
+        punch_date: string;
         check_in_at: string | null;
         check_in_lat: number | null;
         check_in_lng: number | null;
         check_out_at: string | null;
         check_out_lat: number | null;
         check_out_lng: number | null;
-      } | null) ?? null;
+      };
+      const cols = "id, punch_date, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng";
+      const { data, error } = await supabase
+        .from("self_attendance_punches" as never)
+        .select(cols)
+        .eq("candidate_id", candidateId)
+        .eq("punch_date", effectiveDate)
+        .maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      const exact = (data as PunchRow | null) ?? null;
+      if (exact || isHistorical) return exact;
+
+      // Fallback: an open duty punch may sit on the adjacent calendar date when the
+      // shift crossed midnight or the device/server day boundaries differ. Radar must
+      // still recognise the officer as on duty in that case.
+      const { data: openRows, error: openErr } = await supabase
+        .from("self_attendance_punches" as never)
+        .select(cols)
+        .eq("candidate_id", candidateId)
+        .is("check_out_at", null)
+        .not("check_in_at", "is", null)
+        .order("check_in_at", { ascending: false })
+        .limit(1);
+      if (openErr) throw openErr;
+      const open = ((openRows as PunchRow[] | null) ?? [])[0] ?? null;
+      if (!open) return null;
+      // Only accept punches within the last 36 hours so stale rows never look live.
+      const age = open.check_in_at ? Date.now() - new Date(open.check_in_at).getTime() : Infinity;
+      return age <= 36 * 3600 * 1000 ? open : null;
     },
     refetchInterval: isHistorical ? false : 30_000,
   });
+
   const visitsQ = useQuery({
     queryKey: ["fo-fs-visits", candidateId, effectiveDate],
     queryFn: () => fetchTodayVisits(candidateId, effectiveDate),
@@ -770,12 +793,15 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     <div className="space-y-4">
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>
 
-      {/* Duty status banner */}
-      {!isOnDuty && (
+      {/* Duty status banner — only once the punch has actually loaded */}
+      {!punchQ.isLoading && !isOnDuty && !openVisit && (
         <div className="rounded-2xl border border-amber-300/60 bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
-          Mark your attendance from the dashboard to start tracking visits.
+          {punchQ.data?.check_out_at
+            ? "Duty ended for today. Mark attendance again to resume visit tracking."
+            : "Mark your attendance from the dashboard to start tracking visits."}
         </div>
       )}
+
 
       {/* Emergency / admin-requested visits */}
       <RequestedVisitsPanel
@@ -834,9 +860,23 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
           <Button
             size="lg"
             className="h-11 w-full sm:w-auto"
-            disabled={!isOnDuty || !pos}
-            onClick={() => setCheckInOpen(true)}
+            disabled={!isOnDuty || units.length === 0}
+            onClick={async () => {
+              // Location may not be ready yet (permission prompt on native). Ask for it
+              // on demand instead of blocking the CTA.
+              if (!pos) {
+                try {
+                  const geo = await getCurrentPosition();
+                  setPos(geo);
+                  setPosError(null);
+                } catch (err) {
+                  setPosError(err instanceof Error ? err.message : "Location unavailable");
+                }
+              }
+              setCheckInOpen(true);
+            }}
           >
+
             <MapPin className="mr-1.5 h-4 w-4" />
             Check in your {nextSeq === 1 ? "first" : nextSeq === 2 ? "second" : nextSeq === 3 ? "third" : `${nextSeq}${nextSeq === 4 ? "th" : "th"}`} visit
           </Button>
@@ -1077,15 +1117,24 @@ function CheckInDialog({
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!pos) throw new Error("Location not available.");
       if (!selectedId) throw new Error("Select a unit.");
+      // Resolve location at submit time so a pending permission prompt doesn't block check-in.
+      let geo = pos;
+      if (!geo) {
+        try {
+          geo = await getCurrentPosition();
+        } catch {
+          throw new Error("Location permission is required to check into a visit. Allow location access and retry.");
+        }
+      }
       const unit = units.find((u) => u.unit_id === selectedId) ?? null;
       const visit = await createVisit({
         candidateId,
         unitId: selectedId,
-        lat: pos.lat,
-        lng: pos.lng,
-        accuracy: pos.accuracy,
+        lat: geo.lat,
+        lng: geo.lng,
+        accuracy: geo.accuracy,
+
         visitSeq: nextSeq,
         prevLat: prevPoint?.lat ?? null,
         prevLng: prevPoint?.lng ?? null,
@@ -1160,7 +1209,7 @@ function CheckInDialog({
           <Button variant="ghost" onClick={onClose} disabled={mutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !pos || !selectedId}>
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !selectedId}>
             {mutation.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             Confirm check-in
           </Button>
@@ -1201,8 +1250,15 @@ function CheckOutDialog({
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!pos) throw new Error("Location not available for checkout.");
       if (missing.length) throw new Error(`Missing: ${missing.join(", ")}`);
+      let geo = pos;
+      if (!geo) {
+        try {
+          geo = await getCurrentPosition();
+        } catch {
+          throw new Error("Location permission is required to complete the visit. Allow location access and retry.");
+        }
+      }
       const sigPath = await uploadVisitProof({
         candidateId,
         visitId: visit.id,
@@ -1230,8 +1286,8 @@ function CheckOutDialog({
       }
       await completeVisit({
         id: visit.id,
-        lat: unit?.latitude != null ? Number(unit.latitude) : pos.lat,
-        lng: unit?.longitude != null ? Number(unit.longitude) : pos.lng,
+        lat: unit?.latitude != null ? Number(unit.latitude) : geo.lat,
+        lng: unit?.longitude != null ? Number(unit.longitude) : geo.lng,
         visitNotes: notes.trim(),
         customerRating: rating,
         clientSignatureUrl: sigPath,
@@ -1357,7 +1413,7 @@ function CheckOutDialog({
           <Button variant="ghost" onClick={onClose} disabled={mutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || missing.length > 0 || !pos}>
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || missing.length > 0}>
             {mutation.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             Complete visit
           </Button>
