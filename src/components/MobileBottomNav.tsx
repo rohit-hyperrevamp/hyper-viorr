@@ -55,18 +55,14 @@ export function MobileBottomNav({
         !nativeShell && "lg:hidden",
       )}
     >
-      <ul className="mx-auto flex h-[62px] w-full items-stretch justify-around gap-0 px-2 pt-1.5">
+      <ul className="mx-auto flex h-[60px] w-full items-stretch px-1 pt-1">
         {primary.map((it) => {
           const Icon = it.icon;
           const inner = (
-            <div
-              className={cn(
-                "relative mx-auto flex min-w-0 max-w-[88px] flex-col items-center justify-center gap-1 rounded-2xl px-2 pt-1 pb-1 transition-colors",
-              )}
-            >
+            <div className="flex h-full w-full flex-col items-center justify-center gap-[3px]">
               <span
                 className={cn(
-                  "grid h-9 w-9 place-items-center rounded-2xl transition-colors",
+                  "grid h-8 w-8 shrink-0 place-items-center rounded-xl transition-colors",
                   it.active
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-transparent text-foreground/70",
@@ -76,7 +72,7 @@ export function MobileBottomNav({
               </span>
               <span
                 className={cn(
-                  "block w-full truncate whitespace-nowrap text-[10px] leading-tight tracking-tight",
+                  "block w-full truncate px-0.5 text-center text-[10px] leading-[13px] tracking-tight",
                   it.active ? "font-bold text-primary" : "font-semibold text-foreground/70",
                 )}
               >
@@ -84,9 +80,9 @@ export function MobileBottomNav({
               </span>
             </div>
           );
-          const tapClass = "block w-full appearance-none select-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] outline-none focus-visible:outline-none active:opacity-90";
+          const tapClass = "flex h-full w-full appearance-none select-none items-stretch [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] outline-none focus-visible:outline-none active:opacity-90";
           return (
-            <li key={it.key} className="flex-1">
+            <li key={it.key} className="flex flex-1 items-stretch">
               {it.to ? (
                 <Link to={it.to} className={tapClass}>{inner}</Link>
               ) : (
@@ -95,6 +91,7 @@ export function MobileBottomNav({
             </li>
           );
         })}
+
         {!hideMore && (
         <li className="flex-1">
           <button
