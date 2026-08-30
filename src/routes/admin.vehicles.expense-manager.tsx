@@ -648,20 +648,17 @@ function AddEntryDialog({
     setFillingFile(null);
   }
 
-  function captureLocation() {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation not available");
-      return;
+  async function captureLocation() {
+    try {
+      const { readPosition } = await import("@/lib/geolocation");
+      const pos = await readPosition();
+      setGeo({ lat: +pos.lat.toFixed(6), lng: +pos.lng.toFixed(6) });
+      toast.success("Location captured");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not get location — enter manually");
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGeo({ lat: +pos.coords.latitude.toFixed(6), lng: +pos.coords.longitude.toFixed(6) });
-        toast.success("Location captured");
-      },
-      () => toast.error("Could not get location — enter manually"),
-      { enableHighAccuracy: true, timeout: 8000 },
-    );
   }
+
 
 
 
