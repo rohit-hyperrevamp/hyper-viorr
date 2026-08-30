@@ -134,12 +134,12 @@ async function authenticate(token: string) {
     },
   });
 
-  const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims?.sub) {
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user?.id) {
     throw new Response("Unauthorized", { status: 401 });
   }
 
-  return { supabase, userId: data.claims.sub };
+  return { supabase, userId: data.user.id };
 }
 
 export const Route = createFileRoute("/api/public/native/push")({
