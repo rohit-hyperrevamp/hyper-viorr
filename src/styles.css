@@ -1726,6 +1726,15 @@ nav[data-bottom-nav] li > * > div > span:last-child {
     letter-spacing: 0.07em;
   }
 
+  /* unlabelled cells read as plain left-aligned lines, never centred/right */
+  .ios-table tbody td:not([data-label]):not([data-col="status"]):not([data-col="date"]):not([data-col="approval"]):not([data-col="actions"]) {
+    text-align: left !important;
+  }
+  .ios-table tbody td:not([data-label]):not([data-col="status"]):not([data-col="date"]):not([data-col="approval"]):not([data-col="actions"]) > * {
+    justify-self: start;
+    text-align: left !important;
+  }
+
   /* tables that ship no data-label still get readable labels */
   .ios-table tbody td[data-col="date"]:not([data-label]):not(:first-child)::before { content: "Start"; }
   .ios-table tbody td[data-col="date"]:not([data-label]) ~ td[data-col="date"]:not([data-label])::before { content: "End"; }
