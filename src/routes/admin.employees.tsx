@@ -2648,12 +2648,15 @@ function EmployeesPage() {
                       {code}
                     </span>
                   </div>
-                  <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                    <span className="truncate">{c.mobile || "No mobile"}</span>
-                    <span className="truncate text-right">{roleName}</span>
-                    <span className="truncate" title={unit?.name ?? ""}>{unit?.name || "No unit"}</span>
-                    <span className="truncate text-right" title={desig?.name ?? ""}>{desig?.name || "No designation"}</span>
+                  <div className="mt-1 space-y-0.5 text-[11px] leading-snug text-muted-foreground">
+                    <div className="truncate">{c.mobile || "No mobile"}</div>
+                    <div className="truncate" title={unit?.name ?? ""}>{unit?.name || "No unit"}</div>
+                    <div className="truncate" title={desig?.name ?? ""}>
+                      {desig?.name || "No designation"}
+                      {!(mode === "employee" && columnsVisible.role) && roleName ? ` · ${roleName}` : ""}
+                    </div>
                   </div>
+
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
