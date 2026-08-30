@@ -144,21 +144,26 @@ function Stat({
   tone?: "accent" | "warning" | "destructive";
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-background/80 to-muted/40 p-3 backdrop-blur">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
+    <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-2.5 sm:p-3">
+      <div className="flex items-center justify-between gap-1.5">
+        <span className="truncate text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:text-[10px] sm:tracking-[0.14em]">
+          {label}
+        </span>
         <Icon
           className={cn(
-            "h-3.5 w-3.5 text-muted-foreground",
+            "h-3.5 w-3.5 shrink-0 text-muted-foreground",
             tone === "accent" && "text-primary",
             tone === "warning" && "text-amber-500",
             tone === "destructive" && "text-destructive",
           )}
         />
       </div>
-      <div className="mt-1.5 text-[22px] font-semibold leading-none tracking-tight tabular-nums">{value}</div>
-      {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
+      <div className="mt-1.5 truncate text-[19px] font-semibold leading-none tracking-tight tabular-nums sm:text-[22px]">
+        {value}
+      </div>
+      {sub && <div className="mt-1 truncate text-[10.5px] text-muted-foreground sm:text-[11px]">{sub}</div>}
     </div>
+
   );
 }
 
@@ -389,40 +394,41 @@ export function AttendanceCharter({
         <Stat
           label="Deployment"
           value={`${totals.actual}/${totals.committed}`}
-          sub={`${totals.coverage}% coverage · ${totals.gap > 0 ? `+${totals.gap}` : totals.gap} variance`}
+          sub={`${totals.coverage}% · ${totals.gap > 0 ? `+${totals.gap}` : totals.gap} var`}
           icon={Users}
           tone="accent"
         />
         <Stat
-          label="Actual man-hours"
+          label="Man-hours"
           value={fmtHours(totals.actualHours)}
-          sub={`of ${fmtHours(totals.projectedHours)} projected`}
+          sub={`of ${fmtHours(totals.projectedHours)}`}
           icon={UserCheck}
         />
-        <Stat label="Extra duty" value={fmtHours(totals.otHours)} sub="month till date" icon={TrendingDown} tone="warning" />
+        <Stat label="Extra duty" value={fmtHours(totals.otHours)} sub="MTD" icon={TrendingDown} tone="warning" />
         <Stat
           label="MTD attendance"
           value={`${totals.mtdPct}%`}
-          sub="current payroll periods"
+          sub="payroll period"
           icon={Gauge}
           tone={totals.mtdPct < 85 ? "destructive" : undefined}
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[220px] flex-1">
+      <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Search by unit, client or contract…"
+            placeholder="Search units…"
             className="h-9 rounded-xl pl-9"
           />
         </div>
-        <Button variant="outline" className="h-9 rounded-xl" onClick={exportCsv}>
-          <Download className="mr-1.5 h-4 w-4" /> Export
+        <Button variant="outline" className="h-9 shrink-0 rounded-xl px-3" onClick={exportCsv}>
+          <Download className="h-4 w-4 sm:mr-1.5" /> <span className="hidden sm:inline">Export</span>
         </Button>
       </div>
+
 
       {loading ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
@@ -455,21 +461,23 @@ export function AttendanceCharter({
                   >
                     <Dial value={r.mtdPct} />
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-sm font-semibold group-hover:text-primary">
                           {r.unit.name || r.unit.code}
                         </span>
-                        <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          {r.unitShift}h shift
+                        <span className="shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {r.unitShift}h
                         </span>
+                      </div>
+                      <div className="truncate text-[11.5px] text-muted-foreground sm:text-xs">
+                        {r.unit.customer_name} · {r.contractCode}
+                      </div>
+                      <div className="-mx-0.5 mt-1.5 flex items-center gap-1.5 overflow-x-auto px-0.5 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible">
                         <AttendanceStatusBadge status={r.status.attendance} />
                         <MoneyStatusBadge kind="payroll" status={r.status.payroll} />
                         <MoneyStatusBadge kind="invoice" status={r.status.invoice} />
                       </div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {r.unit.customer_name} · {r.contractCode}
-                      </div>
-                      <div className="mt-1.5 flex items-center gap-2 text-[11px] tabular-nums text-muted-foreground sm:hidden">
+                      <div className="mt-1 flex items-center gap-1.5 whitespace-nowrap text-[11px] tabular-nums text-muted-foreground sm:hidden">
                         <span>
                           {r.actual}/{r.committed} deployed
                         </span>
@@ -479,6 +487,7 @@ export function AttendanceCharter({
                         </span>
                       </div>
                     </div>
+
 
                     <div className="hidden shrink-0 items-center gap-5 pr-1 text-sm tabular-nums sm:flex">
                       <div className="text-right">
