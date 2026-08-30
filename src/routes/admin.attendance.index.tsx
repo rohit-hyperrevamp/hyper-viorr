@@ -499,7 +499,16 @@ function AttendanceUnitsPage() {
         eyebrow="Attendance month"
         title={MONTH_NAMES[monthIdx]}
         subtitle={String(year)}
-        description="Browse units with active contracts and drill into the monthly muster roll. Only billable employees appear — non-billable staff are on the internal payroll."
+        description={
+          <>
+            <span className="sm:hidden">Billable units with active contracts.</span>
+            <span className="hidden sm:inline">
+              Browse units with active contracts and drill into the monthly muster roll. Only billable
+              employees appear — non-billable staff are on the internal payroll.
+            </span>
+          </>
+        }
+
         right={
           <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-1.5 backdrop-blur">
             <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
