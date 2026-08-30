@@ -670,18 +670,18 @@ function DashboardPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-muted/40 p-1">
-            <button onClick={() => shift(-1)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-background hover:text-foreground" aria-label="Previous"><ChevronLeft className="h-4 w-4" /></button>
+          <div className="flex max-w-full flex-nowrap items-center gap-0.5 overflow-hidden rounded-xl border border-border bg-muted/40 p-1 sm:gap-1">
+            <button onClick={() => shift(-1)} className="inline-flex h-8 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-background hover:text-foreground sm:w-8" aria-label="Previous"><ChevronLeft className="h-4 w-4" /></button>
             <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-              <SelectTrigger className="h-8 w-[130px] rounded-lg border-0 bg-transparent shadow-none hover:bg-background focus:ring-0"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-[104px] shrink-0 rounded-lg border-0 sm:w-[130px] bg-transparent shadow-none hover:bg-background focus:ring-0"><SelectValue /></SelectTrigger>
               <SelectContent>{MONTH_NAMES.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}</SelectContent>
             </Select>
-            <div className="h-5 w-px bg-border" />
+            <div className="h-5 w-px shrink-0 bg-border" />
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="h-8 w-[92px] rounded-lg border-0 bg-transparent shadow-none hover:bg-background focus:ring-0"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-[74px] shrink-0 rounded-lg border-0 sm:w-[92px] bg-transparent shadow-none hover:bg-background focus:ring-0"><SelectValue /></SelectTrigger>
               <SelectContent>{Array.from({ length: 7 }, (_, i) => now.getFullYear() - 3 + i).map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
             </Select>
-            <button onClick={() => shift(1)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-background hover:text-foreground" aria-label="Next"><ChevronRight className="h-4 w-4" /></button>
+            <button onClick={() => shift(1)} className="inline-flex h-8 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-background hover:text-foreground sm:w-8" aria-label="Next"><ChevronRight className="h-4 w-4" /></button>
           </div>
         </div>
       </div>
@@ -690,7 +690,7 @@ function DashboardPage() {
       <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
         {isLoading ? (
           Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-[172px] animate-pulse rounded-2xl border border-border/60 bg-card" />
+            <div key={i} className="h-[104px] animate-pulse sm:h-[172px] rounded-2xl border border-border/60 bg-card" />
           ))
         ) : (
           tiles.map((t, i) => (
