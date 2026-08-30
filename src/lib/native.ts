@@ -225,7 +225,8 @@ export async function initNative(): Promise<void> {
     };
     window.setTimeout(() => void requestLocation(), 700);
     try {
-      App.addListener("appStateChange", ({ isActive }) => {
+      const { App: NativeApp } = await import("@capacitor/app");
+      NativeApp.addListener("appStateChange", ({ isActive }: { isActive: boolean }) => {
         if (isActive) window.setTimeout(() => void requestLocation(), 250);
       });
     } catch {
