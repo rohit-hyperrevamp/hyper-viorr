@@ -1,8 +1,14 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-const NATIVE_WEB_BUILD = "2026-08-30-hyper-vioarr-v2";
+const NATIVE_WEB_BUILD = "2026-08-30-hyper-vioarr-v3";
+// Stable Lovable published URL. `radiant.hyperrevamp.com` is served by a separate
+// (self-hosted) deployment that can lag behind, which made the native shell render
+// the legacy Radiant Guard login. Point the shell at the Lovable deployment so a
+// published update is always what the app loads; override with CAP_SERVER_URL once
+// the custom domain serves the current build.
 const nativeServerUrl = new URL(
-  process.env['CAP_SERVER_URL'] ?? "https://radiant.hyperrevamp.com",
+  process.env['CAP_SERVER_URL'] ??
+    "https://project--5038cac8-beed-4c68-a128-c0a70bdf1819.lovable.app",
 );
 nativeServerUrl.searchParams.set("nativeBuild", NATIVE_WEB_BUILD);
 
