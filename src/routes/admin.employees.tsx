@@ -3287,11 +3287,11 @@ function EmployeesPage() {
                 setFilterRole("all"); setFilterDesignation("all"); setFilterCustomer("all");
                 setFilterUnit("all"); setFilterManager("all"); setFilterEnabled("all"); setFilterBillable("all"); setFilterOffboardReason("all");
               }}
-              className="h-9 text-xs text-muted-foreground"
+              className="h-9 w-full text-xs text-muted-foreground sm:w-auto"
             >
               Reset
             </Button>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="col-span-2 flex items-center gap-2 sm:col-span-1 sm:ml-auto">
               <div className="flex rounded-lg border border-border/60 bg-secondary/40 p-0.5">
                 <button
                   type="button"
