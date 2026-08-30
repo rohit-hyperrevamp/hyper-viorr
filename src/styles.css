@@ -1726,6 +1726,12 @@ nav[data-bottom-nav] li > * > div > span:last-child {
     letter-spacing: 0.07em;
   }
 
+  /* desktop-only columns stay hidden inside mobile record cards */
+  .ios-table tbody td.hidden,
+  .ios-table thead th.hidden {
+    display: none !important;
+  }
+
   /* unlabelled cells read as plain left-aligned lines, never centred/right */
   .ios-table tbody td:not([data-label]):not([data-col="status"]):not([data-col="date"]):not([data-col="approval"]):not([data-col="actions"]) {
     text-align: left !important;
