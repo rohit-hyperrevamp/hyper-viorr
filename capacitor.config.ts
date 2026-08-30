@@ -2,11 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const NATIVE_WEB_BUILD = "2026-08-30-hyper-vioarr-v4";
 // Hyper Vioarr's production domain is the single source for both native apps.
-// CAP_SERVER_URL remains available for deliberate local/test builds only.
-const nativeServerUrl = new URL(
-  process.env['CAP_SERVER_URL'] ??
-    "https://hypervioarr.hyperrevamp.com",
-);
+const nativeServerUrl = new URL("https://hypervioarr.hyperrevamp.com");
 nativeServerUrl.searchParams.set("nativeBuild", NATIVE_WEB_BUILD);
 
 /**

@@ -37,8 +37,8 @@ resolution failures.
 Android and iOS load the canonical production URL
 `https://hypervioarr.hyperrevamp.com` by default.
 
-Use `CAP_SERVER_URL` only for an intentional test build, then re-run
-`npm run mobile:sync`.
+The production domain is locked in the native configuration so Android and iOS
+cannot accidentally load an older deployment.
 
 `npm run mobile:sync` intentionally stops if that URL still serves the legacy
 Radiant Guard login. Publish the current Hyper Vioarr web build first, then run

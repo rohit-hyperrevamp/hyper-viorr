@@ -32,7 +32,7 @@ const removeIfExists = (path) => {
 };
 
 const assertCurrentHostedLogin = async () => {
-  const configuredUrl = process.env.CAP_SERVER_URL ?? "https://hypervioarr.hyperrevamp.com";
+  const configuredUrl = "https://hypervioarr.hyperrevamp.com";
   const loginUrl = new URL("/login", configuredUrl);
   loginUrl.searchParams.set("nativeBuild", "2026-08-30-hyper-vioarr-v4");
 
