@@ -1,5 +1,11 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
+const NATIVE_WEB_BUILD = "2026-08-30-hyper-vioarr-v2";
+const nativeServerUrl = new URL(
+  process.env['CAP_SERVER_URL'] ?? "https://radiant.hyperrevamp.com",
+);
+nativeServerUrl.searchParams.set("nativeBuild", NATIVE_WEB_BUILD);
+
 /**
  * Capacitor config for Hyper Vioarr.
  *
@@ -20,8 +26,9 @@ const config: CapacitorConfig = {
     // when pointing the shell at a self-hosted domain.
     // NOTE: the `project--<id>.lovable.app` URL returns "Forbidden" until the
     // project is published, which showed up as a black screen in the shell.
-    url:
-      process.env['CAP_SERVER_URL'] ?? "https://radiant.hyperrevamp.com",
+    // Version the launch URL so Android WebView and WKWebView cannot reuse the
+    // legacy Radiant Guard document after a native upgrade.
+    url: nativeServerUrl.toString(),
     cleartext: false,
     androidScheme: "https",
     iosScheme: "https",

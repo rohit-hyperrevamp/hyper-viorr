@@ -21,7 +21,8 @@ Requirements:
 # From project root, after cloning:
 npm install
 
-# Create missing native projects if needed and copy the web config:
+# Create missing native projects if needed, verify the hosted login is current,
+# clear old WebView assets, and copy the web config:
 npm run mobile:sync
 ```
 
@@ -37,6 +38,11 @@ Open `capacitor.config.ts` and update `server.url` to the URL you want the
 mobile app to load. The current production URL is `https://radiant.hyperrevamp.com`.
 
 For a custom domain, change it and re-run `npx cap sync`.
+
+`npm run mobile:sync` intentionally stops if that URL still serves the legacy
+Radiant Guard login. Publish the current Hyper Vioarr web build first, then run
+the sync again. This prevents Android or iOS packages with the old four-digit
+OTP screen from being created accidentally.
 
 ## Running
 
