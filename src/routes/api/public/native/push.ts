@@ -44,8 +44,7 @@ const PushRequestSchema = z.discriminatedUnion("action", [
 function isAllowedOrigin(origin: string) {
   try {
     const url = new URL(origin);
-    if (url.hostname === "radiant.hyperrevamp.com") return true;
-    if (url.hostname === "radiant-guard-services.lovable.app") return true;
+    if (url.hostname === "hypervioarr.hyperrevamp.com") return true;
     if (url.hostname.endsWith(".lovable.app")) return true;
     if (url.hostname.endsWith(".vercel.app")) return true;
     if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return true;
