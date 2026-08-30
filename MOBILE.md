@@ -26,6 +26,19 @@ npm install
 npm run mobile:sync
 ```
 
+If CocoaPods previously cached a failed Camera dependency resolution, clean the
+local install once before syncing again:
+
+```bash
+rm -rf node_modules ios/App/Pods ios/App/Podfile.lock
+npm install
+npm run mobile:sync
+```
+
+The Camera plugin is intentionally pinned to `8.2.1`; do not change it to a
+caret range, because `npm install` can otherwise select a newer native pod
+dependency than the checked-in iOS project supports.
+
 The repository now includes the `ios/` and `android/` platform folders. If one
 is missing after a fresh clone, `npm run mobile:sync` recreates the missing
 platform and then runs Capacitor sync. iOS is intentionally configured with
