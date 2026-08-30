@@ -121,6 +121,8 @@ export async function sendFcmPush(
       },
       android: {
         priority: "HIGH" as const,
+        ttl: "86400s",
+        direct_boot_ok: true,
         notification: {
           channel_id: "hyper_vioarr_alerts",
           sound: "default",
