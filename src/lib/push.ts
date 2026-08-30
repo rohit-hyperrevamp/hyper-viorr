@@ -198,13 +198,13 @@ async function preparePushNotificationsOnce(): Promise<void> {
       // server sends with each FCM message so sound and heads-up alerts work.
       try {
         await PushNotifications.createChannel({
-          id: "hyper_vioarr_alerts_v2",
+          id: "hyper_vioarr_alerts_v3",
           name: "Hyper Vioarr Alerts",
           description: "Approvals, attendance and workflow updates",
           importance: 5,
           visibility: 1,
           vibration: true,
-          sound: "hyper_vioarr_alert.wav",
+          sound: "hyper_vioarr_alert",
         });
       } catch (channelError) {
         logNativeEvent("push", "android channel creation failed", {

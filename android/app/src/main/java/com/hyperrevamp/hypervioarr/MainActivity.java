@@ -22,7 +22,7 @@ public class MainActivity extends BridgeActivity {
   // Android notification channels are immutable after first creation. Use a
   // versioned ID whenever sound behavior changes so an older silent channel
   // cannot override the app's current settings.
-  private static final String CHANNEL_ID = "hyper_vioarr_alerts_v2";
+  private static final String CHANNEL_ID = "hyper_vioarr_alerts_v3";
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -70,7 +70,7 @@ public class MainActivity extends BridgeActivity {
     NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
     if (manager == null) return;
     NotificationChannel channel =
-        new NotificationChannel(CHANNEL_ID, "Hyper Vioarr Alerts", NotificationManager.IMPORTANCE_HIGH);
+        new NotificationChannel(CHANNEL_ID, "Hyper Vioarr Alerts", NotificationManager.IMPORTANCE_MAX);
     channel.setDescription("Approvals, attendance and workflow updates");
     channel.enableVibration(true);
     channel.enableLights(true);

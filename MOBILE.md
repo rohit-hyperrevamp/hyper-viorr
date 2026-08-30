@@ -100,7 +100,7 @@ App identifier: `com.hyperrevamp.hypervioarr`.
 4. Firebase console → Project settings → Service accounts → *Generate new private key*,
    then store the whole JSON in the Lovable secret `FIREBASE_SERVICE_ACCOUNT_JSON`.
 5. `npm install && npm run mobile:sync`, then rebuild/reinstall the Android app.
-   On first launch the app creates the `hyper_vioarr_alerts` channel, asks for the
+   On first launch the app creates the `hyper_vioarr_alerts_v3` channel, asks for the
    notification permission, and stores the FCM token in `device_push_tokens`
    with `platform = 'android'`.
 
