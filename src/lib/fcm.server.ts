@@ -123,9 +123,11 @@ export async function sendFcmPush(
         priority: "HIGH" as const,
         notification: {
           channel_id: "hyper_vioarr_alerts",
+          sound: "default",
           default_sound: true,
           default_vibrate_timings: true,
-          click_action: "FLUTTER_NOTIFICATION_CLICK",
+          notification_priority: "PRIORITY_MAX" as const,
+          visibility: "PUBLIC" as const,
         },
       },
     };

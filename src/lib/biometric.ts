@@ -108,20 +108,33 @@ export async function getStoredBiometricPhone(): Promise<string | null> {
   }
 }
 
+/** Default label for the current platform's biometric modality. */
+export function defaultBiometricLabel(): string {
+  try {
+    return Capacitor.getPlatform() === "android" ? "Biometric unlock" : "Face ID";
+  } catch {
+    return "Biometric unlock";
+  }
+}
+
 export async function getBiometricStatus(): Promise<{
   supported: boolean;
   available: boolean;
   enabled: boolean;
   saved: boolean;
+  label: string;
   message: string;
 }> {
+  const fallbackLabel = defaultBiometricLabel();
+
   if (!isNativePlatform()) {
     return {
       supported: false,
       available: false,
       enabled: false,
       saved: false,
-      message: "Open the installed iOS app to use Face ID.",
+      label: fallbackLabel,
+      message: `Open the installed Hyper Vioarr app to use ${fallbackLabel}.`,
     };
   }
 
@@ -132,7 +145,8 @@ export async function getBiometricStatus(): Promise<{
       available: false,
       enabled: false,
       saved: false,
-      message: `Face ID plugin not loaded (platform: ${Capacitor.getPlatform()}). Reinstall the app after the latest build.`,
+      label: fallbackLabel,
+      message: `${fallbackLabel} plugin not loaded (platform: ${Capacitor.getPlatform()}). Reinstall the app after the latest build.`,
     };
   }
 
@@ -152,37 +166,40 @@ export async function getBiometricStatus(): Promise<{
     window.localStorage.setItem(ENABLED_KEY, "1");
   }
 
+  const label = info.label || fallbackLabel;
+
   return {
     supported: true,
     available: !!info.available,
     enabled,
     saved,
+    label,
     message: info.available
       ? saved
-        ? `${info.label || "Face ID"} is saved on this device.`
-        : `${info.label || "Face ID"} is available. Sign in with OTP once to enable it.`
-      : info.reason || "Face ID is not available on this device.",
+        ? `${label} is saved on this device.`
+        : `${label} is available. Sign in with OTP once to enable it.`
+      : info.reason || `${label} is not available on this device.`,
   };
 }
 
-/** Prompt Face ID, then save the phone in the iOS Keychain. */
+/** Prompt Face ID / Touch ID / fingerprint, then save the phone securely on-device. */
 export async function enableBiometric(phone: string): Promise<void> {
   const plugin = biometrics();
   const s = store();
   if (!plugin || !s) {
     throw new Error(
-      "Face ID is only available in the installed iOS app. Reinstall after the latest build.",
+      "Biometric sign-in is only available in the installed app. Reinstall after the latest build.",
     );
   }
 
   const info = await plugin.check();
   logNativeEvent("biometric", "enable check", info);
   if (!info.available) {
-    throw new Error(info.reason || "Face ID is not available on this iPhone.");
+    throw new Error(info.reason || `${defaultBiometricLabel()} is not available on this device.`);
   }
 
   const auth = await plugin.authenticate({
-    reason: "Enable Face ID for Hyper Vioarr",
+    reason: "Confirm to enable quick sign-in for Hyper Vioarr",
   });
   logNativeEvent("biometric", "enable auth", auth);
   if (!auth?.success) {

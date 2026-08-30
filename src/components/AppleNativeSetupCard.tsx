@@ -14,6 +14,7 @@ import {
 import {
   disableBiometric,
   enableBiometric,
+  defaultBiometricLabel,
   getBiometricStatus,
 } from "@/lib/biometric";
 import { getPushDebugStatus, registerPushForCurrentUser } from "@/lib/push";
@@ -49,6 +50,7 @@ export function AppleNativeSetupCard({
   const [pushRegistered, setPushRegistered] = useState(false);
   const [pushTokenCount, setPushTokenCount] = useState(0);
   const [bioStatus, setBioStatus] = useState<string>("");
+  const [bioLabel, setBioLabel] = useState<string>(() => defaultBiometricLabel());
 
   useEffect(() => {
     const snapshot = getNativeRuntimeSnapshot();
@@ -103,6 +105,7 @@ export function AppleNativeSetupCard({
     setNativeSnapshot(getNativeRuntimeSnapshot());
     const status = await getBiometricStatus();
     setBioEnabled(status.enabled);
+    setBioLabel(status.label);
     setBioStatus(status.message);
   }
 
@@ -161,21 +164,21 @@ export function AppleNativeSetupCard({
       if (bioEnabled) {
         await disableBiometric();
         setBioEnabled(false);
-        setBioStatus("Face ID is disabled on this device.");
-        toast.success("Face ID disabled");
+        setBioStatus(`${bioLabel} is disabled on this device.`);
+        toast.success(`${bioLabel} disabled`);
       } else {
         const phoneForBio = user?.phone || (phoneDigits ? `+91${phoneDigits}` : "");
         if (!phoneForBio) {
-          toast.error("Sign in with your phone number before enabling Face ID.");
+          toast.error(`Sign in with your phone number before enabling ${bioLabel}.`);
           return;
         }
         await enableBiometric(phoneForBio);
         setBioEnabled(true);
-        setBioStatus("Face ID is enabled on this device.");
-        toast.success("Face ID enabled");
+        setBioStatus(`${bioLabel} is enabled on this device.`);
+        toast.success(`${bioLabel} enabled`);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Face ID action failed";
+      const message = err instanceof Error ? err.message : `${bioLabel} action failed`;
       toast.error(message);
       setBioStatus(message);
     } finally {
@@ -232,18 +235,18 @@ export function AppleNativeSetupCard({
             <h2 className="text-sm font-semibold tracking-wide">Native app setup</h2>
           </div>
           <p className={cn("mt-1 text-sm text-muted-foreground", compact && "text-xs")}>
-            Register this device for native push notifications and enable Face ID sign-in.
+            Register this device for native push notifications and enable {bioLabel} sign-in.
           </p>
           <div className="mt-2 space-y-1 text-xs text-muted-foreground">
             <p>{pushStatus || (nativeSupported ? "Push status not checked yet." : "Open the installed iOS app to use push notifications.")}</p>
-            <p>{bioStatus || (nativeSupported ? "Face ID status not checked yet." : "Open the installed iOS app to use Face ID.")}</p>
+            <p>{bioStatus || (nativeSupported ? `${bioLabel} status not checked yet.` : `Open the installed app to use ${bioLabel}.`)}</p>
           </div>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-muted-foreground">
             <Badge variant={nativeSnapshot.isNative ? "default" : "outline"}>
               Platform: {nativeSnapshot.platform}
             </Badge>
             <Badge variant={nativeSnapshot.biometricPluginAvailable ? "default" : "outline"}>
-              Face ID plugin: {nativeSnapshot.biometricPluginAvailable ? "available" : "missing"}
+              {bioLabel} plugin: {nativeSnapshot.biometricPluginAvailable ? "available" : "missing"}
             </Badge>
             <Badge variant={nativeSnapshot.pushPluginAvailable ? "default" : "outline"}>
               Push plugin: {nativeSnapshot.pushPluginAvailable ? "available" : "missing"}
@@ -264,7 +267,7 @@ export function AppleNativeSetupCard({
           </Button>
           <Button variant="outline" size="sm" onClick={handleToggleBiometric} disabled={bioBusy || !nativeSupported}>
             {bioBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Fingerprint className="mr-1.5 h-4 w-4" />}
-            {bioEnabled ? "Disable Face ID" : "Enable Face ID"}
+            {bioEnabled ? `Disable ${bioLabel}` : `Enable ${bioLabel}`}
           </Button>
           <Button variant="secondary" size="sm" onClick={copyNativeDiagnostics}>
             <Clipboard className="mr-1.5 h-4 w-4" />
