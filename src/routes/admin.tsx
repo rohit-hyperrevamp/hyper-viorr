@@ -803,12 +803,14 @@ function AdminLayout() {
           />
           <aside
             className={cn(
-              "absolute inset-x-0 bottom-0 flex max-h-[82dvh] w-full flex-col overflow-hidden",
+              "absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden",
               "rounded-t-[26px] border-t border-border/50 bg-card shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.35)]",
               "animate-in slide-in-from-bottom duration-300 ease-out",
             )}
             style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
           >
+
+
 
             {/* Grabber */}
             <div className="flex justify-center pt-3 pb-2">

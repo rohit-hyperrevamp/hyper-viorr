@@ -499,7 +499,16 @@ function AttendanceUnitsPage() {
         eyebrow="Attendance month"
         title={MONTH_NAMES[monthIdx]}
         subtitle={String(year)}
-        description="Browse units with active contracts and drill into the monthly muster roll. Only billable employees appear — non-billable staff are on the internal payroll."
+        description={
+          <>
+            <span className="sm:hidden">Billable units with active contracts.</span>
+            <span className="hidden sm:inline">
+              Browse units with active contracts and drill into the monthly muster roll. Only billable
+              employees appear — non-billable staff are on the internal payroll.
+            </span>
+          </>
+        }
+
         right={
           <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-1.5 backdrop-blur">
             <Select value={String(monthIdx)} onValueChange={(v) => setMonthIdx(Number(v))}>
@@ -528,32 +537,37 @@ function AttendanceUnitsPage() {
       />
 
 
-      <div data-chip-row className="flex flex-wrap items-center gap-2">
+      <div
+        data-chip-row
+        className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+      >
         <SummaryPill icon={Building2} label="Organizations" value={summary.organizations} />
         <SummaryPill icon={MapPinned} label="Units" value={summary.units} />
         <SummaryPill icon={Users} label="Active employees" value={summary.activeEmployees} />
-        <Button asChild size="sm" variant="outline" className="ml-auto h-8 gap-1.5 rounded-full text-xs">
+        <Button asChild size="sm" variant="outline" className="h-8 shrink-0 gap-1.5 rounded-full text-xs sm:ml-auto">
           <Link to="/admin/attendance/employee">
-            <Search className="h-3.5 w-3.5" /> Employee lookup
+            <Search className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Employee lookup</span>
+            <span className="sm:hidden">Lookup</span>
           </Link>
         </Button>
       </div>
 
 
 
-      <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm shadow-stone-200/40 dark:shadow-black/20">
-        <div className="space-y-3 border-b border-border/60 px-4 py-4 sm:px-5 sm:py-5">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card sm:rounded-3xl sm:shadow-sm sm:shadow-stone-200/40 dark:sm:shadow-black/20">
+        <div className="space-y-3 border-b border-border/60 px-3 py-3 sm:px-5 sm:py-5">
           <div className="flex flex-col gap-1">
             <h2 className="font-display text-base font-bold tracking-tight text-foreground sm:text-lg">
               Attendance charter
             </h2>
-            <p className="text-[12px] leading-relaxed text-muted-foreground sm:text-sm">
+            <p className="hidden text-[12px] leading-relaxed text-muted-foreground sm:block sm:text-sm">
               Committed vs actual deployment with month-till-date attendance. Open any unit for its full muster roll.
             </p>
           </div>
 
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
+
             <FilterSelect
               label="Client"
               value={orgFilter}
