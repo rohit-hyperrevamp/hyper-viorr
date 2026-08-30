@@ -31,6 +31,29 @@ const removeIfExists = (path) => {
   }
 };
 
+const assertCurrentHostedLogin = async () => {
+  const configuredUrl = process.env.CAP_SERVER_URL ?? "https://radiant.hyperrevamp.com";
+  const loginUrl = new URL("/login", configuredUrl);
+  loginUrl.searchParams.set("nativeBuild", "2026-08-30-hyper-vioarr-v2");
+
+  try {
+    const response = await fetch(loginUrl, {
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+      redirect: "follow",
+    });
+    const html = await response.text();
+    if (!response.ok || html.includes("Radiant Guard") || !html.includes("Hyper Vioarr")) {
+      console.error("\n❌ The configured mobile URL is not serving the current Hyper Vioarr login.");
+      console.error(`   Checked: ${loginUrl.origin}/login`);
+      console.error("   Publish the current web app, then run npm run mobile:sync again.\n");
+      process.exit(1);
+    }
+  } catch (err) {
+    console.error(`\n❌ Could not verify the hosted mobile login: ${err.message}\n`);
+    process.exit(1);
+  }
+};
+
 
 const ensureFullXcodeSelected = () => {
   if (process.platform !== "darwin") {
@@ -55,6 +78,8 @@ const ensureFullXcodeSelected = () => {
 };
 
 ensureFullXcodeSelected();
+
+await assertCurrentHostedLogin();
 
 // Remove generated web assets before every sync. Capacitor otherwise leaves
 // files from an older native build in place, which can preserve an obsolete
