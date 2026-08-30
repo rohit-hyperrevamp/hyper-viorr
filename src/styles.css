@@ -1581,61 +1581,37 @@ nav[data-bottom-nav] li > * > div > span:last-child {
 
 /* =========================================================================
    MOBILE UI REFINEMENT (v6) — native app rhythm for Android + iOS.
-   Purely presentational: tightens type scale, removes duplicated chrome and
-   over-large empty tiles, keeps one clear hierarchy per screen.
-   Applies below the tablet breakpoint only; desktop is untouched.
+   Presentational only: calmer display sizes, single-hairline surfaces,
+   scrollable chip rows, safe scroll clearance above the tab bar.
    ========================================================================= */
 @media (max-width: 767px) {
-  /* ---- Type scale: app-sized, never web-sized ---- */
-  h1, .font-display[class*="text-[34px]"], [class*="text-4xl"], [class*="text-3xl"] {
-    font-size: 21px !important;
-    line-height: 1.18 !important;
-    letter-spacing: -0.015em;
-  }
-  h2, [class*="text-2xl"] {
-    font-size: 17px !important;
-    line-height: 1.22 !important;
-    letter-spacing: -0.01em;
-  }
-  h3, [class*="text-xl"] { font-size: 15.5px !important; line-height: 1.25 !important; }
-  [class*="text-lg"] { font-size: 15px !important; line-height: 1.3 !important; }
-  [class*="text-base"] { font-size: 13.5px !important; }
-  p, [class*="text-sm"] { font-size: 12.75px !important; line-height: 1.45 !important; }
-  [class*="text-xs"] { font-size: 11px !important; line-height: 1.4 !important; }
+  /* Display sizes: scaled for a phone canvas, not a desktop hero */
+  [class*="text-[46px]"] { font-size: 30px !important; }
+  [class*="text-[40px]"] { font-size: 28px !important; }
+  [class*="text-[36px]"], [class*="text-[34px]"] { font-size: 26px !important; }
+  [class*="text-[32px]"], [class*="text-[30px]"] { font-size: 24px !important; }
+  [class*="text-[28px]"], [class*="text-[26px]"] { font-size: 22px !important; }
+  [class*="text-[24px]"], [class*="text-[22px]"] { font-size: 19px !important; }
+  [class*="text-4xl"] { font-size: 26px !important; line-height: 1.15 !important; }
+  [class*="text-3xl"] { font-size: 22px !important; line-height: 1.18 !important; }
+  [class*="text-2xl"] { font-size: 19px !important; line-height: 1.2 !important; }
 
-  /* Long helper copy under a heading: keep it, but cap it so it never
-     pushes the actual content below the fold. */
-  .bg-card > p:not([class*="font-semibold"]),
-  .bg-card > div > p:not([class*="font-semibold"]) {
+  /* One hairline per surface — no stacked elevation on small screens */
+  .bg-card { box-shadow: none !important; }
+
+  /* Helper copy under a heading never pushes content below the fold */
+  [data-page-header] p {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    color: var(--muted-foreground);
   }
 
-  /* ---- Uppercase micro-labels: quieter, tighter ---- */
-  [class*="uppercase"][class*="tracking-"] {
-    letter-spacing: 0.09em !important;
-    font-size: 9.5px !important;
-  }
-
-  /* ---- Flatten elevation: one hairline, no stacked shadows ---- */
-  .bg-card, [class*="rounded-2xl"].bg-card {
-    box-shadow: none !important;
-  }
-  .bg-card { border: 1px solid var(--border); }
-
-  /* ---- Metric tiles: compact, no tall empty boxes ---- */
-  :root { --tile-min-h: 74px; --tile-pad: 0.625rem; }
-  [class*="min-h-[120px]"], [class*="min-h-[110px]"], [class*="min-h-[100px]"] {
-    min-height: 74px !important;
-  }
-
-  /* ---- Chip / filter rows: single scrollable line instead of ragged wrap ---- */
+  /* Filter / segmented chip rows scroll in one line instead of ragged wrap */
   [data-chip-row] {
     display: flex !important;
     flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -1643,47 +1619,14 @@ nav[data-bottom-nav] li > * > div > span:last-child {
   [data-chip-row]::-webkit-scrollbar { display: none; }
   [data-chip-row] > * { flex: 0 0 auto; }
 
-  /* ---- Controls: consistent 40px touch rhythm ---- */
-  button:not([data-bottom-nav] *):not([data-slot="switch"]),
-  [role="combobox"],
-  input:not([type="checkbox"]):not([type="radio"]),
-  select,
-  textarea {
-    font-size: 13.5px !important;
-  }
-  button:not([data-bottom-nav] *):not([data-slot="switch"]):not([class*="h-8"]):not([class*="h-7"]),
-  [role="combobox"],
-  input:not([type="checkbox"]):not([type="radio"]),
-  select {
-    min-height: 40px;
-  }
-  [class*="h-14"]:not(img) { height: 46px !important; }
-  [class*="h-12"]:not(img) { height: 42px !important; }
-  [class*="rounded-full"][class*="px-4"] { padding-inline: 0.625rem !important; }
+  /* Nothing hides behind the tab bar */
+  main { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 0.75rem) !important; }
 
-  /* ---- Sticky top app bar: one compact row, blurred, never overlapped ---- */
-  [data-app-topbar] {
-    position: sticky;
-    top: 0;
-    z-index: 60;
-    padding-top: max(0.5rem, env(safe-area-inset-top));
-    padding-bottom: 0.5rem;
-    background: color-mix(in oklab, var(--card) 88%, transparent);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--border);
-  }
-
-  /* ---- Scroll clearance above the tab bar so nothing hides behind it ---- */
-  main, [data-admin-scroll] {
-    padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 0.75rem) !important;
-  }
-
-  /* ---- Tables never overlap: horizontal scroll containers only ---- */
-  table { font-size: 12px !important; }
+  /* Tables stay inside their scroll container */
+  table { font-size: 11.5px !important; }
   .overflow-x-auto { -webkit-overflow-scrolling: touch; }
 
-  /* ---- Dialogs / sheets: full-width, safe-area aware ---- */
+  /* Dialogs and sheets: full-width, safe-area aware, never clipped */
   [role="dialog"] {
     max-width: calc(100vw - 1.25rem) !important;
     max-height: calc(100dvh - env(safe-area-inset-top) - 3rem) !important;
