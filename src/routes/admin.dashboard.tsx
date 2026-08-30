@@ -762,8 +762,9 @@ function TileHeader({ Icon, accent, label, sub }: { Icon?: React.ComponentType<{
   return (
     <div className="relative flex items-start justify-between gap-2 sm:gap-3">
       <div className="min-w-0">
-        <div className="truncate font-display text-[13px] font-semibold leading-tight text-foreground sm:text-[15px]">{label}</div>
-        {sub && <div className="mt-0.5 truncate text-[10px] text-muted-foreground sm:mt-1 sm:text-[11px]">{sub}</div>}
+        <div className="font-display text-[13px] font-semibold leading-tight text-foreground line-clamp-2 sm:truncate sm:text-[15px]">{label}</div>
+        {sub && <div className="mt-0.5 text-[10px] text-muted-foreground line-clamp-2 sm:mt-1 sm:truncate sm:text-[11px]">{sub}</div>}
+
       </div>
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card text-foreground shadow-sm ring-1 ring-border/60 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 sm:h-9 sm:w-9">
         <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
