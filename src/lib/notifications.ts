@@ -208,11 +208,14 @@ export async function notifyApprovers(input: {
   entityType?: string;
   entityId?: string;
 }) {
-  const [actor, ids] = await Promise.all([
-    currentUserId(),
+  const actor = await currentUserId();
+  const [ids, hierarchyIds] = await Promise.all([
     getApproverUserIds(input.moduleKey),
+    getHierarchyUserIds(actor),
   ]);
-  const recipients = ids.filter((id) => id !== actor);
+  const recipients = Array.from(new Set([...ids, ...hierarchyIds])).filter(
+    (id) => id && id !== actor,
+  );
   if (recipients.length === 0) return 0;
   const rows = recipients.map((uid) => ({
     id: newNotificationId(),
@@ -262,11 +265,14 @@ export async function notifyOnboardingApprovers(input: {
   entityType?: string;
   entityId?: string;
 }) {
-  const [actor, ids] = await Promise.all([
-    currentUserId(),
+  const actor = await currentUserId();
+  const [ids, hierarchyIds] = await Promise.all([
     getOnboardingApproverUserIds(),
+    getHierarchyUserIds(actor),
   ]);
-  const recipients = ids.filter((id) => id !== actor);
+  const recipients = Array.from(new Set([...ids, ...hierarchyIds])).filter(
+    (id) => id && id !== actor,
+  );
   if (recipients.length === 0) return 0;
   const rows = recipients.map((uid) => ({
     id: newNotificationId(),

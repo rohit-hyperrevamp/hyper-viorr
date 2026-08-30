@@ -164,6 +164,26 @@ async function preparePushNotificationsOnce(): Promise<void> {
     attachAuthTokenSync();
     logNativeEvent("push", "preparing listeners", getNativeRuntimeSnapshot());
 
+    if (nativePushPlatform() === "android") {
+      // Android 8+ needs an explicit channel; it must match the channel_id the
+      // server sends with each FCM message so sound and heads-up alerts work.
+      try {
+        await PushNotifications.createChannel({
+          id: "hyper_vioarr_alerts",
+          name: "Hyper Vioarr Alerts",
+          description: "Approvals, attendance and workflow updates",
+          importance: 5,
+          visibility: 1,
+          vibration: true,
+          sound: "default",
+        });
+      } catch (channelError) {
+        logNativeEvent("push", "android channel creation failed", {
+          error: channelError instanceof Error ? channelError.message : String(channelError),
+        });
+      }
+    }
+
     const perm = await PushNotifications.checkPermissions();
     lastPermission = perm.receive;
     logNativeEvent("push", "permission checked", { permission: perm.receive });
