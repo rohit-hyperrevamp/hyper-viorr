@@ -124,8 +124,10 @@ export async function sendFcmPush(
         ttl: "86400s",
         direct_boot_ok: true,
         notification: {
-          channel_id: "hyper_vioarr_alerts",
-          sound: "default",
+          // Channel IDs are immutable on Android. v2 replaces the previously
+          // installed channel that some devices retained as silent.
+          channel_id: "hyper_vioarr_alerts_v2",
+          sound: "hyper_vioarr_alert",
           default_sound: true,
           default_vibrate_timings: true,
           notification_priority: "PRIORITY_MAX" as const,
