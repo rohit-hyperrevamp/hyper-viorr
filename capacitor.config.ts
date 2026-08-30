@@ -25,6 +25,12 @@ const config: CapacitorConfig = {
     cleartext: false,
     androidScheme: "https",
     iosScheme: "https",
+    // Never reuse an older cached login bundle after installing an update.
+    // The hosted response remains the source of truth on every app launch.
+    headers: {
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+    },
   },
   ios: {
     contentInset: "never",

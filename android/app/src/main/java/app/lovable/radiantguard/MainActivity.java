@@ -8,5 +8,8 @@ public class MainActivity extends BridgeActivity {
   public void onCreate(Bundle savedInstanceState) {
     registerPlugin(RadiantDeviceTelemetryPlugin.class);
     super.onCreate(savedInstanceState);
+    // The app is served remotely. Clear only the WebView resource cache so an
+    // installed build cannot keep rendering an obsolete login/OTP bundle.
+    bridge.getWebView().clearCache(true);
   }
 }
