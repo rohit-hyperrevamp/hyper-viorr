@@ -1730,9 +1730,13 @@ nav[data-bottom-nav] li > * > div > span:last-child {
   .ios-table tbody td:not([data-label]):not([data-col="status"]):not([data-col="date"]):not([data-col="approval"]):not([data-col="actions"]) {
     text-align: left !important;
   }
-  .ios-table tbody td:not([data-label]):not([data-col="status"]):not([data-col="date"]):not([data-col="approval"]):not([data-col="actions"]) > * {
-    justify-self: start;
+  .ios-table tbody td:not([data-label]):not([data-col="status"]):not([data-col="date"]):not([data-col="approval"]):not([data-col="actions"]) > *,
+  .ios-table tbody td:not([data-label]):not([data-col="status"]):not([data-col="date"]):not([data-col="approval"]):not([data-col="actions"]) > * > * {
+    justify-self: start !important;
+    justify-content: flex-start !important;
+    align-items: flex-start;
     text-align: left !important;
+    max-width: 100% !important;
   }
 
   /* tables that ship no data-label still get readable labels */
