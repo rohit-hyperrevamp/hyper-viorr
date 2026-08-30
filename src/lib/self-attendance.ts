@@ -34,25 +34,10 @@ export type Geo = {
 };
 
 export async function getCurrentPosition(): Promise<Geo> {
-  if (typeof navigator === "undefined" || !navigator.geolocation) {
-    throw new Error("Location is not available on this device.");
-  }
-  return await new Promise<Geo>((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        resolve({
-          lat: Number(pos.coords.latitude.toFixed(7)),
-          lng: Number(pos.coords.longitude.toFixed(7)),
-          accuracy: Number((pos.coords.accuracy ?? 0).toFixed(2)),
-        });
-      },
-      (err) => {
-        reject(new Error(err?.message || "Unable to fetch location. Enable location access."));
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30_000 },
-    );
-  });
+  const { readPosition } = await import("@/lib/geolocation");
+  return await readPosition();
 }
+
 
 type BioPlugin = {
   check(): Promise<{ available: boolean; reason?: string; label?: string }>;
