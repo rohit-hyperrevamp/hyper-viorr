@@ -48,7 +48,7 @@ async function accessToken() {
   } = await supabase.auth.getSession();
 
   if (!session?.access_token) {
-    throw new Error("Sign in first, then try Apple push again.");
+    throw new Error("Sign in first, then try push notifications again.");
   }
 
   return session.access_token;
@@ -78,12 +78,12 @@ async function callNativePushApi<T>(payload: Record<string, unknown>): Promise<T
       try {
         body = text ? JSON.parse(text) : {};
       } catch {
-        body = { error: text || `Apple push API returned ${response.status}` };
+        body = { error: text || `Push API returned ${response.status}` };
       }
 
       const errorBody = body as { error?: string; message?: string };
       if (!response.ok) {
-        lastError = new Error(errorBody.error || errorBody.message || `Apple push API failed (${response.status}).`);
+        lastError = new Error(errorBody.error || errorBody.message || `Push API failed (${response.status}).`);
         logNativeEvent("push", "native push bridge rejected request", {
           url,
           status: response.status,

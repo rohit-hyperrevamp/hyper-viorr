@@ -1,6 +1,6 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-const NATIVE_WEB_BUILD = "2026-08-31-hyper-vioarr-v8";
+const NATIVE_WEB_BUILD = "2026-08-31-hyper-vioarr-v9";
 // Hyper Vioarr's production domain is the single source for both native apps.
 const nativeServerUrl = new URL("https://hypervioarr.hyperrevamp.com");
 nativeServerUrl.searchParams.set("nativeBuild", NATIVE_WEB_BUILD);
@@ -10,8 +10,8 @@ nativeServerUrl.searchParams.set("nativeBuild", NATIVE_WEB_BUILD);
  *
  * TanStack Start is server-rendered, so the native shell loads the hosted app
  * via `server.url` instead of bundling static assets. The iOS app intentionally
-  * loads the production custom-domain app; Apple push calls are bridged
- * back to the Lovable-hosted native API where the APNs secrets live.
+ * loads the production custom-domain app; native push calls are bridged
+ * back to the Lovable-hosted API where the delivery secrets live.
  */
 const config: CapacitorConfig = {
   appId: "com.hyperrevamp.hypervioarr",

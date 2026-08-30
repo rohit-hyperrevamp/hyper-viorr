@@ -72,7 +72,7 @@ async function saveTokenForSignedInUser(token: string): Promise<boolean> {
     });
   } catch (err) {
     lastError = err instanceof Error ? err.message : String(err);
-    logNativeEvent("push", "failed to store APNs token", { error: lastError });
+    logNativeEvent("push", "failed to store native push token", { error: lastError });
     console.warn("[push] failed to store token", err);
     return false;
   }
@@ -138,7 +138,7 @@ function attachAuthTokenSync() {
 
 /**
  * Attach native push listeners without asking for notification permission.
- * Permission is requested only from the explicit Register iPhone action.
+ * Permission is requested only from the explicit device registration action.
  */
 export async function preparePushNotifications(): Promise<void> {
   if (initPromise) return initPromise;
@@ -228,7 +228,7 @@ async function preparePushNotificationsOnce(): Promise<void> {
       PushNotifications.addListener("registrationError", (err) => {
         lastError = err?.error || JSON.stringify(err);
         resolvePendingToken(null);
-        logNativeEvent("push", "APNs registration error", { error: lastError });
+        logNativeEvent("push", "native push registration error", { error: lastError });
         console.warn("[push] registration error", err);
       }),
       // Foreground: iOS does NOT show a system banner or play a sound when the
