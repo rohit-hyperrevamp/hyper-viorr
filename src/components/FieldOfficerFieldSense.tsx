@@ -252,25 +252,48 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
   const punchQ = useQuery({
     queryKey: ["fo-fs-punch", candidateId, effectiveDate],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("self_attendance_punches" as never)
-        .select("id, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng")
-        .eq("candidate_id", candidateId)
-        .eq("punch_date", effectiveDate)
-        .maybeSingle();
-      if (error && error.code !== "PGRST116") throw error;
-      return (data as {
+      type PunchRow = {
         id: string;
+        punch_date: string;
         check_in_at: string | null;
         check_in_lat: number | null;
         check_in_lng: number | null;
         check_out_at: string | null;
         check_out_lat: number | null;
         check_out_lng: number | null;
-      } | null) ?? null;
+      };
+      const cols = "id, punch_date, check_in_at, check_in_lat, check_in_lng, check_out_at, check_out_lat, check_out_lng";
+      const { data, error } = await supabase
+        .from("self_attendance_punches" as never)
+        .select(cols)
+        .eq("candidate_id", candidateId)
+        .eq("punch_date", effectiveDate)
+        .maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      const exact = (data as PunchRow | null) ?? null;
+      if (exact || isHistorical) return exact;
+
+      // Fallback: an open duty punch may sit on the adjacent calendar date when the
+      // shift crossed midnight or the device/server day boundaries differ. Radar must
+      // still recognise the officer as on duty in that case.
+      const { data: openRows, error: openErr } = await supabase
+        .from("self_attendance_punches" as never)
+        .select(cols)
+        .eq("candidate_id", candidateId)
+        .is("check_out_at", null)
+        .not("check_in_at", "is", null)
+        .order("check_in_at", { ascending: false })
+        .limit(1);
+      if (openErr) throw openErr;
+      const open = ((openRows as PunchRow[] | null) ?? [])[0] ?? null;
+      if (!open) return null;
+      // Only accept punches within the last 36 hours so stale rows never look live.
+      const age = open.check_in_at ? Date.now() - new Date(open.check_in_at).getTime() : Infinity;
+      return age <= 36 * 3600 * 1000 ? open : null;
     },
     refetchInterval: isHistorical ? false : 30_000,
   });
+
   const visitsQ = useQuery({
     queryKey: ["fo-fs-visits", candidateId, effectiveDate],
     queryFn: () => fetchTodayVisits(candidateId, effectiveDate),
