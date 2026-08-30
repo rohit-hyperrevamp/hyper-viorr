@@ -183,7 +183,7 @@ export const Route = createFileRoute("/api/public/native/push")({
                   : result.total === 0
                     ? "No registered iPhone token found for this signed-in user. Tap Refresh iPhone registration and try again."
                     : firstFailure
-                      ? `APNs error: ${firstFailure}`
+                      ? `Push error: ${firstFailure}`
                       : "No push notifications were sent.",
             });
           }

@@ -41,7 +41,7 @@ export const sendTestPushToMe = createServerFn({ method: "POST" })
     });
     const firstFailure = result.failures[0]?.error;
     const failedDetail = firstFailure
-      ? `APNs error: ${firstFailure}`
+      ? `Push error: ${firstFailure}`
       : "No push notifications were sent.";
     return {
       sent: result.sent,
