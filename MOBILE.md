@@ -34,10 +34,11 @@ resolution failures.
 
 ## Point the app at your production URL
 
-Open `capacitor.config.ts` and update `server.url` to the URL you want the
-mobile app to load. The current production URL is `https://radiant.hyperrevamp.com`.
+Android and iOS load the canonical production URL
+`https://hypervioarr.hyperrevamp.com` by default.
 
-For a custom domain, change it and re-run `npx cap sync`.
+Use `CAP_SERVER_URL` only for an intentional test build, then re-run
+`npm run mobile:sync`.
 
 `npm run mobile:sync` intentionally stops if that URL still serves the legacy
 Radiant Guard login. Publish the current Hyper Vioarr web build first, then run

@@ -32,9 +32,9 @@ const removeIfExists = (path) => {
 };
 
 const assertCurrentHostedLogin = async () => {
-  const configuredUrl = process.env.CAP_SERVER_URL ?? "https://project--5038cac8-beed-4c68-a128-c0a70bdf1819.lovable.app";
+  const configuredUrl = process.env.CAP_SERVER_URL ?? "https://hypervioarr.hyperrevamp.com";
   const loginUrl = new URL("/login", configuredUrl);
-  loginUrl.searchParams.set("nativeBuild", "2026-08-30-hyper-vioarr-v3");
+  loginUrl.searchParams.set("nativeBuild", "2026-08-30-hyper-vioarr-v4");
 
   try {
     const response = await fetch(loginUrl, {
