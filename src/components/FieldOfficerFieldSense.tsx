@@ -857,9 +857,23 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
           <Button
             size="lg"
             className="h-11 w-full sm:w-auto"
-            disabled={!isOnDuty || !pos}
-            onClick={() => setCheckInOpen(true)}
+            disabled={!isOnDuty || units.length === 0}
+            onClick={async () => {
+              // Location may not be ready yet (permission prompt on native). Ask for it
+              // on demand instead of blocking the CTA.
+              if (!pos) {
+                try {
+                  const geo = await getCurrentPosition();
+                  setPos(geo);
+                  setPosError(null);
+                } catch (err) {
+                  setPosError(err instanceof Error ? err.message : "Location unavailable");
+                }
+              }
+              setCheckInOpen(true);
+            }}
           >
+
             <MapPin className="mr-1.5 h-4 w-4" />
             Check in your {nextSeq === 1 ? "first" : nextSeq === 2 ? "second" : nextSeq === 3 ? "third" : `${nextSeq}${nextSeq === 4 ? "th" : "th"}`} visit
           </Button>
