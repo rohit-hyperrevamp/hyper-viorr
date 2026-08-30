@@ -14,10 +14,10 @@ export async function ensureLocationPermission(): Promise<boolean> {
   try {
     const { Geolocation } = await import("@capacitor/geolocation");
     let status = await Geolocation.checkPermissions();
-    if (status.location !== "granted" && status.coarseLocation !== "granted") {
+    if (status.location !== "granted") {
       status = await Geolocation.requestPermissions({ permissions: ["location"] });
     }
-    const granted = status.location === "granted" || status.coarseLocation === "granted";
+    const granted = status.location === "granted";
     logNativeEvent("runtime", "location permission", { state: status.location, granted });
     return granted;
   } catch (err) {
