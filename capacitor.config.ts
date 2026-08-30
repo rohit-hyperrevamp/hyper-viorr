@@ -13,7 +13,14 @@ const config: CapacitorConfig = {
   appName: "Hyper Vioarr",
   webDir: "capacitor-web",
   server: {
-    url: "https://radiant.hyperrevamp.com",
+    // The native shell is a thin wrapper around the hosted web app, so whatever
+    // this URL serves *is* the app (logo, login/OTP screen, everything).
+    // Default to the stable Lovable deployment URL so a published update is
+    // picked up immediately; override with CAP_SERVER_URL before `mobile:sync`
+    // when pointing the shell at a self-hosted domain.
+    url:
+      process.env['CAP_SERVER_URL'] ??
+      "https://project--5038cac8-beed-4c68-a128-c0a70bdf1819.lovable.app",
     cleartext: false,
     androidScheme: "https",
     iosScheme: "https",
