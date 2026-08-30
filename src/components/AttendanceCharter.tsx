@@ -394,40 +394,41 @@ export function AttendanceCharter({
         <Stat
           label="Deployment"
           value={`${totals.actual}/${totals.committed}`}
-          sub={`${totals.coverage}% coverage · ${totals.gap > 0 ? `+${totals.gap}` : totals.gap} variance`}
+          sub={`${totals.coverage}% · ${totals.gap > 0 ? `+${totals.gap}` : totals.gap} var`}
           icon={Users}
           tone="accent"
         />
         <Stat
-          label="Actual man-hours"
+          label="Man-hours"
           value={fmtHours(totals.actualHours)}
-          sub={`of ${fmtHours(totals.projectedHours)} projected`}
+          sub={`of ${fmtHours(totals.projectedHours)}`}
           icon={UserCheck}
         />
-        <Stat label="Extra duty" value={fmtHours(totals.otHours)} sub="month till date" icon={TrendingDown} tone="warning" />
+        <Stat label="Extra duty" value={fmtHours(totals.otHours)} sub="MTD" icon={TrendingDown} tone="warning" />
         <Stat
           label="MTD attendance"
           value={`${totals.mtdPct}%`}
-          sub="current payroll periods"
+          sub="payroll period"
           icon={Gauge}
           tone={totals.mtdPct < 85 ? "destructive" : undefined}
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[220px] flex-1">
+      <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Search by unit, client or contract…"
+            placeholder="Search units…"
             className="h-9 rounded-xl pl-9"
           />
         </div>
-        <Button variant="outline" className="h-9 rounded-xl" onClick={exportCsv}>
-          <Download className="mr-1.5 h-4 w-4" /> Export
+        <Button variant="outline" className="h-9 shrink-0 rounded-xl px-3" onClick={exportCsv}>
+          <Download className="h-4 w-4 sm:mr-1.5" /> <span className="hidden sm:inline">Export</span>
         </Button>
       </div>
+
 
       {loading ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
