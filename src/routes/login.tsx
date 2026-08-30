@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Fingerprint, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   InputOTP,
   InputOTPGroup,
@@ -9,11 +10,11 @@ import {
 } from "@/components/ui/input-otp";
 import { useAuth, verifyOtp } from "@/lib/auth";
 import {
-  enableBiometric,
   getBiometricStatus,
   signInWithBiometric,
 } from "@/lib/biometric";
 import { markNativeAppSessionUnlocked } from "@/lib/native-app-lock";
+import { logNativeEvent } from "@/lib/native";
 import logo from "@/assets/hv-logo.png";
 import opsImage from "@/assets/login-ops.jpg";
 
@@ -50,8 +51,9 @@ type Step = "phone" | "otp";
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { user, login } = useAuth();
+  const { user, login, isReady } = useAuth();
   const verifyInFlightRef = useRef(false);
+  const loginStartedRef = useRef(false);
 
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
@@ -66,8 +68,10 @@ function LoginPage() {
   const [bioBusy, setBioBusy] = useState(false);
 
   useEffect(() => {
-    if (user && !revealing) navigate({ to: "/", replace: true });
-  }, [user, navigate, revealing]);
+    if (isReady && user && !loginStartedRef.current) {
+      void navigate({ to: "/", replace: true });
+    }
+  }, [isReady, user, navigate]);
 
   useEffect(() => {
     void getBiometricStatus().then((status) => {
@@ -101,38 +105,29 @@ function LoginPage() {
     const code = value ?? otp;
     if (code.length !== 6 || verifyInFlightRef.current) return;
     verifyInFlightRef.current = true;
+    loginStartedRef.current = true;
     setVerifying(true);
     if (!verifyOtp(code)) {
       verifyInFlightRef.current = false;
+      loginStartedRef.current = false;
       setVerifying(false);
       setError("Incorrect code. Please check your SMS and try again.");
       setOtp("");
       return;
     }
     try {
+      logNativeEvent("authentication", "OTP verification started");
       await login(`+91${phone}`);
       markNativeAppSessionUnlocked();
+      logNativeEvent("authentication", "secure session established");
       toast.success("Signed in");
-      // Offer to enable Face ID on first successful sign-in on a device.
-      const biometricStatus = await getBiometricStatus();
-      if (biometricStatus.available && !biometricStatus.enabled) {
-        try {
-          await enableBiometric(`+91${phone}`);
-          setBioAvailable(true);
-          setBioEnabled(true);
-          toast.success("Face ID enabled for this device");
-        } catch (bioErr) {
-          console.warn("[biometric] enable failed", bioErr);
-          toast.info(
-            bioErr instanceof Error && bioErr.message
-              ? `Face ID not enabled: ${bioErr.message}`
-              : "Face ID not enabled (you can enable it later from Profile).",
-          );
-        }
-      }
       setRevealing(true);
-      setTimeout(() => navigate({ to: "/", replace: true }), 640);
+      await navigate({ to: "/", replace: true });
     } catch (err) {
+      loginStartedRef.current = false;
+      logNativeEvent("authentication", "OTP sign-in failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
       setError(
         err instanceof Error ? err.message : "Could not start session. Try again.",
       );
@@ -148,8 +143,10 @@ function LoginPage() {
     setBioBusy(true);
     setError(null);
     try {
+      loginStartedRef.current = true;
       const savedPhone = await signInWithBiometric();
       if (!savedPhone) {
+        loginStartedRef.current = false;
         setBioBusy(false);
         return;
       }
@@ -157,8 +154,9 @@ function LoginPage() {
       await login(savedPhone);
       toast.success("Signed in with Face ID");
       setRevealing(true);
-      setTimeout(() => navigate({ to: "/", replace: true }), 640);
+      await navigate({ to: "/", replace: true });
     } catch (err) {
+      loginStartedRef.current = false;
       setError(
         err instanceof Error ? err.message : "Face ID sign-in failed. Use OTP instead.",
       );
@@ -182,7 +180,7 @@ function LoginPage() {
         }`}
       >
         {/* Brand header */}
-        <div className="flex items-center gap-3">
+        <div className="login-brand-header flex items-center gap-3">
           <img
             src={logo}
             alt="Hyper Vioarr"
@@ -200,7 +198,7 @@ function LoginPage() {
 
         <div className="flex flex-1 items-center py-10">
         <div className="mx-auto w-full max-w-[400px]">
-          <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-black/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
+          <div className="login-step-badge mb-6 inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-black/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
             {step === "phone" ? (
               <>
                 <Sparkles className="h-3.5 w-3.5 login-accent" /> Welcome back
@@ -212,7 +210,7 @@ function LoginPage() {
             )}
           </div>
 
-          <div className="font-display text-[34px] font-semibold leading-[1.08] tracking-tight text-zinc-900">
+          <div className="login-title font-display text-[34px] font-semibold leading-[1.08] tracking-tight text-zinc-900">
             {step === "phone" ? "Sign in to continue" : "Verify your number"}
           </div>
           <p className="mt-2 text-[15px] leading-relaxed text-zinc-500">
@@ -250,7 +248,7 @@ function LoginPage() {
                   </div>
                 </label>
 
-                <button
+                <Button
                   type="submit"
                   disabled={!phoneValid || sending}
                   className="login-btn group flex h-14 w-full items-center justify-center rounded-xl text-[15px] font-semibold"
@@ -263,11 +261,12 @@ function LoginPage() {
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                     </>
                   )}
-                </button>
+                </Button>
 
                 {bioAvailable && bioEnabled && (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={handleBiometricLogin}
                     disabled={bioBusy}
                     className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-blue-400/25 bg-blue-500/10 text-[14px] font-semibold text-blue-700 transition hover:bg-blue-500/20 disabled:opacity-60"
@@ -280,7 +279,7 @@ function LoginPage() {
                         Sign in with Face ID
                       </>
                     )}
-                  </button>
+                  </Button>
                 )}
               </form>
             ) : (
@@ -292,8 +291,8 @@ function LoginPage() {
                     onChange={(v) => {
                       setOtp(v);
                       setError(null);
-                      if (v.length === 6) handleVerify(v);
                     }}
+                    onComplete={(value) => void handleVerify(value)}
                     containerClassName="justify-between gap-2"
                   >
                     <InputOTPGroup className="flex w-full justify-between gap-2">
@@ -318,8 +317,9 @@ function LoginPage() {
                   )}
                 </div>
 
-                <button
-                  onClick={() => handleVerify()}
+                <Button
+                  type="button"
+                  onClick={() => void handleVerify()}
                   disabled={otp.length !== 6 || verifying}
                   className="login-btn flex h-14 w-full items-center justify-center rounded-xl text-[16px] font-semibold"
                 >
@@ -328,35 +328,37 @@ function LoginPage() {
                   ) : (
                     "Verify & sign in"
                   )}
-                </button>
+                </Button>
 
                 <div className="flex items-center justify-between text-sm">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => {
                       setStep("phone");
                       setOtp("");
                       setError(null);
                     }}
-                    className="font-medium text-zinc-500 transition hover:text-zinc-900"
+                    className="h-auto min-h-0 p-0 font-medium text-zinc-500 transition hover:bg-transparent hover:text-zinc-900"
                   >
                     ← Change number
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
                     disabled={resendIn > 0 || sending}
                     onClick={() => sendOtp()}
-                    className="font-semibold text-zinc-900 transition hover:opacity-80 disabled:cursor-not-allowed disabled:text-zinc-500"
+                    className="h-auto min-h-0 p-0 font-semibold text-zinc-900 transition hover:bg-transparent hover:opacity-80 disabled:cursor-not-allowed disabled:text-zinc-500"
                   >
                     {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend OTP"}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
           </div>
 
           {/* Trust row */}
-          <div className="mt-9 flex items-center justify-center gap-2 rounded-xl border border-black/10 bg-black/[0.04] px-3 py-2.5 text-[12px] font-medium text-zinc-600">
+          <div className="login-trust mt-9 flex items-center justify-center gap-2 rounded-xl border border-black/10 bg-black/[0.04] px-3 py-2.5 text-[12px] font-medium text-zinc-600">
             <ShieldCheck className="h-4 w-4 login-accent" />
             <span>Encrypted end-to-end · Secure OTP verification</span>
           </div>
@@ -364,7 +366,7 @@ function LoginPage() {
         </div>
 
         {/* Footer credit */}
-        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+        <div className="login-footer flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
           <span>Hyper Vioarr Ops Portal</span>
           <span aria-hidden>·</span>
           <span>A Vioarr × HyperRevamp product</span>

@@ -19,6 +19,10 @@ let lastError: string | null = null;
 let authSyncAttached = false;
 let pendingTokenResolvers: Array<(token: string | null) => void> = [];
 
+function isIosNativePlatform(): boolean {
+  return isNativePlatform() && getNativeRuntimeSnapshot().platform === "ios";
+}
+
 type PushRegisterResult = {
   supported: boolean;
   permission: string | null;
@@ -85,7 +89,10 @@ function waitForToken(timeoutMs = 7000, waitForFreshToken = false): Promise<stri
 }
 
 async function registerSilentlyIfAlreadyGranted() {
-  if (!isNativePlatform()) return;
+  // This module is APNs-only. Android must not call register() until Firebase
+  // messaging is configured in the native project; the native SDK can throw a
+  // fatal FirebaseApp initialization error that JavaScript cannot catch.
+  if (!isIosNativePlatform()) return;
   try {
     const { PushNotifications } = await import("@capacitor/push-notifications");
     const perm = await PushNotifications.checkPermissions();
@@ -111,7 +118,7 @@ function attachAuthTokenSync() {
     ) {
       if (lastApnsToken) {
         void saveTokenForSignedInUser(lastApnsToken);
-      } else if (initialized && isNativePlatform()) {
+      } else if (initialized && isIosNativePlatform()) {
         void registerSilentlyIfAlreadyGranted();
       }
     }
@@ -135,8 +142,8 @@ export async function initPushNotifications(): Promise<void> {
 
 async function preparePushNotificationsOnce(): Promise<void> {
   if (initialized) return;
-  if (!isNativePlatform()) {
-    logNativeEvent("push", "prepare skipped: not native", getNativeRuntimeSnapshot());
+  if (!isIosNativePlatform()) {
+    logNativeEvent("push", "prepare skipped: APNs requires iOS", getNativeRuntimeSnapshot());
     return;
   }
   initialized = true;
@@ -211,7 +218,7 @@ async function preparePushNotificationsOnce(): Promise<void> {
 }
 
 export async function registerPushForCurrentUser(): Promise<PushRegisterResult> {
-  if (!isNativePlatform()) {
+  if (!isIosNativePlatform()) {
     return {
       supported: false,
       permission: null,

@@ -491,6 +491,79 @@
     color: transparent;
   }
 
+  /* Mobile login is an app screen, not a compressed desktop panel. */
+  @media (max-width: 1023px) {
+    .login-screen {
+      min-height: 100dvh;
+      background:
+        linear-gradient(180deg, rgb(47 107 255 / 0.08) 0%, transparent 34%),
+        #fbfbfc;
+    }
+    .login-grid {
+      background-size: 40px 40px;
+      opacity: 0.35;
+      mask-image: linear-gradient(to bottom, #000, transparent 52%);
+    }
+    .login-panel {
+      min-height: 100dvh;
+      padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem max(1rem, env(safe-area-inset-bottom));
+    }
+    .login-brand-header {
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.625rem;
+      padding-top: 0.75rem;
+      text-align: center;
+    }
+    .login-brand-header img {
+      width: 4.5rem;
+      height: 4.5rem;
+      border-radius: 1.25rem;
+      box-shadow: 0 16px 35px -20px rgb(13 13 13 / 0.55);
+    }
+    .login-panel > .flex-1 {
+      align-items: flex-start;
+      padding-block: clamp(2rem, 7dvh, 4.5rem) 1.5rem;
+    }
+    .login-panel > .flex-1 > div {
+      max-width: 25rem;
+    }
+    .login-step-badge {
+      display: none;
+    }
+    .login-title {
+      font-size: 1.75rem !important;
+      line-height: 1.2 !important;
+      text-align: center;
+    }
+    .login-title + p {
+      margin-inline: auto;
+      max-width: 19rem;
+      text-align: center;
+    }
+    .login-field,
+    .login-btn {
+      min-height: 3.5rem;
+      border-radius: 1rem;
+    }
+    .login-otp-slot {
+      min-width: 0;
+      height: 3.25rem !important;
+      border-radius: 0.875rem !important;
+    }
+    .login-trust {
+      border: 0;
+      background: transparent;
+    }
+    .login-footer {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.6;
+    }
+  }
+
 
 
   @keyframes aurora-float {
