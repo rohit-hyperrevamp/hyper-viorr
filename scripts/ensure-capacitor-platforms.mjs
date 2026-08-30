@@ -56,6 +56,12 @@ const ensureFullXcodeSelected = () => {
 
 ensureFullXcodeSelected();
 
+// Remove generated web assets before every sync. Capacitor otherwise leaves
+// files from an older native build in place, which can preserve an obsolete
+// four-digit OTP screen even after the web app has moved to six digits.
+removeIfExists("android/app/src/main/assets/public");
+removeIfExists("ios/App/App/public");
+
 if (!existsSync("ios")) {
   run("npx", [...CLI, "add", "ios", "--packagemanager", "CocoaPods"]);
 }
