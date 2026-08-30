@@ -144,21 +144,26 @@ function Stat({
   tone?: "accent" | "warning" | "destructive";
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-background/80 to-muted/40 p-3 backdrop-blur">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
+    <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-2.5 sm:p-3">
+      <div className="flex items-center justify-between gap-1.5">
+        <span className="truncate text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:text-[10px] sm:tracking-[0.14em]">
+          {label}
+        </span>
         <Icon
           className={cn(
-            "h-3.5 w-3.5 text-muted-foreground",
+            "h-3.5 w-3.5 shrink-0 text-muted-foreground",
             tone === "accent" && "text-primary",
             tone === "warning" && "text-amber-500",
             tone === "destructive" && "text-destructive",
           )}
         />
       </div>
-      <div className="mt-1.5 text-[22px] font-semibold leading-none tracking-tight tabular-nums">{value}</div>
-      {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
+      <div className="mt-1.5 truncate text-[19px] font-semibold leading-none tracking-tight tabular-nums sm:text-[22px]">
+        {value}
+      </div>
+      {sub && <div className="mt-1 truncate text-[10.5px] text-muted-foreground sm:text-[11px]">{sub}</div>}
     </div>
+
   );
 }
 
