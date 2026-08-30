@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/input-otp";
 import { useAuth, verifyOtp } from "@/lib/auth";
 import {
+  enableBiometric,
   getBiometricStatus,
   signInWithBiometric,
 } from "@/lib/biometric";
@@ -66,6 +67,7 @@ function LoginPage() {
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioEnabled, setBioEnabled] = useState(false);
   const [bioBusy, setBioBusy] = useState(false);
+  const [bioLabel, setBioLabel] = useState("Biometric unlock");
 
   useEffect(() => {
     if (isReady && user && !loginStartedRef.current) {
@@ -77,6 +79,7 @@ function LoginPage() {
     void getBiometricStatus().then((status) => {
       setBioAvailable(status.available);
       setBioEnabled(status.enabled);
+      setBioLabel(status.label);
     });
   }, []);
 
@@ -120,6 +123,19 @@ function LoginPage() {
       await login(`+91${phone}`);
       markNativeAppSessionUnlocked();
       logNativeEvent("authentication", "secure session established");
+      // Offer Face ID / Touch ID / fingerprint right after the first OTP
+      // sign-in so the next launch can unlock without an OTP.
+      try {
+        const bio = await getBiometricStatus();
+        if (bio.available && !bio.saved) {
+          await enableBiometric(`+91${phone}`);
+          toast.success(`${bio.label} enabled for next sign-in`);
+        }
+      } catch (bioErr) {
+        logNativeEvent("biometric", "post-login enable skipped", {
+          error: bioErr instanceof Error ? bioErr.message : String(bioErr),
+        });
+      }
       toast.success("Signed in");
       setRevealing(true);
       await navigate({ to: "/", replace: true });
@@ -152,17 +168,20 @@ function LoginPage() {
       }
       markNativeAppSessionUnlocked();
       await login(savedPhone);
-      toast.success("Signed in with Face ID");
+      toast.success(`Signed in with ${bioLabel}`);
       setRevealing(true);
       await navigate({ to: "/", replace: true });
     } catch (err) {
       loginStartedRef.current = false;
       setError(
-        err instanceof Error ? err.message : "Face ID sign-in failed. Use OTP instead.",
+        err instanceof Error
+          ? err.message
+          : `${bioLabel} sign-in failed. Use OTP instead.`,
       );
       void getBiometricStatus().then((status) => {
         setBioAvailable(status.available);
         setBioEnabled(status.enabled);
+        setBioLabel(status.label);
       });
     } finally {
       setBioBusy(false);
@@ -276,7 +295,7 @@ function LoginPage() {
                     ) : (
                       <>
                         <Fingerprint className="h-4 w-4 login-accent" />
-                        Sign in with Face ID
+                        Sign in with {bioLabel}
                       </>
                     )}
                   </Button>
