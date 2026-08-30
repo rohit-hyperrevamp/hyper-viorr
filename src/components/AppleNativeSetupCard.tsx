@@ -50,6 +50,7 @@ export function AppleNativeSetupCard({
   const [pushRegistered, setPushRegistered] = useState(false);
   const [pushTokenCount, setPushTokenCount] = useState(0);
   const [bioStatus, setBioStatus] = useState<string>("");
+  const [bioLabel, setBioLabel] = useState<string>(() => defaultBiometricLabel());
 
   useEffect(() => {
     const snapshot = getNativeRuntimeSnapshot();
