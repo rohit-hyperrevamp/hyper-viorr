@@ -1,4 +1,4 @@
-package app.lovable.radiantguard;
+package com.hyperrevamp.hypervioarr;
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;

@@ -1,4 +1,4 @@
-package app.lovable.radiantguard;
+package com.hyperrevamp.hypervioarr;
 
 import android.content.Context;
 import android.content.Intent;
@@ -56,7 +56,7 @@ public class RadiantDeviceTelemetryPlugin extends Plugin {
 
     ret.put("connected", connected);
     ret.put("networkType", networkType);
-    ret.put("source", "android-radiant");
+    ret.put("source", "android-hyper-vioarr");
     call.resolve(ret);
   }
 
