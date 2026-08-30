@@ -1209,7 +1209,7 @@ function CheckInDialog({
           <Button variant="ghost" onClick={onClose} disabled={mutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !pos || !selectedId}>
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !selectedId}>
             {mutation.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             Confirm check-in
           </Button>
@@ -1250,8 +1250,15 @@ function CheckOutDialog({
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!pos) throw new Error("Location not available for checkout.");
       if (missing.length) throw new Error(`Missing: ${missing.join(", ")}`);
+      let geo = pos;
+      if (!geo) {
+        try {
+          geo = await getCurrentPosition();
+        } catch {
+          throw new Error("Location permission is required to complete the visit. Allow location access and retry.");
+        }
+      }
       const sigPath = await uploadVisitProof({
         candidateId,
         visitId: visit.id,
@@ -1279,8 +1286,8 @@ function CheckOutDialog({
       }
       await completeVisit({
         id: visit.id,
-        lat: unit?.latitude != null ? Number(unit.latitude) : pos.lat,
-        lng: unit?.longitude != null ? Number(unit.longitude) : pos.lng,
+        lat: unit?.latitude != null ? Number(unit.latitude) : geo.lat,
+        lng: unit?.longitude != null ? Number(unit.longitude) : geo.lng,
         visitNotes: notes.trim(),
         customerRating: rating,
         clientSignatureUrl: sigPath,
@@ -1406,7 +1413,7 @@ function CheckOutDialog({
           <Button variant="ghost" onClick={onClose} disabled={mutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || missing.length > 0 || !pos}>
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || missing.length > 0}>
             {mutation.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             Complete visit
           </Button>
