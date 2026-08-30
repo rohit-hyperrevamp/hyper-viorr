@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Hyper Vioarr</string>
     <string name="title_activity_main">Hyper Vioarr</string>
-    <string name="package_name">app.lovable.radiantguard</string>
-    <string name="custom_url_scheme">app.lovable.radiantguard</string>
+    <string name="package_name">com.hyperrevamp.hypervioarr</string>
+    <string name="custom_url_scheme">com.hyperrevamp.hypervioarr</string>
 </resources>

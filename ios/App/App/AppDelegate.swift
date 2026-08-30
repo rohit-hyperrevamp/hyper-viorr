@@ -72,8 +72,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 }
 
-@objc(RadiantBridgeViewController)
-class RadiantBridgeViewController: CAPBridgeViewController {
+@objc(HyperVioarrBridgeViewController)
+class HyperVioarrBridgeViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         super.capacitorDidLoad()
         bridge?.registerPluginInstance(RadiantBiometricsPlugin())
@@ -98,7 +98,7 @@ public class RadiantDeviceTelemetryPlugin: CAPPlugin, CAPBridgedPlugin {
         let isCharging = batteryState == .charging || batteryState == .full
 
         let monitor = NWPathMonitor()
-        let queue = DispatchQueue(label: "app.lovable.radiantguard.telemetry")
+        let queue = DispatchQueue(label: "com.hyperrevamp.hypervioarr.telemetry")
         var didResolve = false
 
         func cellularGeneration() -> String? {
@@ -156,7 +156,7 @@ public class RadiantDeviceTelemetryPlugin: CAPPlugin, CAPBridgedPlugin {
                     "isCharging": isCharging,
                     "connected": path.status == .satisfied,
                     "networkType": networkType,
-                    "source": "ios-radiant"
+                    "source": "ios-hyper-vioarr"
                 ]
                 if let batteryLevel = batteryLevel {
                     payload["batteryLevel"] = batteryLevel
@@ -215,7 +215,7 @@ public class RadiantBiometricsPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func authenticate(_ call: CAPPluginCall) {
-        let reason = call.getString("reason") ?? "Unlock Radiant Guard"
+        let reason = call.getString("reason") ?? "Unlock Hyper Vioarr"
         let context = LAContext()
         context.localizedCancelTitle = "Cancel"
         context.localizedFallbackTitle = "Use Passcode"
@@ -248,7 +248,7 @@ public class RadiantNativeAuthStorePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "clearPhone", returnType: CAPPluginReturnPromise)
     ]
 
-    private let service = "app.lovable.radiantguard.biometric"
+    private let service = "com.hyperrevamp.hypervioarr.biometric"
     private let account = "primary-phone"
 
     private func baseQuery() -> [String: Any] {

@@ -75,5 +75,4 @@ unaffected.
 - **iOS** — Xcode → Product → Archive → Distribute App (App Store Connect)
 - **Android** — Android Studio → Build → Generate Signed Bundle (AAB)
 
-App identifier: `app.lovable.radiantguard` (change in `capacitor.config.ts`
-plus native project settings before submitting).
+App identifier: `com.hyperrevamp.hypervioarr`.

@@ -14,15 +14,15 @@ nativeServerUrl.searchParams.set("nativeBuild", NATIVE_WEB_BUILD);
  * back to the Lovable-hosted native API where the APNs secrets live.
  */
 const config: CapacitorConfig = {
-  appId: "app.lovable.radiantguard",
+  appId: "com.hyperrevamp.hypervioarr",
   appName: "Hyper Vioarr",
   webDir: "capacitor-web",
   server: {
     // The native shell is a thin wrapper around the hosted web app, so whatever
     // this URL serves *is* the app (logo, login/OTP screen, everything).
     // Default to the canonical Hyper Vioarr production URL.
-    // Version the launch URL so Android WebView and WKWebView cannot reuse the
-    // legacy Radiant Guard document after a native upgrade.
+    // Version the launch URL so Android WebView and WKWebView cannot reuse an
+    // obsolete document after a native upgrade.
     url: nativeServerUrl.toString(),
     cleartext: false,
     androidScheme: "https",
