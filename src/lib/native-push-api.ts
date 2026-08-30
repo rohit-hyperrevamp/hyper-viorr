@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logNativeEvent } from "./native";
 
-const LOVABLE_NATIVE_API_ORIGIN = "https://project--dc741c55-be5a-40d9-b6e9-523fed099022-dev.lovable.app";
+const LOVABLE_NATIVE_API_ORIGIN = "https://project--5038cac8-beed-4c68-a128-c0a70bdf1819-dev.lovable.app";
 const NATIVE_PUSH_API_PATH = "/api/public/native/push";
 
 export type NativePushRegistrationStatus = {
@@ -48,7 +48,7 @@ async function accessToken() {
   } = await supabase.auth.getSession();
 
   if (!session?.access_token) {
-    throw new Error("Sign in first, then try Apple push again.");
+    throw new Error("Sign in first, then try push notifications again.");
   }
 
   return session.access_token;
@@ -61,30 +61,29 @@ async function callNativePushApi<T>(payload: Record<string, unknown>): Promise<T
   for (const url of nativePushApiUrls()) {
     try {
       logNativeEvent("push", "calling native push bridge", { url });
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 15_000);
       const response = await fetch(url, {
         method: "POST",
         headers: {
           "content-type": "text/plain;charset=UTF-8",
         },
         body: bodyText,
-        // keepalive lets a fire-and-forget push survive a page navigation
-        // triggered right after the notification insert (e.g. a redirect
-        // after "submit"). Without it the iOS WebView / browser cancels
-        // the request mid-flight and no banner is ever dispatched.
-        keepalive: true,
+        signal: controller.signal,
       });
+      window.clearTimeout(timeout);
 
       const text = await response.text();
       let body: unknown = {};
       try {
         body = text ? JSON.parse(text) : {};
       } catch {
-        body = { error: text || `Apple push API returned ${response.status}` };
+        body = { error: text || `Push API returned ${response.status}` };
       }
 
       const errorBody = body as { error?: string; message?: string };
       if (!response.ok) {
-        lastError = new Error(errorBody.error || errorBody.message || `Apple push API failed (${response.status}).`);
+        lastError = new Error(errorBody.error || errorBody.message || `Push API failed (${response.status}).`);
         logNativeEvent("push", "native push bridge rejected request", {
           url,
           status: response.status,
@@ -105,19 +104,51 @@ async function callNativePushApi<T>(payload: Record<string, unknown>): Promise<T
     }
   }
 
-  throw new Error(lastError?.message || "Apple push bridge could not be reached.");
+  throw new Error(lastError?.message || "The push service could not be reached.");
 }
 
-export function getNativePushRegistrationStatus() {
-  return callNativePushApi<NativePushRegistrationStatus>({ action: "status" });
+export async function getNativePushRegistrationStatus() {
+  try {
+    return await callNativePushApi<NativePushRegistrationStatus>({ action: "status" });
+  } catch (apiError) {
+    const { data, error } = await supabase
+      .from("device_push_tokens")
+      .select("platform,last_seen_at")
+      .order("last_seen_at", { ascending: false });
+    if (error) throw apiError;
+    const rows = data ?? [];
+    return {
+      registered: rows.length > 0,
+      count: rows.length,
+      latestSeenAt: rows[0]?.last_seen_at ?? null,
+      platforms: Array.from(new Set(rows.map((row) => row.platform).filter(Boolean))),
+    };
+  }
 }
 
-export function saveMyPushTokenViaApi(input: { token: string; platform: "ios" | "android" | "web" }) {
-  return callNativePushApi<NativePushRegistrationResult>({
-    action: "register",
-    token: input.token,
-    platform: input.platform,
-  });
+export async function saveMyPushTokenViaApi(input: { token: string; platform: "ios" | "android" | "web" }) {
+  try {
+    return await callNativePushApi<NativePushRegistrationResult>({
+      action: "register",
+      token: input.token,
+      platform: input.platform,
+    });
+  } catch (apiError) {
+    logNativeEvent("push", "native bridge unavailable; saving token directly", {
+      error: apiError instanceof Error ? apiError.message : String(apiError),
+    });
+    const { data, error } = await supabase.rpc("register_device_push_token", {
+      _token: input.token,
+      _platform: input.platform,
+    });
+    if (error) throw apiError;
+    const result = data?.[0];
+    return {
+      saved: result?.saved ?? true,
+      tokenSuffix: result?.token_suffix ?? input.token.slice(-8),
+      tokenCount: result?.token_count ?? 1,
+    };
+  }
 }
 
 export function sendNativeTestPush(message?: string) {

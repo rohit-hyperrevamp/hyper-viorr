@@ -12,7 +12,7 @@ import {
 
 const VITE_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const VITE_SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
-const LOVABLE_NATIVE_BRIDGE_ORIGIN = "https://project--dc741c55-be5a-40d9-b6e9-523fed099022-dev.lovable.app";
+const LOVABLE_NATIVE_BRIDGE_ORIGIN = "https://project--5038cac8-beed-4c68-a128-c0a70bdf1819-dev.lovable.app";
 const NATIVE_PUSH_PATH = "/api/public/native/push";
 
 const AccessTokenSchema = z.object({ accessToken: z.string().min(20) });
@@ -134,12 +134,12 @@ async function authenticate(token: string) {
     },
   });
 
-  const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims?.sub) {
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user?.id) {
     throw new Response("Unauthorized", { status: 401 });
   }
 
-  return { supabase, userId: data.claims.sub };
+  return { supabase, userId: data.user.id };
 }
 
 export const Route = createFileRoute("/api/public/native/push")({

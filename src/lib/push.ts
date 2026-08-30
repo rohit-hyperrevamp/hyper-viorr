@@ -1,7 +1,7 @@
 /**
- * APNs push registration for iOS (Capacitor).
+ * Native push registration for Android and iOS (Capacitor).
  *
- * On native platforms, requests permission, registers with APNs, and stores
+ * On native platforms, requests permission, registers with FCM/APNs, and stores
  * the resulting device token in `public.device_push_tokens` so backend jobs
  * can target the signed-in user. Safe no-op on web.
  */
@@ -60,25 +60,25 @@ async function saveTokenForSignedInUser(token: string): Promise<boolean> {
     });
     if (!result?.saved) {
       lastError = "The device token was received, but the backend did not confirm it was saved.";
-      logNativeEvent("push", "APNs token save not confirmed", {
+        logNativeEvent("push", "native push token save not confirmed", {
         tokenSuffix: token.slice(-8),
       });
       return false;
     }
 
-    logNativeEvent("push", "APNs token saved in backend", {
+    logNativeEvent("push", "native push token saved in backend", {
       tokenSuffix: result.tokenSuffix || token.slice(-8),
       tokenCount: result.tokenCount,
     });
   } catch (err) {
     lastError = err instanceof Error ? err.message : String(err);
-    logNativeEvent("push", "failed to store APNs token", { error: lastError });
+    logNativeEvent("push", "failed to store native push token", { error: lastError });
     console.warn("[push] failed to store token", err);
     return false;
   }
 
   lastError = null;
-  console.info("[push] APNs token stored in backend", token.slice(-8));
+  console.info("[push] native token stored in backend", token.slice(-8));
   return true;
 }
 
@@ -109,7 +109,7 @@ async function registerSilentlyIfAlreadyGranted() {
     const perm = await PushNotifications.checkPermissions();
     lastPermission = perm.receive;
     if (perm.receive === "granted") {
-      logNativeEvent("push", "silent APNs register requested", { permission: perm.receive });
+        logNativeEvent("push", "silent native push register requested", { permission: perm.receive });
       await PushNotifications.register();
     }
   } catch (err) {
@@ -138,7 +138,7 @@ function attachAuthTokenSync() {
 
 /**
  * Attach native push listeners without asking for notification permission.
- * Permission is requested only from the explicit Register iPhone action.
+ * Permission is requested only from the explicit device registration action.
  */
 export async function preparePushNotifications(): Promise<void> {
   if (initPromise) return initPromise;
@@ -219,8 +219,8 @@ async function preparePushNotificationsOnce(): Promise<void> {
 
     await Promise.all([
       PushNotifications.addListener("registration", async (token) => {
-        logNativeEvent("push", "APNs registration event", { tokenSuffix: token.value.slice(-8) });
-        console.info("[push] APNs token registered", token.value.slice(-8));
+        logNativeEvent("push", "native push registration event", { tokenSuffix: token.value.slice(-8) });
+        console.info("[push] native push token registered", token.value.slice(-8));
         lastApnsToken = token.value;
         resolvePendingToken(token.value);
         await saveTokenForSignedInUser(token.value);
@@ -228,7 +228,7 @@ async function preparePushNotificationsOnce(): Promise<void> {
       PushNotifications.addListener("registrationError", (err) => {
         lastError = err?.error || JSON.stringify(err);
         resolvePendingToken(null);
-        logNativeEvent("push", "APNs registration error", { error: lastError });
+        logNativeEvent("push", "native push registration error", { error: lastError });
         console.warn("[push] registration error", err);
       }),
       // Foreground: iOS does NOT show a system banner or play a sound when the
@@ -305,7 +305,7 @@ export async function registerPushForCurrentUser(): Promise<PushRegisterResult> 
       });
     }
     if (lastPermission === "granted") {
-      logNativeEvent("push", "manual APNs register requested");
+      logNativeEvent("push", "manual native push register requested");
       tokenPromise = waitForToken(9000, true);
       await PushNotifications.register();
     } else {
@@ -325,7 +325,7 @@ export async function registerPushForCurrentUser(): Promise<PushRegisterResult> 
     tokenSuffix: token ? token.slice(-8) : null,
     message: tokenSaved
       ? "This device is registered for push notifications."
-      : lastError || "Apple push registration has started. Try again in a few seconds.",
+       : lastError || "Push registration has started. Try again in a few seconds.",
   };
 }
 
