@@ -206,6 +206,15 @@ export async function initNative(): Promise<void> {
     console.warn("[native] initialization failed", err);
   }
 
+  // Location: ask the OS up front so attendance / field tracking has a fix
+  // ready and the user sees the permission dialog on launch.
+  try {
+    const { ensureLocationPermission } = await import("./geolocation");
+    void ensureLocationPermission();
+  } catch {
+    /* noop */
+  }
+
   // Push notifications (APNs on iOS). Prepare listeners, then silently refresh
   // the APNs token on every native launch when permission is already granted.
   // This prevents stale tokens from surviving reinstalls or debug/release swaps.
@@ -219,3 +228,4 @@ export async function initNative(): Promise<void> {
     /* noop */
   }
 }
+
