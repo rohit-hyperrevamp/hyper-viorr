@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Radiant Guard</string>
-    <string name="title_activity_main">Radiant Guard</string>
+    <string name="app_name">Hyper Vioarr</string>
+    <string name="title_activity_main">Hyper Vioarr</string>
     <string name="package_name">app.lovable.radiantguard</string>
     <string name="custom_url_scheme">app.lovable.radiantguard</string>
 </resources>

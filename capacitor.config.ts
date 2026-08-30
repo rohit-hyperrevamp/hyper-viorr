@@ -10,7 +10,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
  */
 const config: CapacitorConfig = {
   appId: "app.lovable.radiantguard",
-  appName: "Radiant Guard",
+  appName: "Hyper Vioarr",
   webDir: "capacitor-web",
   server: {
     url: "https://radiant.hyperrevamp.com",
