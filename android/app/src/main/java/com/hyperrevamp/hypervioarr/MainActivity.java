@@ -1,8 +1,17 @@
 package com.hyperrevamp.hypervioarr;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.media.AudioAttributes;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -10,12 +19,21 @@ import androidx.core.view.WindowCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+  private static final String CHANNEL_ID = "hyper_vioarr_alerts";
+
   @Override
   public void onCreate(Bundle savedInstanceState) {
     registerPlugin(RadiantDeviceTelemetryPlugin.class);
     registerPlugin(RadiantBiometricsPlugin.class);
     registerPlugin(RadiantNativeAuthStorePlugin.class);
     super.onCreate(savedInstanceState);
+
+    // Create the alert channel natively so background/killed-app FCM messages
+    // are posted by the system tray with sound even before the WebView loads.
+    createAlertChannel();
+    // Android battery optimisation (Doze / OEM app-standby) is the usual reason
+    // a push only lands when the app is opened. Ask once for an exemption.
+    requestBatteryOptimizationExemptionOnce();
 
     // True edge-to-edge: the WebView must draw behind the status bar and
     // navigation bar so there is no gray letterbox above/below the app.
