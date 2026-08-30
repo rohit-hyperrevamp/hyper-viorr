@@ -749,7 +749,7 @@ function Shell({ children, to, accent = "indigo" }: { children: React.ReactNode;
   return (
     <Link
       to={to}
-      className={`group relative flex h-[104px] flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
+      className={`group relative flex min-h-[104px] flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
     >
       {children}
     </Link>
