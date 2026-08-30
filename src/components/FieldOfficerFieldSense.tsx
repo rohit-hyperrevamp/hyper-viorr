@@ -793,12 +793,15 @@ export function FieldOfficerFieldSense({ candidateId, viewDate }: { candidateId:
     <div className="space-y-4">
       <style>{`@keyframes fs-ping { 0% { transform: scale(1); opacity: 0.6;} 80%,100% { transform: scale(1.8); opacity: 0;} }`}</style>
 
-      {/* Duty status banner */}
-      {!isOnDuty && (
+      {/* Duty status banner — only once the punch has actually loaded */}
+      {!punchQ.isLoading && !isOnDuty && !openVisit && (
         <div className="rounded-2xl border border-amber-300/60 bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
-          Mark your attendance from the dashboard to start tracking visits.
+          {punchQ.data?.check_out_at
+            ? "Duty ended for today. Mark attendance again to resume visit tracking."
+            : "Mark your attendance from the dashboard to start tracking visits."}
         </div>
       )}
+
 
       {/* Emergency / admin-requested visits */}
       <RequestedVisitsPanel
