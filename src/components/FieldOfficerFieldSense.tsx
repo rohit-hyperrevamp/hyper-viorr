@@ -1114,15 +1114,24 @@ function CheckInDialog({
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!pos) throw new Error("Location not available.");
       if (!selectedId) throw new Error("Select a unit.");
+      // Resolve location at submit time so a pending permission prompt doesn't block check-in.
+      let geo = pos;
+      if (!geo) {
+        try {
+          geo = await getCurrentPosition();
+        } catch {
+          throw new Error("Location permission is required to check into a visit. Allow location access and retry.");
+        }
+      }
       const unit = units.find((u) => u.unit_id === selectedId) ?? null;
       const visit = await createVisit({
         candidateId,
         unitId: selectedId,
-        lat: pos.lat,
-        lng: pos.lng,
-        accuracy: pos.accuracy,
+        lat: geo.lat,
+        lng: geo.lng,
+        accuracy: geo.accuracy,
+
         visitSeq: nextSeq,
         prevLat: prevPoint?.lat ?? null,
         prevLng: prevPoint?.lng ?? null,
