@@ -141,7 +141,7 @@ export function AppleNativeSetupCard({
         toast.success(`Test push sent to ${result.sent} device${result.sent === 1 ? "" : "s"}.`);
         setPushStatus(result.message || "Test push sent successfully.");
       } else {
-        const message = result.message || "No registered iPhone tokens found.";
+        const message = result.message || "No registered device tokens found.";
         toast.error(message);
         setPushStatus(message);
       }
@@ -229,7 +229,7 @@ export function AppleNativeSetupCard({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-accent" />
-            <h2 className="text-sm font-semibold tracking-wide">Apple app setup</h2>
+            <h2 className="text-sm font-semibold tracking-wide">Native app setup</h2>
           </div>
           <p className={cn("mt-1 text-sm text-muted-foreground", compact && "text-xs")}>
             Register this device for native push notifications and enable Face ID sign-in.
@@ -256,7 +256,7 @@ export function AppleNativeSetupCard({
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRegisterPush} disabled={pushLoading || !nativeSupported}>
             {pushLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : pushRegistered ? <CheckCircle2 className="mr-1.5 h-4 w-4" /> : <Bell className="mr-1.5 h-4 w-4" />}
-            {pushRegistered ? "Refresh iPhone" : "Register device"}
+            {pushRegistered ? "Refresh device" : "Register device"}
           </Button>
           <Button variant="outline" size="sm" onClick={handleTestPush} disabled={pushLoading}>
             {pushLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Bell className="mr-1.5 h-4 w-4" />}
