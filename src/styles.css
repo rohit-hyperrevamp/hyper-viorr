@@ -1118,6 +1118,16 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
+/* Native full-screen (edge-to-edge) shells: the web view draws behind the
+   status bar, so reserve the notch inset once, globally. */
+html[data-native-fullscreen] body {
+  padding-top: env(safe-area-inset-top);
+}
+html[data-native-fullscreen] header[data-app-header],
+html[data-native-fullscreen] .app-header-fixed {
+  padding-top: 0.5rem;
+}
+
 /* Native-smooth momentum scroll on any scroll container */
 * { -webkit-overflow-scrolling: touch; }
 

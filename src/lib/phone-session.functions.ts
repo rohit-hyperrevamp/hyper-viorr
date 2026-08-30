@@ -45,16 +45,27 @@ export const restorePhoneSession = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const eligibility = await supabaseAdmin.rpc("can_phone_login", {
-      _mobile: data.phone,
-    });
 
-    if (eligibility.error || eligibility.data !== true) {
-      throw new Error("This account is not enabled.");
+    // The super-admin phone has no employee record, so the eligibility RPC
+    // (which reads `candidates`) must not gate it.
+    const superAdminPhone =
+      process.env['SUPER_ADMIN_PHONE'] ?? "8373914073";
+
+    if (data.phone !== superAdminPhone) {
+      const eligibility = await supabaseAdmin.rpc("can_phone_login", {
+        _mobile: data.phone,
+      });
+
+      if (eligibility.error || eligibility.data !== true) {
+        throw new Error(
+          "Access disabled. Your account is not active. Please contact your administrator.",
+        );
+      }
     }
 
     const { ensurePhoneIdentity } = await import("@/lib/phone-session.server");
     const { email } = await ensurePhoneIdentity(supabaseAdmin, data.phone);
+
 
     const link = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",

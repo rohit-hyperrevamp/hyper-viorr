@@ -134,6 +134,9 @@ export async function initNative(): Promise<void> {
   if (typeof window === "undefined") return;
   if (!isNativePlatform()) return;
   initialized = true;
+  // Marks the document so global CSS can reserve the notch/status-bar area
+  // while the web view runs edge-to-edge (full screen).
+  document.documentElement.setAttribute("data-native-fullscreen", "true");
   logNativeEvent("runtime", "initNative started", getNativeRuntimeSnapshot());
 
   try {
@@ -145,15 +148,16 @@ export async function initNative(): Promise<void> {
         import("@capacitor/app"),
       ]);
 
-    // Status bar: match app theme, do NOT overlay the web view so safe-area
-    // insets from CSS env() still work as expected.
+    // Status bar: true edge-to-edge / full-screen experience. The web view
+    // draws behind the status bar and CSS env(safe-area-inset-*) (viewport-fit
+    // is already `cover`) keeps headers clear of the notch.
     try {
-      await StatusBar.setOverlaysWebView({ overlay: false });
+      await StatusBar.setOverlaysWebView({ overlay: true });
       await StatusBar.setStyle({ style: Style.Light });
-      await StatusBar.setBackgroundColor({ color: "#ffffff" });
     } catch {
-      /* iOS ignores setBackgroundColor — safe to swallow */
+      /* iOS ignores some status-bar calls — safe to swallow */
     }
+
 
     // Hide launch splash quickly once the JS bundle is ready.
     try {

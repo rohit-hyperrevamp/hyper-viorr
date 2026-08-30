@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 /**
- * Capacitor config for Radiant Guard Services.
+ * Capacitor config for Hyper Vioarr.
  *
  * TanStack Start is server-rendered, so the native shell loads the hosted app
  * via `server.url` instead of bundling static assets. The iOS app intentionally
@@ -39,12 +39,12 @@ const config: CapacitorConfig = {
       backgroundColor: "#ffffff",
       showSpinner: false,
       androidScaleType: "CENTER_CROP",
-      splashImmersive: false,
+      splashImmersive: true,
     },
     StatusBar: {
       style: "DARK",
       backgroundColor: "#ffffff",
-      overlaysWebView: false,
+      overlaysWebView: true,
     },
     Keyboard: {
       resize: "native",
