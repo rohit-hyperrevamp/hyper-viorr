@@ -128,7 +128,6 @@ export async function sendFcmPush(
           // installed channel that some devices retained as silent.
           channel_id: "hyper_vioarr_alerts_v2",
           sound: "hyper_vioarr_alert",
-          default_sound: true,
           default_vibrate_timings: true,
           notification_priority: "PRIORITY_MAX" as const,
           visibility: "PUBLIC" as const,
