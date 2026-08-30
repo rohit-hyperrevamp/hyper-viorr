@@ -2648,12 +2648,15 @@ function EmployeesPage() {
                       {code}
                     </span>
                   </div>
-                  <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                    <span className="truncate">{c.mobile || "No mobile"}</span>
-                    <span className="truncate text-right">{roleName}</span>
-                    <span className="truncate" title={unit?.name ?? ""}>{unit?.name || "No unit"}</span>
-                    <span className="truncate text-right" title={desig?.name ?? ""}>{desig?.name || "No designation"}</span>
+                  <div className="mt-1 space-y-0.5 text-[11px] leading-snug text-muted-foreground">
+                    <div className="truncate">{c.mobile || "No mobile"}</div>
+                    <div className="truncate" title={unit?.name ?? ""}>{unit?.name || "No unit"}</div>
+                    <div className="truncate" title={desig?.name ?? ""}>
+                      {desig?.name || "No designation"}
+                      {!(mode === "employee" && columnsVisible.role) && roleName ? ` · ${roleName}` : ""}
+                    </div>
                   </div>
+
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -2935,7 +2938,7 @@ function EmployeesPage() {
         }}
       />
 
-      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-3 gap-2 md:grid-cols-3 md:gap-2.5 xl:grid-cols-5">
         {(tab === "employee" && !isFieldOfficer
           ? [
               { label: "Total", value: stats.empTotal, accent: false as const, dot: "bg-stone-400", tone: "neutral" as const },
@@ -2971,7 +2974,7 @@ function EmployeesPage() {
           <div
             key={s.label}
             className={cn(
-              "group relative overflow-hidden rounded-2xl border p-3 shadow-sm transition-all hover:shadow-md sm:p-4",
+              "group relative overflow-hidden rounded-xl border p-2.5 shadow-sm transition-all hover:shadow-md sm:rounded-2xl sm:p-4",
               isAlert
                 ? "border-rose-300/70 bg-rose-50/70 backdrop-blur-md"
                 : s.accent
@@ -2982,7 +2985,7 @@ function EmployeesPage() {
             <div className="relative z-10 flex items-start justify-between gap-2">
               <p
                 className={cn(
-                    "truncate text-[9px] font-bold uppercase tracking-[0.12em] transition-colors sm:text-[10px] sm:tracking-[0.18em]",
+                    "line-clamp-2 text-[9px] font-bold uppercase leading-tight tracking-[0.08em] transition-colors sm:truncate sm:text-[10px] sm:tracking-[0.18em]",
                   isAlert
                     ? "text-rose-700"
                     : s.accent
@@ -2999,7 +3002,7 @@ function EmployeesPage() {
                 </span>
               )}
             </div>
-            <p className="relative z-10 mt-1 text-[20px] font-bold leading-none tabular-nums text-foreground sm:mt-2 sm:text-[24px]">
+            <p className="relative z-10 mt-1 text-[17px] font-bold leading-none tabular-nums text-foreground sm:mt-2 sm:text-[24px]">
               {s.value}
               {suffix && <span className="ml-1 text-xs font-medium text-muted-foreground">{suffix}</span>}
             </p>
@@ -3197,11 +3200,11 @@ function EmployeesPage() {
 
         {/* Filter bar (Employees tab only) */}
         {tab === "employee" && (
-          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/60 bg-card/60 p-2.5 shadow-sm sm:p-3">
+          <div className="grid grid-cols-2 items-center gap-2 rounded-2xl border border-border/60 bg-card/60 p-2.5 shadow-sm sm:flex sm:flex-wrap sm:p-3">
 
             {filtersVisible.role && (
               <Select value={filterRole} onValueChange={setFilterRole}>
-                <SelectTrigger className="h-9 w-[150px] text-xs"><SelectValue placeholder="Role" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[150px]"><SelectValue placeholder="Role" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All roles</SelectItem>
                   {rolesList.map((r) => (<SelectItem key={r.key} value={r.key} className="text-xs">{r.name}</SelectItem>))}
@@ -3210,7 +3213,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.designation && (
               <Select value={filterDesignation} onValueChange={setFilterDesignation}>
-                <SelectTrigger className="h-9 w-[170px] text-xs"><SelectValue placeholder="Designation" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[170px]"><SelectValue placeholder="Designation" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All designations</SelectItem>
                   {designations.map((d) => (<SelectItem key={d.id} value={d.id} className="text-xs">{d.name}</SelectItem>))}
@@ -3219,7 +3222,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.customer && (
               <Select value={filterCustomer} onValueChange={setFilterCustomer}>
-                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Organization" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[180px]"><SelectValue placeholder="Organization" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All organizations</SelectItem>
                   {customers.map((c) => (<SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>))}
@@ -3228,7 +3231,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.unit && (
               <Select value={filterUnit} onValueChange={setFilterUnit}>
-                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Unit" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[180px]"><SelectValue placeholder="Unit" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All units</SelectItem>
                   {units.map((u) => (<SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>))}
@@ -3237,7 +3240,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.manager && (
               <Select value={filterManager} onValueChange={setFilterManager}>
-                <SelectTrigger className="h-9 w-[180px] text-xs"><SelectValue placeholder="Reports to" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[180px]"><SelectValue placeholder="Reports to" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">Any manager</SelectItem>
                   {fieldOfficers.map((m) => (<SelectItem key={m.id} value={m.id} className="text-xs">{m.full_name} ({m.employee_code})</SelectItem>))}
@@ -3246,7 +3249,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.enabled && (
               <Select value={filterEnabled} onValueChange={(v) => setFilterEnabled(v as "all" | "enabled" | "disabled")}>
-                <SelectTrigger className="h-9 w-[140px] text-xs"><SelectValue placeholder="Active/Inactive" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[140px]"><SelectValue placeholder="Active/Inactive" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All employees</SelectItem>
                   <SelectItem value="enabled" className="text-xs">Active only</SelectItem>
@@ -3256,7 +3259,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.billable && (
               <Select value={filterBillable} onValueChange={(v) => setFilterBillable(v as "all" | "billable" | "nonbillable")}>
-                <SelectTrigger className="h-9 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[150px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">All billing</SelectItem>
                   <SelectItem value="billable" className="text-xs">Billable only</SelectItem>
@@ -3266,7 +3269,7 @@ function EmployeesPage() {
             )}
             {filtersVisible.offboardReason && (
               <Select value={filterOffboardReason} onValueChange={setFilterOffboardReason}>
-                <SelectTrigger className="h-9 w-[170px] text-xs"><SelectValue placeholder="Any offboarding" /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[170px]"><SelectValue placeholder="Any offboarding" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">Any offboarding</SelectItem>
                   <SelectItem value="none" className="text-xs">No offboarding</SelectItem>
@@ -3284,11 +3287,11 @@ function EmployeesPage() {
                 setFilterRole("all"); setFilterDesignation("all"); setFilterCustomer("all");
                 setFilterUnit("all"); setFilterManager("all"); setFilterEnabled("all"); setFilterBillable("all"); setFilterOffboardReason("all");
               }}
-              className="h-9 text-xs text-muted-foreground"
+              className="h-9 w-full text-xs text-muted-foreground sm:w-auto"
             >
               Reset
             </Button>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="col-span-2 flex items-center gap-2 sm:col-span-1 sm:ml-auto">
               <div className="flex rounded-lg border border-border/60 bg-secondary/40 p-0.5">
                 <button
                   type="button"
