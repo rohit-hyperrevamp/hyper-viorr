@@ -134,6 +134,9 @@ export async function initNative(): Promise<void> {
   if (typeof window === "undefined") return;
   if (!isNativePlatform()) return;
   initialized = true;
+  // Marks the document so global CSS can reserve the notch/status-bar area
+  // while the web view runs edge-to-edge (full screen).
+  document.documentElement.setAttribute("data-native-fullscreen", "true");
   logNativeEvent("runtime", "initNative started", getNativeRuntimeSnapshot());
 
   try {
