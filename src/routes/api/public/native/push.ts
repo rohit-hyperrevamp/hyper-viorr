@@ -181,7 +181,7 @@ export const Route = createFileRoute("/api/public/native/push")({
                 result.sent > 0
                   ? `Sent ${result.sent} of ${result.total} push notification${result.total === 1 ? "" : "s"}.`
                   : result.total === 0
-                    ? "No registered iPhone token found for this signed-in user. Tap Refresh iPhone registration and try again."
+                    ? "No registered device token found for this signed-in user. Tap Register device on the phone and try again."
                     : firstFailure
                       ? `Push error: ${firstFailure}`
                       : "No push notifications were sent.",
