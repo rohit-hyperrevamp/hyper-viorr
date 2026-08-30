@@ -61,4 +61,41 @@ public class MainActivity extends BridgeActivity {
     bridge.getWebView().clearCache(true);
     bridge.getWebView().setBackgroundColor(Color.WHITE);
   }
+
+  private void createAlertChannel() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+    NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+    if (manager == null) return;
+    NotificationChannel channel =
+        new NotificationChannel(CHANNEL_ID, "Hyper Vioarr Alerts", NotificationManager.IMPORTANCE_HIGH);
+    channel.setDescription("Approvals, attendance and workflow updates");
+    channel.enableVibration(true);
+    channel.enableLights(true);
+    channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+    Uri sound = Settings.System.DEFAULT_NOTIFICATION_URI;
+    AudioAttributes attributes =
+        new AudioAttributes.Builder()
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+            .build();
+    channel.setSound(sound, attributes);
+    manager.createNotificationChannel(channel);
+  }
+
+  private void requestBatteryOptimizationExemptionOnce() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
+    SharedPreferences prefs = getSharedPreferences("hyper_vioarr_native", Context.MODE_PRIVATE);
+    if (prefs.getBoolean("battery_exemption_asked", false)) return;
+    PowerManager power = (PowerManager) getSystemService(Context.POWER_SERVICE);
+    if (power == null || power.isIgnoringBatteryOptimizations(getPackageName())) return;
+    prefs.edit().putBoolean("battery_exemption_asked", true).apply();
+    try {
+      Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+      intent.setData(Uri.parse("package:" + getPackageName()));
+      startActivity(intent);
+    } catch (Exception ignored) {
+      // Some OEM ROMs block this dialog; notifications still work when the user
+      // allows unrestricted background activity manually.
+    }
+  }
 }
