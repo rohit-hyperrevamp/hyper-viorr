@@ -166,7 +166,14 @@ export const Route = createFileRoute("/api/public/native/push")({
               token: input.token,
               platform: input.platform,
             });
-            return jsonResponse(request, result);
+            const confirmation = input.platform === "android"
+              ? await sendNativePushToCurrentUserServer(supabase, {
+                  title: "Hyper Vioarr notifications enabled",
+                  body: "Android push notifications and sound are working on this device.",
+                  link: "/admin/notifications",
+                })
+              : null;
+            return jsonResponse(request, { ...result, confirmation });
           }
 
           if (input.action === "test") {
