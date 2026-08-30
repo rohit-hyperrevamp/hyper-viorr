@@ -219,6 +219,18 @@ function AdminLayout() {
     setNativeShell(isNativePlatform());
   }, []);
 
+  useEffect(() => {
+    if (!mobileOpen || typeof document === "undefined") return;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [mobileOpen]);
+
 
   // One-time backfill of stored public URLs → signed URLs after buckets were privatized.
   useEffect(() => {
@@ -796,14 +808,20 @@ function AdminLayout() {
       {/* Mobile bottom-sheet drawer (slide-up) — portalled to body so it always
           covers the full viewport regardless of any transformed ancestor. */}
       {mobileOpen && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-modal="true" style={{ top: 0, left: 0, right: 0, bottom: 0 }}>
+        <div
+          data-mobile-app-drawer
+          className="fixed inset-0 z-[90] h-[100dvh] w-[100dvw] overflow-hidden lg:hidden"
+          role="dialog"
+          aria-modal="true"
+        >
           <div
-            className="absolute inset-0 bg-foreground/45 backdrop-blur-sm animate-in fade-in-0 duration-200"
+            className="absolute inset-0 h-full w-full bg-foreground/50 backdrop-blur-md animate-in fade-in-0 duration-200"
             onClick={() => setMobileOpen(false)}
           />
           <aside
+            data-mobile-app-drawer-sheet
             className={cn(
-              "absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden",
+              "absolute inset-x-0 bottom-0 flex max-h-[82dvh] w-full flex-col overflow-hidden",
               "rounded-t-[26px] border-t border-border/50 bg-card shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.35)]",
               "animate-in slide-in-from-bottom duration-300 ease-out",
             )}

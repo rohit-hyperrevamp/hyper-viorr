@@ -8,6 +8,7 @@
 import { Capacitor } from "@capacitor/core";
 
 let initialized = false;
+let locationPromptStarted = false;
 const NATIVE_LOG_KEY = "radiant.native.debug.v1";
 const MAX_NATIVE_LOGS = 80;
 
@@ -206,13 +207,31 @@ export async function initNative(): Promise<void> {
     console.warn("[native] initialization failed", err);
   }
 
-  // Location: ask the OS up front so attendance / field tracking has a fix
-  // ready and the user sees the permission dialog on launch.
-  try {
-    const { ensureLocationPermission } = await import("./geolocation");
-    void ensureLocationPermission();
-  } catch {
-    /* noop */
+  // Location: wait until the native bridge and first screen are active before
+  // asking. Immediate requests during WebView bootstrap are ignored on some
+  // Android devices. Retry once when the app next becomes active if startup
+  // was interrupted by another system dialog.
+  if (!locationPromptStarted) {
+    locationPromptStarted = true;
+    const requestLocation = async () => {
+      try {
+        const { ensureLocationPermission } = await import("./geolocation");
+        await ensureLocationPermission();
+      } catch (err) {
+        logNativeEvent("runtime", "startup location prompt failed", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    };
+    window.setTimeout(() => void requestLocation(), 700);
+    try {
+      const { App: NativeApp } = await import("@capacitor/app");
+      NativeApp.addListener("appStateChange", ({ isActive }: { isActive: boolean }) => {
+        if (isActive) window.setTimeout(() => void requestLocation(), 250);
+      });
+    } catch {
+      /* startup timer remains the fallback */
+    }
   }
 
   // Push notifications (APNs on iOS). Prepare listeners, then silently refresh
