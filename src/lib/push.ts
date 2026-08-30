@@ -149,6 +149,35 @@ export async function preparePushNotifications(): Promise<void> {
 export async function initPushNotifications(): Promise<void> {
   await preparePushNotifications();
   await registerSilentlyIfAlreadyGranted();
+  await requestPushPermissionOnLaunch();
+}
+
+let launchPermissionAsked = false;
+
+/**
+ * Ask for notification permission on the first native launch after install.
+ * Android 13+ requires the POST_NOTIFICATIONS runtime prompt, and iOS needs the
+ * APNs alert prompt, before any alert can be delivered with sound.
+ */
+async function requestPushPermissionOnLaunch(): Promise<void> {
+  if (launchPermissionAsked || !isPushNativePlatform()) return;
+  launchPermissionAsked = true;
+  try {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    const perm = await PushNotifications.checkPermissions();
+    lastPermission = perm.receive;
+    if (perm.receive === "granted" || perm.receive === "denied") return;
+
+    const req = await PushNotifications.requestPermissions();
+    lastPermission = req.receive;
+    logNativeEvent("push", "launch permission prompt", { permission: req.receive });
+    if (req.receive === "granted") {
+      await PushNotifications.register();
+    }
+  } catch (err) {
+    lastError = err instanceof Error ? err.message : String(err);
+    logNativeEvent("push", "launch permission prompt failed", { error: lastError });
+  }
 }
 
 async function preparePushNotificationsOnce(): Promise<void> {
