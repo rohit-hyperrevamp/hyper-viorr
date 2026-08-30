@@ -528,7 +528,7 @@ function AttendanceUnitsPage() {
       />
 
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div data-chip-row className="flex flex-wrap items-center gap-2">
         <SummaryPill icon={Building2} label="Organizations" value={summary.organizations} />
         <SummaryPill icon={MapPinned} label="Units" value={summary.units} />
         <SummaryPill icon={Users} label="Active employees" value={summary.activeEmployees} />
