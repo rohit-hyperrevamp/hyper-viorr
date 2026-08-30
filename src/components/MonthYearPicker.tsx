@@ -52,7 +52,7 @@ export function MonthYearPicker({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1 rounded-2xl border border-border/70 bg-background/60 p-1 backdrop-blur",
+        "inline-flex max-w-full flex-nowrap items-center gap-0.5 overflow-hidden rounded-2xl border border-border/70 bg-background/60 p-1 backdrop-blur sm:gap-1",
         className,
       )}
     >
@@ -60,15 +60,15 @@ export function MonthYearPicker({
         type="button"
         aria-label="Previous month"
         onClick={() => emit(year, monthIdx - 1)}
-        className="grid h-8 w-8 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="grid h-8 w-7 shrink-0 place-items-center rounded-xl text-muted-foreground sm:w-8 transition-colors hover:bg-muted hover:text-foreground"
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
 
-      <CalendarDays className="ml-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <CalendarDays className="ml-0.5 hidden h-3.5 w-3.5 shrink-0 text-muted-foreground sm:block" />
 
       <Select value={String(monthIdx)} onValueChange={(v) => emit(year, Number(v))}>
-        <SelectTrigger className="h-8 w-[124px] rounded-xl border-0 bg-transparent text-[12px] font-semibold shadow-none hover:bg-muted focus:ring-0">
+        <SelectTrigger className="h-8 w-[104px] shrink-0 rounded-xl sm:w-[124px] border-0 bg-transparent text-[12px] font-semibold shadow-none hover:bg-muted focus:ring-0">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -80,10 +80,10 @@ export function MonthYearPicker({
         </SelectContent>
       </Select>
 
-      <div className="h-5 w-px bg-border/70" />
+      <div className="h-5 w-px shrink-0 bg-border/70" />
 
       <Select value={String(year)} onValueChange={(v) => emit(Number(v), monthIdx)}>
-        <SelectTrigger className="h-8 w-[86px] rounded-xl border-0 bg-transparent text-[12px] font-semibold tabular-nums shadow-none hover:bg-muted focus:ring-0">
+        <SelectTrigger className="h-8 w-[74px] shrink-0 rounded-xl sm:w-[86px] border-0 bg-transparent text-[12px] font-semibold tabular-nums shadow-none hover:bg-muted focus:ring-0">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -99,7 +99,7 @@ export function MonthYearPicker({
         type="button"
         aria-label="Next month"
         onClick={() => emit(year, monthIdx + 1)}
-        className="grid h-8 w-8 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="grid h-8 w-7 shrink-0 place-items-center rounded-xl text-muted-foreground sm:w-8 transition-colors hover:bg-muted hover:text-foreground"
       >
         <ChevronRight className="h-4 w-4" />
       </button>

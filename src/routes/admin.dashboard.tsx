@@ -852,8 +852,8 @@ function ContractsTile({ active, expiring }: { active: number; expiring: Array<{
   const display = useCountUp(active);
   const hasExpiring = expiring.length > 0;
   const alertText = hasExpiring
-    ? `${expiring.length} renewal${expiring.length === 1 ? "" : "s"} in 60d`
-    : "No renewals in 60d";
+    ? `${expiring.length} due 60d`
+    : "No renewals";
   const alertTone = hasExpiring
     ? "border-amber-200/70 bg-amber-50 text-amber-800 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300"
     : "border-emerald-200/70 bg-emerald-50 text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300";
@@ -862,7 +862,7 @@ function ContractsTile({ active, expiring }: { active: number; expiring: Array<{
       <TileHeader accent="amber" label="Contracts" sub="Active client contracts" />
       <div className="relative mt-auto flex items-end justify-between gap-3">
         <div className="font-display text-[30px] font-bold leading-none tabular-nums tracking-tight text-foreground sm:text-[46px]">{display}</div>
-        <div className={`flex max-w-[55%] items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold ${alertTone}`}>
+        <div className={`flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-semibold ${alertTone}`}>
           <AlertTriangle className="h-3 w-3 shrink-0" />
           <span className="truncate leading-none" title={hasExpiring && soonest?.end_date ? `Soonest: ${soonest.end_date}` : alertText}>{alertText}</span>
         </div>
