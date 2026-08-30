@@ -100,6 +100,29 @@ export async function getAdminUserIds(): Promise<string[]> {
   return ((data as unknown) as Array<{ user_id: string }>).map((r) => r.user_id);
 }
 
+/**
+ * Auth user IDs of everyone above the given user in the reporting hierarchy:
+ * their reporting manager(s), the field officers mapped to their unit(s), and
+ * the admins of the branch those units belong to. Resolved by a
+ * security-definer RPC so hierarchy tables stay protected.
+ */
+export async function getHierarchyUserIds(actorUserId?: string | null): Promise<string[]> {
+  const uid = actorUserId ?? (await currentUserId());
+  if (!uid) return [];
+  const { data, error } = await supabase.rpc("get_hierarchy_user_ids" as never, {
+    _actor_user_id: uid,
+  } as never);
+  if (error) {
+    console.warn("getHierarchyUserIds error", error);
+    return [];
+  }
+  return ((data as unknown) as Array<{ user_id: string }>).map((r) => r.user_id).filter(Boolean);
+}
+
+/**
+ * Broadcast to admins AND the actor's reporting line (manager, unit field
+ * officer, branch admins) so every notification follows the hierarchy.
+ */
 export async function notifyAdmins(input: {
   type: string;
   title: string;
@@ -108,9 +131,15 @@ export async function notifyAdmins(input: {
   entityType?: string;
   entityId?: string;
 }) {
-  const ids = await getAdminUserIds();
-  if (ids.length === 0) return;
   const actor = await currentUserId();
+  const [adminIds, hierarchyIds] = await Promise.all([
+    getAdminUserIds(),
+    getHierarchyUserIds(actor),
+  ]);
+  const ids = Array.from(new Set([...adminIds, ...hierarchyIds])).filter(
+    (id) => id && id !== actor,
+  );
+  if (ids.length === 0) return;
   const rows = ids.map((uid) => ({
     id: newNotificationId(),
     user_id: uid,
@@ -179,11 +208,14 @@ export async function notifyApprovers(input: {
   entityType?: string;
   entityId?: string;
 }) {
-  const [actor, ids] = await Promise.all([
-    currentUserId(),
+  const actor = await currentUserId();
+  const [ids, hierarchyIds] = await Promise.all([
     getApproverUserIds(input.moduleKey),
+    getHierarchyUserIds(actor),
   ]);
-  const recipients = ids.filter((id) => id !== actor);
+  const recipients = Array.from(new Set([...ids, ...hierarchyIds])).filter(
+    (id) => id && id !== actor,
+  );
   if (recipients.length === 0) return 0;
   const rows = recipients.map((uid) => ({
     id: newNotificationId(),
@@ -233,11 +265,14 @@ export async function notifyOnboardingApprovers(input: {
   entityType?: string;
   entityId?: string;
 }) {
-  const [actor, ids] = await Promise.all([
-    currentUserId(),
+  const actor = await currentUserId();
+  const [ids, hierarchyIds] = await Promise.all([
     getOnboardingApproverUserIds(),
+    getHierarchyUserIds(actor),
   ]);
-  const recipients = ids.filter((id) => id !== actor);
+  const recipients = Array.from(new Set([...ids, ...hierarchyIds])).filter(
+    (id) => id && id !== actor,
+  );
   if (recipients.length === 0) return 0;
   const rows = recipients.map((uid) => ({
     id: newNotificationId(),

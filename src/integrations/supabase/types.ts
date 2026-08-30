@@ -5424,6 +5424,12 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string
       }
+      get_hierarchy_user_ids: {
+        Args: { _actor_user_id: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
       get_inventory_admin_user_ids: {
         Args: never
         Returns: {

@@ -89,3 +89,30 @@ unaffected.
 - **Android** — Android Studio → Build → Generate Signed Bundle (AAB)
 
 App identifier: `com.hyperrevamp.hypervioarr`.
+
+## Android push notifications (FCM)
+
+1. Firebase console → add an **Android** app with package name `com.hyperrevamp.hypervioarr`.
+2. Download `google-services.json` and place it at `android/app/google-services.json`
+   (the Gradle build applies the google-services plugin only when this file exists).
+3. Firebase console → Project settings → Cloud Messaging → make sure
+   **Firebase Cloud Messaging API (V1)** is enabled.
+4. Firebase console → Project settings → Service accounts → *Generate new private key*,
+   then store the whole JSON in the Lovable secret `FIREBASE_SERVICE_ACCOUNT_JSON`.
+5. `npm install && npm run mobile:sync`, then rebuild/reinstall the Android app.
+   On first launch the app creates the `hyper_vioarr_alerts` channel, asks for the
+   notification permission, and stores the FCM token in `device_push_tokens`
+   with `platform = 'android'`.
+
+Server side, `src/lib/fcm.server.ts` signs the service-account JWT and posts to
+FCM HTTP v1; `src/lib/push-delivery.server.ts` picks APNs for iOS rows and FCM for
+Android rows, so one notification reaches both platforms.
+
+## Notification hierarchy
+
+`public.get_hierarchy_user_ids(actor)` resolves, for whoever performed the action:
+their reporting manager(s), the field officers mapped to their unit(s), and the
+admins of that unit's branch. Every fan-out helper in `src/lib/notifications.ts`
+(`notifyAdmins`, `notifyApprovers`, `notifyOnboardingApprovers`) unions those
+users in, so any logged action — attendance, uniform demands, onboarding,
+contracts — reaches the reporting line as well as admins, in-app and as a push.
