@@ -461,21 +461,23 @@ export function AttendanceCharter({
                   >
                     <Dial value={r.mtdPct} />
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-sm font-semibold group-hover:text-primary">
                           {r.unit.name || r.unit.code}
                         </span>
-                        <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          {r.unitShift}h shift
+                        <span className="shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {r.unitShift}h
                         </span>
+                      </div>
+                      <div className="truncate text-[11.5px] text-muted-foreground sm:text-xs">
+                        {r.unit.customer_name} · {r.contractCode}
+                      </div>
+                      <div className="-mx-0.5 mt-1.5 flex items-center gap-1.5 overflow-x-auto px-0.5 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible">
                         <AttendanceStatusBadge status={r.status.attendance} />
                         <MoneyStatusBadge kind="payroll" status={r.status.payroll} />
                         <MoneyStatusBadge kind="invoice" status={r.status.invoice} />
                       </div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {r.unit.customer_name} · {r.contractCode}
-                      </div>
-                      <div className="mt-1.5 flex items-center gap-2 text-[11px] tabular-nums text-muted-foreground sm:hidden">
+                      <div className="mt-1 flex items-center gap-1.5 whitespace-nowrap text-[11px] tabular-nums text-muted-foreground sm:hidden">
                         <span>
                           {r.actual}/{r.committed} deployed
                         </span>
@@ -485,6 +487,7 @@ export function AttendanceCharter({
                         </span>
                       </div>
                     </div>
+
 
                     <div className="hidden shrink-0 items-center gap-5 pr-1 text-sm tabular-nums sm:flex">
                       <div className="text-right">
