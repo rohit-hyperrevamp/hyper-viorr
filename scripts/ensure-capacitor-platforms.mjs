@@ -34,7 +34,7 @@ const removeIfExists = (path) => {
 const assertCurrentHostedLogin = async () => {
   const configuredUrl = "https://hypervioarr.hyperrevamp.com";
   const loginUrl = new URL("/login", configuredUrl);
-  loginUrl.searchParams.set("nativeBuild", "2026-08-30-hyper-vioarr-v5");
+  loginUrl.searchParams.set("nativeBuild", "2026-08-31-hyper-vioarr-v7");
 
   try {
     const response = await fetch(loginUrl, {
