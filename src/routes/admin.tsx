@@ -791,21 +791,23 @@ function AdminLayout() {
 
 
 
-      {/* Mobile bottom-sheet drawer (slide-up) */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+      {/* Mobile bottom-sheet drawer (slide-up) — portalled to body so it always
+          covers the full viewport regardless of any transformed ancestor. */}
+      {mobileOpen && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-modal="true" style={{ top: 0, left: 0, right: 0, bottom: 0 }}>
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in-0 duration-200"
+            className="absolute inset-0 bg-foreground/45 backdrop-blur-sm animate-in fade-in-0 duration-200"
             onClick={() => setMobileOpen(false)}
           />
           <aside
             className={cn(
-              "absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden",
+              "absolute inset-x-0 bottom-0 flex max-h-[82dvh] w-full flex-col overflow-hidden",
               "rounded-t-[26px] border-t border-border/50 bg-card shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.35)]",
               "animate-in slide-in-from-bottom duration-300 ease-out",
-              "safe-bottom",
             )}
+            style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
           >
+
             {/* Grabber */}
             <div className="flex justify-center pt-3 pb-2">
               <div className="h-1.5 w-24 rounded-full bg-muted/80" />
