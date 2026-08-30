@@ -19,8 +19,16 @@ let lastError: string | null = null;
 let authSyncAttached = false;
 let pendingTokenResolvers: Array<(token: string | null) => void> = [];
 
-function isIosNativePlatform(): boolean {
-  return isNativePlatform() && getNativeRuntimeSnapshot().platform === "ios";
+function nativePushPlatform(): "ios" | "android" | null {
+  if (!isNativePlatform()) return null;
+  const platform = getNativeRuntimeSnapshot().platform;
+  if (platform === "ios" || platform === "android") return platform;
+  return null;
+}
+
+/** True on any native platform that supports push (iOS via APNs, Android via FCM). */
+function isPushNativePlatform(): boolean {
+  return nativePushPlatform() !== null;
 }
 
 type PushRegisterResult = {
@@ -46,7 +54,10 @@ async function saveTokenForSignedInUser(token: string): Promise<boolean> {
   }
 
   try {
-    const result = await saveMyPushTokenViaApi({ token, platform: "ios" });
+    const result = await saveMyPushTokenViaApi({
+      token,
+      platform: nativePushPlatform() ?? "ios",
+    });
     if (!result?.saved) {
       lastError = "The iPhone token was received, but the backend did not confirm it was saved.";
       logNativeEvent("push", "APNs token save not confirmed", {
@@ -89,10 +100,10 @@ function waitForToken(timeoutMs = 7000, waitForFreshToken = false): Promise<stri
 }
 
 async function registerSilentlyIfAlreadyGranted() {
-  // This module is APNs-only. Android must not call register() until Firebase
-  // messaging is configured in the native project; the native SDK can throw a
-  // fatal FirebaseApp initialization error that JavaScript cannot catch.
-  if (!isIosNativePlatform()) return;
+  // iOS registers with APNs, Android with Firebase Cloud Messaging. On Android
+  // this needs android/app/google-services.json present in the native project;
+  // without it registration fails and is reported through registrationError.
+  if (!isPushNativePlatform()) return;
   try {
     const { PushNotifications } = await import("@capacitor/push-notifications");
     const perm = await PushNotifications.checkPermissions();
@@ -118,7 +129,7 @@ function attachAuthTokenSync() {
     ) {
       if (lastApnsToken) {
         void saveTokenForSignedInUser(lastApnsToken);
-      } else if (initialized && isIosNativePlatform()) {
+      } else if (initialized && isPushNativePlatform()) {
         void registerSilentlyIfAlreadyGranted();
       }
     }
@@ -142,8 +153,8 @@ export async function initPushNotifications(): Promise<void> {
 
 async function preparePushNotificationsOnce(): Promise<void> {
   if (initialized) return;
-  if (!isIosNativePlatform()) {
-    logNativeEvent("push", "prepare skipped: APNs requires iOS", getNativeRuntimeSnapshot());
+  if (!isPushNativePlatform()) {
+    logNativeEvent("push", "prepare skipped: push requires the installed app", getNativeRuntimeSnapshot());
     return;
   }
   initialized = true;
@@ -218,13 +229,13 @@ async function preparePushNotificationsOnce(): Promise<void> {
 }
 
 export async function registerPushForCurrentUser(): Promise<PushRegisterResult> {
-  if (!isIosNativePlatform()) {
+  if (!isPushNativePlatform()) {
     return {
       supported: false,
       permission: null,
       tokenSaved: false,
       tokenSuffix: null,
-      message: "Open the installed iOS app to register Apple push notifications.",
+      message: "Open the installed Hyper Vioarr app to register this device for push notifications.",
     };
   }
 
@@ -249,7 +260,7 @@ export async function registerPushForCurrentUser(): Promise<PushRegisterResult> 
       tokenPromise = waitForToken(9000, true);
       await PushNotifications.register();
     } else {
-      lastError = `Push permission is ${lastPermission}. Enable notifications for Hyper Vioarr in iOS Settings.`;
+      lastError = `Push permission is ${lastPermission}. Enable notifications for Hyper Vioarr in your phone's Settings.`;
     }
   } catch (err) {
     lastError = err instanceof Error ? err.message : String(err);
@@ -264,7 +275,7 @@ export async function registerPushForCurrentUser(): Promise<PushRegisterResult> 
     tokenSaved,
     tokenSuffix: token ? token.slice(-8) : null,
     message: tokenSaved
-      ? "This iPhone is registered for Apple push notifications."
+      ? "This device is registered for push notifications."
       : lastError || "Apple push registration has started. Try again in a few seconds.",
   };
 }
