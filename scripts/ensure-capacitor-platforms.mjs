@@ -34,7 +34,7 @@ const removeIfExists = (path) => {
 const assertCurrentHostedLogin = async () => {
   const configuredUrl = "https://hypervioarr.hyperrevamp.com";
   const loginUrl = new URL("/login", configuredUrl);
-  loginUrl.searchParams.set("nativeBuild", "2026-08-30-hyper-vioarr-v4");
+  loginUrl.searchParams.set("nativeBuild", "2026-08-30-hyper-vioarr-v5");
 
   try {
     const response = await fetch(loginUrl, {
@@ -42,7 +42,14 @@ const assertCurrentHostedLogin = async () => {
       redirect: "follow",
     });
     const html = await response.text();
-    if (!response.ok || html.includes("Radiant Guard") || !html.includes("Hyper Vioarr")) {
+    const normalizedHtml = html.toLowerCase();
+    const isHyperVioarrLogin =
+      response.ok &&
+      response.url.startsWith(`${configuredUrl}/login`) &&
+      normalizedHtml.includes("hyper vioarr") &&
+      !normalizedHtml.includes("radiant guard") &&
+      !normalizedHtml.includes("radiant ops");
+    if (!isHyperVioarrLogin) {
       console.error("\n❌ The configured mobile URL is not serving the current Hyper Vioarr login.");
       console.error(`   Checked: ${loginUrl.origin}/login`);
       console.error("   Publish the current web app, then run npm run mobile:sync again.\n");
@@ -86,6 +93,9 @@ await assertCurrentHostedLogin();
 // four-digit OTP screen even after the web app has moved to six digits.
 removeIfExists("android/app/src/main/assets/public");
 removeIfExists("ios/App/App/public");
+removeIfExists("android/app/build");
+removeIfExists("android/.gradle");
+removeIfExists("ios/DerivedData");
 
 if (!existsSync("ios")) {
   run("npx", [...CLI, "add", "ios", "--packagemanager", "CocoaPods"]);
@@ -104,8 +114,6 @@ if (existsSync("ios")) {
   removeIfExists("ios/App/App.xcodeproj/project.xcworkspace/xcuserdata");
   removeIfExists("ios/App/App.xcodeproj/xcuserdata");
   removeIfExists("ios/App/App.xcworkspace/xcuserdata");
-  removeIfExists("ios/DerivedData");
-
   // Xcode stores resolved package state outside the repo too. Remove only this
   // app's derived-data folders so an old SPM resolution cannot keep breaking it.
   const xcodeDerivedData = `${homedir()}/Library/Developer/Xcode/DerivedData`;

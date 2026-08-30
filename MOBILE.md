@@ -35,13 +35,13 @@ resolution failures.
 ## Point the app at your production URL
 
 Android and iOS load the canonical production URL
-`https://hypervioarr.hyperrevamp.com` by default.
+`https://hypervioarr.hyperrevamp.com` exclusively.
 
 The production domain is locked in the native configuration so Android and iOS
 cannot accidentally load an older deployment.
 
-`npm run mobile:sync` intentionally stops if that URL still serves the legacy
-Radiant Guard login. Publish the current Hyper Vioarr web build first, then run
+`npm run mobile:sync` intentionally stops if that URL serves any legacy login
+or redirects elsewhere. Publish the current Hyper Vioarr web build first, then run
 the sync again. This prevents Android or iOS packages with the old four-digit
 OTP screen from being created accidentally.
 

@@ -126,7 +126,7 @@ export type CandidateForRender = {
  * Assets are served from Lovable's CDN path. PDFs and previews on custom
  * domains need the absolute URL, so resolve it against the current origin.
  */
-export const DOCUMENT_ASSET_ORIGIN = "https://radiant-guard-services.lovable.app";
+export const DOCUMENT_ASSET_ORIGIN = "https://hypervioarr.hyperrevamp.com";
 
 export function absoluteAssetUrl(path: string): string {
   if (/^https?:/i.test(path)) return path;
