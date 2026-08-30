@@ -45,7 +45,7 @@ async function saveTokenForSignedInUser(token: string): Promise<boolean> {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    lastError = "Sign in first, then register this iPhone for push notifications.";
+    lastError = "Sign in first, then register this device for push notifications.";
     logNativeEvent("push", "token received before signed-in user", {
       tokenSuffix: token.slice(-8),
     });
@@ -59,7 +59,7 @@ async function saveTokenForSignedInUser(token: string): Promise<boolean> {
       platform: nativePushPlatform() ?? "ios",
     });
     if (!result?.saved) {
-      lastError = "The iPhone token was received, but the backend did not confirm it was saved.";
+      lastError = "The device token was received, but the backend did not confirm it was saved.";
       logNativeEvent("push", "APNs token save not confirmed", {
         tokenSuffix: token.slice(-8),
       });
