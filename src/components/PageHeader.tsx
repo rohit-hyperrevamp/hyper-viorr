@@ -34,7 +34,7 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("relative mb-3 sm:mb-5", className)}>
+    <div data-page-header className={cn("relative mb-3 sm:mb-5", className)}>
       <nav aria-label="Breadcrumb" className="mb-2 hidden sm:block">
         <ol className="flex flex-wrap items-center gap-1 text-[11px] font-medium text-muted-foreground">
           <li>
@@ -88,7 +88,7 @@ export function PageHeader({
             </div>
           </div>
           {actions && (
-            <div className="-mx-1 flex flex-wrap items-center gap-1.5 self-start overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:shrink-0 sm:overflow-visible sm:px-0 sm:pb-0">{actions}</div>
+            <div data-chip-row className="-mx-1 flex flex-wrap items-center gap-1.5 self-start overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:shrink-0 sm:overflow-visible sm:px-0 sm:pb-0">{actions}</div>
           )}
         </div>
 
@@ -138,7 +138,7 @@ export function PageStat({
     <Wrapper
       {...(onClick ? { type: "button", onClick } : {})}
       className={cn(
-        "group relative flex w-full flex-col overflow-hidden rounded-2xl border border-border/40 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:rounded-[26px] sm:p-4",
+        "group relative flex w-full flex-col overflow-hidden rounded-2xl border border-border/40 p-2.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:rounded-[26px] sm:p-4",
         ACCENT_TILE_BG[resolvedAccent],
         onClick && "cursor-pointer",
         active && "ring-2 ring-accent/40",
@@ -162,8 +162,8 @@ export function PageStat({
           </span>
         )}
       </div>
-      <div className="relative mt-3 flex items-end justify-between gap-3 sm:mt-5">
-        <div className="min-w-0 whitespace-nowrap font-display text-[24px] font-bold leading-none tracking-tight tabular-nums text-foreground sm:text-[32px]">
+      <div className="relative mt-2 flex items-end justify-between gap-3 sm:mt-5">
+        <div className="min-w-0 whitespace-nowrap font-display text-[22px] font-bold leading-none tracking-tight tabular-nums text-foreground sm:text-[32px]">
           {value}
         </div>
         {Icon && (

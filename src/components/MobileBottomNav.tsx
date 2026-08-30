@@ -61,7 +61,7 @@ export function MobileBottomNav({
           const inner = (
             <div
               className={cn(
-                "relative mx-auto flex min-w-0 max-w-[72px] flex-col items-center justify-center gap-1 rounded-2xl px-2 pt-1 pb-1 transition-colors",
+                "relative mx-auto flex min-w-0 max-w-[88px] flex-col items-center justify-center gap-1 rounded-2xl px-2 pt-1 pb-1 transition-colors",
               )}
             >
               <span
@@ -103,7 +103,7 @@ export function MobileBottomNav({
             aria-label="More"
             className="block w-full appearance-none select-none [-webkit-tap-highlight-color:transparent] [touch-action:manipulation] outline-none focus-visible:outline-none active:opacity-90"
           >
-            <div className="relative mx-auto flex min-w-0 max-w-[72px] flex-col items-center justify-center gap-1 rounded-2xl px-2 pt-1 pb-1 transition-colors">
+            <div className="relative mx-auto flex min-w-0 max-w-[88px] flex-col items-center justify-center gap-1 rounded-2xl px-2 pt-1 pb-1 transition-colors">
               <span
                 className={cn(
                   "grid h-9 w-9 place-items-center rounded-2xl transition-colors",

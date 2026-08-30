@@ -1578,3 +1578,59 @@ nav[data-bottom-nav] li > * > div > span:last-child {
   }
 }
 
+
+/* =========================================================================
+   MOBILE UI REFINEMENT (v6) — native app rhythm for Android + iOS.
+   Presentational only: calmer display sizes, single-hairline surfaces,
+   scrollable chip rows, safe scroll clearance above the tab bar.
+   ========================================================================= */
+@media (max-width: 767px) {
+  /* Display sizes: scaled for a phone canvas, not a desktop hero */
+  [class*="text-[46px]"] { font-size: 30px !important; }
+  [class*="text-[40px]"] { font-size: 28px !important; }
+  [class*="text-[36px]"], [class*="text-[34px]"] { font-size: 26px !important; }
+  [class*="text-[32px]"], [class*="text-[30px]"] { font-size: 24px !important; }
+  [class*="text-[28px]"], [class*="text-[26px]"] { font-size: 22px !important; }
+  [class*="text-[24px]"], [class*="text-[22px]"] { font-size: 19px !important; }
+  [class*="text-4xl"] { font-size: 26px !important; line-height: 1.15 !important; }
+  [class*="text-3xl"] { font-size: 22px !important; line-height: 1.18 !important; }
+  [class*="text-2xl"] { font-size: 19px !important; line-height: 1.2 !important; }
+
+  /* One hairline per surface — no stacked elevation on small screens */
+  .bg-card { box-shadow: none !important; }
+
+  /* Helper copy under a heading never pushes content below the fold */
+  [data-page-header] p {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Filter / segmented chip rows scroll in one line instead of ragged wrap */
+  [data-chip-row] {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  [data-chip-row]::-webkit-scrollbar { display: none; }
+  [data-chip-row] > * { flex: 0 0 auto; }
+
+  /* Nothing hides behind the tab bar */
+  main { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 0.75rem) !important; }
+
+  /* Tables stay inside their scroll container */
+  table { font-size: 11.5px !important; }
+  .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+
+  /* Dialogs and sheets: full-width, safe-area aware, never clipped */
+  [role="dialog"] {
+    max-width: calc(100vw - 1.25rem) !important;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 3rem) !important;
+    overflow-y: auto;
+    border-radius: 18px !important;
+  }
+}
