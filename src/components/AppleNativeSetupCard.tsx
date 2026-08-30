@@ -70,7 +70,7 @@ export function AppleNativeSetupCard({
       setPushTokenCount(status.count);
       if (status.registered) {
         setPushStatus(
-          `This iPhone is registered for native notifications${status.count > 1 ? ` (${status.count} active tokens).` : "."}`,
+          `This device is registered for native notifications${status.count > 1 ? ` (${status.count} active tokens).` : "."}`,
         );
       }
     } catch {
@@ -89,11 +89,11 @@ export function AppleNativeSetupCard({
         setPushStatus(result.message);
         void refreshPushStatus();
         if (result.tokenSaved) {
-          toast.success("This iPhone is registered for push notifications");
+          toast.success("This device is registered for push notifications");
         }
       })
       .catch((err) => {
-        const message = err instanceof Error ? err.message : "Could not register this iPhone for push notifications";
+        const message = err instanceof Error ? err.message : "Could not register this device for push notifications";
         setPushStatus(message);
       })
       .finally(() => setPushLoading(false));
@@ -114,12 +114,12 @@ export function AppleNativeSetupCard({
       setPushStatus(result.message);
       await refreshPushStatus();
       if (result.tokenSaved) {
-        toast.success("This iPhone is registered for push notifications");
+        toast.success("This device is registered for push notifications");
       } else {
         toast.info(result.message);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not register this iPhone for push notifications";
+      const message = err instanceof Error ? err.message : "Could not register this device for push notifications";
       setPushStatus(message);
       toast.error(message);
     } finally {
@@ -171,7 +171,7 @@ export function AppleNativeSetupCard({
         }
         await enableBiometric(phoneForBio);
         setBioEnabled(true);
-        setBioStatus("Face ID is enabled on this iPhone.");
+        setBioStatus("Face ID is enabled on this device.");
         toast.success("Face ID enabled");
       }
     } catch (err) {
@@ -232,10 +232,10 @@ export function AppleNativeSetupCard({
             <h2 className="text-sm font-semibold tracking-wide">Apple app setup</h2>
           </div>
           <p className={cn("mt-1 text-sm text-muted-foreground", compact && "text-xs")}>
-            Register this iPhone for native push notifications and enable Face ID sign-in.
+            Register this device for native push notifications and enable Face ID sign-in.
           </p>
           <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-            <p>{pushStatus || (nativeSupported ? "Push status not checked yet." : "Open the installed iOS app to use Apple push notifications.")}</p>
+            <p>{pushStatus || (nativeSupported ? "Push status not checked yet." : "Open the installed iOS app to use push notifications.")}</p>
             <p>{bioStatus || (nativeSupported ? "Face ID status not checked yet." : "Open the installed iOS app to use Face ID.")}</p>
           </div>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-muted-foreground">
@@ -256,7 +256,7 @@ export function AppleNativeSetupCard({
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRegisterPush} disabled={pushLoading || !nativeSupported}>
             {pushLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : pushRegistered ? <CheckCircle2 className="mr-1.5 h-4 w-4" /> : <Bell className="mr-1.5 h-4 w-4" />}
-            {pushRegistered ? "Refresh iPhone" : "Register iPhone"}
+            {pushRegistered ? "Refresh iPhone" : "Register device"}
           </Button>
           <Button variant="outline" size="sm" onClick={handleTestPush} disabled={pushLoading}>
             {pushLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Bell className="mr-1.5 h-4 w-4" />}
