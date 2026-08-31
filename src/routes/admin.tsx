@@ -94,6 +94,7 @@ type LeafItem = {
   search?: Record<string, unknown>;
   sub?: string; // optional sub-module key for RBAC filtering
   adminOnly?: boolean; // only super admins & inventory managers
+  personal?: boolean; // role-agnostic personal surface — always visible
 };
 
 type GroupItem = {
@@ -144,6 +145,7 @@ const inventoryChildren: LeafItem[] = [
   { to: "/admin/inventory/transfers", label: "Transfers", icon: Boxes, sub: "transfers" },
   { to: "/admin/inventory/issuances", label: "Issuances", icon: UserPlus, sub: "issuances" },
   { to: "/admin/inventory/collections", label: "Collections", icon: Inbox, sub: "collections" },
+  { to: "/admin/my-inventory", label: "My Uniform", icon: PackageOpen, sub: "my_inventory", personal: true },
 
   { to: "/admin/inventory/stock", label: "Stock Report", icon: Wallet, sub: "stock_report" },
   { to: "/admin/inventory/stock-ledger", label: "Stock Ledger", icon: Banknote, sub: "stock_ledger" },
@@ -465,6 +467,7 @@ function AdminLayout() {
       const visibleInventoryChildren = inventoryChildren.filter((c) => c.to !== "/admin/inventory/collections" || isFO);
       if (isSuperAdmin) return visibleInventoryChildren.filter((c) => !c.adminOnly || isInvAdmin);
       const list = inventoryChildren.filter((c) => {
+        if (c.personal) return true;
         if (c.adminOnly) return isInvAdmin;
         // Collections and guard issuances are field-officer workflows — bypass sub-permission gating for FOs.
         if (c.to === "/admin/inventory/collections") return isFO;
@@ -534,8 +537,15 @@ function AdminLayout() {
       });
 
     if (isFieldOfficer) {
-      // FO gets a single dashboard entry that already shows their units and team.
-      return base;
+      // FO gets a single dashboard entry plus their own personal uniform surface.
+      const myUniform: GroupItem = {
+        key: "my-inventory",
+        label: "My Uniform",
+        icon: Boxes,
+        to: "/admin/my-inventory",
+        activePrefixes: ["/admin/my-inventory"],
+      };
+      return base.some((g) => g.key === "my-inventory") ? base : [...base, myUniform];
     }
     return base;
   })();
@@ -846,6 +856,7 @@ function AdminLayout() {
                   { to: "/admin/attendance", label: "Attendance", icon: ClipboardList },
                   { to: "/admin/field-sense", label: "Radar", icon: Radio },
                   { to: "/admin/inventory/items", label: "Uniform", icon: Boxes },
+                  { to: "/admin/my-inventory", label: "My Uniform", icon: PackageOpen },
                   { to: "/admin/my-attendance", label: "My Attendance", icon: Clock },
                 ];
                 return (
