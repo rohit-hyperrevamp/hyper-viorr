@@ -94,6 +94,7 @@ type LeafItem = {
   search?: Record<string, unknown>;
   sub?: string; // optional sub-module key for RBAC filtering
   adminOnly?: boolean; // only super admins & inventory managers
+  personal?: boolean; // role-agnostic personal surface — always visible
 };
 
 type GroupItem = {
