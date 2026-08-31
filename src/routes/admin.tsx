@@ -856,6 +856,7 @@ function AdminLayout() {
                   { to: "/admin/attendance", label: "Attendance", icon: ClipboardList },
                   { to: "/admin/field-sense", label: "Radar", icon: Radio },
                   { to: "/admin/inventory/items", label: "Uniform", icon: Boxes },
+                  { to: "/admin/my-inventory", label: "My Uniform", icon: PackageOpen },
                   { to: "/admin/my-attendance", label: "My Attendance", icon: Clock },
                 ];
                 return (
