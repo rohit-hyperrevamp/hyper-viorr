@@ -467,6 +467,7 @@ function AdminLayout() {
       const visibleInventoryChildren = inventoryChildren.filter((c) => c.to !== "/admin/inventory/collections" || isFO);
       if (isSuperAdmin) return visibleInventoryChildren.filter((c) => !c.adminOnly || isInvAdmin);
       const list = inventoryChildren.filter((c) => {
+        if (c.personal) return true;
         if (c.adminOnly) return isInvAdmin;
         // Collections and guard issuances are field-officer workflows — bypass sub-permission gating for FOs.
         if (c.to === "/admin/inventory/collections") return isFO;
