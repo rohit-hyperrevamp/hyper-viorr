@@ -327,7 +327,7 @@ function FieldOfficerDashboard() {
       let myStockQty = 0;
       let myStockSkus = 0;
       try {
-        const { data: myBal } = await supabase.from("inv_stock_balances" as never).select("item_id,size_value,qty").eq("location_type", "field_officer").eq("location_id", meId);
+        const { data: myBal } = await supabase.from("inv_stock_balances" as never).select("item_id,size_value,qty").in("location_type", ["field_officer", "guard"]).eq("location_id", meId);
         for (const b of (myBal ?? []) as Array<{ qty: number }>) {
           const q = Number(b.qty) || 0;
           if (q > 0) { myStockQty += q; myStockSkus += 1; }
