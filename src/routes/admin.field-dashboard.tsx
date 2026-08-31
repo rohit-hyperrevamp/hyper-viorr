@@ -570,7 +570,7 @@ function FieldOfficerDashboard() {
             hint={`${data?.myStockSkus ?? 0} SKU${(data?.myStockSkus ?? 0) === 1 ? "" : "s"} in hand`}
             delta={0} deltaSuffix=""
             icon={Warehouse}
-            to="/admin/inventory/stock"
+            to="/admin/my-inventory"
           />
         </div>
       </section>
