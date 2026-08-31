@@ -537,8 +537,15 @@ function AdminLayout() {
       });
 
     if (isFieldOfficer) {
-      // FO gets a single dashboard entry that already shows their units and team.
-      return base;
+      // FO gets a single dashboard entry plus their own personal uniform surface.
+      const myUniform: GroupItem = {
+        key: "my-inventory",
+        label: "My Uniform",
+        icon: Boxes,
+        to: "/admin/my-inventory",
+        activePrefixes: ["/admin/my-inventory"],
+      };
+      return base.some((g) => g.key === "my-inventory") ? base : [...base, myUniform];
     }
     return base;
   })();
